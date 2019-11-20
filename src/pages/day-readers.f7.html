@@ -1,0 +1,87 @@
+<template>
+	<div class="page page-with-tabs-subnavbar">
+
+		<div class="navbar">
+			<div class="navbar-inner sliding">
+				<div class="left">
+					<a href="#" class="link back">
+						<i class="icon icon-back"></i>
+						<span class="">Назад</span>
+					</a>
+				</div>
+				<div class="title">{{#if searchMode}}Поиск{{else}}Чтения{{/if}}</div>
+				<div class="right">
+					{{#if searchMode}}
+					<!--<a class="link popup-close">Закрыть</a>-->
+					{{else}}
+						{{> "navbar-right"}}
+					{{/if}}
+				</div>
+			</div>
+		</div>
+
+		<div class="page-content">
+			<div class="page-content-tile">
+			<h2 class="block">{{name}}</h2>
+
+			<div class="subnavbar tabs-subnavbar">
+				<div class="subnavbar-inner">
+					<div class="segmented segmented-raised">
+						<a class="button tab-link" href="#tab-churchslavonic">Церковнославянский</a>
+						<a class="button tab-link tab-link-active" href="#tab-slavonic">Русский</a>
+					</div>
+				</div>
+			</div>
+
+			<div class="tabs">
+				<div class="tab" id="tab-churchslavonic">
+					<div class="block block-strong inset churchslavonic-ereader">{{churchslavonicText}}</div>
+				</div>
+				<div class="tab tab-active" id="tab-slavonic">
+					<div class="block block-strong inset slavonic-ereader text-content">{{slavonicText}}</div>
+				</div>
+			</div>
+			</div>
+		</div>
+
+	</div>
+</template>
+<!--suppress JSAnnotator -->
+<script>
+	export default {
+		data() {
+			let dataManager = this.$app.dataManager,
+					dayCode = this.$route.params.id,
+					readerId = (this.$route.context && this.$route.context.actionId) || this.$route.params.readerId,
+					readerData = {},
+					text;
+
+			readerData = Object.assign(
+				{},
+				dataManager.cache.day[dayCode].readers.find(({id}) => id === readerId)
+			);
+
+			text = readerData.text.split('\n');
+			text = text.filter((a) => a.startsWith('#c#'));
+			text = text.map((a) => {
+				return a.replace(/#c#(\d+:\d+)/, '<span class="text-color-red">$1</span>');
+			});
+			readerData.churchslavonicText = text.join('<br>');
+
+			text = readerData.text.split('\n');
+			text = text.filter((a) => a.startsWith('#r#'));
+			text = text.map((a) => {
+				return a
+					.replace(/#r#(\d+:\d+)/, '<span class="text-color-red">$1</span>')
+					.replace(/\[(Зач\. \d+)\]/g, '[<span class="text-color-red">$1</span>]')
+					.replace(/_(.*?)_/g, '<i>$1</i>')
+					;
+			});
+			readerData.slavonicText = text.join('<br>');
+
+			readerData.searchMode = this.$route.query.mode === 'search';
+
+			return readerData;
+		}
+	};
+</script>

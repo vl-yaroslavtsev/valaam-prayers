@@ -1,0 +1,111 @@
+<!--suppress HtmlUnknownTarget -->
+<template>
+	<div class="page" data-name="calendar">
+
+		<!-- Top Navbar -->
+		<div class="navbar">
+			<div class="navbar-inner sliding">
+				<div class="left">
+					<a href="#" class="link back">
+						<i class="icon icon-back"></i>
+						<span class="">Назад</span>
+					</a>
+				</div>
+				<div class="title">Праздники</div>
+				<div class="right">
+				{{> "navbar-right"}}
+				</div>
+			</div>
+		</div>
+
+		<!-- Scrollable page content-->
+		<div class="page-content">
+			<div class="page-content-tile">
+			<h2 class="block">Праздники</h2>
+			<div class="tile">
+				{{#each holidays}}
+				<div class="block-title">{{name}}</div>
+				{{#if desc}}
+				<div class="block-header">{{desc}}</div>
+				{{/if}}
+				<div class="list no-hairlines-md">
+					<ul>
+						{{#each items}}
+						<li>
+							<a href="/days/{{@key}}" class="item-link item-content">
+								<div class="item-inner">
+									<div class="item-title">
+										<div class="item-header">
+											{{moment @key format="D MMMM, dddd"}}
+										</div>
+										{{this}}
+									</div>
+								</div>
+							</a>
+						</li>
+						{{/each}}
+					</ul>
+				</div>
+				{{/each}}
+
+			</div>
+			</div>
+		</div>
+	</div>
+</template>
+<!--suppress JSAnnotator -->
+<script>
+	// noinspection JSUnusedGlobalSymbols
+	export default {
+		on: {
+			pageAfterIn: function(e, page) {
+				// if(this.$root.debug)
+				// 	this.$router.navigate('/days/20190428', {});
+			}
+		},
+		data: function() {
+			return {
+				holidays: [
+					{
+						// name: "Посты и праздники",
+						items: {
+							"20190428": "ПАСХА ХРИСТОВА"
+						}
+					},
+					{
+						name: "Двунадесятые переходящие праздники",
+						items: {
+							"20190421": "Вход Господень в Иерусалим",
+							"20190606": "Вознесение Господне",
+							"20190616": "День Святой Троицы. Пятидесятница"
+						}
+					},
+					{
+						name: "Двунадесятые непереходящие праздники",
+						items: {
+							"20190119": "Крещение Господне. Богоявление",
+							"20190215": "Сретение Господне",
+							"20190407": "Благовещение Пресвятой Богородицы",
+							"20190819": "Преображение Господне",
+							"20190828": "Успение Пресвятой Богородицы",
+							"20190921": "Рождество Пресвятой Богородицы",
+							"20190927": "Воздвижение Креста Господня",
+							"20191204": "Введение во храм Пресвятой Богородицы",
+							"20190107": "Рождество Христово"
+						}
+					},
+					{
+						name: "Великие праздники",
+						items: {
+							"20190114": "Обрезание Господне и память святителя Василия Великого",
+							"20190707": "Рождество Иоанна Предтечи",
+							"20190712": "святых первоверховных апостолов Петра и Павла",
+							"20190911": "Усекновение главы Иоанна Предтечи",
+							"20191014": "Покров Пресвятой Богородицы"
+						}
+					}
+				]
+			};
+		}
+	}
+</script>

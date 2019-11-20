@@ -1,0 +1,271 @@
+@font-face {
+	font-family: Triodion;
+	/* src: url('../fonts/Triodion.eot'); /* IE9 Compat Modes */
+	src: local('Triodion'), local('Triodion Ucs'),
+		   url('../fonts/Triodion.woff2') format('woff2'); /* Super Modern Browsers */
+			/* url('../fonts/Triodion.eot?#iefix') format('embedded-opentype'),
+         url('../fonts/Triodion.woff') format('woff'),
+			   url('../fonts/Triodion.ttf') format('truetype'),
+			   url('../fonts/Triodion.svg#Triodion-Ucs') format('svg'); */
+}
+
+@font-face {
+	font-family: Hirmos;
+	src: local('Hirmos'), local('Hirmos Ucs'),
+		   url('../fonts/HirmUcs8.woff2') format('woff2');
+	font-style: normal;
+	font-weight: normal;
+}
+
+@font-face {
+	font-family: Irmologion;
+	src: local('Irmologion'), local('Irmologion Ucs'),
+		   url('../fonts/IrmUcs.woff2') format('woff2');
+	font-style: normal;
+	font-weight: normal;
+}
+
+@font-face {
+	font-family: Orthodox;
+	src: local('Orthodox.tt'), local('Orthodox.tt Ucs'),
+		   url('../fonts/OrtUcs8.woff2') format('woff2');
+	font-style: normal;
+	font-weight: normal;
+}
+
+@font-face {
+	font-family: Ponomar;
+	src: local('Ponomar'), local('Ponomar Unicode'),
+			 url("../fonts/PonomarUnicode.woff2") format("woff2");
+	/*   url("../fonts/PonomarUnicode.woff") format("woff");
+			 url("../fonts/PonomarUnicode.otf") format("opentype"),
+			 url("../fonts/PonomarUnicode.ttf") format("truetype"); */
+	font-style: normal;
+	font-weight: 400
+}
+
+.ios .tabbar-labels .tab-link:not(.tab-link-active) .icon-ios-fill {
+	display: none;
+}
+
+.ios .tabbar-labels .tab-link.tab-link-active .icon:not(.icon-ios-fill) {
+	display: none;
+}
+
+.ios .panel-left:after {
+	content: '';
+	height: 100%;
+	width: 1px;
+	position: absolute;
+	right: 0;
+	top: 0;
+	background: #ddd;
+	z-index: 1000;
+}
+
+.ios .theme-dark .panel-left:after {
+	background: #282828;
+}
+
+/* ... */
+
+/*
+.ios .page,
+.md .page {
+	color: #f8f2e7;
+}
+
+.ios .list .item-content,
+.md .list .item-content {
+	color: #f8f2e7;
+}
+
+.toolbar .tabbar-labels .toolbar-bottom-md,
+.md .toolbar {
+	color: #eedfbe;
+}
+
+.toolbar .tabbar-labels .toolbar-bottom-md {
+	border-top: solid 1px #d7c6a1;
+}
+
+.ios .tabbar a.tab-link-active,
+.ios .tabbar-labels a.tab-link-active,
+.tab-link .tab-link-active {
+	color: #82713d;
+}
+
+.ios .navbar a.link,
+.md .navbar a.link {
+	color: #a59571;
+}
+
+.ios .block,
+.md .block {
+	color: #474340;
+}
+
+.ios .navbar,
+.md .navbar {
+	background-color: #f8f2e7;
+}
+
+.ios .navbar .title,
+.md .navbar .title {
+	color: #a1927d;
+}
+*/
+
+/* ... */
+
+.churchslavonic-ereader {
+	font-family: Ponomar, serif;
+	font-size: 1.5em;
+}
+
+.churchslavonic-ereader .text-color-red {
+	font-family: Roboto, Noto, Helvetica, Arial, sans-serif;
+	font-size: 0.8em;
+}
+
+.churchslavonic {
+	font-family: Triodion, serif;
+	font-size: 1.5em;
+}
+
+.churchslavonic h2,
+.slavonic h2 {
+	color: red;
+	font-size: 1em;
+}
+
+.churchslavonic b,
+.churchslavonic strong,
+.slavonic b,
+.slavonic strong {
+	font-style: normal;
+	color: red;
+}
+
+.slavonic p:first-letter {
+	color: red;
+	font-weight: bold;
+}
+
+/* ... */
+
+h2.block {
+	/*font-size: 1em;*/
+	/*text-transform: uppercase;*/
+}
+
+.page-content h2 > a {
+	color: red;
+}
+
+.content {
+	/*margin: 0 15px;*/
+}
+
+.redcap p:first-letter {
+	color: red;
+	font-weight: bold;
+}
+
+/* ... */
+
+.ios .navbar a.link.vm-searchbar-button {
+	margin-left: 8px;
+	display: none;
+}
+
+.md .navbar a.link.vm-searchbar-button {
+	margin-right: 8px;
+	display: none;
+	color: #000;
+}
+
+.md .button,
+.md a.link:before,
+.md .input-clear-button:before {
+	transition-duration: unset !important;
+}
+
+/* ... */
+
+#searchbarResult li .item-title,
+#searchbarResult li .item-subtitle {
+	white-space: normal;
+}
+
+#searchbarResult li .item-text {
+	/*noinspection CssUnknownProperty*/
+	-webkit-line-clamp: unset;
+	max-height: none;
+	font-size: 0.75em;
+}
+
+#searchbarResult li .item-title > b,
+#searchbarResult li .item-text > b {
+	color: red;
+}
+
+/* ... */
+
+.calendar-day.calendar-day-weekend:not(.calendar-day-disabled):not(.calendar-day-prev):not(.calendar-day-next) {
+	color: #f00;
+}
+
+.vm-calendar-day-fasting:not(.calendar-day-disabled):not(.calendar-day-prev):not(.calendar-day-next) {
+	background-color: rgba(188, 188, 188, 0.6);
+}
+
+.vm-calendar-day-week:not(.calendar-day-disabled):not(.calendar-day-prev):not(.calendar-day-next) {
+	background-color: rgba(255, 226, 112, 0.7);
+}
+
+.vm-calendar-day-valaam:not(.calendar-day-disabled):not(.calendar-day-prev):not(.calendar-day-next) {
+	background-color: rgba(52, 176, 56, 0.7);
+}
+
+.vm-calendar-day-holiday:not(.calendar-day-disabled):not(.calendar-day-prev):not(.calendar-day-next) {
+	background-color: rgba(255, 77, 67, 0.8);
+}
+
+.vm-calendar-day-holiday.calendar-day-weekend:not(.calendar-day-disabled):not(.calendar-day-prev):not(.calendar-day-next) {
+	color: #fff;
+}
+
+.vm-calendar-day-grandholiday:not(.calendar-day-disabled):not(.calendar-day-prev):not(.calendar-day-next) {
+	background-color: rgba(255, 149, 0, 0.8);
+}
+
+.vm-calendar-day-commemorationdead:not(.calendar-day-disabled):not(.calendar-day-prev):not(.calendar-day-next) > span {
+	border: solid 2px #383838;
+}
+
+.vm-calendar-day-lightweek:not(.calendar-day-disabled):not(.calendar-day-prev):not(.calendar-day-next) {
+	color: #f00 !important;
+	background-color: rgba(255, 226, 112, 0.7);
+	font-weight: bold;
+}
+
+.vm-calendar-day-easter:not(.calendar-day-disabled):not(.calendar-day-prev):not(.calendar-day-next) {
+	color: #fff !important;
+	background-color: rgba(255, 0, 0, 1);
+	font-weight: bold;
+}
+
+.vm-calendar-day-description > nobr > span {
+	display: inline-block;
+	width: 20px;
+	height: 20px;
+	vertical-align: middle;
+	margin: 2px;
+}
+
+.vm-calendar-day-description > nobr > span.vm-calendar-day-commemorationdead {
+	border: solid 2px #383838;
+	border-radius: 50%;
+	box-sizing: border-box;
+}

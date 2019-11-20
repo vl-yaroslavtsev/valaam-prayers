@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<!--suppress HtmlUnknownTarget -->
+<html lang="ru">
+
+<head>
+	<meta charset="utf-8">
+	<meta http-equiv="Content-Security-Policy"
+		    content="default-src * 'self' 'unsafe-inline' 'unsafe-eval' blob: data: gap: content:">
+	<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+	<meta name="apple-mobile-web-app-capable" content="yes">
+	<meta name="apple-mobile-web-app-status-bar-style" content="default">
+	<meta name="theme-color" content="#3878a8">
+	<meta name="format-detection" content="telephone=no">
+	<meta name="msapplication-tap-highlight" content="no">
+	
+	<link rel="manifest" href="manifest.webmanifest">
+
+	<link rel="apple-touch-icon" href="./images/icon-120.png">
+	<link rel="apple-touch-icon" sizes="152x152" href="./images/icon-152.png">
+	<link rel="apple-touch-icon" sizes="180x180" href="./images/icon-180.png">
+	<link rel="apple-touch-icon" sizes="167x167" href="./images/icon-167.png">
+
+	<link rel="apple-touch-startup-image" href="./images/startup-image-2048.png" sizes="2048x2732"  />
+	<link rel="apple-touch-startup-image" href="./images/startup-image-1668.png" sizes="1668x2224"  />
+	<link rel="apple-touch-startup-image" href="./images/startup-image-1536.png" sizes="1536x2048" />
+	<link rel="apple-touch-startup-image" href="./images/startup-image-1125.png" sizes="1125x2436" />
+	<link rel="apple-touch-startup-image" href="./images/startup-image-1242.png" sizes="1242x2208" />
+	<link rel="apple-touch-startup-image" href="./images/startup-image-750.png" sizes="750x1334" />
+	<link rel="apple-touch-startup-image" href="./images/startup-image-640.png" sizes="640x1136" />
+
+	<title>Молитвослов</title>
+
+	<link rel="icon" href="./images/favicon.ico" type="image/x-icon" />
+
+	<!-- CSS будут вставлены здесь -->
+</head>
+
+<body>
+
+<div id="app">
+	<!-- Status bar -->
+	<div class="statusbar"></div>
+
+	<!-- Views/Tabs container -->
+	<div class="views tabs ios-edges">
+
+		<!-- Tabbar for switching views-tabs -->
+<!--		<div class="toolbar tabbar-labels toolbar-bottom">-->
+<!--			<div class="toolbar-inner">-->
+<!--				<a href="#view-valaam" class="tab-link">-->
+<!--					<i class="icon f7-icons ios-only">home</i>-->
+<!--					<i class="icon f7-icons ios-only icon-ios-fill">home_fill</i>-->
+<!--					<i class="icon material-icons md-only">home</i>-->
+<!--					<span class="tabbar-label">Валаам</span>-->
+<!--				</a>-->
+<!--				<a href="#view-prayers" class="tab-link">-->
+<!--					<i class="icon f7-icons ios-only">book</i>-->
+<!--					<i class="icon f7-icons ios-only icon-ios-fill">book_fill</i>-->
+<!--					<i class="icon material-icons md-only">book</i>-->
+<!--					<span class="tabbar-label">Молитвослов</span>-->
+<!--				</a>-->
+<!--				<a href="#view-calendar" class="tab-link">-->
+<!--					<i class="icon f7-icons ios-only">today</i>-->
+<!--					<i class="icon f7-icons ios-only icon-ios-fill">today_fill</i>-->
+<!--					<i class="icon material-icons md-only">date_range</i>-->
+<!--					<span class="tabbar-label">Календарь</span>-->
+<!--				</a>-->
+<!--				<a href="#view-rites" class="tab-link">-->
+<!--					<i class="icon f7-icons ios-only">more</i>-->
+<!--					<i class="icon f7-icons ios-only icon-ios-fill">more_fill</i>-->
+<!--					<i class="icon material-icons md-only">more_horiz</i>-->
+<!--					<span class="tabbar-label">Поминовения</span>-->
+<!--				</a>-->
+<!--			</div>-->
+<!--		</div>-->
+
+		<!-- Валаам -->
+		<div id="view-valaam" class="view tab"></div>
+
+		<!-- Молитвослов -->
+		<div id="view-prayers" class="view tab"></div>
+
+		<!-- Календарь -->
+		<div id="view-calendar" class="view tab"></div>
+
+		<!-- Прочее -->
+		<div id="view-rites" class="view tab"></div>
+	</div>
+</div>
+
+<!-- Cordova -->
+<!--
+<script type="text/javascript" src="cordova.js"></script>
+-->
+
+<!-- JS будут вставлены здесь -->
+</body>
+
+</html>

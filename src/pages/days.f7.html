@@ -1,0 +1,244 @@
+<!--suppress HtmlUnknownTarget -->
+<template>
+	<div class="page">
+
+		<div class="navbar">
+			<div class="navbar-inner sliding">
+				<div class="left">
+					<a href="#" class="link back">
+						<i class="icon icon-back"></i>
+						<span class="">Назад</span>
+					</a>
+				</div>
+				<div class="title">{{#if searchMode}}Поиск{{else}}Календарь{{/if}}</div>
+				<div class="right">
+					{{#if searchMode}}
+					<!--<a class="link popup-close">Закрыть</a>-->
+					{{else}}
+					<a href="/days/{{dayPrev}}" data-reload-current="true" class="link"><i
+							class="icon icon-back"></i></a>
+					<a href="/days/{{dayNext}}" data-reload-current="true" class="link"><i
+							class="icon icon-forward"></i></a>
+					{{> "navbar-right"}}
+					{{/if}}
+				</div>
+			</div>
+		</div>
+
+		<div class="page-content">
+			<div class="page-content-tile">
+			<h2 class="block">{{days.title}}</h2>
+			<div class="tile">
+				<div class="block day-saints-icon">
+					<div class="item-media media-obj no-bg">
+						<img class="media-obj-img lazy"
+							 data-src="https://valaam.ru{{days.picture}}"
+							 data-srcorig="https://valaam.ru{{days.picture_3x}}"
+							 title="{{days.picture_desc}}">
+							 <!-- data-srcset="{{days.picture_srcset}}"
+	 						sizes="60vw" -->
+					</div>
+					<div class="item-text text-color-gray">{{days.picture_desc}}</div>
+				</div>
+				<div class="block day-saints-text">
+					{{days.text}}
+				</div>
+
+				<div class="block-title">Евангельские Чтения</div>
+				<div class="block margin-top-half">{{days.readers_text}}</div>
+				<!--
+				<div class="list no-hairlines-md">
+					<ul>
+						{{#each days.readers}}
+						<li>
+							<a href="/days/{{@root.day}}/readers/{{id}}" class="item-link item-content">
+								<div class="item-inner">
+									<div class="item-title">{{name}}</div>
+								</div>
+							</a>
+						</li>
+						{{/each}}
+					</ul>
+				</div>
+				-->
+
+				{{#if days.prayers.text}}
+				<div class="block-title">Мысли на каждый день года</div>
+				<div class="list no-hairlines-md">
+					<ul>
+						<li>
+							<a href="/days/{{day}}/thoughts" class="item-link item-content">
+								<div class="item-inner">
+									<div class="item-title">{{days.prayers.picture_desc}}</div>
+								</div>
+							</a>
+						</li>
+					</ul>
+				</div>
+				{{/if}}
+
+				<div class="block-title">Богослужебные указания</div>
+				<div class="list no-hairlines-md">
+					<ul>
+						<li>
+							<a href="/days/{{day}}/instructions" class="item-link item-content">
+								<div class="item-inner">
+									<div class="item-title">{{days.title}}</div>
+								</div>
+							</a>
+						</li>
+					</ul>
+				</div>
+
+				<div class="block-title">Молитвы</div>
+				<div class="list no-hairlines-md">
+					<ul>
+						{{#each days.prayers.items}}
+						<li>
+							<a href="/days/{{@root.day}}/prayers/{{id}}" class="item-link item-content">
+								<div class="item-inner">
+									<div class="item-title">{{name}}</div>
+								</div>
+							</a>
+						</li>
+						{{/each}}
+					</ul>
+				</div>
+
+				{{#if hasLives}}
+				<div class="block-title">Жития</div>
+				<div class="list no-hairlines-md">
+					<ul>
+						{{#each days.lives}}
+						<li>
+							<a href="/days/{{@root.day}}/lives/{{id}}" class="item-link item-content">
+								<div class="item-inner">
+									<div class="item-title">{{name}}</div>
+								</div>
+							</a>
+						</li>
+						{{/each}}
+					</ul>
+				</div>
+				{{/if}}
+			</div>
+			</div>
+		</div>
+	</div>
+</template>
+<!--suppress HtmlUnknownAttribute -->
+<style scoped>
+	.links-list a {
+		white-space: normal;
+	}
+	div.block-title {
+		margin-top: 32px;
+		/*white-space: normal;*/
+	}
+	.list .item-title {
+		/*white-space: normal;*/
+	}
+	.churchslavonic {
+	}
+	.date-section p {
+		margin: 0;
+	}
+	.date-section p.weekday {
+		font-size: 24px;
+		margin: 0;
+	}
+	em {
+		color: red;
+		font-style: normal;
+	}
+
+	.day-saints-text a {
+		/*text-decoration: none;*/
+	}
+
+	.day-saints-text strong {
+		/*font-weight: bold;*/
+	}
+
+	.day-saints-text em {
+		font-style: normal;
+		font-size: 1.25em;
+		color: red;
+	}
+
+	.day-saints-text img {
+		height: 20px;
+		vertical-align: middle;
+		margin-top: -3px;
+		margin-right: 3px;
+	}
+
+	.day-saints-icon  {
+		display: flex;
+	}
+
+	.day-saints-icon .item-media {
+		max-width: 65%;
+		height: 250px;
+		flex-shrink: 0;
+	}
+
+	.day-saints-icon img {
+		max-width: 100%;
+		width: auto;
+	}
+
+	.day-saints-icon .item-text {
+		padding-left: 10px;
+		align-self: center;
+		font-size: 14px;
+		flex-shrink: 1;
+	}
+
+	.day-saints-icon .item-text:first-letter {
+		text-transform: uppercase;
+	}
+</style>
+<!--suppress JSAnnotator -->
+<script>
+	import moment from 'moment';
+	let app;
+
+	export default {
+		on: {
+			pageAfterIn(e, page) {
+				// this.$router.navigate('/days/20190428', {});
+			}
+		},
+		data() {
+			app = this.$app;
+			let dataManager = app.dataManager,
+					dayCode = this.$route.params.id,
+					daysData = Object.assign({}, dataManager.cache.day[dayCode]);
+
+			daysData.text = /*marked*/(daysData.text)
+				.replace(/href="E(\d+)"/g, 'href="/prayers/text/$1"')
+			;
+
+			daysData.picture_desc = app.methods.hyphenate(daysData.picture_desc);
+
+			daysData.readers_text = daysData.readers_text.replace(/\^(\d+)/g, '<sup>$1</sup>');
+
+			// noinspection JSUnresolvedVariable
+			daysData.oldstyleDate = moment.unix(daysData.date_ts).subtract(13, 'days');
+			// noinspection JSUnresolvedVariable
+			daysData.newstyleDate = moment.unix(daysData.date_ts);
+
+			daysData.title = daysData.name;
+
+			return {
+				day: dayCode,
+				days: daysData,
+				dayPrev: moment.unix(daysData.date_ts).subtract(1, 'day').format('YYYYMMDD'),
+				dayNext: moment.unix(daysData.date_ts).add(1, 'day').format('YYYYMMDD'),
+				searchMode: this.$route.query.mode === 'search',
+				hasLives: false // daysData.lives.length !== 0
+			};
+		}
+	};
+</script>

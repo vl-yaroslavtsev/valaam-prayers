@@ -1,0 +1,62 @@
+<template>
+	<div class="page">
+
+		<div class="navbar">
+			<div class="navbar-inner sliding">
+				<div class="left">
+					<a href="#" class="link back">
+						<i class="icon icon-back"></i>
+						<span class="">Назад</span>
+					</a>
+				</div>
+				<div class="title">{{title}}</div>
+				<div class="right">
+					{{> "navbar-right"}}
+				</div>
+			</div>
+		</div>
+
+		<div class="page-content">
+			<div class="page-content-tile">
+			<h2 class="block">{{title}}</h2>
+			<div class="block block-strong inset text-content">
+				<p><strong>{{subtitle}}</strong></p>
+				{{text}}
+			</div>
+			</div>
+		</div>
+
+	</div>
+</template>
+<style scoped>
+	sup, strong {
+		color: rgba(255, 0, 0, .8);
+	}
+
+	blockquote {
+		margin: 0;
+		border-left: solid 3px #ddd;
+		padding-left: 10px;
+		display: inline-block;
+	}
+</style>
+<!--suppress JSAnnotator -->
+<script>
+	export default {
+		data() {
+			let app = this.$app,
+				dayCode = this.$route.params.id,
+				dayData = app.dataManager.cache.day[dayCode],
+				data = {};
+
+			data.title = 'Богослужебные указания';
+			data.subtitle = dayData.name + '.';
+			data.text = /*marked*/(dayData.instructions)
+				.replace(/\^(\d+)/g, '<sup>$1</sup>')
+				.replace(/href="(https?)/g, 'class="external" href="$1')
+			;
+
+			return data;
+		}
+	};
+</script>

@@ -1,0 +1,375 @@
+<template>
+
+<div class="page page-white">
+
+	<div class="navbar">
+		<div class="navbar-inner sliding">
+			<div class="left">
+				<a href="#" class="link back">
+					<i class="icon icon-back"></i>
+					<span class="">Назад</span>
+				</a>
+			</div>
+			<div class="title"></div>
+		</div>
+	</div>
+
+	<div class="page-content">
+		<h2 class="block">Настроить шрифты</h2>
+
+		<div class="list no-hairlines-md">
+			<div class="list-group">
+	    	<ul>
+	      	<li class="list-group-title">Церковнославянский</li>
+			  	<li>
+						<a class="item-link smart-select smart-select-init"
+							 data-open-in="popover"
+							 data-close-on-select="true"
+							 data-popup-close-link-text="<i class='icon material-icons md-only'>close</i>">
+							<select id="select-font-family-cs"
+											@change="fontChange">
+									{{#each csFonts}}
+										<option value="{{name}}" {{selected}}>{{name}}</option>
+									{{/each}}
+							</select>
+							<div class="item-content">
+								<div class="item-media">
+								 	<i class="icon material-icons md-only disabled">text_format</i>
+							 	</div>
+								<div class="item-inner">
+									<div class="item-title">Гарнитура</div>
+								</div>
+							</div>
+						</a>
+					</li>
+			    <li>
+			      <div class="item-content">
+			        <div class="item-media">
+								<i class="icon material-icons md-only disabled">format_size</i>
+							</div>
+			        <div class="item-inner">
+								<div class="item-title">
+									Размер
+								</div>
+		            <div class="item-after">
+									<div class="stepper stepper-small stepper-init"
+											 id="stepper-font-size-cs"
+										   data-autorepeat="true"
+											 data-autorepeat-dynamic="true"
+											 data-min="15"
+											 data-max="60"
+											 data-step="0.5"
+											 data-value="{{csFontSize}}"
+											 @stepper:change="fontChange">
+						        <div class="stepper-button-minus"></div>
+										<div class="stepper-value"></div>
+						        <div class="stepper-button-plus"></div>
+							    </div>
+							  </div>
+			        </div>
+			      </div>
+					</li>
+					<li>
+			      <div class="item-content">
+			        <div class="item-media">
+								<i class="icon material-icons md-only disabled">format_line_spacing</i>
+							</div>
+			        <div class="item-inner">
+								<div class="item-title">
+									Высота строки
+								</div>
+		            <div class="item-after">
+									<div class="stepper stepper-small stepper-init"
+									     id="stepper-line-height-cs"
+										   data-autorepeat="true"
+											 data-autorepeat-dynamic="true"
+											 data-min="0.7"
+											 data-max="2"
+											 data-step="0.05"
+											 data-value="{{csLineHeight}}"
+											 @stepper:change="fontChange"
+											 >
+						        <div class="stepper-button-minus"></div>
+										<div class="stepper-value"></div>
+						        <div class="stepper-button-plus"></div>
+							    </div>
+							  </div>
+			        </div>
+			      </div>
+					</li>
+				</ul>
+			</div>
+			<div class="list-group">
+			 	<ul>
+			   	<li class="list-group-title">Русский</li>
+					<li>
+						<a class="item-link smart-select smart-select-init"
+							 data-open-in="popover"
+							 data-close-on-select="true"
+							 data-popup-close-link-text="<i class='icon material-icons md-only'>close</i>">
+							<select id="select-font-family-sl"
+											@change="fontChange">
+									{{#each slFonts}}
+										<option value="{{name}}" {{selected}}>{{name}}</option>
+									{{/each}}
+							</select>
+							<div class="item-content">
+								<div class="item-media">
+								 	<i class="icon material-icons md-only disabled">text_format</i>
+							 	</div>
+								<div class="item-inner">
+									<div class="item-title">Гарнитура</div>
+								</div>
+							</div>
+						</a>
+					</li>
+					<li>
+			      <div class="item-content">
+			        <div class="item-media">
+								<i class="icon material-icons md-only disabled">format_size</i>
+							</div>
+			        <div class="item-inner">
+								<div class="item-title">
+									Размер
+								</div>
+		            <div class="item-after">
+									<div class="stepper stepper-small stepper-init"
+											 id="stepper-font-size-sl"
+										   data-autorepeat="true"
+											 data-autorepeat-dynamic="true"
+											 data-min="10"
+											 data-max="60"
+											 data-step="0.5"
+											 data-value="{{slFontSize}}"
+											 @stepper:change="fontChange">
+						        <div class="stepper-button-minus"></div>
+										<div class="stepper-value"></div>
+						        <div class="stepper-button-plus"></div>
+							    </div>
+							  </div>
+			        </div>
+			      </div>
+					</li>
+					<li>
+			      <div class="item-content">
+			        <div class="item-media">
+								<i class="icon material-icons md-only disabled">format_line_spacing</i>
+							</div>
+			        <div class="item-inner">
+								<div class="item-title">
+									Высота строки
+								</div>
+		            <div class="item-after">
+									<div class="stepper stepper-small stepper-init"
+											 id="stepper-line-height-sl"
+										   data-autorepeat="true"
+											 data-autorepeat-dynamic="true"
+											 data-min="0.7"
+											 data-max="2"
+											 data-step="0.05"
+											 data-value="{{slLineHeight}}"
+											 @stepper:change="fontChange"
+											 >
+						        <div class="stepper-button-minus"></div>
+										<div class="stepper-value"></div>
+						        <div class="stepper-button-plus"></div>
+							    </div>
+							  </div>
+			        </div>
+			      </div>
+					</li>
+			   </ul>
+			</div>
+		</div>
+	</div>
+	<div id="test-slavonic" class="slavonic text-content"><b>Г</b>о́споди Иису́се Христе́, поми́луй мя</div>
+	<div id="test-churchslavonic" class="churchslavonic"><b>Г</b>Dи ї}се хrтE, поми1луй мS</div>
+	<div class="popover popover-font-preview">
+	  <div class="popover-inner">
+			{{#if previewCsFont}}
+			<div class="churchslavonic margin"
+					 style="font-size:{{csFontSize}}px!important;
+					 				font-family:'{{csFontFamily}}'!important;
+					 				line-height:{{csLineHeight}}!important;">
+				 <b>Г</b>Dи ї}се хrтE, сн7е б9ій, поми1луй мS грёшнаго
+			</div>
+			{{else}}
+			<div class="slavonic text-content margin"
+					 style="font-size:{{slFontSize}}px!important;
+					        font-family:'{{slFontFamily}}'!important;
+					 				line-height:{{slLineHeight}}!important;">
+				 <b>Г</b>о́споди Иису́се Христе́, Сы́не Бо́жий, поми́луй мя гре́шнаго
+			</div>
+			{{/if}}
+	  </div>
+</div>
+</template>
+<style scoped>
+	.list .item-media {
+		min-width: auto;
+	}
+
+	.block-title {
+		margin-top: 2em;
+		/* font: 18px/24px Geometria; */
+		text-transform: none;
+		/* font-weight: 500; */
+	}
+
+
+</style>
+<!--suppress JSAnnotator -->
+<script>
+	import settingsManager from '../js/settings-manager.js';
+
+	let app, $el, fontPreview;
+	export default {
+		data() {
+			return {
+				slFonts: [
+					'Circe',
+					'Arial',
+					'Tahoma',
+					'Geometria',
+					'Times New Roman'
+				],
+				csFonts: [
+					'Triodion',
+					'Orthodox',
+					'Hirmos',					
+					'Irmologion'
+				]
+			};
+		},
+		methods: {
+			fontChange(event, stepper, value) {
+				let newState = {};
+				let target = event.target;
+				//console.log(event, value);
+				switch (target.id) {
+					case 'stepper-font-size-cs':
+						newState.csFontSize = (+value).toFixed(1);
+						newState.previewCsFont = true;
+						break;
+
+					case 'stepper-font-size-sl':
+						newState.slFontSize = (+value).toFixed(1);
+						newState.previewCsFont = false;
+						break;
+
+					case 'stepper-line-height-cs':
+						newState.csLineHeight = (+value).toFixed(2);
+						newState.previewCsFont = true;
+						break;
+
+					case 'stepper-line-height-sl':
+						newState.slLineHeight = (+value).toFixed(2);
+						newState.previewCsFont = false;
+						break;
+
+					case 'select-font-family-cs':
+						newState.csFontFamily = target.value;
+						newState.previewCsFont = true;
+						target = target.parentElement.querySelector('.item-after');
+						break;
+
+					case 'select-font-family-sl':
+						newState.slFontFamily = target.value;
+						newState.previewCsFont = false;
+						target = target.parentElement.querySelector('.item-after');
+						break;
+				}
+
+				this.$setState(newState);
+				fontPreview.open(target);
+
+				delete newState.previewCsFont;
+				settingsManager.save(newState);
+			}
+	 	},
+		on: {
+			pageInit(e, page) {
+				app = this.$app;
+				$el = this.$el;
+
+				console.log(e, page, this, this.$root);
+
+				let styles = getFontsStyle();
+				console.log('styles', styles);
+
+				this.slFonts = this.slFonts.map((font) => {
+					return {
+						name: font,
+						selected:  font === styles.slFontFamily ? 'selected' : ''
+					}
+				});
+
+				this.csFonts = this.csFonts.map((font) => {
+					return {
+						name: font,
+						selected:  font === styles.csFontFamily ? 'selected' : ''
+					}
+				});
+
+				this.$setState(Object.assign(styles, {
+					csFonts: this.csFonts,
+					slFonts: this.slFonts
+				}));
+
+				fontPreview = app.popover.create({
+					el: $el.find('.popover-font-preview')[0],
+					backdrop: false,
+	 			  closeByOutsideClick: true,
+					on: {
+						opened() {
+							if (fontPreview.timerId) {
+								clearTimeout(fontPreview.timerId);
+							}
+							fontPreview.timerId = setTimeout(() => {
+								fontPreview.close();
+							}, 10000);
+						},
+						close() {
+							if (fontPreview.timerId) {
+								clearTimeout(fontPreview.timerId);
+								fontPreview.timerId = null;
+							}
+						}
+					}
+				});
+			},
+			pageBeforeIn(e, page) {
+				let lineHeightCs = app.stepper.get($el.find('#stepper-line-height-cs')[0]);
+				let lineHeightSl = app.stepper.get($el.find('#stepper-line-height-sl')[0]);
+
+				lineHeightCs.params.formatValue = (value) => (+value).toFixed(2);
+				lineHeightSl.params.formatValue = (value) => (+value).toFixed(2);
+			},
+			pageBeforeRemove() {
+				console.log('page before remove');
+				if (fontPreview.timerId) {
+					clearTimeout(fontPreview.timerId);
+					fontPreview.timerId = null;
+				}
+				fontPreview.destroy();
+				settingsManager.apply();
+			}
+		}
+	};
+
+	function getFontsStyle() {
+		let slStyle = window.getComputedStyle($el.find('#test-slavonic')[0]);
+		let csStyle = window.getComputedStyle($el.find('#test-churchslavonic')[0]);
+
+		let style = {
+			csFontFamily: csStyle.fontFamily.split(',')[0].replace(/["']/g, ''),
+			csFontSize: parseFloat(csStyle.fontSize).toFixed(1),
+			csLineHeight: (parseFloat(csStyle.lineHeight) / parseFloat(csStyle.fontSize)).toFixed(2),
+			slFontFamily: slStyle.fontFamily.split(',')[0].replace(/["']/g, ''),
+			slFontSize: parseFloat(slStyle.fontSize).toFixed(1),
+			slLineHeight: (parseFloat(slStyle.lineHeight) / parseFloat(slStyle.fontSize)).toFixed(2),
+		};
+
+		return style;
+	}
+</script>

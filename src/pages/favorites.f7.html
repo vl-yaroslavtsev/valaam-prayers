@@ -1,0 +1,109 @@
+<template>
+<div id="popup-favorites" class="popup popup--tablet-fullscreen">
+	<div class="view view-init">
+		<div class="page page-popup page-favorites">
+			<div class="navbar">
+				<div class="navbar-inner">
+					<div class="title">Избранное</div>
+					<div class="right">
+						<a class="link popup-close">
+							<i class="icon material-icons md-only">close</i>
+						</a>
+					</div>
+				</div>
+			</div>
+			<!--suppress HtmlUnknownAttribute -->
+			<div class="page-content">
+				{{#js_if "!this.items.length"}}
+					<div class="block">
+						<p>Добавьте что-нибудь.</p>
+					</div>
+				{{/js_if}}
+				<div class="list media-list no-hairlines-md no-margin">
+					<ul id="favoriteResult">
+						{{#each items}}
+							<li>
+								<div class="item-content">
+									<div class="item-media align-self-center"
+											 @click="toggleFavorite('{{id}}')">
+					        	<i class="icon material-icons md-only">
+											{{#if isFavorite}}star{{else}}star_border{{/if}}
+										</i>
+					        </div>
+									<a href="{{url}}"
+									   class="item-link item-inner popup-close"
+										 data-view="{{targetView}}"
+										 @mouseup="showView('{{targetView}}')">
+										<div class="item-title-row">
+											<div class="item-title">{{name}}</div>
+										</div>
+										<div class="item-subtitle">{{parents}}</div>
+									</a>
+								</div>
+							</li>
+						{{/each}}
+					</ul>
+				</div>
+			</div>
+		</div>
+	</div>
+</div>
+</template>
+<style scoped>
+	.list .item-media {
+	    min-width: auto;
+	}
+	.item-media .icon {
+		cursor: pointer;
+		color: rgb(255, 198, 32);
+	}
+</style>
+<!--suppress JSAnnotator -->
+<script>
+	import {Request} from 'framework7';
+	import favoriteManager from '../js/favorite-manager.js';
+
+	let app, $el, searchbar;
+
+	export default {
+		data() {
+			let items = favoriteManager
+				.list()
+				.map((item) => {
+					item.isFavorite = true;
+					item.targetView = item.url.startsWith('/prayers/text/') ? '#view-prayers' : '';
+					return item;
+				});
+			return {
+				items
+			};
+		},
+		methods: {
+			toggleFavorite(id) {
+				let item = this.items.find((item) => item.id === id);
+				if (!item) return;
+
+				item.isFavorite = !item.isFavorite;
+
+				if (item.isFavorite) {
+					favoriteManager.add(id, item.type);
+				} else {
+					favoriteManager.remove(id);
+				}
+				this.$setState({items: this.items});
+			},
+			showView(id) {
+				app.tab.show(id);
+			}
+	 	},
+		on: {
+			popupInit(event, query, popup) {
+				app = popup.app;
+				$el = popup.$el;
+			},
+			popupBeforeRemove() {
+				//console.log('popupBeforeRemove', arguments);
+			}
+		},
+	};
+</script>

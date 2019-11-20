@@ -1,0 +1,65 @@
+<template>
+	<div class="page">
+
+		<div class="navbar">
+			<div class="navbar-inner sliding">
+				<div class="left">
+					<a href="#" class="link back">
+						<i class="icon icon-back"></i>
+						<span class="">Назад</span>
+					</a>
+				</div>
+				<div class="title">{{#if searchMode}}Поиск{{else}}Мысли{{/if}}</div>
+				<div class="right">
+					{{#if searchMode}}
+					<!--<a class="link popup-close">Закрыть</a>-->
+					{{else}}
+						{{> "navbar-right"}}
+					{{/if}}
+				</div>
+			</div>
+		</div>
+
+		<div class="page-content">
+			<div class="page-content-tile">
+			{{#if thoughts.text}}
+			<h2 class="block">{{thoughts.picture_desc}}</h2>
+			<div class="block block-strong inset text-content">
+				<img class="lazy"
+					data-src="https://valaam.ru{{thoughts.picture}}"
+					data-srcorig="https://valaam.ru{{thoughts.picture_3x}}"
+					>
+					<!-- data-srcset="{{thoughts.picture_srcset}}"
+					sizes="45vw" -->
+				{{thoughts.text}}
+				<div style="clear: both;"></div>
+			</div>
+			{{/if}}
+			</div>
+		</div>
+
+	</div>
+</template>
+<style scoped>
+	img {
+		width: 100%;
+		max-width: 45%;
+		float: left;
+		padding-right: 10px;
+	}
+</style>
+<!--suppress JSAnnotator -->
+<script>
+	export default {
+		data() {
+			let dataManager = this.$app.dataManager,
+					dayCode = this.$route.params.id,
+					dayData = {};
+
+			dayData.thoughts = dataManager.cache.day[dayCode].prayers;
+			dayData.searchMode = this.$route.query.mode === 'search';
+
+			return dayData;
+		}
+	};
+</script>

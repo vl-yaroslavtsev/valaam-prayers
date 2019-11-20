@@ -1,0 +1,166 @@
+<template>
+	<div class="page page-with-tabs-subnavbar" data-name="{{id}}">
+
+		<div class="navbar">
+			<div class="navbar-inner sliding">
+				{{#if name}}
+				<div class="left">
+					<a href="#" class="link back">
+						<i class="icon icon-back"></i>
+						<span class="">Назад</span>
+					</a>
+				</div>
+				{{/if}}
+				<div class="title">{{title}}</div>
+				<div class="right">
+					<!--<a href="#" class="link churchslavonic">Ц</a>-->
+					<!--<a href="#" class="link slavonic">Р</a>-->
+					{{#if searchMode}}
+					<!--<a class="link popup-close">Закрыть</a>-->
+					{{else}}
+					<a href="/prayers/text/{{prevId}}"
+						 data-reload-current="true"
+						 class="link {{#unless prevId}}disabled{{/unless}}">
+						<i class="icon icon-back"></i>
+					</a>
+					<a href="/prayers/text/{{nextId}}"
+						 data-reload-current="true"
+						 class="link {{#unless nextId}}disabled{{/unless}}">
+						<i class="icon icon-forward"></i>
+					</a>
+				 		{{> "navbar-right"}}
+					{{/if}}
+				</div>
+			</div>
+		</div>
+
+		<div class="page-content hide-navbar-on-scroll hide-toolbar-on-scroll">
+			<div class="page-content-tile">
+			{{#if parentName}}
+			<h3 class="block">{{parentName}}</h2>
+			{{/if}}
+			{{#if name}}
+			<h2 class="block">{{name}}</h2>
+			{{/if}}
+
+			{{#if twoText}}
+			<div class="subnavbar tabs-subnavbar">
+				<div class="subnavbar-inner">
+					<div class="segmented segmented-raised">
+						<a class="button tab-link" href="#tab-churchslavonic">Церковнославянский</a>
+						<a class="button tab-link" href="#tab-slavonic">Русский</a>
+					</div>
+				</div>
+			</div>
+			{{/if}}
+
+			{{#js_if "this.text || this.picture" }}
+			<div class="block block-strong inset slavonic text-content">
+				{{#if picture}}
+				<p>
+					<img class="lazy"
+					 		 data-src="https://valaam.ru{{picture}}"
+					 	 	 data-srcorig="https://valaam.ru{{picture_3x}}"
+					>
+				</p>
+				{{/if}}
+				{{text}}
+			</div>
+			{{/js_if}}
+
+			<div class="tabs">
+				{{#if churchslavonicText}}
+				<div class="tab {{#unless twoText}}tab-active{{/unless}}" id="tab-churchslavonic">
+					<div class="block block-strong inset churchslavonic">{{churchslavonicText}}</div>
+				</div>
+				{{/if}}
+				{{#if slavonicText}}
+				<div class="tab {{#unless twoText}}tab-active{{/unless}}" id="tab-slavonic">
+					<div class="block block-strong inset slavonic text-content">{{slavonicText}}</div>
+				</div>
+				{{/if}}
+			</div>
+		</div>
+		</div>
+	</div>
+</template>
+<!--suppress HtmlUnknownAttribute -->
+<style scoped>
+	.churchslavonic em {
+		font-family: var(--f7-font-family);
+		font-size: 0.85em;
+	}
+
+	img {
+		width: 100%;
+	}
+</style>
+<!--suppress JSAnnotator -->
+<script>
+	import favoriteManager from '../js/favorite-manager.js';
+	export default {
+		data() {
+			let app = this.$app;
+			let dataManager = app.dataManager;
+			let prayers = dataManager.cache.prayers;
+			let parentSection = prayers.s.find(({id}) => id === this.prayer.parent);
+			let prayerData = {};
+
+			prayerData.id = this.prayer.id;
+			prayerData.name = this.prayer.name;
+			if (parentSection) {
+					prayerData.parentName = parentSection.name;
+			}
+
+			prayerData.text = /*marked*/(this.prayer.text)
+				.replace(/href="(https?|mailto|tel):/g, 'class="external" href="$1:')
+			;
+			prayerData.picture = this.prayer.picture;
+			prayerData.picture_3x = this.prayer.picture_3x;
+			prayerData.churchslavonicText = /*marked*/(this.prayer.churchslavonic_text);
+			prayerData.slavonicText = /*marked*/(this.prayer.slavonic_text);
+			prayerData.twoText = prayerData.churchslavonicText && prayerData.slavonicText;
+			prayerData.searchMode = this.$route.query.mode === 'search';
+			prayerData.title = prayerData.searchMode ? 'Поиск' : this.$router.view.name;
+
+			let list = prayers.e.filter(({parent}) => parent === this.prayer.parent);
+			let index = list.findIndex(({id}) => id === this.prayer.id);
+			prayerData.prevId = index > 0 ? list[index - 1].id : null;
+			prayerData.nextId = index < list.length - 1 ? list[index + 1].id : null;
+
+			prayerData.isFavorite = favoriteManager.has(prayerData.id);
+
+			return prayerData;
+		},
+		methods: {
+			toggleFavorite() {
+				let isFavorite = !this.isFavorite;
+
+				if (isFavorite) {
+					favoriteManager.add(this.id, 'prayer-e');
+				} else {
+					favoriteManager.remove(this.id);
+				}
+
+				this.$setState({isFavorite});
+
+				return false;
+			}
+		},
+		on: {
+			pageInit(e, page) {
+				console.log(page);
+				let app = page.app;
+		    let tabId = app.methods.storageGet('prayers-text-tab') ||
+									  'tab-slavonic';
+				if (this.twoText) {
+						app.tab.show(page.$el.find('#' + tabId));
+				}
+
+				page.$el.find('.tabs').on('tab:show', (event) => {
+					app.methods.storageSet('prayers-text-tab', event.target.id);
+				});
+		  }
+		}
+	};
+</script>

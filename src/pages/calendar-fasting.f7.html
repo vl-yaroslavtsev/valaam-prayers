@@ -1,0 +1,95 @@
+<!--suppress HtmlUnknownTarget -->
+<template>
+	<div class="page" data-name="calendar">
+
+		<!-- Top Navbar -->
+		<div class="navbar">
+			<div class="navbar-inner sliding">
+				<div class="left">
+					<a href="#" class="link back">
+						<i class="icon icon-back"></i>
+						<span class="">Назад</span>
+					</a>
+				</div>
+				<div class="title">Посты</div>
+				<div class="right">
+					{{> "navbar-right"}}
+				</div>
+			</div>
+		</div>
+
+		<!-- Scrollable page content-->
+		<div class="page-content">
+			<div class="page-content-tile">
+			<h2 class="block">Посты</h2>
+			<div class="tile">
+				{{#each holidays}}
+				<div class="block-title">{{name}}</div>
+				{{#if desc}}
+				<div class="block-header">{{desc}}</div>
+				{{/if}}
+				<div class="list no-hairlines-md">
+					<ul>
+						{{#each items}}
+						<li>
+							<a href="/days/{{@key}}" class="item-link item-content">
+								<div class="item-inner">
+									<div class="item-title">
+										<div class="item-header">
+											{{moment @key format="D MMMM, dddd"}}
+										</div>
+										{{this}}
+									</div>
+								</div>
+							</a>
+						</li>
+						{{/each}}
+					</ul>
+				</div>
+				{{/each}}
+
+			</div>
+			</div>
+		</div>
+	</div>
+</template>
+<!--suppress JSAnnotator -->
+<script>
+	// noinspection JSUnusedGlobalSymbols
+	export default {
+		on: {
+			pageAfterIn: function(e, page) {
+				// if(this.$root.debug)
+				// 	this.$router.navigate('/days/20190428', {});
+			}
+		},
+		data: function() {
+			return {
+				holidays: [
+					{
+						name: "Многодневные посты",
+						items: {
+							"20190311": "Великий пост (начало)",
+							"20190427": "Великий пост (конец)",
+							"20190624": "Петров пост (начало)",
+							"20190711": "Петров пост (конец)",
+							"20190814": "Успенский пост (начало)",
+							"20190827": "Успенский пост (конец)",
+							"20191128": "Рождественский пост (начало)",
+							"20190106": "Рождественский пост (конец)"
+						}
+					},
+					{
+						name: "Однодневные посты",
+						desc: "Среда и пятница в течение всего года, за исключением сплошных седмиц и Святок",
+						items: {
+							"20190118": "Крещенский сочельник (Навечерие Богоявления)",
+							"20190911": "Усекновение главы Иоанна Предтечи",
+							"20190927": "Воздвижение Креста Господня"
+						}
+					}
+				]
+			};
+		}
+	}
+</script>

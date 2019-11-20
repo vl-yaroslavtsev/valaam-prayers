@@ -1,0 +1,195 @@
+<template>
+	<div class="page" data-name="calendar">
+
+		<!-- Top Navbar -->
+		<div class="navbar">
+			<div class="navbar-inner sliding">
+				<div class="title">Валаам</div>
+				<div class="right">
+					{{> "navbar-right"}}
+				</div>
+			</div>
+		</div>
+
+		<!-- Scrollable page content-->
+		<div class="page-content">
+			<div class="page-content-tile">
+			<h2 class="block">Календарь</h2>
+			<div class="tile">
+				<div class="block">
+					<div id="calendar-days"></div>
+				</div>
+
+				<div class="block vm-calendar-day-description">
+					<nobr><span class="vm-calendar-day-holiday"></span> Двунадесятые праздники</nobr>
+					<nobr><span class="vm-calendar-day-grandholiday"></span> Великие праздники</nobr>
+					<nobr><span class="vm-calendar-day-valaam"></span> Праздники Валаамской обители</nobr>
+					<nobr><span class="vm-calendar-day-fasting"></span> Пост</nobr>
+					<nobr><span class="vm-calendar-day-week"></span> Сплошные седмицы</nobr>
+					<nobr><span class="vm-calendar-day-commemorationdead"></span> Особые дни поминовения усопших</nobr>
+				</div>
+
+				{{#each holidays}}
+					<div class="block-title">{{name}}</div>
+					{{#if desc}}
+					<div class="block-header">{{desc}}</div>
+					{{/if}}
+					<div class="list no-hairlines-md">
+
+					<ul>
+						{{#each items}}
+						<li>
+							<a href="/days/{{@key}}" class="item-link item-content">
+								<div class="item-inner">
+									<div class="item-title">
+										<div class="item-header">
+											{{moment @key format="D MMMM, dddd"}}
+										</div>
+										{{this}}
+									</div>
+								</div>
+							</a>
+						</li>
+						{{/each}}
+						<li>
+							<a href="/calendar/holidays/" class="item-link item-content">
+								<div class="item-inner">
+									<div class="item-title">
+										Праздники
+										<div class="item-footer">
+											Двунадесятые и Великие
+										</div>
+									</div>
+								</div>
+							</a>
+						</li>
+						<li>
+							<a href="/calendar/fasting/" class="item-link item-content">
+								<div class="item-inner">
+									<div class="item-title">
+										Посты
+										<div class="item-footer">
+											Многодневные и однодневные
+										</div>
+									</div>
+								</div>
+							</a>
+						</li>
+					</ul>
+				</div>
+				{{/each}}
+			</div>
+			</div>
+		</div>
+	</div>
+</template>
+<!--suppress JSAnnotator -->
+<script>
+	import moment from 'moment';
+	// noinspection JSUnusedGlobalSymbols
+	export default {
+		on: {
+			pageInit() {
+				let app = this.$app;
+				let calendar = app.dataManager.cache.calendar;
+			  let calendarView = app.views.get('#view-calendar');
+				// moment.updateLocale('ru', {
+				// 	months: {
+				// 		standalone: a
+				// 	},
+				// 	longDateFormat: {
+				// 		LLL: 'D MMMM YYYY HH:mm'
+				// 	}
+				// });
+
+				this.calendarDays = app.calendar.create({
+					containerEl: '#calendar-days',
+					weekendDays: [0],
+					minDate: new Date(1000 * calendar.min),
+					maxDate: new Date(1000 * calendar.max),
+					monthNames: moment.months()
+						.map(function(value) {
+							return value.substr(0, 1).toUpperCase() + value.substr(1);
+						}),
+					dayNamesShort: moment.weekdaysMin(),
+					rangesClasses: [
+						{
+							cssClass: 'vm-calendar-day-fasting',
+							range(date) {
+								return (calendar[moment(date).format('YYYYMMDD')] || '').indexOf('f') !== -1;
+							}
+						},
+						{
+							cssClass: 'vm-calendar-day-week',
+							range(date) {
+								return (calendar[moment(date).format('YYYYMMDD')] || '').indexOf('w') !== -1;
+							}
+						},
+						{
+							cssClass: 'vm-calendar-day-valaam',
+							range(date) {
+								return (calendar[moment(date).format('YYYYMMDD')] || '').indexOf('v') !== -1;
+							}
+						},
+						{
+							cssClass: 'vm-calendar-day-holiday',
+							range(date) {
+								return (calendar[moment(date).format('YYYYMMDD')] || '').indexOf('h') !== -1;
+							}
+						},
+						{
+							cssClass: 'vm-calendar-day-grandholiday',
+							range(date) {
+								return (calendar[moment(date).format('YYYYMMDD')] || '').indexOf('g') !== -1;
+							}
+						},
+						{
+							cssClass: 'vm-calendar-day-commemorationdead',
+							range(date) {
+								return (calendar[moment(date).format('YYYYMMDD')] || '').indexOf('c') !== -1;
+							}
+						},
+						{
+							cssClass: 'vm-calendar-day-lightweek',
+							range(date) {
+								return (calendar[moment(date).format('YYYYMMDD')] || '').indexOf('l') !== -1;
+							}
+						},
+						{
+							cssClass: 'vm-calendar-day-easter',
+							range(date) {
+								return (calendar[moment(date).format('YYYYMMDD')] || '').indexOf('e') !== -1;
+							}
+						}
+					],
+					on: {
+						dayClick(calendar, dayEl, year, month, day) {
+							calendarView.router.navigate('/days/' + moment([year, month, day]).format('YYYYMMDD'));
+						}
+					}
+				});
+
+				this.calendarDays.$el.find('.toolbar').removeClass('toolbar-top') // временно, пока не исправят
+			},
+			pageAfterIn(e, page) {
+				// if(this.$root.debug)
+				// 	this.$router.navigate('/days/20190428', {});
+			},
+			pageBeforeRemove() {
+				this.calendarDays.destroy();
+			}
+		},
+		data() {
+			return {
+				holidays: [
+					{
+						// name: "Посты и праздники",
+						items: {
+							"20190428": "ПАСХА ХРИСТОВА"
+						}
+					}
+				]
+			};
+		}
+	}
+</script>

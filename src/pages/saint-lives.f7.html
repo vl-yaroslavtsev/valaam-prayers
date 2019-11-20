@@ -1,0 +1,70 @@
+<template>
+	<div class="page">
+
+		<div class="navbar">
+			<div class="navbar-inner sliding">
+				<div class="left">
+					<a href="#" class="link back">
+						<i class="icon icon-back"></i>
+						<span class="">Назад</span>
+					</a>
+				</div>
+				<div class="title">{{#if searchMode}}Поиск{{else}}Житие{{/if}}</div>
+				<div class="right">
+					{{#if searchMode}}
+					<!--<a class="link popup-close">Закрыть</a>-->
+					{{else}}
+					{{> "navbar-right"}}
+					{{/if}}
+				</div>
+			</div>
+		</div>
+
+		<div class="page-content">
+			<div class="page-content-tile">
+			<h2 class="block">{{name}}</h2>
+			<div class="block block-strong inset text-content">
+				{{#if picture}}
+				<img class="lazy"
+					 data-src="https://valaam.ru{{picture}}"
+					 data-src-db="{{picture}}"
+					 data-srcorig="https://valaam.ru{{picture_3x}}"
+					 title="{{name}}">
+					 <!--data-srcset="{{picture_srcset}}"
+					 sizes="45vw"-->
+				{{/if}}
+				{{text}}
+				<div style="clear: both;"></div>
+			</div>
+			</div>
+		</div>
+
+	</div>
+</template>
+<style scoped>
+	img {
+		width: 100%;
+		max-width: 45%;
+		float: right;
+		padding-left: 10px;
+	}
+	.text-content img:first-child + p {
+		margin-top: 0;
+	}
+</style>
+<!--suppress JSAnnotator -->
+<script>
+	export default {
+		data() {
+
+			var saintId = (this.$route.context && this.$route.context.actionId) ||
+									  this.$route.params.saintId,
+					app = this.$app,
+					liveData = Object.assign({}, this.saint);
+
+			liveData.searchMode = this.$route.query.mode === 'search';
+
+			return liveData;
+		}
+	};
+</script>

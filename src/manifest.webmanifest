@@ -1,0 +1,27 @@
+{
+  "name": "Православный молитвослов и календарь",
+  "short_name": "Молитвослов",
+  "description": "Полный молитвослов, православный календарь и духовноая литература от Валаамского монстыря.",
+  "icons": [
+			{
+					"src": "images/icon-128.png",
+					"sizes": "128x128",
+					"type": "image/png"
+			},
+			{
+          "src": "images/icon-192.png",
+          "sizes": "192x192",
+          "type": "image/png"
+      },
+      {
+          "src": "images/icon-512.png",
+          "sizes": "512x512",
+          "type": "image/png"
+      }
+  ],
+  "start_url": "./#view-prayers",
+  "display": "standalone",
+  "theme_color": "#3878a8",
+  "background_color": "#3878a8",
+	"prefer_related_applications" : false
+}

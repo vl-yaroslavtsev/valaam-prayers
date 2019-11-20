@@ -1,0 +1,159 @@
+<!--suppress HtmlFormInputWithoutLabel -->
+<template>
+	<div class="page" data-name="rites-name">
+
+		<div class="navbar">
+			<div class="navbar-inner sliding">
+				<div class="left">
+					<a href="#" class="link back">
+						<i class="icon icon-back"></i>
+						<span class="">Назад</span>
+					</a>
+				</div>
+				<div class="title">{{title}}</div>
+			</div>
+		</div>
+
+		<div class="page-content">
+			<div class="page-content-tile">
+			<h2 class="block">Напишите имя</h2>
+			<div class="tile">
+				<div class="block-title">Имя</div>
+				<div class="list form-list no-hairlines-md">
+					<ul>
+						<li class="item-content item-input item-input-outline">
+							<div class="item-inner">
+								<div class="item-input-wrap">
+									<!--suppress HtmlUnknownAttribute -->
+									<input type="text" name="firstname" id="autocomplete-names" value="{{name[0]}}"
+										   spellcheck="false" required validate pattern="[a-zA-Zа-яА-ЯёЁ]+ *"
+										   data-error-message="Введите корректное имя" autocomplete=false>
+									<span class="input-clear-button"></span>
+								</div>
+							</div>
+						</li>
+					</ul>
+				</div>
+				<div class="block-footer">
+					Вводятся только буквы, в родительном падеже, например: Елены, Василия;
+					поминаются только крещёные православные.
+				</div>
+
+				<div class="block-title">Пометка</div>
+				<div class="list form-list no-hairlines-md">
+					<ul>
+						<li class="item-content item-input item-input-outline">
+							<div class="item-inner">
+								<div class="item-input-wrap">
+									<!--suppress HtmlUnknownAttribute -->
+									<input type="text" name="explanations" id="autocomplete-explanations" value="{{name[1]}}"
+										   validate pattern="{{join explanations delimiter='|'}}"
+										   autocomplete=false autocapitalize="off" spellcheck="false">
+									<span class="input-clear-button"></span>
+								</div>
+							</div>
+						</li>
+					</ul>
+				</div>
+				<div class="block-footer">
+					Пометка к имени: младенца, воина, иерея, протоиерея и т.д.
+				</div>
+			</div>
+			</div>
+		</div>
+
+	</div>
+</template>
+
+<!--suppress HtmlUnknownAttribute -->
+<style scoped>
+	/*noinspection CssUnusedSymbol*/
+	.item-input-invalid .item-input-error-message {
+		display: none;
+	}
+</style>
+<!--suppress JSAnnotator, JSIgnoredPromiseFromCall -->
+<script>
+	export default {
+		data() {
+			let idx = this.$route.params.idx,
+				app = this.$app,
+				ritesConfig = app.dataManager.cache.ritesConfig,
+				$name = this.$$('#rite-name-' + idx),
+				$ss = app.smartSelect.get('.vm-rites-rite .smart-select')
+			;
+
+			return {
+				title: ritesConfig.rites.find(({id}) => id === $ss.getValue()).name.split(' - ')[0],
+				name: [$name.find('.item-title').text(), $name.find('.item-after').text()],
+				explanations: ritesConfig.explanations
+			};
+		},
+		on: {
+			pageBeforeOut(e, page) {
+				let idx = this.$route.params.idx,
+					app = this.$app,
+					ritesConfig = app.dataManager.cache.ritesConfig,
+					$name = this.$$('#rite-name-' + idx),
+					name = page.$el.find('#autocomplete-names').val().trim(),
+					explanations = page.$el.find('#autocomplete-explanations').val().trim()
+				;
+
+				if(page.$el.find('#autocomplete-names').hasClass('input-invalid'))
+					name = '';
+
+				if(ritesConfig.explanations.indexOf(explanations) === -1 || name === '')
+					explanations = '';
+
+				$name.find('.item-title').text(name);
+				$name.find('.item-after').text(explanations);
+
+				if(name) this.$$('.vm-rites-names.list #rite-name-' + idx).next().removeClass('display-none');
+			},
+			pageBeforeRemove() {
+				this.acNames.destroy();
+				this.acExplanations.destroy();
+			},
+			pageInit() {
+				let explanations = this.explanations,
+						app = this.$app;
+
+				this.acNames = app.autocomplete.create({
+					inputEl: '#autocomplete-names',
+					openIn: 'dropdown',
+					source: (query, render) => {
+						if(query.length === 0)
+							render([]);
+						else {
+							app.request({
+								url: 'https://valaam.ru/local/php-includes/rites-name.php',
+								method: 'GET',
+								dataType: 'json',
+								data: {q: query},
+								success: function(data) {
+									render(data);
+								}
+							});
+						}
+					}
+				});
+
+				this.acExplanations = app.autocomplete.create({
+					inputEl: '#autocomplete-explanations',
+					openIn: 'dropdown',
+					source: (query, render) => {
+						let results = [];
+
+						if(query.length === 0)
+							results = explanations;
+						else for(let i = 0; i < explanations.length; i++)
+								if(explanations[i].toLowerCase().indexOf(query.toLowerCase()) >= 0)
+									results.push(explanations[i]);
+
+						render(results);
+					}
+				});
+			}
+		}
+	}
+</script>

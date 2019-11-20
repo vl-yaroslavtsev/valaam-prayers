@@ -1,0 +1,50 @@
+{
+  "name": "prayers.f7.test",
+  "version": "1.0.0",
+  "description": "",
+  "private": true,
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "watch": "webpack --watch --progress",
+    "build:dev": "webpack",
+    "build:dist": "webpack --env.production && rm -rf ../../prayers.f7/* && cp -r ./dist/. ../../prayers.f7/"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "@babel/core": "^7.5.5",
+    "@babel/plugin-transform-runtime": "^7.5.5",
+    "@babel/preset-env": "^7.5.5",
+    "babel-loader": "^8.0.6",
+    "clean-webpack-plugin": "^3.0.0",
+    "copy-webpack-plugin": "^5.0.4",
+    "css-loader": "^3.2.0",
+    "file-loader": "^4.2.0",
+    "framework7-component-loader": "^2.0.0",
+    "html-webpack-plugin": "^3.2.0",
+    "mini-css-extract-plugin": "^0.8.0",
+    "moment-locales-webpack-plugin": "^1.1.0",
+    "offline-plugin": "^5.0.7",
+    "optimize-css-assets-webpack-plugin": "^5.0.3",
+    "style-loader": "^1.0.0",
+    "webpack": "^4.39.3",
+    "webpack-cli": "^3.3.7",
+    "worker-loader": "^2.0.0"
+  },
+  "dependencies": {
+    "@babel/runtime": "^7.5.5",
+    "core-js": "^3.3.6",
+    "framework7": "^4.5.0",
+    "localforage": "^1.7.3",
+    "lodash-es": "^4.17.15",
+    "moment": "^2.24.0"
+  },
+  "browserslist": [
+    "Android >= 49",
+    "ChromeAndroid >= 49",
+    "Chrome >= 49",
+    "Safari >= 10.3",
+    "iOS >= 10.3"
+  ]
+}

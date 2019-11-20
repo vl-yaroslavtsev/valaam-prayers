@@ -1,0 +1,62 @@
+<template>
+	<div class="page">
+
+		<div class="navbar">
+			<div class="navbar-inner sliding">
+				<div class="left">
+					<a href="#" class="link back">
+						<i class="icon icon-back"></i>
+						<span class="">Назад</span>
+					</a>
+				</div>
+				<div class="title">{{#if searchMode}}Поиск{{else}}{{title}}{{/if}}</div>
+				<div class="right">
+					{{#if searchMode}}
+					<!--<a class="link popup-close">Закрыть</a>-->
+					{{else}}
+						{{> "navbar-right"}}
+					{{/if}}
+				</div>
+			</div>
+		</div>
+
+		<div class="page-content">
+			<div class="page-content-tile">
+			<h2 class="block">{{name}}</h2>
+			<div class="block block-strong inset prayer slavonic text-content">
+				{{text}}
+			</div>
+			</div>
+		</div>
+
+	</div>
+</template>
+<!--suppress JSAnnotator -->
+<style scoped>
+	.prayer h1 {
+		font-size: 1em;
+		color: rgba(255,0,0,.8);
+		text-transform: capitalize;
+	}
+</style>
+<script>
+	export default {
+		data() {
+			let dataManager = this.$app.dataManager,
+					dayCode = this.$route.params.id,
+					prayerId = (this.$route.context && this.$route.context.actionId) || this.$route.params.prayerId,
+					prayerData = {};
+
+			prayerData = Object.assign(
+				{},
+				dataManager.cache.day[dayCode].prayers.items.find(({id}) => id === prayerId)
+			);
+
+			//prayerData.text[0] = prayerData.text[0].substr(1);
+			//prayerData.title = prayerData.name.split(' ')[0];
+			prayerData.searchMode = this.$route.query.mode === 'search';
+
+			return prayerData;
+		}
+	};
+</script>

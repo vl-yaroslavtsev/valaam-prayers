@@ -1,0 +1,50 @@
+<template>
+	{{#js_if "this.isFavorite === true"}}
+	<a href="#" class="link" @click="toggleFavorite">
+		<i class="icon material-icons md-only">star</i>
+	</a>
+	{{/js_if}}
+	{{#js_if "this.isFavorite === false"}}
+	<a href="#" class="link" @click="toggleFavorite">
+		<i class="icon material-icons md-only">star_border</i>
+	</a>
+	{{/js_if}}
+	<a href="/search" class="link" >
+		<i class="icon f7-icons ios-only">search_strong</i>
+		<i class="icon material-icons md-only">search</i>
+	</a>
+	<a href="#"
+		 class="link popover-open"
+		 data-popover=".popover-right-menu">
+		<i class="icon material-icons md-only">more_vert</i>
+	</a>
+	<div class="popover popover-right-menu">
+		<div class="popover-inner">
+			<div class="list">
+				<ul>
+					<li><a class="list-button item-link tab-link popover-close"
+								 href="#view-prayers">Молитвослов</a>
+					</li>
+					<li><a class="list-button item-link tab-link popover-close"
+								 href="#view-calendar">Календарь</a>
+					</li>
+					<li><a class="list-button item-link tab-link popover-close"
+								 href="#view-rites">Поминовения</a>
+					</li>
+					<li><a class="list-button item-link tab-link popover-close"
+								 href="#view-valaam">Валаам</a>
+					</li>
+					<li class="item-divider item-divider-empty"></li>
+					<li><a class="list-button item-link popover-close"
+							   data-view=".view.tab-active"
+								 href="/favorites">Избранное</a>
+					</li>
+					<li><a class="list-button item-link popover-close"
+							   data-view=".view.tab-active"
+								 href="/settings">Настройки</a>
+					</li>
+				</ul>
+			</div>
+		</div>
+	</div>
+</template>

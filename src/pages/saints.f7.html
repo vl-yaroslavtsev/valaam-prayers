@@ -1,0 +1,231 @@
+<template>
+	<div class="page">
+
+		<div class="navbar">
+			<div class="navbar-inner sliding">
+				<div class="left">
+					<a href="#" class="link back">
+						<i class="icon icon-back"></i>
+						<span class="">Назад</span>
+					</a>
+				</div>
+				<div class="title">{{#if searchMode}}Поиск{{else}}Житие{{/if}}</div>
+				<div class="right">
+					{{#if searchMode}}
+					<!--<a class="link popup-close">Закрыть</a>-->
+					{{else}}
+					{{> "navbar-right"}}
+					{{/if}}
+				</div>
+			</div>
+		</div>
+
+		<div class="page-content">
+			<div class="page-content-tile">
+			<h2 class="block">{{name}}</h2>
+			<div class="tile">
+				{{#if picture}}
+				<div class="saint-icon media-obj">
+					<img class="media-obj-tile lazy"
+						 data-src="https://valaam.ru{{picture}}"
+						 data-src-db="{{picture}}">
+						 <!--
+						 data-srcset="{{picture_srcset}}"
+						 sizes="100vw" -->
+					<img class="media-obj-img lazy"
+						 data-src="https://valaam.ru{{picture}}"
+						 data-src-db="{{picture}}"
+						 data-srcorig="https://valaam.ru{{picture_3x}}"
+						 title="{{name}}">
+						 <!-- data-srcset="{{picture_srcset}}"
+						 sizes="100vw" -->
+				</div>
+				{{/if}}
+
+				{{#if text}}
+				<div class="block-title">
+					{{#if isSaint}}Житие{{/if}}
+					{{#if isHoliday}}Информация о празднике{{/if}}
+					{{#if isIcon}}История{{/if}}
+				</div>
+
+				<div class="list media-list no-hairlines-md">
+					<ul>
+						<li>
+							<a href="/saints/{{id}}/lives" class="item-link item-content">
+								<div class="item-inner">
+									<div class="item-title-row">
+										<div class="item-title">{{name}}</div>
+									</div>
+									<div class="item-text">{{text_short}}</div>
+								</div>
+							</a>
+						</li>
+					</ul>
+				</div>
+				{{/if}}
+
+				{{#if days.length}}
+				<div class="block-title">
+					{{#if isSaint}}Дни памяти{{else}}Празднование{{/if}}
+				</div>
+
+				<div class="list media-list no-hairlines-md">
+					<ul>
+						{{#each days}}
+						<li>
+							<a href="/days/{{date}}" class="item-link item-content">
+								<div class="item-inner">
+									<div class="item-title-row">
+										<div class="item-title">{{title}}</div>
+										{{#if is_movable}}
+										<div class="item-after">переходящая</div>
+										{{/if}}
+									</div>
+									{{#if description}}
+									<div class="item-text">{{description}}</div>
+									{{/if}}
+								</div>
+							</a>
+						</li>
+						{{/each}}
+					</ul>
+				</div>
+				{{/if}}
+
+				{{#if prayers}}
+				<div class="block-title">Молитвы</div>
+				<div class="list no-hairlines-md">
+					<ul>
+						<li>
+							<a href="/prayers/text/{{prayers.id}}" class="item-link item-content">
+								<div class="item-inner">
+									<div class="item-title">Тропари, кондаки, молитвы, величание</div>
+								</div>
+							</a>
+						</li>
+					</ul>
+				</div>
+				{{/if}}
+
+				{{#if akathists.length}}
+				<div class="block-title">Акафисты</div>
+				<div class="list no-hairlines-md">
+					<ul>
+						{{#each akathists}}
+						<li>
+							<a href="/prayers/text/{{id}}" class="item-link item-content">
+								<div class="item-inner">
+									<div class="item-title">{{name}}</div>
+								</div>
+							</a>
+						</li>
+						{{/each}}
+					</ul>
+				</div>
+				{{/if}}
+
+				{{#if canons.length}}
+				<div class="block-title">Каноны</div>
+				<div class="list no-hairlines-md">
+					<ul>
+						{{#each canons}}
+						<li>
+							<a href="/prayers/text/{{id}}" class="item-link item-content">
+								<div class="item-inner">
+									<div class="item-title">{{name}}</div>
+								</div>
+							</a>
+						</li>
+						{{/each}}
+					</ul>
+				</div>
+				{{/if}}
+
+				{{#if mineyas.length}}
+				<div class="block-title">Службы</div>
+				<div class="list no-hairlines-md">
+					<ul>
+						{{#each mineyas}}
+						<li>
+							<a href="/prayers/text/{{id}}" class="item-link item-content">
+								<div class="item-inner">
+									<div class="item-title">
+									<div class="item-header">{{header}}</div>
+									{{name}}</div>
+								</div>
+							</a>
+						</li>
+						{{/each}}
+					</ul>
+				</div>
+				{{/if}}
+			</div>
+			</div>
+		</div>
+
+	</div>
+</template>
+<style scoped>
+	.saint-icon {
+		width: 100%;
+		height: 50vh;
+	}
+</style>
+<!--suppress JSAnnotator -->
+<script>
+	import moment from 'moment';
+
+	export default {
+		data() {
+			let dataManager = this.$app.dataManager,
+					saintId = (this.$route.context && this.$route.context.actionId) ||
+										this.$route.params.saintId,
+					prayers = dataManager.cache.prayers;
+
+			let saintData = Object.assign({}, this.saint);
+
+			saintData.text_short = saintData.text
+				.replace(/<\/?[^>]+>/gi, '')
+				.replace(/КРАТ­КОЕ ЖИ­ТИЕ[^\n]*\n/ig, '')
+				.replace(/КРАТКОЕ ЖИТИЕ[^\n]*\n/ig, '')
+				.slice(0, 300)
+			;
+
+			saintData.isSaint = saintData.type === 's';
+			saintData.isHoliday = saintData.type === 'h';
+			saintData.isIcon = saintData.type === 'i';
+
+			saintData.prayers = prayers.e.find(
+				(e) => e.id === saintData.prayers_id
+			);
+
+			saintData.akathists = saintData.akathist_id.map(
+				(id) => prayers.e.find((e) => e.id === id)
+			);
+
+			saintData.canons = saintData.canon_id.map(
+				(id) => prayers.e.find((e) => e.id === id)
+			);
+
+			saintData.mineyas = saintData.minea_id.map((id) => {
+				let element = prayers.e.find((e) => e.id === id);
+				if (!element) return element;
+
+				element = Object.assign({}, element);
+
+				let section = prayers.s.find((s) => s.id === element.parent);
+				let mt = moment(moment().format('YYYY') + section.code, 'YYYYMMDD');
+
+				element.header = mt.format('D MMMM') +
+						   ' / ' +
+						   mt.add(13, 'day').format('D MMMM') ;
+				return element;
+			});
+
+			saintData.searchMode = this.$route.query.mode === 'search';
+
+			return saintData;
+		}
+	};
+</script>
