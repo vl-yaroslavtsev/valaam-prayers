@@ -1,5 +1,5 @@
 # valaam-prayers
-Progressive web application for mobile devices. 
+Progressive web application for mobile devices.  
 Orthodox prayers, calendar and spiritual literature.
 
 Tested on real Android and iOS devices with   
