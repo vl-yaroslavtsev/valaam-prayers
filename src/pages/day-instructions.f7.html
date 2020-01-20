@@ -2,6 +2,7 @@
 	<div class="page">
 
 		<div class="navbar">
+			<div class="navbar-bg"></div>
 			<div class="navbar-inner sliding">
 				<div class="left">
 					<a href="#" class="link back">
@@ -16,41 +17,46 @@
 			</div>
 		</div>
 
-		<div class="page-content">
-			<div class="page-content-tile">
+		<div class="page-content hide-navbar-on-scroll hide-toolbar-on-scroll">
 			<h2 class="block">{{title}}</h2>
 			<div class="block block-strong inset text-content">
 				<p><strong>{{subtitle}}</strong></p>
 				{{text}}
-			</div>
 			</div>
 		</div>
 
 	</div>
 </template>
 <style scoped>
-	sup, strong {
-		color: rgba(255, 0, 0, .8);
-	}
-
 	blockquote {
 		margin: 0;
 		border-left: solid 3px #ddd;
 		padding-left: 10px;
 		display: inline-block;
 	}
+
+	/* sup, strong {
+		color: rgba(255, 0, 0, .8);
+	} */
 </style>
 <!--suppress JSAnnotator -->
 <script>
+	import moment from 'moment';
+	import {upperFirst} from 'lodash-es';
+
 	export default {
 		data() {
 			let app = this.$app,
 				dayCode = this.$route.params.id,
-				dayData = app.dataManager.cache.day[dayCode],
-				data = {};
+				dayData = this.day,
+				data = {},
+				oldstyleDate = moment.unix(dayData.date_ts).subtract(13, 'days'),
+				newstyleDate = moment.unix(dayData.date_ts),
+				dayOfWeek = upperFirst(newstyleDate.format('dddd'));
 
 			data.title = 'Богослужебные указания';
-			data.subtitle = dayData.name + '.';
+			data.subtitle = oldstyleDate.format('D MMMM / ') +
+											newstyleDate.format(`D MMMM YYYY г. ${dayOfWeek}.`);
 			data.text = /*marked*/(dayData.instructions)
 				.replace(/\^(\d+)/g, '<sup>$1</sup>')
 				.replace(/href="(https?)/g, 'class="external" href="$1')

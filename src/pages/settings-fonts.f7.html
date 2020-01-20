@@ -3,6 +3,7 @@
 <div class="page page-white">
 
 	<div class="navbar">
+		<div class="navbar-bg"></div>
 		<div class="navbar-inner sliding">
 			<div class="left">
 				<a href="#" class="link back">
@@ -16,7 +17,12 @@
 
 	<div class="page-content">
 		<h2 class="block">Настроить шрифты</h2>
-
+		<div class="block">
+			<p>Шрифты применяются для чтений в молитвослове и календаре
+				(молитвы, каноны, акафисты, тропари, кондаки,
+				богослужебная и духовная литература,
+				жития, Евангельские чтения, богослужебные указания)</p>
+		</div>
 		<div class="list no-hairlines-md">
 			<div class="list-group">
 	    	<ul>
@@ -27,7 +33,7 @@
 							 data-close-on-select="true"
 							 data-popup-close-link-text="<i class='icon material-icons md-only'>close</i>">
 							<select id="select-font-family-cs"
-											@change="fontChange">
+											@change="onFontChange">
 									{{#each csFonts}}
 										<option value="{{name}}" {{selected}}>{{name}}</option>
 									{{/each}}
@@ -42,7 +48,7 @@
 							</div>
 						</a>
 					</li>
-			    <li>
+					<li>
 			      <div class="item-content">
 			        <div class="item-media">
 								<i class="icon material-icons md-only disabled">format_size</i>
@@ -60,7 +66,7 @@
 											 data-max="60"
 											 data-step="0.5"
 											 data-value="{{csFontSize}}"
-											 @stepper:change="fontChange">
+											 @stepper:change="onFontChange">
 						        <div class="stepper-button-minus"></div>
 										<div class="stepper-value"></div>
 						        <div class="stepper-button-plus"></div>
@@ -87,12 +93,32 @@
 											 data-max="2"
 											 data-step="0.05"
 											 data-value="{{csLineHeight}}"
-											 @stepper:change="fontChange"
+											 @stepper:change="onFontChange"
 											 >
 						        <div class="stepper-button-minus"></div>
 										<div class="stepper-value"></div>
 						        <div class="stepper-button-plus"></div>
 							    </div>
+							  </div>
+			        </div>
+			      </div>
+					</li>
+					<li>
+			      <div class="item-content">
+			        <div class="item-media">
+								<i class="icon material-icons md-only disabled">format_bold</i>
+							</div>
+			        <div class="item-inner">
+								<div class="item-title">
+									Жирный
+								</div>
+		            <div class="item-after">
+									<label class="toggle toggle-init"
+												 id="toggle-font-weight-cs"
+												 @toggle:change="onFontChange">
+										<input type="checkbox" {{#js_if "this.csFontWeight >= 700"}}checked{{/js_if}}>
+										<span class="toggle-icon"></span>
+									</label>
 							  </div>
 			        </div>
 			      </div>
@@ -106,9 +132,9 @@
 						<a class="item-link smart-select smart-select-init"
 							 data-open-in="popover"
 							 data-close-on-select="true"
-							 data-popup-close-link-text="<i class='icon material-icons md-only'>close</i>">
+							 data-popup-close-link-text="<i class='icon material-icons'>close</i>">
 							<select id="select-font-family-sl"
-											@change="fontChange">
+											@change="onFontChange">
 									{{#each slFonts}}
 										<option value="{{name}}" {{selected}}>{{name}}</option>
 									{{/each}}
@@ -134,14 +160,14 @@
 								</div>
 		            <div class="item-after">
 									<div class="stepper stepper-small stepper-init"
-											 id="stepper-font-size-sl"
+									     id="stepper-font-size-sl"
 										   data-autorepeat="true"
 											 data-autorepeat-dynamic="true"
 											 data-min="10"
 											 data-max="60"
 											 data-step="0.5"
 											 data-value="{{slFontSize}}"
-											 @stepper:change="fontChange">
+											 @stepper:change="onFontChange">
 						        <div class="stepper-button-minus"></div>
 										<div class="stepper-value"></div>
 						        <div class="stepper-button-plus"></div>
@@ -168,7 +194,7 @@
 											 data-max="2"
 											 data-step="0.05"
 											 data-value="{{slLineHeight}}"
-											 @stepper:change="fontChange"
+											 @stepper:change="onFontChange"
 											 >
 						        <div class="stepper-button-minus"></div>
 										<div class="stepper-value"></div>
@@ -178,26 +204,46 @@
 			        </div>
 			      </div>
 					</li>
+					<li>
+			      <div class="item-content">
+			        <div class="item-media">
+								<i class="icon material-icons md-only disabled">format_bold</i>
+							</div>
+			        <div class="item-inner">
+								<div class="item-title">
+									Жирный
+								</div>
+		            <div class="item-after">
+									<label class="toggle toggle-init"
+												 id="toggle-font-weight-sl"
+												 @toggle:change="onFontChange">
+										<input type="checkbox" {{#js_if "this.slFontWeight >= 700"}}checked{{/js_if}}>
+										<span class="toggle-icon"></span>
+									</label>
+							  </div>
+			        </div>
+			      </div>
+					</li>
 			   </ul>
 			</div>
 		</div>
 	</div>
-	<div id="test-slavonic" class="slavonic text-content"><b>Г</b>о́споди Иису́се Христе́, поми́луй мя</div>
-	<div id="test-churchslavonic" class="churchslavonic"><b>Г</b>Dи ї}се хrтE, поми1луй мS</div>
 	<div class="popover popover-font-preview">
 	  <div class="popover-inner">
 			{{#if previewCsFont}}
 			<div class="churchslavonic margin"
 					 style="font-size:{{csFontSize}}px!important;
 					 				font-family:'{{csFontFamily}}'!important;
-					 				line-height:{{csLineHeight}}!important;">
+					 				line-height:{{csLineHeight}}!important;
+									font-weight:{{csFontWeight}}!important;">
 				 <b>Г</b>Dи ї}се хrтE, сн7е б9ій, поми1луй мS грёшнаго
 			</div>
 			{{else}}
 			<div class="slavonic text-content margin"
 					 style="font-size:{{slFontSize}}px!important;
 					        font-family:'{{slFontFamily}}'!important;
-					 				line-height:{{slLineHeight}}!important;">
+					 				line-height:{{slLineHeight}}!important;
+									font-weight:{{slFontWeight}}!important;">
 				 <b>Г</b>о́споди Иису́се Христе́, Сы́не Бо́жий, поми́луй мя гре́шнаго
 			</div>
 			{{/if}}
@@ -221,28 +267,49 @@
 <!--suppress JSAnnotator -->
 <script>
 	import settingsManager from '../js/settings-manager.js';
+	import reloadManager from '../js/reload-manager.js';
+
+	const SLAVONIC_FONTS = [
+		'Circe',
+		'Arial',
+		'Tahoma',
+		'Geometria',
+		'Times New Roman'
+	];
+
+	const CHURCHSLAVONIC_FONTS = [
+		'Triodion',
+		'Orthodox',
+		'Hirmos',
+		'Irmologion'
+	];
 
 	let app, $el, fontPreview;
 	export default {
 		data() {
-			return {
-				slFonts: [
-					'Circe',
-					'Arial',
-					'Tahoma',
-					'Geometria',
-					'Times New Roman'
-				],
-				csFonts: [
-					'Triodion',
-					'Orthodox',
-					'Hirmos',					
-					'Irmologion'
-				]
-			};
+			app = this.$app;
+
+			let data = getFontsStyle();
+
+			data.slFonts = SLAVONIC_FONTS.map((font) => {
+				return {
+					name: font,
+					selected:  font === data.slFontFamily ? 'selected' : ''
+				}
+			});
+
+			data.csFonts = CHURCHSLAVONIC_FONTS.map((font) => {
+				return {
+					name: font,
+					selected:  font === data.csFontFamily ? 'selected' : ''
+				}
+			});
+
+			return data;
 		},
 		methods: {
-			fontChange(event, stepper, value) {
+			onFontChange(event, value) {
+				console.log('onFontChange', event, value);
 				let newState = {};
 				let target = event.target;
 				//console.log(event, value);
@@ -278,8 +345,19 @@
 						newState.previewCsFont = false;
 						target = target.parentElement.querySelector('.item-after');
 						break;
+
+					case 'toggle-font-weight-sl':
+						newState.slFontWeight = target.querySelector('input').checked ? "700" : "400";
+						newState.previewCsFont = false;
+						break;
+
+						case 'toggle-font-weight-cs':
+							newState.csFontWeight = target.querySelector('input').checked ? "700" : "400";
+							newState.previewCsFont = true;
+							break;
 				}
 
+				console.log(newState);
 				this.$setState(newState);
 				fontPreview.open(target);
 
@@ -289,36 +367,12 @@
 	 	},
 		on: {
 			pageInit(e, page) {
-				app = this.$app;
 				$el = this.$el;
-
-				console.log(e, page, this, this.$root);
-
-				let styles = getFontsStyle();
-				console.log('styles', styles);
-
-				this.slFonts = this.slFonts.map((font) => {
-					return {
-						name: font,
-						selected:  font === styles.slFontFamily ? 'selected' : ''
-					}
-				});
-
-				this.csFonts = this.csFonts.map((font) => {
-					return {
-						name: font,
-						selected:  font === styles.csFontFamily ? 'selected' : ''
-					}
-				});
-
-				this.$setState(Object.assign(styles, {
-					csFonts: this.csFonts,
-					slFonts: this.slFonts
-				}));
 
 				fontPreview = app.popover.create({
 					el: $el.find('.popover-font-preview')[0],
 					backdrop: false,
+					closeByBackdropClick: false,
 	 			  closeByOutsideClick: true,
 					on: {
 						opened() {
@@ -329,7 +383,7 @@
 								fontPreview.close();
 							}, 10000);
 						},
-						close() {
+						closed() {
 							if (fontPreview.timerId) {
 								clearTimeout(fontPreview.timerId);
 								fontPreview.timerId = null;
@@ -346,28 +400,29 @@
 				lineHeightSl.params.formatValue = (value) => (+value).toFixed(2);
 			},
 			pageBeforeRemove() {
-				console.log('page before remove');
+				//console.log('page before remove');
 				if (fontPreview.timerId) {
 					clearTimeout(fontPreview.timerId);
 					fontPreview.timerId = null;
 				}
-				fontPreview.destroy();
 				settingsManager.apply();
 			}
 		}
 	};
 
 	function getFontsStyle() {
-		let slStyle = window.getComputedStyle($el.find('#test-slavonic')[0]);
-		let csStyle = window.getComputedStyle($el.find('#test-churchslavonic')[0]);
+		let slStyle = window.getComputedStyle(app.root.find('#test-slavonic')[0]);
+		let csStyle = window.getComputedStyle(app.root.find('#test-churchslavonic')[0]);
 
 		let style = {
 			csFontFamily: csStyle.fontFamily.split(',')[0].replace(/["']/g, ''),
 			csFontSize: parseFloat(csStyle.fontSize).toFixed(1),
 			csLineHeight: (parseFloat(csStyle.lineHeight) / parseFloat(csStyle.fontSize)).toFixed(2),
+			csFontWeight: csStyle.fontWeight,
 			slFontFamily: slStyle.fontFamily.split(',')[0].replace(/["']/g, ''),
 			slFontSize: parseFloat(slStyle.fontSize).toFixed(1),
 			slLineHeight: (parseFloat(slStyle.lineHeight) / parseFloat(slStyle.fontSize)).toFixed(2),
+			slFontWeight: slStyle.fontWeight
 		};
 
 		return style;

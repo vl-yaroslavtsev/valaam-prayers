@@ -2,6 +2,7 @@
 	<div class="page">
 
 		<div class="navbar">
+			<div class="navbar-bg"></div>
 			<div class="navbar-inner sliding">
 				<div class="left">
 					<a href="#" class="link back">
@@ -21,11 +22,9 @@
 		</div>
 
 		<div class="page-content">
-			<div class="page-content-tile">
 			<h2 class="block">{{name}}</h2>
 			<div class="block block-strong inset prayer slavonic text-content">
 				{{text}}
-			</div>
 			</div>
 		</div>
 
@@ -35,8 +34,9 @@
 <style scoped>
 	.prayer h1 {
 		font-size: 1em;
-		color: rgba(255,0,0,.8);
+		color: var(--kinovar-color);
 		text-transform: capitalize;
+		font-weight: normal;
 	}
 </style>
 <script>
@@ -49,7 +49,7 @@
 
 			prayerData = Object.assign(
 				{},
-				dataManager.cache.day[dayCode].prayers.items.find(({id}) => id === prayerId)
+				this.day.prayers.items.find(({id}) => id === prayerId)
 			);
 
 			//prayerData.text[0] = prayerData.text[0].substr(1);

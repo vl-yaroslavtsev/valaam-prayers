@@ -1,0 +1,171 @@
+@font-face {
+	font-family: Triodion;
+	/* src: url('../fonts/Triodion.eot'); /* IE9 Compat Modes */
+	src: local('Triodion'), local('Triodion Ucs'),
+		   url('../fonts/Triodion.woff2') format('woff2'); /* Super Modern Browsers */
+			/* url('../fonts/Triodion.eot?#iefix') format('embedded-opentype'),
+         url('../fonts/Triodion.woff') format('woff'),
+			   url('../fonts/Triodion.ttf') format('truetype'),
+			   url('../fonts/Triodion.svg#Triodion-Ucs') format('svg'); */
+}
+
+@font-face {
+	font-family: Hirmos;
+	src: local('Hirmos'), local('Hirmos Ucs'),
+		   url('../fonts/HirmUcs8.woff2') format('woff2');
+	font-style: normal;
+	font-weight: normal;
+}
+
+@font-face {
+	font-family: Irmologion;
+	src: local('Irmologion'), local('Irmologion Ucs'),
+		   url('../fonts/IrmUcs.woff2') format('woff2');
+	font-style: normal;
+	font-weight: normal;
+}
+
+@font-face {
+	font-family: Orthodox;
+	src: local('Orthodox.tt'), local('Orthodox.tt Ucs'),
+		   url('../fonts/OrtUcs8.woff2') format('woff2');
+	font-style: normal;
+	font-weight: normal;
+}
+
+@font-face {
+	font-family: Ponomar;
+	src: local('Ponomar'), local('Ponomar Unicode'),
+			 url("../fonts/PonomarUnicode.woff2") format("woff2");
+	/*   url("../fonts/PonomarUnicode.woff") format("woff");
+			 url("../fonts/PonomarUnicode.otf") format("opentype"),
+			 url("../fonts/PonomarUnicode.ttf") format("truetype"); */
+	font-style: normal;
+	font-weight: 400
+}
+
+/*
+@font-face {
+	font-family: 'Gotham Pro';
+	src: url('../fonts/GothamPro-Medium.eot');
+	src: local('Gotham Pro Medium'), local('GothamPro-Medium'),
+		url('../fonts/GothamPro-Medium.eot?#iefix') format('embedded-opentype'),
+		url('../fonts/GothamPro-Medium.woff2') format('woff2'),
+		url('../fonts/GothamPro-Medium.woff') format('woff'),
+		url('../fonts/GothamPro-Medium.ttf') format('truetype');
+	font-weight: 500;
+	font-style: normal;
+}
+*/
+
+@font-face {
+	font-family: 'Geometria';
+	src: local('Geometria Medium'), local('Geometria-Medium'),
+		   url('../fonts/Geometria-Medium.woff2') format('woff2');
+	font-weight: 500;
+	font-style: bold;
+}
+
+@font-face {
+	font-family: 'Geometria';
+	src: local('Geometria Regular'), local('Geometria-Regular'),
+		   url('../fonts/Geometria-Regular.woff2') format('woff2');
+	font-weight: normal;
+	font-style: normal;
+}
+
+@font-face {
+	font-family: 'Circe';
+	src: local('Circe Light'), local('Circe-Light'),
+		   url('../fonts/Circe-Light.woff2') format('woff2');
+	font-weight: 300;
+	font-style: normal;
+}
+
+@font-face {
+	font-family: 'Circe';
+	src: local('Circe'), local('Circe-Regular'),
+			 url('../fonts/Circe-Regular.woff2') format('woff2');
+	font-weight: normal;
+	font-style: normal;
+}
+
+@font-face {
+	font-family: 'Circe';
+	src: local('Circe Bold'), local('Circe-Bold'),
+		   url('../fonts/Circe-Bold.woff2') format('woff2');
+	font-weight: bold;
+	font-style: normal;
+}
+
+@font-face {
+	font-family: 'Arial';
+	src: local('Arial Italic'), local('Arial-Italic'),
+		   url('../fonts/Arial-ItalicMT.woff2') format('woff2');
+	font-weight: normal;
+	font-style: italic;
+}
+
+@font-face {
+	font-family: 'Arial';
+	src: local('Arial Regular'), local('Arial-Regular'),
+			 url('../fonts/ArialMT.woff2') format('woff2');
+	font-weight: normal;
+	font-style: normal;
+}
+
+@font-face {
+	font-family: 'Arial';
+	src: local('Arial Bold'), local('Arial-Bold'),
+		   url('../fonts/Arial-BoldMT.woff2') format('woff2');
+	font-weight: bold;
+	font-style: normal;
+}
+
+@font-face {
+	font-family: 'Tahoma';
+	src: local('Tahoma'), local('Tahoma Regular'),
+			 url('../fonts/Tahoma.woff2') format('woff2');
+	font-weight: normal;
+	font-style: normal;
+}
+
+@font-face {
+	font-family: 'Tahoma';
+	src: local('Tahoma Bold'), local('Tahoma-Bold'),
+		   url('../fonts/Tahoma-Bold.woff2') format('woff2');
+	font-weight: bold;
+	font-style: normal;
+}
+
+@font-face {
+	font-family: 'Times New Roman';
+	src: local('Times New Roman Bold'), local('Times New Roman-Bold'),
+		   url('../fonts/TimesNewRomanBold.woff2') format('woff2');
+	font-weight: bold;
+	font-style: normal;
+}
+
+@font-face {
+	font-family: 'Times New Roman';
+	src: local('Times New Roman Italic'), local('Times New Roman-Italic'),
+		   url('../fonts/TimesNewRomanItalic.woff2') format('woff2');
+	font-weight: normal;
+	font-style: italic;
+}
+
+@font-face {
+	font-family: 'Times New Roman';
+	src: local('Times New Roman Bold Italic'), local('Times New Roman-Bold Italic'),
+		   url('../fonts/TimesNewRomanBoldItalic.woff2') format('woff2');
+	font-weight: bold;
+	font-style: italic;
+}
+
+@font-face {
+	font-family: 'Times New Roman';
+	src: local('Times New Roman'), local('Times New Roman Regular'),
+			 url('../fonts/TimesNewRomanRegular.woff2') format('woff2');
+	font-weight: normal;
+	font-style: normal;
+}

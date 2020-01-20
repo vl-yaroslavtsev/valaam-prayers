@@ -3,6 +3,7 @@
 <div class="page page-white">
 
 	<div class="navbar">
+		<div class="navbar-bg"></div>
 		<div class="navbar-inner sliding">
 			<div class="left">
 				<a href="#" class="link back">
@@ -16,36 +17,145 @@
 
 	<div class="page-content">
 		<h2 class="block">Настройки</h2>
-
-		<div class="list no-hairlines-md">
+		<div class="block">
+			<p>Применяются к разделам «Молитвослов», «Календарь»,
+				«Валаам» и «Поминовение».</p>
+		</div>
+		<div class="list media-list no-hairlines">
 		  <ul>
+				<li>
+					<div class="item-content">
+						<div class="item-media">
+						 	<i class="icon material-icons disabled">wifi_off</i>
+					 	</div>
+						<div class="item-inner">
+							<div class="item-title-row">
+								<div class="item-title">
+								 	Кэширование
+							 	</div>
+								<div class="item-after">
+									<label class="toggle toggle-init disabled">
+										<input type="checkbox" checked>
+										<span class="toggle-icon"></span>
+									</label>
+								</div>
+							</div>
+							<div class="item-text">
+							Cтраницы молитвослова и календаря, которые Вы посещали ранее,
+							будут доступны без сети Интернет.
+							</div>
+						</div>
+					</div>
+				</li>
+				<li>
+					<a class="item-link item-content {{#if downloading}}disabled{{/if}}"
+						 @click="download">
+						<div class="item-media">
+						 	<i class="icon material-icons  disabled">get_app</i>
+					 	</div>
+						<div class="item-inner">
+							<div class="item-title-row">
+								<div class="item-title">Скачать молитвослов и календарь
+								</div>
+							</div>
+							<div class="item-text">
+							Для использования без сети Интернет.
+							</div>
+						</div>
+					</a>
+				</li>
+				<!--
+				<li>
+				  <a class="item-link smart-select smart-select-init link-download"
+						 data-open-in="popover">
+				    <select name="dowload-data" multiple="" class="input-with-value">
+				        <option value="prayers"
+												selected=""
+												data-display-as="Молитвослов">Молитвослов (30 МБ)</option>
+				        <option value="days"
+												selected=""
+												data-display-as="Календарь">Календарь  (20 МБ)</option>
+				        <option value="saints"
+												selected=""
+												data-display-as="Святые">Святые (80 МБ)</option>
+				        <option value="literature"
+												data-display-as="Литература">Духовная литература (100 МБ)</option>
+				        <option value="icons"
+												data-display-as="Иконы">Иконы (300 МБ)</option>
+				    </select>
+				    <div class="item-content">
+				      <div class="item-media">
+							 	<i class="icon material-icons disabled">get_app</i>
+						 	</div>
+				      <div class="item-inner">
+					    	<div class="item-title-row">
+					        <div class="item-title" >Скачать
+									</div>
+									<div class="item-after">Молитвослов, Календарь, Святые</div>
+					      </div>
+								<div class="item-subtitle">(150 МБ)</div>
+							</div>
+				    </div>
+				  </a>
+					<div class="item-content">
+						<div class="item-media">
+						 	<i class="icon material-icons disabled"></i>
+					 	</div>
+						<div class="item-inner no-padding">
+							<div class="item-text padding-bottom-half">
+								<i class="icon material-icons color-green md-18 padding-right-half">done</i>
+								Скачано
+							</div>
+							<div class="item-link item-text padding-bottom-half padding-top-half">
+								<i class="icon material-icons md-18 padding-right-half">clear</i>
+								Удалить скачанные данные
+							</div>
+							<div class="item-text padding-bottom-half padding-top-half">
+								Скачиваем (36%)...
+								<div data-progress="36"
+										 class="progressbar margin-top-half"
+										 id="download-progressbar"></div>
+							</div>
+							<div class="item-link item-text padding-bottom-half padding-top-half">
+								<i class="icon material-icons md-18 padding-right-half">clear</i>
+								Отменить скачивание
+							</div>
+						</div>
+					</div>
+				</li>
+				-->
 				<li>
 					<a href="/settings/fonts/" class="item-link item-content">
 						<div class="item-media">
-						 	<i class="icon material-icons md-only disabled">title</i>
+						 	<i class="icon material-icons  disabled">title</i>
 					 	</div>
 						<div class="item-inner">
-							<div class="item-title">Шрифты
-        				<div class="item-footer">Церковнославянский и русский</div>
+							<div class="item-title-row">
+								<div class="item-title">Шрифты
+								</div>
 							</div>
+							<div class="item-text">Для чтений молитвослова и календаря</div>
 						</div>
 					</a>
 				</li>
 		    <li>
 		      <div class="item-content">
 		        <div class="item-media">
-							<i class="icon material-icons md-only disabled">brightness_3</i>
+							<i class="icon material-icons  disabled">brightness_3</i>
 						</div>
 		        <div class="item-inner">
-							<div class="item-title">
-								Ночной режим
+							<div class="item-title-row">
+								<div class="item-title">
+									Ночной режим
+								</div>
+		            <div class="item-after">
+									<label class="toggle toggle-init"
+												 @toggle:change="onThemeChange">
+										<input type="checkbox" {{#if themeDark}}checked{{/if}}>
+										<span class="toggle-icon"></span>
+									</label>
+							  </div>
 							</div>
-	            <div class="item-after">
-								<label class="toggle toggle-init">
-									<input type="checkbox">
-									<span class="toggle-icon"></span>
-								</label>
-						  </div>
 		        </div>
 		      </div>
 				</li>
@@ -53,18 +163,40 @@
 					<a class="item-link smart-select smart-select-init"
 						 data-open-in="popover"
 						 data-close-on-select="true"
-						 data-popup-close-link-text="<i class='icon material-icons md-only'>close</i>">
-						<select id="select-bg">
-								<option value="white" selected>Белый</option>
-								<option value="light-yellow">Светло-жёлный</option>
-								<option value="papirus">Папирус</option>
+						 data-popup-close-link-text="<i class='icon material-icons'>close</i>">
+						<select id="select-bg"
+										@change="onBgChange">
+							{{#each bgItems}}
+							<!--suppress HtmlUnknownAttribute -->
+								<option value="{{value}}" {{selected}}
+												data-option-image="{{image}}"
+												data-option-color="{{color}}">
+									{{name}}
+							</option>
+							{{/each}}
 						</select>
 						<div class="item-content">
 							<div class="item-media">
-							 	<i class="icon material-icons md-only disabled">colorize</i>
+							 	<i class="icon material-icons disabled">colorize</i>
 						 	</div>
 							<div class="item-inner">
-								<div class="item-title">Фон</div>
+								<div class="item-title-row">
+									<div class="item-title">Фон</div>
+								</div>
+								<div class="item-text">Для чтений молитвослова и календаря</div>
+							</div>
+						</div>
+					</a>
+				</li>
+				<li>
+					<a class="item-link item-content"  @click="testFitures">
+						<div class="item-media">
+						 	<i class="icon material-icons  disabled">info</i>
+					 	</div>
+						<div class="item-inner">
+							<div class="item-title-row">
+								<div class="item-title">Техническая информация
+								</div>
 							</div>
 						</div>
 					</a>
@@ -79,30 +211,124 @@
 		min-width: auto;
 	}
 
+	.smart-select .item-after > img {
+		height: 28px;
+		vertical-align: middle;
+	}
+
+	.link-download {
+		 --f7-list-item-border-color: transparent;
+	}
+
+	.color-green {
+		color: rgb(17,184,18);
+	}
 </style>
 <!--suppress JSAnnotator -->
 <script>
 	import settingsManager from '../js/settings-manager.js';
+	import reloadManager from '../js/reload-manager.js';
+
+	const BACKGROUND_ITEMS = [
+		{
+			name: 'Белый',
+			color: 'white',
+			value: 'rgb(255,255,255)'
+		},
+		{
+			name: 'Светло-жёлтый',
+			color: 'bg-light-yellow',
+			value: 'rgb(255,245,209)'
+		},
+		{
+			name: 'Кремовый',
+			image: './images/bg-cream.jpg',
+			value: 'url(./images/bg-cream.jpg)'
+		},
+		{
+			name: 'Старая бумага',
+			image: './images/bg-papirus.jpg',
+			value: 'url(./images/bg-papirus.jpg)'
+		}
+	];
 
 	let app, $el;
 	export default {
 		data() {
-			return {};
+			app = this.$app;
+
+			let style = getBgStyle();
+
+			console.log(style);
+			return {
+				themeDark: document.querySelector('html').classList.contains('theme-dark'),
+				downloading: app.methods.storageGet('reload-working'),
+				bgItems: BACKGROUND_ITEMS.map((item) => {
+					item.selected = (item.value === style.bgColor ||
+												   item.value === style.bgImage) ? 'selected' : '';
+					return item;
+				})
+			};
 		},
 		methods: {
+			onThemeChange(event) {
+				let toggle = event.target.querySelector('input');
+				this.themeDark = toggle.checked;
 
+				settingsManager.apply({
+					themeDark: this.themeDark
+				});
+			},
+			onBgChange(event) {
+				let value = event.target.value;
+				let state = {
+					bgColor: value.includes('rgb') ? value : '',
+					bgImage: value.includes('url') ? value : ''
+				};
+
+				//console.log('onBgChange', this);
+
+				settingsManager.save(state);
+			},
+			testFitures() {
+				reloadManager.testFitures();
+			},
+			async download() {
+				this.$setState({downloading: true});
+
+				try {
+					await reloadManager.download();
+					this.$setState({downloading: false});
+				} catch (ex) {
+					this.$setState({downloading: false});
+				}
+			}
 	 	},
 		on: {
 			pageInit(e, page) {
-				app = this.$app;
 				$el = this.$el;
 			},
 			pageBeforeIn(e, page) {
-
 			},
 			pageBeforeRemove() {
-
+				settingsManager.apply();
 			}
 		}
 	};
+
+	function getBgStyle() {
+		let style = window.getComputedStyle(app.root.find('#test-slavonic')[0]);
+		let data = {};
+
+		data.bgColor = style.backgroundColor
+				.replace(/\s/g, '');
+		data.bgImage = style.backgroundImage
+				.replace(/["']/g,'')
+				.replace(location.origin,'')
+				.replace(location.pathname,'./');
+
+		//console.log('getBgStyle', data);
+		return data;
+	}
+
 </script>

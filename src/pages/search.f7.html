@@ -136,14 +136,14 @@
 
 		searchbar.allowInfinite = false;
 
-		let data = {
+		let params = {
 			q: searchbar.phrase,
 			PAGEN_1: searchbar.page++
 		};
 
 		try {
-			let result = await Request.promise.post(URL_SEARCH, data, 'json');
-			buildItems(result);
+			let {data} = await Request.promise.post(URL_SEARCH, params, 'json');
+			buildItems(data);
 		} catch(ex) {
 			app.methods.showLoadError();
 		}

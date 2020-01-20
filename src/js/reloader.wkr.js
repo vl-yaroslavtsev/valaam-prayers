@@ -3,7 +3,7 @@
  */
 
 import moment from 'moment';
-import localforage from 'localforage/src/localforage.js';
+import localforage from 'localforage';
 
 const BASE_URL = 'https://valaam.ru';
 const API_URL = 'https://valaam.ru/phonegap/';
@@ -28,6 +28,11 @@ const idbDays = localforage.createInstance({
 const idbStat = localforage.createInstance({
 	'name': config.db_name,
 	'storeName': 'stat'
+});
+
+const idbCollections = localforage.createInstance({
+	'name': config.db_name,
+	'storeName': 'collections'
 });
 
 let isUpdating = false;
@@ -72,6 +77,11 @@ self.addEventListener('message', async (event) => {
 		let result = await checkData('full');
 		self.postMessage(result);
 	}
+
+	if (action == 'force-check') {
+		let result = await checkData('full', true);
+		self.postMessage(result);
+	}
 });
 
 /**
@@ -91,24 +101,28 @@ function objToUrl(obj) {
  * @return {Promise}
  */
 async function saveImage(src) {
-	let response = await fetch(BASE_URL + src);
-	if (!response.ok) return;
-	let blob = await response.blob();
-	await idbImages.setItem(src, blob);
+	try {
+		let response = await fetch(BASE_URL + src);
+		if (!response.ok) return;
+		let blob = await response.blob();
+		await idbImages.setItem(src, blob);
+	} catch(ex) {
+
+	}
 }
 
 function getPeriod(type = 'week') {
 	switch (type) {
 		case 'week':
 		return {
-			start: moment().startOf('week').add(1, 'days'),
-			end: moment().endOf('week').add(1, 'days')
+			start: moment().startOf('week'),
+			end: moment().endOf('week')
 		};
 
 		case 'year':
 		return {
-			start: moment().startOf('year').add(13, 'days'),
-			end: moment().endOf('year').add(13, 'days')
+			start: moment().startOf('year'),//.add(13, 'days'),
+			end: moment().endOf('year')//.add(13, 'days')
 		};
 
 		default:
@@ -147,9 +161,10 @@ async function clearOldData() {
 /**
  * Проверяем есть ли обновления данных
  * @param {string} [type='full'] Тип проверки
+ * @param {boolean} проверяем насильно на сервере
  * return {Promise}
  */
-async function checkData(type = 'full') {
+async function checkData(type = 'full' , force = false) {
 	let fromTs = 0;
 	let	defParams = {
 		page_size: 1,
@@ -158,13 +173,16 @@ async function checkData(type = 'full') {
 		from_ts: 0
 	};
 
+	if (!force) {
+		let checkTs = await idbStat.getItem(`last_check_${type}_ts`);
+		if ((moment().unix() - checkTs < config.reload_period)) {
+			return {status: 'data-fresh'};
+		}
+	}
+
 	let reloadTs = await idbStat.getItem(`last_reload_${type}_ts`);
 	if (reloadTs) {
-		if (moment().unix() - reloadTs < config.reload_period) {
-			return {status: 'data-fresh'};
-		} else {
-			fromTs = reloadTs;
-		}
+		fromTs = reloadTs;
 	}
 
 	let sources = [];
@@ -203,6 +221,9 @@ async function checkData(type = 'full') {
 			count[name] = (count[name] || 0) + json.nav.record_count;
 			count.total += count[name];
 		}
+
+		await idbStat.setItem(`last_check_${type}_ts`, moment().unix());
+
 		return {
 			status: count.total > 0 ? 'need-update' : 'data-fresh',
 			count: count,
@@ -251,8 +272,17 @@ async function* fetchResultGen(url, urlParams = {}) {
 	for (let page = nav.page_num + 1; page <= nav.page_count; page++) {
 		urlParams['PAGEN_' + nav.nav_num] = page;
 		let {data} = await fetchJson(url, urlParams, defUrlParams);
-		for (let item of data) yield item;
+		for (let item of data) 	yield item;
 	}
+
+	// for (let page = nav.page_num + 1; page <= nav.page_count; page++) {
+	// 	urlParams['PAGEN_' + nav.nav_num] = page;
+	// 	let promise = fetchJson(url, urlParams, defUrlParams);
+	// 	for (let item of data) 	yield item;
+	// 	({data} = await promise);
+	// }
+	//
+	// for (let item of data) yield item;
 }
 
 /**
@@ -286,6 +316,17 @@ async function reloadData(type = 'base', {
 
 		await clearOldData();
 
+		let keys = await idbCollections.keys();
+		if (!keys.includes('calendar')) {
+			let data = await fetchJson(`${API_URL}days/calendar/`, {type: 'json'});
+			await idbCollections.setItem('calendar', data);
+		}
+
+		if (!keys.includes('prayers')) {
+			let data = await fetchJson(`${API_URL}prayers/`, {type: 'json'});
+			await idbCollections.setItem('prayers', data);
+		}
+
 		let sources = getSources(type, fromTs);
 		let sourceIndex = 0;
 		for (let {url, storage, key = 'id', params = {}} of sources) {
@@ -300,7 +341,7 @@ async function reloadData(type = 'base', {
 
 			let itemIndex = 1, itemCount = 0, itemProgress = 0;
 			for await (let item of fetchResultGen(url, params)) {
-				if (item.record_count) {
+				if (item.record_count !== undefined) {
 					itemCount = item.record_count;
 					console.log(`storage: ${storage}, itemCount: ${itemCount}, ${url}`);
 					continue;
@@ -318,17 +359,20 @@ async function reloadData(type = 'base', {
 
 				if (useImages) {
 					if (storage === 'days') {
-						if (item.picture) imageCb(item.picture);
-						if (item.prayers.picture) imageCb(item.prayers.picture);
+						//if (item.picture) imageCb(item.picture);
+						//if (item.prayers.picture) imageCb(item.prayers.picture);
+						if (item.picture) await saveImage(item.picture);
+						if (item.prayers.picture) await saveImage(item.prayers.picture);
+
 					} else if (storage === 'prayers' &&
 										 item.picture) {
-						imageCb(item.picture);
+						await saveImage(item.picture);
+						//imageCb(item.picture);
+
 					} else if (storage === 'saints' &&
 										 item.picture
 										) {
-						try {
-							await saveImage(item.picture);
-						} catch (err) {}
+						await saveImage(item.picture);
 						//imageCb(item.picture);
 					}
 				}

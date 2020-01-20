@@ -3,6 +3,7 @@
 	<div class="page">
 
 		<div class="navbar">
+			<div class="navbar-bg"></div>
 			<div class="navbar-inner sliding">
 				<div class="left">
 					<a href="#" class="link back">
@@ -26,32 +27,33 @@
 		</div>
 
 		<div class="page-content">
-			<div class="page-content-tile">
-			<h2 class="block">{{days.title}}</h2>
+			<h3 class="block">{{day.subtitle}}</h3>
+			<h2 class="block">{{day.title}}</h2>
 			<div class="tile">
 				<div class="block day-saints-icon">
 					<div class="item-media media-obj no-bg">
 						<img class="media-obj-img lazy"
-							 data-src="https://valaam.ru{{days.picture}}"
-							 data-srcorig="https://valaam.ru{{days.picture_3x}}"
-							 title="{{days.picture_desc}}">
-							 <!-- data-srcset="{{days.picture_srcset}}"
+							 data-src="https://valaam.ru{{day.picture}}"
+							 data-src-db="{{day.picture}}"
+							 data-srcorig="https://valaam.ru{{day.picture_3x}}"
+							 title="{{day.picture_desc}}">
+							 <!-- data-srcset="{{day.picture_srcset}}"
 	 						sizes="60vw" -->
 					</div>
-					<div class="item-text text-color-gray">{{days.picture_desc}}</div>
+					<div class="item-text text-color-gray">{{day.picture_desc}}</div>
 				</div>
 				<div class="block day-saints-text">
-					{{days.text}}
+					{{day.text}}
 				</div>
 
 				<div class="block-title">Евангельские Чтения</div>
-				<div class="block margin-top-half">{{days.readers_text}}</div>
+				<div class="block margin-top-half">{{day.readers_text}}</div>
 				<!--
 				<div class="list no-hairlines-md">
 					<ul>
-						{{#each days.readers}}
+						{{#each day.readers}}
 						<li>
-							<a href="/days/{{@root.day}}/readers/{{id}}" class="item-link item-content">
+							<a href="/days/{{@root.dayCode}}/readers/{{id}}" class="item-link item-content">
 								<div class="item-inner">
 									<div class="item-title">{{name}}</div>
 								</div>
@@ -62,14 +64,31 @@
 				</div>
 				-->
 
-				{{#if days.prayers.text}}
+				{{#if day.prayers.text}}
 				<div class="block-title">Мысли на каждый день года</div>
 				<div class="list no-hairlines-md">
 					<ul>
 						<li>
-							<a href="/days/{{day}}/thoughts" class="item-link item-content">
+							<a href="/days/{{dayCode}}/thoughts" class="item-link item-content">
 								<div class="item-inner">
-									<div class="item-title">{{days.prayers.picture_desc}}</div>
+									<div class="item-title">{{day.prayers.picture_desc}}</div>
+								</div>
+							</a>
+						</li>
+					</ul>
+				</div>
+				{{/if}}
+
+				{{#if day.parabel}}
+				<div class="block-title">Притча дня</div>
+				<div class="list media-list no-hairlines-md">
+					<ul>
+						<li>
+							<a href="/days/{{dayCode}}/parabel" class="item-link item-content">
+								<div class="item-inner">
+									<div class="item-title-row">
+										<div class="item-title">{{day.parabel_short}}</div>
+									</div>
 								</div>
 							</a>
 						</li>
@@ -81,21 +100,30 @@
 				<div class="list no-hairlines-md">
 					<ul>
 						<li>
-							<a href="/days/{{day}}/instructions" class="item-link item-content">
+							<a href="/days/{{dayCode}}/instructions" class="item-link item-content">
 								<div class="item-inner">
-									<div class="item-title">{{days.title}}</div>
+									<div class="item-title">{{day.full_title}}</div>
 								</div>
 							</a>
 						</li>
 					</ul>
 				</div>
 
-				<div class="block-title">Молитвы</div>
+				<div class="block-title">Тропари и кондаки</div>
 				<div class="list no-hairlines-md">
 					<ul>
-						{{#each days.prayers.items}}
+						{{#if day.prayers.daily_tak}}
 						<li>
-							<a href="/days/{{@root.day}}/prayers/{{id}}" class="item-link item-content">
+							<a href="/prayers/text/{{day.prayers.daily_tak.id}}" class="item-link item-content">
+								<div class="item-inner">
+									<div class="item-title">{{day.prayers.daily_tak.name}}</div>
+								</div>
+							</a>
+						</li>
+						{{/if}}
+						{{#each day.prayers.items}}
+						<li>
+							<a href="/days/{{@root.dayCode}}/prayers/{{id}}" class="item-link item-content">
 								<div class="item-inner">
 									<div class="item-title">{{name}}</div>
 								</div>
@@ -104,24 +132,6 @@
 						{{/each}}
 					</ul>
 				</div>
-
-				{{#if hasLives}}
-				<div class="block-title">Жития</div>
-				<div class="list no-hairlines-md">
-					<ul>
-						{{#each days.lives}}
-						<li>
-							<a href="/days/{{@root.day}}/lives/{{id}}" class="item-link item-content">
-								<div class="item-inner">
-									<div class="item-title">{{name}}</div>
-								</div>
-							</a>
-						</li>
-						{{/each}}
-					</ul>
-				</div>
-				{{/if}}
-			</div>
 			</div>
 		</div>
 	</div>
@@ -136,17 +146,21 @@
 		/*white-space: normal;*/
 	}
 	.list .item-title {
-		/*white-space: normal;*/
+		white-space: normal;
+		display: -webkit-box;
+		-webkit-line-clamp: 2;
+		-webkit-box-orient: vertical;
 	}
-	.churchslavonic {
-	}
+
 	.date-section p {
 		margin: 0;
 	}
+
 	.date-section p.weekday {
 		font-size: 24px;
 		margin: 0;
 	}
+
 	em {
 		color: red;
 		font-style: normal;
@@ -157,7 +171,6 @@
 	}
 
 	.day-saints-text strong {
-		/*font-weight: bold;*/
 	}
 
 	.day-saints-text em {
@@ -202,6 +215,8 @@
 <!--suppress JSAnnotator -->
 <script>
 	import moment from 'moment';
+	import {upperFirst} from 'lodash-es';
+
 	let app;
 
 	export default {
@@ -213,31 +228,47 @@
 		data() {
 			app = this.$app;
 			let dataManager = app.dataManager,
+					prayers = dataManager.cache.prayers,
 					dayCode = this.$route.params.id,
-					daysData = Object.assign({}, dataManager.cache.day[dayCode]);
+					day = Object.assign({}, this.day);
 
-			daysData.text = /*marked*/(daysData.text)
+			day.text = /*marked*/(day.text)
 				.replace(/href="E(\d+)"/g, 'href="/prayers/text/$1"')
 			;
 
-			daysData.picture_desc = app.methods.hyphenate(daysData.picture_desc);
+			day.picture_desc = app.methods.hyphenate(day.picture_desc);
 
-			daysData.readers_text = daysData.readers_text.replace(/\^(\d+)/g, '<sup>$1</sup>');
+			day.readers_text = day.readers_text.replace(/\^(\d+)/g, '<sup>$1</sup>');
+
+			day.parabel_short = day.parabel
+				.replace(/<\/?[^>]+>/gi, '')
+				.slice(0, 300)
+			;
+
+			if (day.prayers.daily_tak) {
+				day.prayers.daily_tak = prayers.e.find(
+					(e) => e.id === day.prayers.daily_tak
+				);
+			}
 
 			// noinspection JSUnresolvedVariable
-			daysData.oldstyleDate = moment.unix(daysData.date_ts).subtract(13, 'days');
+			let oldstyleDate = moment.unix(day.date_ts).subtract(13, 'days');
 			// noinspection JSUnresolvedVariable
-			daysData.newstyleDate = moment.unix(daysData.date_ts);
+			let newstyleDate = moment.unix(day.date_ts);
+			let dayOfWeek = upperFirst(newstyleDate.format('dddd'));
 
-			daysData.title = daysData.name;
+			day.subtitle = oldstyleDate.format('D MMMM по старому стилю');
+			day.title = newstyleDate.format(`D MMMM YYYY г. ${dayOfWeek}`);
+			day.full_title = oldstyleDate.format('D MMMM / ') +
+														day.title;
+			//day.title = `${day.name}. ${dayCode.substr(0, 4)} год`;
 
 			return {
-				day: dayCode,
-				days: daysData,
-				dayPrev: moment.unix(daysData.date_ts).subtract(1, 'day').format('YYYYMMDD'),
-				dayNext: moment.unix(daysData.date_ts).add(1, 'day').format('YYYYMMDD'),
-				searchMode: this.$route.query.mode === 'search',
-				hasLives: false // daysData.lives.length !== 0
+				dayCode,
+				day,
+				dayPrev: moment.unix(day.date_ts).subtract(1, 'day').format('YYYYMMDD'),
+				dayNext: moment.unix(day.date_ts).add(1, 'day').format('YYYYMMDD'),
+				searchMode: this.$route.query.mode === 'search'
 			};
 		}
 	};

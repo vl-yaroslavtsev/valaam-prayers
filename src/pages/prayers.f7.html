@@ -2,16 +2,17 @@
 	<div class="page" data-name="{{id}}">
 
 		<div class="navbar">
+			<div class="navbar-bg"></div>
 			<div class="navbar-inner sliding">
 				{{#if name}}
 				<div class="left">
 					<a href="#" class="link back">
 						<i class="icon icon-back"></i>
-						<span class="">Назад</span>
+						<span>Назад</span>
 					</a>
 				</div>
 				{{/if}}
-				<div class="title">{{title}}</div>
+				<div class="title">Валаам</div>
 				<div class="right">
 					{{> "navbar-right"}}
 				</div>
@@ -19,15 +20,29 @@
 		</div>
 
 		<div class="page-content">
-			<div class="page-content-tile">
 			{{#if name}}
 			<h2 class="block">{{name}}</h2>
+			{{else}}
+			<h2 class="block">{{title}}</h2>
 			{{/if}}
 
 			<div class="list ucase-list">
 				<ul>
+					{{#if loading}}
+					{{#each '123456'}}
+					 <li key="{{this}}">
+ 						<!--suppress HtmlUnknownTarget -->
+ 						<div class="item-link item-content">
+ 							<div class="item-inner">
+ 								<div class="item-title skeleton-block"
+										 style="width:{{../skeletonWordLen()}}ch;"></div>
+ 							</div>
+ 						</div>
+ 					</li>
+					{{/each}}
+					{{else}}
 					{{#each items}}
-					<li>
+					<li key="{{id}}">
 						<!--suppress HtmlUnknownTarget -->
 						<a href="{{href}}" class="item-link item-content">
 							<div class="item-inner">
@@ -36,6 +51,7 @@
 						</a>
 					</li>
 					{{/each}}
+					{{/if}}
 					<!--<li>-->
 						<!--<a href="/prayers/text/72283" class="item-link item-content" data-view="#view-others">-->
 							<!--<div class="item-inner">-->
@@ -45,59 +61,71 @@
 					<!--</li>-->
 				</ul>
 			</div>
-			</div>
 		</div>
 
 	</div>
 </template>
 <style>
-	.list .item-title {
-		/*white-space: normal;*/
-	}
 </style>
 <!--suppress JSAnnotator -->
 <script>
 	import {sortBy} from 'lodash-es';
+	let app;
 
 	export default {
 		data() {
-			let app = this.$app,
-					sectionId = this.$route.params.sectionId || "0",
-					prayerData = {
-						name: false,
-						title: this.$router.view.name,
-						items: []
-					},
-					prayers = app.dataManager.cache.prayers,
-					data;
+			app = this.$app;
 
-			if (!prayers)
-				this.$root.showLoadError(`
-					Ошибка загрузки данных<br>
-					Проверьте подключение к интернету
-				`);
+			let prayerData = {
+				loading: true,
+				skeletonWordLen: app.methods.skeletonWordLen,
+				name: false,
+				title: this.$router.view.name,
+				items: []
+			};
 
-			prayers.s.forEach((data) => {
-				if (data.parent === sectionId) {
-					prayerData.items.push(Object.assign(data, {
-						href: '/prayers/' + data.id
-					}));
-				}
-				if (data.id === sectionId && data.parent !== "0") {
-					// prayerData.name = data.name;
-					Object.assign(prayerData, {id: `PR${data.id}` , name: data.name});
-				}
-			});
-
-			prayers.e
-				.filter(({parent}) => parent === sectionId)
-				.forEach((data) => {
-					prayerData.items.push(Object.assign(data, {href: '/prayers/text/' + data.id}));
-				});
-
-			prayerData.items = sortBy(prayerData.items, ['sort', 'name']);
-
+			loadData.call(this);
 			return prayerData;
 		}
 	};
+
+	async function loadData() {
+		try {
+			let prayers = await app.dataManager.get('prayers');
+			//this.$tick(() => handleData.call(this, prayers));
+			handleData.call(this, prayers);
+			app.emit('mainPageLoaded', 'prayers', this);
+		} catch (err) {
+			app.methods.showLoadError();
+			throw err;
+		}
+	}
+
+	function handleData(prayers) {
+		let sectionId = this.$route.params.sectionId || "0";
+		let state = {items: []};
+
+		prayers.s.forEach((data) => {
+			if (data.parent === sectionId) {
+				state.items.push(Object.assign(data, {
+					href: '/prayers/' + data.id
+				}));
+			}
+			if (data.id === sectionId && data.parent !== "0") {
+				// prayerData.name = data.name;
+				Object.assign(state, {id: `PR${data.id}` , name: data.name});
+			}
+		});
+
+		prayers.e
+			.filter(({parent}) => parent === sectionId)
+			.forEach((data) => {
+				state.items.push(Object.assign(data, {href: '/prayers/text/' + data.id}));
+			});
+
+		state.loading = false;
+		state.items = sortBy(state.items, ['sort', 'name']);
+
+		this.$tick(() => this.$setState(state));
+	}
 </script>

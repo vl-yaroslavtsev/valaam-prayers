@@ -33,10 +33,10 @@ const MIN_STORAGE_AVAILABLE_TO_RELOAD_MB = 5;
 
 function init(appInstance) {
 	app = appInstance;
+	app.methods.storageSet('reload-working');
 }
 
 async function preload() {
-
 	if (!navigator.onLine) return;
 
 	let {status, size, count} = await reloadAction('check');
@@ -44,32 +44,24 @@ async function preload() {
 	if (status !== 'need-update') return;
 
 	let sizeMb = {
-		data: +(size.data / 1024).toFixed(1),
-		image: +(size.image / 1024).toFixed(1)
+		data: Math.round(size.data / 1024),
+		image: Math.round(size.image / 1024)
 	};
 	console.log(`[reload-manager] preload: status = ${status}, sizeMb = ,`, sizeMb,
 							`, count = `, count);
 
-	try {
-			let {usageMb, quotaMb} = await getQuota();
 
-			console.log(`[reload-manager] preload: usage / quota: ${usageMb} / ${quotaMb} MB`);
+	let {usageMb, quotaMb} = await getQuota();
 
-			// Размер обновления превышает место для хранения
-			if (quotaMb - usageMb < MIN_STORAGE_AVAILABLE_TO_RELOAD_MB) {
-				return 'few-available-space';
-			}
+	console.log(`[reload-manager] preload: usage / quota: ${usageMb} / ${quotaMb} MB`);
 
-			if (sizeMb.data + MIN_STORAGE_AVAILABLE_TO_RELOAD_MB > quotaMb) {
-				return reloadAction('base');
-			}
+	// Размер обновления превышает место для хранения
+	if (quotaMb - usageMb < MIN_STORAGE_AVAILABLE_TO_RELOAD_MB) {
+		return 'few-available-space';
+	}
 
-			//app.dialog.alert('quota: ' + JSON.stringify(data[1], 2));
-			// app.dialog.alert(`[reload-manager] init(): status: ${status}
-			//                  ,<br>size: ${sizeMb} MB
-			// 								 ,<br>usage / quota: ${usageMb} / ${quotaMb} MB`);
-	} catch (ex) {
-
+	if (sizeMb.data + MIN_STORAGE_AVAILABLE_TO_RELOAD_MB > quotaMb) {
+		return reloadAction('base');
 	}
 
 	try {
@@ -79,10 +71,10 @@ async function preload() {
 			return reloadAction('full');
 		}
 
-		let result = await confirmReloadData(sizeMb);
+		let result = await confirmReloadData(sizeMb, quotaMb);
 		// Обновляем базовые данные для оффлайн версии
 		if (!result) {
-			return reloadAction('base');
+			return; // reloadAction('base');
 		}
 
 		return processReloadUI(result);
@@ -92,13 +84,77 @@ async function preload() {
 	}
 }
 
+async function download() {
+	if (!navigator.onLine) {
+		app.dialog.alert(
+			`Скачивание невозможно.<br>
+			 Вы не подключениы к сети Интернет`,
+			'Оффлайн версия'
+		);
+		return;
+	};
+
+	try {
+		app.preloader.show();
+
+		let {status, size, count} = await reloadAction('force-check');
+
+		app.preloader.hide();
+
+		if (status !== 'need-update') {
+			app.dialog.alert(
+				`У Вас самые свежие данные.<br>
+				 Обновление не требуется`,
+				'Оффлайн версия'
+			);
+			return;
+		}
+
+		let sizeMb = {
+			data: Math.round(size.data / 1024),
+			image: Math.round(size.image / 1024)
+		};
+		console.log(`[reload-manager] preload: status = ${status}, sizeMb = ,`, sizeMb,
+								`, count = `, count);
+
+
+		let {usageMb, quotaMb} = await getQuota();
+
+		console.log(`[reload-manager] download: usage / quota: ${usageMb} / ${quotaMb} MB`);
+
+		// Размер обновления превышает место для хранения
+		if (quotaMb - usageMb < MIN_STORAGE_AVAILABLE_TO_RELOAD_MB ||
+		    sizeMb.data + MIN_STORAGE_AVAILABLE_TO_RELOAD_MB > quotaMb) {
+			app.dialog.alert(
+				`На Вашем устройстве недостаточно места для хранения оффлайн версии`,
+				'Оффлайн версия'
+			);
+			return;
+		}
+
+		let result = await confirmReloadData(sizeMb, quotaMb, true);
+		// Обновляем базовые данные для оффлайн версии
+		if (!result) {
+			return; // reloadAction('base');
+		}
+
+		return processReloadUI(result);
+
+	} catch (err) {
+		console.log('[reload-manager] download() Error: ', err);
+		app.preloader.hide();
+	}
+}
+
 /**
  * Спрашиваем у пользователя обновлять ли оффлайн данные.
  * Возвращает Promise, который разрешается в true, если данные обновлены, false - если отказ.
  * @param {Object} sizeMb Размер обновляемых данных
+ * @param {number} quotaMb Размер хранилища
+ * @param {boolean} force Принудильно спрашиваем
  * @return {Promise}
  */
-function confirmReloadData(sizeMb) {
+function confirmReloadData(sizeMb, quotaMb, force = false) {
 	let msg = `
 		<p>
 		Доступно обновление для оффлайн версии молитвослова и календаря.
@@ -114,16 +170,18 @@ function confirmReloadData(sizeMb) {
 			</label>
 			<label for="confirm-reload-data"
 						 class="margin-left-half">данные: ${sizeMb.data} Мб</label>
-			<br/>
-			<label class="radio">
-				<input type="radio"
-							 id="confirm-reload-image"
-							 name="reload-data"
-							 value="${+(sizeMb.data + sizeMb.image).toFixed(1)}">
-				<i class="icon-radio"></i>
-			</label>
-			<label for="confirm-reload-image"
-						 class="margin-left-half">данные + иконы: ${+(sizeMb.data + sizeMb.image).toFixed(1)} Мб</label>
+			${(quotaMb > sizeMb.data + sizeMb.image + MIN_STORAGE_AVAILABLE_TO_RELOAD_MB) ? `
+				<br/>
+				<label class="radio">
+					<input type="radio"
+								 id="confirm-reload-image"
+								 name="reload-data"
+								 value="${sizeMb.data + sizeMb.image}">
+					<i class="icon-radio"></i>
+				</label>
+				<label for="confirm-reload-image"
+							 class="margin-left-half">данные + иконы: ${sizeMb.data + sizeMb.image} Мб</label>
+			` : ''}
 		</p>
 		<p>
 			Загрузить <span class="total-size">${sizeMb.data}</span> Мб?
@@ -134,12 +192,14 @@ function confirmReloadData(sizeMb) {
 		let confirmTs = app.methods.storageGet('reload-confirm-ts') * 1;
 		let rejectCount = app.methods.storageGet('reload-confirm-reject') * 1;
 
-		if (rejectCount >= RELOAD_CONFIRM_REJECT_MAX_COUNT) {
-			return resolve(false);
-		}
+		if (!force) {
+			if (rejectCount >= RELOAD_CONFIRM_REJECT_MAX_COUNT) {
+				return resolve(false);
+			}
 
-		if (moment().unix() - confirmTs < RELOAD_CONFIRM_TIMEOUT_SEC) {
-			return resolve(false);
+			if (moment().unix() - confirmTs < RELOAD_CONFIRM_TIMEOUT_SEC) {
+				return resolve(false);
+			}
 		}
 
 		let dialog = app.dialog.confirm(
@@ -153,7 +213,9 @@ function confirmReloadData(sizeMb) {
 			},
 			() => {
 				app.methods.storageSet('reload-confirm-ts', moment().unix());
-				app.methods.storageSet('reload-confirm-reject', ++rejectCount);
+				if (!force) {
+					app.methods.storageSet('reload-confirm-reject', ++rejectCount);
+				}
 				resolve(false);
 			});
 
@@ -173,7 +235,8 @@ async function processReloadUI({useImages}) {
 	let toast = app.toast.create({
 		text: `
 			Загрузка <span class="toast-type">данных</span>
-			для оффлайн версии: <span class="toast-progress">0</span>%.
+			для оффлайн версии: <span class="toast-progress">0</span>%.<br>
+			Пожалуйста, не переходите на другие вкладки.
 		`,
 		destroyOnClose: true
 	});
@@ -181,6 +244,8 @@ async function processReloadUI({useImages}) {
 	toast.open();
 
 	try {
+		app.methods.storageSet('reload-working', true);
+
 		let data = await reloadAction('full',	{
 			useImages,
 			progressCb: ({type, progress}) => {
@@ -194,29 +259,29 @@ async function processReloadUI({useImages}) {
 		toast.close();
 
 		toast = app.toast.create({
-			text: 'Данные успешно загружены!',
+			text: 'Данные загружены! Теперь можно использовать молитвослов и календарь оффлайн',
 			closeButton: true,
-			destroyOnClose: true,
-			closeTimeout: 15000
+			destroyOnClose: true
 		});
 		toast.open();
-
+		app.methods.storageSet('reload-working');
 		return data;
 	} catch(err) {
 		toast.close();
 		let errMessage = err.message;
+		app.methods.storageSet('reload-working');
 
 		if (err.name === 'QuotaExceededError') {
 			errMessage = 'Недостаточно места на устройстве.'
 		}
 
+		console.log('[reload-manager.js] processReloadUI: Ошибка загрузки данных ', err);
 		toast = app.toast.create({
 			text: `Ошибка при загрузке. Оффлайн данные загружены не полностью.
 						 ${errMessage}`,
 			closeButton: true,
 			cssClass: 'bg-color-red',
-			destroyOnClose: true,
-			closeTimeout: 15000
+			destroyOnClose: true
 		});
 		toast.open();
 	}
@@ -292,8 +357,8 @@ async function getQuota() {
 	if ('storage' in navigator && 'estimate' in navigator.storage) {
 		let {usage, quota} = await navigator.storage.estimate();
 		return {
-			usageMb: +(usage / (1024 * 1024)).toFixed(1),
-			quotaMb: +(quota / (1024 * 1024)).toFixed(1)
+			usageMb: Math.round(usage / (1024 * 1024)),
+			quotaMb: Math.round(quota / (1024 * 1024))
 		};
 	}
 
@@ -302,8 +367,8 @@ async function getQuota() {
 			navigator.webkitTemporaryStorage.queryUsageAndQuota (
 				(usage, quota) => {
 					resolve({
-						usageMb: +(usage / (1024 * 1024)).toFixed(1),
-						quotaMb: +(quota / (1024 * 1024)).toFixed(1)
+						usageMb: Math.round((usage / (1024 * 1024))),
+						quotaMb: Math.round((quota / (1024 * 1024)))
 					});
 				},
 				function(ex) {reject(ex);}
@@ -311,7 +376,10 @@ async function getQuota() {
 		});
 	}
 
-	throw new Error('quota-not-available');
+	return {
+		usageMb: 0,
+		quotaMb: Infinity
+	};
 }
 
 /**
@@ -411,4 +479,4 @@ async function testFitures() {
 	app.dialog.alert(msg);
 }
 
-export default {init, preload, testFitures};
+export default {init, preload, download, testFitures};

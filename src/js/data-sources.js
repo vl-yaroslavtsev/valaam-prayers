@@ -5,9 +5,8 @@ DataManager.addSource(new DataSource({
 	url: `${API_URL}prayers/?type=json`,
 	storage: 'collections',
 	key: 'prayers',
-	handler: 'staleWhileRevalidate',
-	autoLoad: true,
-	memoryCache: true
+	handler: 'cacheThenRevalidate',
+//	autoLoad: true,
 }));
 
 DataManager.addSource(new DataSource({
@@ -15,23 +14,20 @@ DataManager.addSource(new DataSource({
 	url: `${API_URL}days/calendar/?type=json`,
 	storage: 'collections',
 	key: 'calendar',
-	handler: 'staleWhileRevalidate',
-	autoLoad: true,
-	memoryCache: true
+	handler: 'cacheThenRevalidate',
+//	autoLoad: true
 }));
 
 DataManager.addSource(new DataSource({
 	id: 'ritesConfig',
 	url: `${API_URL}rites-config?type=json`,
-	handler: 'networkOnly',
-	memoryCache: true
+	handler: 'cacheThenNetwork'
 }));
 
 DataManager.addSource(new DataSource({
 	id: 'valaamGid',
 	url: `${API_URL}?referer1=valaam.tour&type=json`,
-	handler: 'networkOnly',
-	memoryCache: true
+	handler: 'cacheThenNetwork'
 }));
 
 DataManager.addSource(new DataSource({
@@ -55,6 +51,5 @@ DataManager.addSource(new DataSource({
 	url: (code) => `${API_URL}days/${code}`,
 	storage: 'days',
 	key: (code) => code,
-	handler: 'staleWhileRevalidate',
-	memoryCache: true
+	handler: 'staleWhileRevalidate'
 }));

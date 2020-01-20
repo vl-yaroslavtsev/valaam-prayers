@@ -2,15 +2,14 @@
 	<div class="page page-with-tabs-subnavbar" data-name="{{id}}">
 
 		<div class="navbar">
+			<div class="navbar-bg"></div>
 			<div class="navbar-inner sliding">
-				{{#if name}}
 				<div class="left">
 					<a href="#" class="link back">
 						<i class="icon icon-back"></i>
 						<span class="">Назад</span>
 					</a>
 				</div>
-				{{/if}}
 				<div class="title">{{title}}</div>
 				<div class="right">
 					<!--<a href="#" class="link churchslavonic">Ц</a>-->
@@ -35,9 +34,8 @@
 		</div>
 
 		<div class="page-content hide-navbar-on-scroll hide-toolbar-on-scroll">
-			<div class="page-content-tile">
 			{{#if parentName}}
-			<h3 class="block">{{parentName}}</h2>
+			<h3 class="block">{{parentName}}</h3>
 			{{/if}}
 			{{#if name}}
 			<h2 class="block">{{name}}</h2>
@@ -55,12 +53,13 @@
 			{{/if}}
 
 			{{#js_if "this.text || this.picture" }}
-			<div class="block block-strong inset slavonic text-content">
+			<div class="block block-strong inset text-content">
 				{{#if picture}}
 				<p>
 					<img class="lazy"
-					 		 data-src="https://valaam.ru{{picture}}"
-					 	 	 data-srcorig="https://valaam.ru{{picture_3x}}"
+							 data-src="https://valaam.ru{{picture}}"
+							 data-src-db="{{picture}}"
+							 data-srcorig="https://valaam.ru{{picture_3x}}"
 					>
 				</p>
 				{{/if}}
@@ -81,7 +80,6 @@
 				{{/if}}
 			</div>
 		</div>
-		</div>
 	</div>
 </template>
 <!--suppress HtmlUnknownAttribute -->
@@ -98,39 +96,21 @@
 <!--suppress JSAnnotator -->
 <script>
 	import favoriteManager from '../js/favorite-manager.js';
+	let app;
+
 	export default {
 		data() {
-			let app = this.$app;
-			let dataManager = app.dataManager;
-			let prayers = dataManager.cache.prayers;
-			let parentSection = prayers.s.find(({id}) => id === this.prayer.parent);
-			let prayerData = {};
+			app = this.$app;
+			let prayers = app.dataManager.cache.prayers,
+					prayer = this.prayer,
+					data = {
+						searchMode: this.$route.query.mode === 'search'
+					};
+			data.title = data.searchMode ? 'Поиск' : this.$router.view.name;
 
-			prayerData.id = this.prayer.id;
-			prayerData.name = this.prayer.name;
-			if (parentSection) {
-					prayerData.parentName = parentSection.name;
-			}
+			handleData(data, prayers, prayer);
 
-			prayerData.text = /*marked*/(this.prayer.text)
-				.replace(/href="(https?|mailto|tel):/g, 'class="external" href="$1:')
-			;
-			prayerData.picture = this.prayer.picture;
-			prayerData.picture_3x = this.prayer.picture_3x;
-			prayerData.churchslavonicText = /*marked*/(this.prayer.churchslavonic_text);
-			prayerData.slavonicText = /*marked*/(this.prayer.slavonic_text);
-			prayerData.twoText = prayerData.churchslavonicText && prayerData.slavonicText;
-			prayerData.searchMode = this.$route.query.mode === 'search';
-			prayerData.title = prayerData.searchMode ? 'Поиск' : this.$router.view.name;
-
-			let list = prayers.e.filter(({parent}) => parent === this.prayer.parent);
-			let index = list.findIndex(({id}) => id === this.prayer.id);
-			prayerData.prevId = index > 0 ? list[index - 1].id : null;
-			prayerData.nextId = index < list.length - 1 ? list[index + 1].id : null;
-
-			prayerData.isFavorite = favoriteManager.has(prayerData.id);
-
-			return prayerData;
+			return data;
 		},
 		methods: {
 			toggleFavorite() {
@@ -148,10 +128,10 @@
 			}
 		},
 		on: {
-			pageInit(e, page) {
-				console.log(page);
-				let app = page.app;
-		    let tabId = app.methods.storageGet('prayers-text-tab') ||
+			async pageInit(e, page) {
+				await this.dataPromise;
+				//if (this.loading)
+				let tabId = app.methods.storageGet('prayers-text-tab') ||
 									  'tab-slavonic';
 				if (this.twoText) {
 						app.tab.show(page.$el.find('#' + tabId));
@@ -163,4 +143,30 @@
 		  }
 		}
 	};
+
+	function handleData(data, prayers, prayer) {
+		let parentSection = prayers.s.find(({id}) => id === prayer.parent);
+
+		data.id = prayer.id;
+		data.name = prayer.name;
+		if (parentSection) {
+				data.parentName = parentSection.name;
+		}
+
+		data.text = /*marked*/(prayer.text)
+			.replace(/href="(https?|mailto|tel):/g, 'class="external" href="$1:')
+		;
+		data.picture = prayer.picture;
+		data.picture_3x = prayer.picture_3x;
+		data.churchslavonicText = prayer.churchslavonic_text;
+		data.slavonicText = prayer.slavonic_text;
+		data.twoText = data.churchslavonicText && data.slavonicText;
+
+		let list = prayers.e.filter(({parent}) => parent === prayer.parent);
+		let index = list.findIndex(({id}) => id === prayer.id);
+		data.prevId = index > 0 ? list[index - 1].id : null;
+		data.nextId = index < list.length - 1 ? list[index + 1].id : null;
+
+		data.isFavorite = favoriteManager.has(data.id);
+	}
 </script>

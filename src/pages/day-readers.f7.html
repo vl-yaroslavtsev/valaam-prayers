@@ -2,6 +2,7 @@
 	<div class="page page-with-tabs-subnavbar">
 
 		<div class="navbar">
+			<div class="navbar-bg"></div>
 			<div class="navbar-inner sliding">
 				<div class="left">
 					<a href="#" class="link back">
@@ -21,14 +22,13 @@
 		</div>
 
 		<div class="page-content">
-			<div class="page-content-tile">
 			<h2 class="block">{{name}}</h2>
 
 			<div class="subnavbar tabs-subnavbar">
 				<div class="subnavbar-inner">
 					<div class="segmented segmented-raised">
 						<a class="button tab-link" href="#tab-churchslavonic">Церковнославянский</a>
-						<a class="button tab-link tab-link-active" href="#tab-slavonic">Русский</a>
+						<a class="button tab-link" href="#tab-slavonic">Русский</a>
 					</div>
 				</div>
 			</div>
@@ -37,10 +37,9 @@
 				<div class="tab" id="tab-churchslavonic">
 					<div class="block block-strong inset churchslavonic-ereader">{{churchslavonicText}}</div>
 				</div>
-				<div class="tab tab-active" id="tab-slavonic">
+				<div class="tab" id="tab-slavonic">
 					<div class="block block-strong inset slavonic-ereader text-content">{{slavonicText}}</div>
 				</div>
-			</div>
 			</div>
 		</div>
 
@@ -58,7 +57,7 @@
 
 			readerData = Object.assign(
 				{},
-				dataManager.cache.day[dayCode].readers.find(({id}) => id === readerId)
+				this.day.readers.find(({id}) => id === readerId)
 			);
 
 			text = readerData.text.split('\n');
@@ -82,6 +81,18 @@
 			readerData.searchMode = this.$route.query.mode === 'search';
 
 			return readerData;
+		},
+		on: {
+			pageInit(e, page) {
+				let tabId = app.methods.storageGet('ereaders-text-tab') ||
+									  'tab-slavonic';
+				app.tab.show(page.$el.find('#' + tabId));
+
+				page.$el.find('.tabs').on('tab:show', (event) => {
+					app.methods.storageSet('ereaders-text-tab', event.target.id);
+				});
+		  }
 		}
+
 	};
 </script>

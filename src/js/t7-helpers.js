@@ -1,9 +1,6 @@
 import {Template7} from 'framework7';
 import moment from 'moment';
 
-
-moment.locale('ru');
-
 Template7.registerHelper('moment', function (date, options) {
   if (date.hash) {
 		options = date;

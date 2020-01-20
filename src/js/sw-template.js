@@ -7,20 +7,21 @@ self.addEventListener('fetch', (event) => {
 	if (event.request.method != 'GET') return;
 	if (url.origin !== location.origin) return;
 
-	// Картинки
+	// Android WebView выдает ошибку, если нет сети. Подменяем ее на 404
 	if (/\.(?:png|gif|jpg|jpeg|webp)$/.test(url.pathname)) {
 		return event.respondWith(
 			fetchDef(event.request, {
-				default: '/prayers.f7/images/default.png',
+				default: imgDefResponse()
 			})
 		);
 	}
 
 	// Серверные json из /phonegap/
+	// Android WebView выдает ошибку, если нет сети. Подменяем ее на 503
 	if (/\phonegap\//.test(url.pathname))  {
 		return event.respondWith(
 			fetchDef(event.request, {
-				default: jsonResponse({error: 'network fail'}, 503)
+				default: jsonDefResponse()
 			})
 		);
 	}
@@ -34,22 +35,42 @@ self.addEventListener('fetch', (event) => {
  * @param {Request}             [params.default] Запрос, возвращаемый при ошибке
  * @return {Promise}
  */
-async function fetchDef(request, {default: defResponse}) {
-	try {
-		let response = await fetch(request);
-		return response;
-	} catch (err) {
-		return defResponse || Response.error();
-	}
-};
+ function fetchDef(request, {default: defResponse}) {
+	 return fetch(request)
+						.catch(ex => {
+							return defResponse || Response.error();
+						});
+ }
+// async function fetchDef(request, {default: defResponse}) {
+// 	try {
+// 		let response = await fetch(request);
+// 		return response;
+// 	} catch (err) {
+// 		return defResponse || Response.error();
+// 	}
+// }
 
 /**
  * Возвращаем Response c указанным json-объектом
  * @param {Object|Array} json
  * @return {Response}
  */
-function jsonResponse(json, status = 200) {
-	var blob = new Blob([JSON.stringify(json)], {type : 'application/json'});
+function imgDefResponse() {
+	let blob = new Blob([], {type : 'image/png'});
+	return new Response(blob, {
+		"status": 404
+	});
+}
+
+/**
+ * Возвращаем Response c указанным json-объектом
+ * @param {Object|Array} json
+ * @return {Response}
+ */
+function jsonDefResponse() {
+	let json = {error: 'network fail'};
+	let status = 503;
+	let blob = new Blob([JSON.stringify(json)], {type : 'application/json'});
 	return new Response(blob, {
 		"status": status
 	});

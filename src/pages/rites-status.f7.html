@@ -3,6 +3,7 @@
 	<div class="page" data-name="rites-status">
 
 		<div class="navbar">
+			<div class="navbar-bg"></div>
 			<div class="navbar-inner sliding">
 				<div class="left">
 					<a href="#" class="link back">
@@ -15,7 +16,6 @@
 		</div>
 
 		<div class="page-content">
-			<div class="page-content-tile">
 			<div class="tile">
 				<div class="block block-strong no-hairlines-md vm-rites-status">
 					<div class="block-title-medium">{{status}}</div>
@@ -42,7 +42,6 @@
 					</ul>
 				</div>
 			</div>
-			</div>
 		</div>
 	</div>
 </template>
@@ -68,34 +67,36 @@
 
 <!--suppress JSAnnotator, JSIgnoredPromiseFromCall -->
 <script>
-	let app, ritesConfig;
+	import {Request} from 'framework7';
+	let ritesConfig;
 	export default {
 		methods: {
 			async checkStatus() {
-				let result = await app.request.promise.json(`https://valaam.ru/phonegap/rites/${this.id}`);
+				let {data: result} = await Request.promise.json(`https://valaam.ru/phonegap/rites/${this.id}`);
 
-				if (+result['status_id'] === ritesConfig['constants']['BX_IBLOCK_RITEORDER__STATUS_PAY']) {
+				if (+result['status_id'] === ritesConfig['constants']['BX_IBLOCK_RITEORDER__STATUS_PAY'] ||
+				    +result['status_id'] === ritesConfig['constants']['BX_IBLOCK_RITEORDER__STATUS_DONE']) {
 					this.$el.find('.vm-rites-status > .block-title-medium').text(result['status']);
 					this.$el.find('.vm-rites-status > .block-footer').addClass('vm-rites-payment-done');
 				} else this.timerId = setTimeout(() => {
 					this.checkStatus();
-				}, 5000);
+				}, 2000);
 			}
 		},
 		on: {
 			pageAfterIn() {
-				if(+this['status_id'] !== ritesConfig['constants']['BX_IBLOCK_RITEORDER__STATUS_PAY'])
+				if(+this['status_id'] !== ritesConfig['constants']['BX_IBLOCK_RITEORDER__STATUS_PAY'] ||
+				   +this['status_id'] !== ritesConfig['constants']['BX_IBLOCK_RITEORDER__STATUS_DONE'])
 					this.timerId = setTimeout(() => {
 						this.checkStatus();
-					}, 5000);
+					}, 2000);
 			},
 			pageBeforeOut() {
 				clearTimeout(this.timerId);
 			}
 		},
 		data() {
-			app = this.$app,
-			ritesConfig = app.dataManager.cache.ritesConfig;
+			ritesConfig = this.$app.dataManager.cache.ritesConfig;
 			let ctx = this.$route.context;
 
 			ctx.rite[1] = ctx.rite[1].replace(/(\d+) /, '$1&nbsp;');

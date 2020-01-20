@@ -1,0 +1,117 @@
+/* region list */
+.list .item-inner:after {
+	height: 2px;
+}
+
+.list .item-inner {
+    margin-right: calc(var(--f7-list-item-padding-horizontal) + var(--f7-safe-area-left));
+}
+
+.list .item-text {
+	text-overflow: ellipsis;
+  display: -webkit-box;
+	-webkit-box-orient: vertical;
+}
+
+.list .item-divider-empty {
+	--f7-list-item-divider-border-color: rgba(0,0,0, .4);
+	--f7-list-item-divider-height: 1px;
+}
+
+.list + .block-footer {
+    margin-top: calc(-1 * (var(--f7-list-margin-vertical) - var(--f7-block-footer-margin)));
+}
+/* endregion */
+
+/* region form-list */
+.form-list {
+	--f7-list-item-padding-vertical: 2px; /* 8px*/
+	--f7-list-item-padding-horizontal: 15px;
+}
+
+.theme-dark .form-list {
+	--f7-list-bg-color: var(--f7-page-bg-color);
+}
+
+.form-list.ext-margin {
+    margin-bottom: calc(16px + var(--f7-list-margin-vertical));
+}
+
+.form-list li {
+	margin-bottom: 10px;
+}
+
+.form-list .item-title {
+    text-transform: inherit;
+}
+
+.form-list .item-inner {
+	margin-right: 0;
+}
+
+.form-list .smart-select {
+	--f7-list-item-min-height: 30px;
+}
+
+.form-list .item-inner:after {
+	display: none;
+}
+
+.form-list .item-link:not(.smart-select) {
+	padding-right: var(--f7-list-item-padding-horizontal);
+}
+
+.form-list .item-link:not(.smart-select) .item-inner {
+	background: var(--f7-input-outline-bg-color);
+	border-radius: var(--f7-input-outline-border-radius);
+	padding-left: var(--f7-input-outline-padding-horizontal);
+}
+/* endregion */
+
+.button-fill.button-gradient {
+	background-image: linear-gradient(to bottom, var(--f7-theme-color-gradient) 0%, var(--f7-button-bg-color) 100%);
+}
+
+/* region ucase-list */
+.md:not(.theme-dark) .ucase-list {
+	--f7-list-bg-color: transparent;
+	--f7-list-chevron-icon-color: rgba(255,255,255,.6);
+	--f7-list-item-border-color: rgba(255,255,255,.4);
+	--f7-list-item-title-text-color: white;
+}
+
+.ucase-list {
+	--f7-list-item-title-font-size: 14px;
+	--f7-list-item-title-font-weight: bold;
+	--f7-list-item-title-line-height: 14px;
+}
+
+.ucase-list .item-title {
+	text-transform: uppercase;
+}
+
+.ucase-list ul:before,
+.ucase-list ul:after {
+	display: none;
+}
+
+@media (min-width: 768px) {
+	.ucase-list {
+		--f7-list-item-title-font-size: 20px;
+		--f7-list-item-title-line-height: 20px;
+		--f7-list-chevron-icon-font-size: 25px;
+		--f7-list-item-padding-vertical: 30px;
+	}
+
+	.ucase-list .item-title {
+		letter-spacing: 1.5px;
+	}
+
+	.md .item-media .material-icons {
+    font-size: 28px;
+    width: 28px;
+    height: 28px;
+	}
+}
+
+/* endregion */

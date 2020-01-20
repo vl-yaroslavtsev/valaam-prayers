@@ -1,0 +1,31 @@
+/** region smart-select-page */
+.md:not(.theme-dark) .smart-select-page .navbar {
+	--f7-navbar-border-color: rgb(191,191,191);
+	--f7-navbar-title-text-align: center;
+	--f7-navbar-title-font-weight: 500;
+	--f7-navbar-title-font-size: 16px;
+	--f7-navbar-title-line-height: 20px;
+	--f7-navbar-link-color: rgb(191,191,191);
+	--f7-navbar-text-color: rgba(0,0,0,.9);
+
+  background: rgba(248,248,248,0.82);
+}
+.smart-select-page .navbar .title {
+	/* font-family: 'Gotham Pro'; */
+	font-family: 'Geometria';
+	text-transform: none;
+}
+
+.md:not(.theme-dark) .smart-select-page .page-content {
+	--f7-list-item-divider-bg-color: rgba(248,248,248,0.82);
+	--f7-list-item-divider-font-size: 15px;
+	--f7-list-border-color: transparent;
+
+    background: #fff;
+}
+
+.smart-select-popover .item-media > img {
+	height: 26px;
+	border: solid 1px var(--f7-list-item-border-color);
+}
+/** endregion */

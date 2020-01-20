@@ -2,6 +2,7 @@
 	<div class="page">
 
 		<div class="navbar">
+			<div class="navbar-bg"></div>
 			<div class="navbar-inner sliding">
 				<div class="left">
 					<a href="#" class="link back">
@@ -21,21 +22,22 @@
 		</div>
 
 		<div class="page-content">
-			<div class="page-content-tile">
 			{{#if thoughts.text}}
 			<h2 class="block">{{thoughts.picture_desc}}</h2>
 			<div class="block block-strong inset text-content">
+				{{#if thoughts.picture}}
 				<img class="lazy"
 					data-src="https://valaam.ru{{thoughts.picture}}"
+					data-src-db="{{thoughts.picture}}"
 					data-srcorig="https://valaam.ru{{thoughts.picture_3x}}"
 					>
+				{{/if}}
 					<!-- data-srcset="{{thoughts.picture_srcset}}"
 					sizes="45vw" -->
 				{{thoughts.text}}
 				<div style="clear: both;"></div>
 			</div>
 			{{/if}}
-			</div>
 		</div>
 
 	</div>
@@ -56,7 +58,7 @@
 					dayCode = this.$route.params.id,
 					dayData = {};
 
-			dayData.thoughts = dataManager.cache.day[dayCode].prayers;
+			dayData.thoughts = this.day.prayers;
 			dayData.searchMode = this.$route.query.mode === 'search';
 
 			return dayData;

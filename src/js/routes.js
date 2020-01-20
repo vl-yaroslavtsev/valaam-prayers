@@ -4,12 +4,12 @@ import './t7-helpers.js';
 
 import Calendar from '../pages/calendar.f7.html';
 import CalendarHolidays from '../pages/calendar-holidays.f7.html';
-import CalendarFasting from '../pages/calendar-fasting.f7.html';
 
 import Days from '../pages/days.f7.html';
 import DayInstructions from '../pages/day-instructions.f7.html';
 import DayThoughts from'../pages/day-thoughts.f7.html';
 import DayReaders from '../pages/day-readers.f7.html';
+import DayParabel from '../pages/day-parabel.f7.html';
 import DayPrayers from '../pages/day-prayers.f7.html';
 
 import Index from '../pages/index.f7.html';
@@ -41,15 +41,11 @@ export default [
 	{
 		path: '/calendar',
 		component: Calendar,
-		beforeEnter: requireData('calendar'),
+		//beforeEnter: requireData('calendar'),
 		routes: [
 			{
-				path: 'holidays',
+				path: 'holidays/:year/:type',
 				component: CalendarHolidays
-			},
-			{
-				path: 'fasting',
-				component: CalendarFasting
 			}
 		]
 	},
@@ -58,19 +54,37 @@ export default [
 		routes: [
 			{
 				path: 'instructions',
-				component: DayInstructions
+				//component: DayInstructions,
+				async(routeTo, routeFrom, resolve, reject) {
+					resolve({component: DayInstructions}, {context: routeFrom.context});
+				}
 			},
 			{
 				path: 'thoughts',
-				component: DayThoughts
+				//component: DayThoughts,
+				async(routeTo, routeFrom, resolve, reject) {
+					resolve({component: DayThoughts}, {context: routeFrom.context});
+				}
+			},
+			{
+				path: 'parabel',
+				async(routeTo, routeFrom, resolve, reject) {
+					resolve({component: DayParabel}, {context: routeFrom.context});
+				}
 			},
 			{
 				path: 'readers/:readerId',
-				component: DayReaders
+				//component: DayReaders,
+				async(routeTo, routeFrom, resolve, reject) {
+					resolve({component: DayReaders}, {context: routeFrom.context});
+				}
 			},
 			{
 				path: 'prayers/:prayerId',
-				component: DayPrayers
+				//component: DayPrayers
+				async(routeTo, routeFrom, resolve, reject) {
+					resolve({component: DayPrayers}, {context: routeFrom.context});
+				}
 			}
 		],
 		async async(routeTo, routeFrom, resolve, reject) {
@@ -97,6 +111,7 @@ export default [
 					component: to
 				}, {
 					context: {
+						day,
 						action: routeTo.query.action,
 						actionId: routeTo.query.actionId
 					}
@@ -104,7 +119,8 @@ export default [
 			} catch (ex) {
 				reject();
 			}
-		}
+		},
+		beforeEnter: requireData('prayers')
 	},
 	{
 		path: '/saints/:saintId',
@@ -132,8 +148,8 @@ export default [
 	},
 	{
 		path: '/rites',
-		component: Rites,
-		beforeEnter: requireData(['ritesConfig','valaamGid'])
+		component: Rites//,
+		//beforeEnter: requireData(['ritesConfig','valaamGid'])
 	},
 	{
 		path: '/rites-name/:idx',
@@ -147,23 +163,23 @@ export default [
 
 			app.preloader.show();
 			try {
-				let data = await Request.promise.json(
+				let {data} = await Request.promise.json(
 					`https://valaam.ru/phonegap/rites/${routeTo.query.id}`
 				);
+				app.preloader.hide();
 				resolve({component: RitesStatus}, {context: data});
 			} catch (ex) {
 				app.methods.showLoadError();
-				reject();
-			} finally {
 				app.preloader.hide();
+				reject();
 			}
 		},
 		beforeEnter: requireData('ritesConfig')
 	},
 	{
 		path: '/prayers/:sectionId',
-		component: Prayers,
-		beforeEnter: requireData('prayers')
+		component: Prayers//,
+		//beforeEnter: requireData('prayers')
 	},
 	{
 		path: '/prayers/text/:prayerId',
@@ -224,12 +240,12 @@ function requireData(source) {
 		try {
 			app.preloader.show();
 			await Promise.all(params.map((source) => app.dataManager.get(source)));
+			app.preloader.hide();
 			resolve();
 		} catch(ex) {
+			app.preloader.hide();
 			app.methods.showLoadError();
 			reject();
-		} finally {
-			app.preloader.hide();
 		}
 	};
 }

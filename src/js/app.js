@@ -5,6 +5,7 @@ import 'framework7/components/popup.css';
 import 'framework7/components/popover.css';
 import 'framework7/components/toast.css';
 import 'framework7/components/preloader.css';
+import 'framework7/components/progressbar.css';
 import 'framework7/components/tabs.css';
 import 'framework7/components/form.css';
 import 'framework7/components/input.css';
@@ -20,12 +21,11 @@ import 'framework7/components/searchbar.css';
 import 'framework7/components/swiper.css';
 import 'framework7/components/photo-browser.css';
 import 'framework7/components/autocomplete.css';
+import 'framework7/components/skeleton.css';
 import 'framework7/components/elevation.css';
 import 'framework7/components/typography.css';
 
-import '../css/icons.css';
 import '../css/app.css';
-import '../css/vm.css';
 
 import Framework7, {Dom7 as $$} from 'framework7';
 // Import additional components
@@ -34,13 +34,14 @@ import Popup	      from 'framework7/components/popup/popup.js';
 import Popover 			from 'framework7/components/popover/popover';
 import Toast        from 'framework7/components/toast/toast.js';
 import Preloader    from 'framework7/components/preloader/preloader.js';
+import Progressbar  from 'framework7/components/progressbar/progressbar';
 import Tabs	        from 'framework7/components/tabs/tabs.js';
 import Form	        from 'framework7/components/form/form.js';
 import Input        from 'framework7/components/input/input.js';
 import Radio				from 'framework7/components/radio/radio.js';
 import Toggle       from 'framework7/components/toggle/toggle.js';
-import Range 				from 'framework7/components/range/range';
-import Stepper 			from 'framework7/components/stepper/stepper';
+import Range 				from 'framework7/components/range/range.js';
+import Stepper 			from 'framework7/components/stepper/stepper.js';
 import SmartSelect  from 'framework7/components/smart-select/smart-select.js';
 import Calendar     from 'framework7/components/calendar/calendar.js';
 import InfiniteScroll	from 'framework7/components/infinite-scroll/infinite-scroll.js';
@@ -49,7 +50,8 @@ import Searchbar    from 'framework7/components/searchbar/searchbar.js';
 import Swiper	      from 'framework7/components/swiper/swiper.js';
 import PhotoBrowser from 'framework7/components/photo-browser/photo-browser.js';
 import Autocomplete from 'framework7/components/autocomplete/autocomplete.js';
-import Elevation 		from 'framework7/components/elevation/elevation';
+import Skeleton 	  from 'framework7/components/skeleton/skeleton.js';
+import Elevation 		from 'framework7/components/elevation/elevation.js';
 import Typography	  from 'framework7/components/typography/typography.js';
 
 // Install F7 Components using .use() method on Framework7 class:
@@ -66,9 +68,11 @@ Framework7.use([
 	Popover,
 	Popup,
 	Preloader,
+	Progressbar,
 	Radio,
 	Range,
 	Searchbar,
+	Skeleton,
 	SmartSelect,
 	Stepper,
 	Swiper,
@@ -77,6 +81,9 @@ Framework7.use([
 	Toggle,
 	Typography
 ]);
+
+import moment from 'moment';
+moment.locale('ru');
 
 import './data-sources.js';
 
@@ -87,6 +94,8 @@ import {DataManager} from './data-manager.js';
 import reloadManager from './reload-manager.js';
 import favoriteManager from './favorite-manager.js';
 import settingsManager from './settings-manager.js';
+import historyManager from './history-manager.js';
+import viewsManager   from './views-manager.js';
 import imageLazyDb from '../js/image-lazy-db.js';
 
 // Framework7 App main instance
@@ -95,6 +104,7 @@ const app = new Framework7({
 	id: 'ru.valaam.prayers',
 	name: 'Валаам',
 	theme: navigator.userAgent.match(/Debug/) !== null ? 'auto' : 'md',
+	disabled: false,
 	// theme: 'ios',
 
 	panel: {
@@ -104,11 +114,17 @@ const app = new Framework7({
 
 	on: {
 		init() {
+
+			if (!checkSupport(this)) {
+				this.disabled = true;
+				return;
+			}
+
 			this.dataManager = new DataManager();
+			historyManager.init(this);
 			reloadManager.init(this);
 			favoriteManager.init(this);
 			imageLazyDb.init(this);
-			imageLazyDb.attach(this.root);
 			settingsManager.init(this);
 
 			if (window['webkit']) {
@@ -120,14 +136,11 @@ const app = new Framework7({
 				window.webkit.messageHandlers.canApplePay.postMessage(null);
 			}
 
-			initViewTabs(this);
+			viewsManager.init(this);
 
 			this.root.on('click', '.page-current img[data-srcorig]', (e) => {
 				imgFullscreen(e.target);
 			});
-		},
-		pageBeforeRemove(page) {
-			imageLazyDb.detach(page.$el);
 		}
 	},
 
@@ -181,7 +194,9 @@ const app = new Framework7({
 			return data ? data[idx] : idx;
 		},
 		showLoadError(msg) {
-			this.methods.showMessage(msg || 'Ошибка загрузки данных', 'bg-color-red');
+			this.methods.showMessage(msg ||
+				'Ошибка загрузки данных.<br>Проверьте подключение к интернету',
+				'bg-color-red');
 		},
 		showMessage(msg, bgcolor, timeout) {
 			this.toast.create({
@@ -227,6 +242,13 @@ const app = new Framework7({
 			} finally {
 				app.preloader.hide();
 			}
+		},
+		skeletonWord(min = 5, max = 20) {
+			let length = min + Math.round(Math.random() * (max - min));
+			return new Array(length).fill('_').join('');
+		},
+		skeletonWordLen(min = 5, max = 20) {
+			return min + Math.round(Math.random() * (max - min));
 		}
 	},
 
@@ -240,9 +262,136 @@ const app = new Framework7({
 });
 
 // Необходимо для библиотеки Ивайло.
-globalThis.app = app;
+if (typeof globalThis !== 'undefined') {
+ 	globalThis['app'] = app;
+} else {
+	window['app'] = app;
+}
 
-window.addEventListener('load', function() {
+// Окончание загрузки: window.load и загружена главная старинца
+let promiseLoaded = Promise.all([
+	new Promise((resolve, reject) => {
+		window.addEventListener('load', resolve);
+	}),
+	new Promise((resolve, reject) => {
+		app.on('mainPageLoaded', resolve);
+	}),
+])
+
+promiseLoaded.then(() => {
+	offlinePluginInstall();
+	reloadManager.preload();
+});
+
+
+window.addEventListener('beforeinstallprompt', (e) => {
+  // Stash the event so it can be triggered later.
+  //console.log('beforeinstallprompt', e);
+  //let deferredPrompt = e;
+  //deferredPrompt.prompt();
+});
+
+/**
+ * Раскрываем фото на полный экран,
+ * если у него есть атрибут data-srcorig
+ * @param {HTMLImageElement} el
+ */
+function imgFullscreen(el) {
+	let $el = $$(el);
+	let browser = $el.data('photoBrowser');
+	let src = $el.attr('data-srcorig');
+
+	if (!src) return;
+
+	if (!browser) {
+		browser = app.photoBrowser.create({
+			photos : [
+				{
+					url: src,
+					caption: $el.attr('title')
+				}
+			],
+			type: 'standalone',
+			toolbar: false,
+			exposition: false,
+			theme: 'dark',
+			routableModals: false,
+			popupCloseLinkText: '<i class="icon material-icons">close</i>',
+			swiper: {
+				zoom: {
+					enabled: true,
+					maxRatio: 10,
+					minRatio: 1
+				}
+			}
+		});
+
+		$el.data('photoBrowser', browser);
+	}
+	browser.open();
+}
+
+function checkSupport(app) {
+	let isIOsWebview = !!window.webkit;
+	let supported = ('CSS' in window && CSS.supports('color', 'var(--color-var)'));
+	let msg = '';
+
+	if (supported) {
+		return true;
+	}
+
+	if (app.device.androidChrome) {
+		msg = `Для корректной работы молитвослова и календаря,
+		пожалуйста, обновите приложение<br>
+		<a href="https://play.google.com/store/apps/details?id=com.android.chrome&hl=ru"
+		 	 target="_blank"
+			 class="external">Google Chrome</a> или <br>
+		<a href="https://play.google.com/store/apps/details?id=com.google.android.webview&hl=ru"
+	 		 target="_blank"
+	 		 class="external">Android System WebView</a><br><br>
+		Если это не помогает, можно установить "Молитвослов" как отдельное приложение.<br>
+		Для этого, пожалуйста:<br>
+		<ol>
+			<li>
+			В <b>Google Chrome</b> перейдите по
+			ссылке <a href="https://valaam.ru/prayers.f7/">https://valaam.ru/prayers.f7/</a>
+			</li>
+			<li>
+			Согласитесь на предложение установить "Молитвослов" на главный экран
+			</li>
+			<li>
+			Если этого предложения не возникло, нажмите на три точки
+			в верхнем правом углу браузера и выберите "Добавить на главный экран"
+			</li>
+			<li>
+			Теперь у Вас есть отдельное приложение "Молитвослов" 
+			(вместе с календарём, информацией о Валааме и возможностью подать поминовение).
+			</li>
+		</ol>
+		Ваше Вебвью: ${navigator.userAgent}
+		`;
+	} else {
+		msg = `Данный браузер не поддерживается.<br>
+		Пожалуйста, установите последнюю версию современного браузера
+		Chrome, Safari, Opera, Firefox или Yandex Browser<br><br>
+		Ваш браузер: ${navigator.userAgent}
+		`;
+	}
+
+	let $app = document.querySelector('#app');
+	$app.innerHTML = msg;
+	$app.style.padding = '10px';
+	$app.style.color = 'black';
+	$app.style.background = 'white';
+
+	return false;
+}
+
+function offlinePluginInstall() {
+	if (app.disabled) {
+		return;
+	}
+
 	OfflinePlugin.install({
 		onInstalled: function() {
 			console.log('OfflinePlugin onInstalled');
@@ -277,156 +426,16 @@ window.addEventListener('load', function() {
 
 		onUpdated: function() {
 			console.log('OfflinePlugin onUpdated');
-			app.dialog.confirm(
-				'Доступно обновление молитвослова. Перезагрузить?',
-				'Молитвослов',
-				() => {
-					window.location.reload();
-				});
+			let toast = app.toast.create({
+				text: `
+					Молитвослов обновился. <a onclick="window.location.reload();">Перезагрузить</a>
+				`,
+				closeButton: true,
+				closeButtonText: '<i class="icon material-icons">close</i>',
+				destroyOnClose: true,
+				closeTimeout: 10 * 1000
+			});
+			toast.open();
 		}
 	});
-	//reloadManager.testFitures();
-	reloadManager.preload();
-});
-
-window.addEventListener('beforeinstallprompt', (e) => {
-  // Stash the event so it can be triggered later.
-  console.log('beforeinstallprompt', e);
-  let deferredPrompt = e;
-  deferredPrompt.prompt();
-});
-
-/**
- * Инициализируем табы - представления
- * @param  {{Framework7}} app
- */
-function initViewTabs(app) {
-	//location.hash = location.hash.split(':')[0] || '#view-valaam';
-	location.hash = location.hash || '#view-valaam';
-
-	app.root.find('.views.tabs').on('tab:show', (event) => {
-		let id = event.target.id;
-		if (!id || !id.startsWith('view-'))
-			return;
-		createView('#' + id, app);
-		if (!location.hash.startsWith('#' + id)) {
-			location.hash = '#' + id;
-		}
-	});
-
-	$$(window).on('hashchange', () => {
-		let hash = document.location.hash.split(':')[0] || '#view-valaam';
-		app.tab.show(hash);
-	});
-
-	// $$(window).on('popstate', (event) => {
-	// 	let state = event.state;
-	// 	console.log('popstate', state);
-	// 	let currentView = app.views.current;
-	// 	let history = currentView.history;
-	//
-	// 	if (!state || !history.length) return;
-	//
-	// 	if (state.url === history[history.length - 1]) {
-	// 		currentView.router.back();
-	// 	}
-	// });
-
-	app.tab.show(location.hash.split(':')[0]);
-}
-
-/**
- * Создаем вью по запросу
- * @param  {string} id айдишник
- */
-function createView(id, app) {
-	const viewsIds = ['#view-valaam', '#view-prayers', '#view-calendar', '#view-rites'];
-
-	if (app.views.get(id)) {
-		//console.log(`Вью ${id} уже создана`);
-		return;
-	}
-
-	if (!viewsIds.includes(id)) return;
-
-	switch (id) {
-		case '#view-valaam':
-			app.views.create('#view-valaam', {
-				name: 'Валаам',
-				url: '/prayers/1736',
-			});
-			break;
-
-		case '#view-prayers':
-			app.views.create('#view-prayers', {
-				name: 'Молитвослов',
-				url: '/prayers/842',
-			});
-			break;
-
-		case '#view-calendar':
-			app.views.create('#view-calendar', {
-				name: 'Календарь',
-				url: '/calendar'
-			});
-			break;
-
-		case '#view-rites':
-			app.views.create('#view-rites', {
-				name: 'Поминовения',
-				url: '/rites',
-				on: {
-					pageAfterIn(page) {
-						let location = document.location.hash.split(':')[1];
-						if (page.name === 'rites' && location) {
-							page.view.router.navigate(location);
-							document.location.hash = 'view-rites';
-						}
-					}
-				}
-			});
-			break;
-
-		default:
-			break;
-	}
-}
-
-/**
- * Раскрываем фото на полный экран,
- * если у него есть атрибут data-srcorig
- * @param {HTMLImageElement} el
- */
-function imgFullscreen(el) {
-	let $el = $$(el);
-	let browser = $el.data('photoBrowser');
-	let src = $el.attr('data-srcorig');
-
-	if (!src) return;
-
-	if (!browser) {
-		browser = app.photoBrowser.create({
-			photos : [
-				{
-					url: src,
-					caption: $el.attr('title')
-				}
-			],
-			type: 'standalone',
-			toolbar: false,
-			exposition: false,
-			theme: 'dark',
-			routableModals: false,
-			swiper: {
-				zoom: {
-					enabled: true,
-					maxRatio: 10,
-					minRatio: 1
-				}
-			}
-		});
-
-		$el.data('photoBrowser', browser);
-	}
-	browser.open();
 }

@@ -53,6 +53,16 @@
 .material-icons.md-36 { font-size: 36px; }
 .material-icons.md-48 { font-size: 48px; }
 
+@media (min-width: 768px) {
+	.material-icons {
+    font-size: 28px;
+	}
+
+	.material-icons.md-18 {
+		font-size: 24px;
+	}
+}
+
 /* Framework7 Icons Font (for iOS theme) */
 @font-face {
   /* font-family: 'Framework7 Icons';

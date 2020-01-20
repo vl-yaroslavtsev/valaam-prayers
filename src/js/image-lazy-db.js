@@ -15,6 +15,13 @@ function init (app) {
 	if (inited) return;
 
 	dataManager = app.dataManager;
+
+	attach(app.root);
+
+	app.on('pageBeforeRemove', (page) => {
+		clear(page.$el);
+	});
+
 	inited = true;
 }
 
@@ -55,13 +62,11 @@ async function loadImg(img, src) {
  * @param {Dom7} $el Родительский элемент
  */
 function attach($el) {
-	$el.lazyDbHandler = (event) => {
+	$el.on('lazy:error',  (event) => {
 		let img = event.target;
 		if (!img.dataset.srcDb) return;
 		loadImg(img, img.dataset.srcDb);
-	};
-
-	$el.on('lazy:error', $el.lazyDbHandler);
+	});
 }
 
 /**
@@ -69,12 +74,7 @@ function attach($el) {
  * Картинка должна быть с lazy
  * @param  {Dom7} $el Родительский элемент
  */
-function detach($el) {
-	if ($el.lazyDbHandler) {
-		$el.off('lazy:error', $el.lazyDbHandler);
-		delete $el.lazyDbHandler;
-	}
-
+function clear($el) {
 	$el
 		.find('img[src^="blob:"]')
 		.forEach((img) => {
@@ -91,4 +91,4 @@ function revoke({blobUrl, url}) {
 	delete blobUrls[url];
 }
 
-export default {init, attach, detach};
+export default {init};

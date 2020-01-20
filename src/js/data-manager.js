@@ -1,9 +1,14 @@
 import {isFunction} from 'lodash-es';
-import localforage from 'localforage/src/localforage.js';
+import localforage from 'localforage';
 
 const API_URL = 'https://valaam.ru/phonegap/';
 const DB_NAME = 'valaam-phonegap';
-const STORAGES = ['collections', 'saints', 'days', 'prayers', 'stat', 'images'];
+const STORAGES = ['collections',
+									'saints',
+									'days',
+									'prayers',
+									'stat',
+									'images'];
 
 /**
  * Источники данных
@@ -43,8 +48,7 @@ class DataManager {
 				Неверно указан источник данных`);
 		}
 
-		let {url, storage, key, handler, memoryCache} = source;
-		let isCollection = isFunction(key);
+		let {url, storage, key, handler} = source;
 
 		url = isFunction(url) ? url(...args) : url;
 		key = isFunction(key) ? key(...args) : key;
@@ -52,21 +56,13 @@ class DataManager {
 		if (this._handlerPromise[sourceId])
 			return this._handlerPromise[sourceId];
 
-		if (memoryCache && this.cache[sourceId]) {
-			if (!isCollection) {
-				return this.cache[sourceId];
-			} else if (this.cache[sourceId][key]) {
-				return this.cache[sourceId][key];
-			}
-		}
-
 		if (typeof handler == 'string') {
 			handler = () => {
 				return this[source.handler].call(this, {
 					url,
 					storage,
 					key,
-					source: sourceId
+					source
 				});
 			};
 		}
@@ -74,13 +70,6 @@ class DataManager {
 		try {
 			this._handlerPromise[sourceId] = handler.call(null, ...args);
 			result = await this._handlerPromise[sourceId];
-			if (memoryCache) {
-				if (!isCollection) {
-					this.cache[sourceId] = result;
-				} else {
-					this.cache[sourceId][key] = result;
-				}
-			}
 			return result;
 		} catch(err) {
 			console.error(err);
@@ -91,14 +80,92 @@ class DataManager {
 	}
 
 	/**
+	 * Получаем данные из памяти.
+	 * @param  {DataSource}  source   Источник данных
+	 * @param  {string}  key          Ключ данных
+	 * @return {*}               null - если нет данных
+	 */
+	cacheGet(source, key) {
+		if (!this.cache[source.id])
+			return null;
+
+		if (!source.isCollection()) {
+			return this.cache[source.id];
+		} else if (this.cache[source.id][key]) {
+			return this.cache[source.id][key];
+		}
+
+		return null;
+	}
+
+	/**
+	 * Сохряем данные в память
+	 * @param  {DataSource}  source Источник данных
+	 * @param  {ыекштп}  key        Ключ данных
+	 * @param  {*}  value        		Данные
+	 */
+	cacheSet(source, key, value) {
+		if (!source.isCollection()) {
+			this.cache[source.id] = value;
+		} else {
+			this.cache[source.id][key] = value;
+		}
+	}
+
+	/**
+	 * Получаем данные из памяти, если нет то - networkOnly
+	 * @param  {string}  url     Урл данных
+	 * @param  {DataSource}  source    Источник данных
+	 * @return {Promise}
+	 */
+	async cacheThenNetwork({url, key, source}) {
+		let cache = this.cacheGet(source, key);
+		if (cache !== null) {
+			return cache;
+		}
+
+		let result = await this.networkOnly({url});
+
+		this.cacheSet(source, key, result);
+		return result;
+	}
+
+	/**
+	 * Получаем данные из памяти, если нет то - staleWhileRevalidate
+	 * @param  {string}  url     Урл данных
+	 * @param  {string}  storage    Название хранилища в idb
+	 * @param  {string}  key     Ключ хранилища в idb
+	 * @param  {string}  source  Источник данных
+	 * @return {Promise}
+	 */
+	async cacheThenRevalidate({url, storage, key, source}) {
+		let cache = this.cacheGet(source, key);
+		if (cache !== null) {
+			return cache;
+		}
+
+		let result = await this.staleWhileRevalidate({
+			url,
+			storage,
+			key,
+			onRevalidate: (json) => {
+				this.cacheSet(source, key, json);
+			}
+		});
+
+		this.cacheSet(source, key, result);
+
+		return result;
+	}
+
+	/**
 	 * Получаем данные сначала локально, если нет - из сети
 	 * @param  {string}  url     Урл данных
 	 * @param  {string}  storage    Название хранилища в idb
 	 * @param  {string}  key     Ключ хранилища в idb
-	 * @param  {string}  source    Id источника данных
 	 * @return {Promise}
 	 */
-	async localFirst({url, storage, key, source}) {
+	async localFirst({url, storage, key}) {
 		await this.idb.ready;
 		let idbStore = this.idb[storage];
 		let val = await idbStore.getItem(key);
@@ -115,16 +182,18 @@ class DataManager {
 	 * @param  {string}  url     Урл данных
 	 * @param  {string}  storage    Название хранилища в idb
 	 * @param  {string}  key     Ключ хранилища в idb
-	 * @param  {string}  source    Id источника данных
 	 * @return {Promise}
 	 */
-	async staleWhileRevalidate({url, storage, key, source}) {
+	async staleWhileRevalidate({url, storage, key, onRevalidate}) {
 		await this.idb.ready;
 		let idbStore = this.idb[storage];
 		let val = await idbStore.getItem(key);
 
 		if (val !== null) {
 			this._fetchAndSave({url, idbStore, key})
+					.then((json) => {
+						if (onRevalidate) onRevalidate(json);
+					})
 					.catch(ex => {});
 		} else {
 			val = await this._fetchAndSave({url, idbStore, key});
@@ -141,13 +210,13 @@ class DataManager {
 	 * @param  {string}  source    Id источника данных
 	 * @return {Promise}
 	 */
-	async networkFirst({url, storage, key, source}) {
+	async networkFirst({url, storage, key}) {
 		await this.idb.ready;
 		let idbStore = this.idb[storage],
 				val;
 
 		try {
-			val = await this._fetchAndSave({url, idbStore, key, source});
+			val = await this._fetchAndSave({url, idbStore, key});
 		} catch(err) {
 			val = await idbStore.getItem(key);
 
@@ -162,7 +231,6 @@ class DataManager {
 	/**
 	 * Получаем данные только из сети
 	 * @param  {string}  url     Урл данных
-	 * @param  {string}  source    Id источника данных
 	 * @return {Promise}
 	 */
 	async networkOnly({url, source}) {
@@ -205,10 +273,9 @@ class DataManager {
 	 * @param  {string}  			url     	Урл данных
 	 * @param  {LocalForage}  idbStore  Хранилище
 	 * @param  {string}  			key     	Ключ хранилища в idb
-	 * @param  {string}  			source    Id источника данных
 	 * @return {Promise}
 	 */
-	async _fetchAndSave({url, idbStore, key, source}) {
+	async _fetchAndSave({url, idbStore, key}) {
 		try {
 			let response = await fetch(url);
 			if (!response.ok) {
@@ -236,9 +303,7 @@ class DataManager {
 
 	_initCache() {
 		Object.values(sources).forEach((source) => {
-			if (source.memoryCache) {
-				this.cache[source.id] = source.isCollection() ? {} : null;
-			}
+			this.cache[source.id] = source.isCollection() ? {} : null;
 		});
 	}
 }
@@ -250,8 +315,7 @@ class DataSource {
 		handler = 'networkOnly',
 		storage = null,
 		key = null,
-		autoLoad = false,
-		memoryCache = false
+		autoLoad = false
 	}) {
 		if (!id) {
 			throw new Error(`Невозможно создать DataSource. Не задан id`);
@@ -266,7 +330,6 @@ class DataSource {
 		this.storage = storage;
 		this.key = key;
 		this.autoLoad = autoLoad;
-		this.memoryCache = memoryCache;
 	}
 
 	isCollection() {

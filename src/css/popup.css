@@ -1,0 +1,49 @@
+/* region page-popup */
+.md:not(.theme-dark) .page-popup {
+	/*--bg-image: ''; none;*/
+
+	--f7-navbar-border-color: rgb(191,191,191);
+	--f7-navbar-title-text-align: left;
+	--f7-navbar-title-font-weight: 500;
+	--f7-navbar-title-font-size: 16px;
+	--f7-navbar-title-line-height: 20px;
+	--f7-navbar-link-color: rgb(191,191,191);
+	--f7-navbar-text-color: rgba(0,0,0,.9);
+
+	--f7-list-border-color: transparent;
+	--f7-list-item-title-font-weight: bold;
+	--f7-page-bg-color: #fff;
+
+	background-image: none;
+}
+
+.popup .navbar-bg:after {
+	width: 100%;
+	left: 0;
+	right: 0;
+}
+
+.page-popup.page-with-subnavbar {
+	--f7-subnavbar-height: 55px;
+}
+
+.md:not(.theme-dark) .page-popup.page-with-subnavbar {
+	--f7-navbar-border-color: transparent;
+	--f7-subnavbar-border-color: rgb(191,191,191);
+}
+
+.md:not(.theme-dark) .page-popup .navbar {
+  background: rgb(248,248,248);
+}
+
+.page-popup .subnavbar:after {
+	z-index: 215;
+}
+
+.page-popup .navbar .title {
+	/* font-family: 'Gotham Pro'; */
+	font-family: 'Geometria';
+	flex-grow: 1;
+	text-transform: none;
+}
+/* endregion page-popup */

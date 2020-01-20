@@ -1,11 +1,15 @@
 <template>
 	{{#js_if "this.isFavorite === true"}}
-	<a href="#" class="link" @click="toggleFavorite">
+	<a href="#"
+		 class="link {{#if loading}}disabled{{/if}}"
+		 @click="toggleFavorite">
 		<i class="icon material-icons md-only">star</i>
 	</a>
 	{{/js_if}}
 	{{#js_if "this.isFavorite === false"}}
-	<a href="#" class="link" @click="toggleFavorite">
+	<a href="#"
+		 class="link {{#if loading}}disabled{{/if}}"
+		 @click="toggleFavorite">
 		<i class="icon material-icons md-only">star_border</i>
 	</a>
 	{{/js_if}}

@@ -6,13 +6,13 @@
 	<meta charset="utf-8">
 	<meta http-equiv="Content-Security-Policy"
 		    content="default-src * 'self' 'unsafe-inline' 'unsafe-eval' blob: data: gap: content:">
-	<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+	<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=10">
 	<meta name="apple-mobile-web-app-capable" content="yes">
 	<meta name="apple-mobile-web-app-status-bar-style" content="default">
 	<meta name="theme-color" content="#3878a8">
 	<meta name="format-detection" content="telephone=no">
 	<meta name="msapplication-tap-highlight" content="no">
-	
+
 	<link rel="manifest" href="manifest.webmanifest">
 
 	<link rel="apple-touch-icon" href="./images/icon-120.png">
@@ -78,7 +78,10 @@
 		<div id="view-valaam" class="view tab"></div>
 
 		<!-- Молитвослов -->
-		<div id="view-prayers" class="view tab"></div>
+		<div id="view-prayers" class="view tab">
+			<div id="test-slavonic" class="slavonic text-content"><b>Г</b>о́споди Иису́се Христе́, поми́луй мя</div>
+			<div id="test-churchslavonic" class="churchslavonic"><b>Г</b>Dи ї}се хrтE, поми1луй мS</div>
+		</div>
 
 		<!-- Календарь -->
 		<div id="view-calendar" class="view tab"></div>
@@ -86,6 +89,7 @@
 		<!-- Прочее -->
 		<div id="view-rites" class="view tab"></div>
 	</div>
+	<div class="preloader"></div>
 </div>
 
 <!-- Cordova -->

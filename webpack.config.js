@@ -82,7 +82,10 @@ module.exports = (env = {}) => {
 				},
 				{
 					test: /\.m?js$/,
-					//exclude: /node_modules/,
+					exclude: [
+						/node_modules\/(?!(framework7|template7|dom7|lodash-es)\/).*/,
+						/\/js\/sw-template\.js$/
+					],
 					//include: path.resolve(__dirname, 'src'),
 					use: {
 						loader: 'babel-loader'
@@ -120,13 +123,17 @@ module.exports = (env = {}) => {
 				},
 				{
         	test: /\.wkr\.js$/,
-        	use: {
-						loader: 'worker-loader',
-						options: {
-							name: devMode ? '[name].js' :
-															'[name].[contenthash].js'
-						}
-					}
+        	use: [
+						//'babel-loader',
+						{
+							loader: 'worker-loader',
+							options: {
+								name: devMode ? '[name].js' :
+																'[name].[contenthash].js'
+							}
+						},
+						'babel-loader',
+					]
       	}
 			]
 		},
@@ -154,7 +161,16 @@ module.exports = (env = {}) => {
 					}
 				}
 			},
-			minimizer: [new TerserJSPlugin({}), new OptimizeCSSAssetsPlugin({})],
+			minimizer: [
+				new TerserJSPlugin({
+					terserOptions: {
+	          safari10: true,
+						mangle: { safari10: true },
+						output: { safari10: true },
+	        },
+				}),
+				new OptimizeCSSAssetsPlugin({})
+			],
 		},
 		watchOptions: {
 			ignored: ['src/images', 'node_modules']
