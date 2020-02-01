@@ -7,7 +7,7 @@
     "test": "echo \"Error: no test specified\" && exit 1",
     "watch": "webpack --watch --progress",
     "build:dev": "webpack",
-    "build:dist": "webpack --env.production",-
+    "build:dist": "webpack --env.production",
     "build:prod": "webpack --env.production && rm -rf ../../prayers.f7/* && cp -r ./dist/. ../../prayers.f7/"
   },
   "keywords": [],
