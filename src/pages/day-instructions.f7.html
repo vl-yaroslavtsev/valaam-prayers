@@ -50,8 +50,8 @@
 				dayCode = this.$route.params.id,
 				dayData = this.day,
 				data = {},
-				oldstyleDate = moment.unix(dayData.date_ts).subtract(13, 'days'),
-				newstyleDate = moment.unix(dayData.date_ts),
+				oldstyleDate = moment(dayData.code, 'YYYYMMDD').subtract(13, 'days'),
+				newstyleDate = moment(dayData.code, 'YYYYMMDD'),
 				dayOfWeek = upperFirst(newstyleDate.format('dddd'));
 
 			data.title = 'Богослужебные указания';

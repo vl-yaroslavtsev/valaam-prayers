@@ -252,9 +252,9 @@
 			}
 
 			// noinspection JSUnresolvedVariable
-			let oldstyleDate = moment.unix(day.date_ts).subtract(13, 'days');
+			let oldstyleDate = moment(day.code, 'YYYYMMDD').subtract(13, 'days');
 			// noinspection JSUnresolvedVariable
-			let newstyleDate = moment.unix(day.date_ts);
+			let newstyleDate = moment(day.code, 'YYYYMMDD');
 			let dayOfWeek = upperFirst(newstyleDate.format('dddd'));
 
 			day.subtitle = oldstyleDate.format('D MMMM по старому стилю');
@@ -266,8 +266,8 @@
 			return {
 				dayCode,
 				day,
-				dayPrev: moment.unix(day.date_ts).subtract(1, 'day').format('YYYYMMDD'),
-				dayNext: moment.unix(day.date_ts).add(1, 'day').format('YYYYMMDD'),
+				dayPrev: moment(day.code, 'YYYYMMDD').subtract(1, 'day').format('YYYYMMDD'),
+				dayNext: moment(day.code, 'YYYYMMDD').add(1, 'day').format('YYYYMMDD'),
 				searchMode: this.$route.query.mode === 'search'
 			};
 		}
