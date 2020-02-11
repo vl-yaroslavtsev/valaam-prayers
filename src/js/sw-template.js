@@ -58,7 +58,8 @@ self.addEventListener('fetch', (event) => {
 function imgDefResponse() {
 	let blob = new Blob([], {type : 'image/png'});
 	return new Response(blob, {
-		"status": 404
+		"status": 404,
+		"statusText": "Network error"
 	});
 }
 
@@ -72,6 +73,7 @@ function jsonDefResponse() {
 	let status = 503;
 	let blob = new Blob([JSON.stringify(json)], {type : 'application/json'});
 	return new Response(blob, {
-		"status": status
+		"status": status,
+		"statusText": "Network error"
 	});
 }

@@ -195,7 +195,7 @@ const app = new Framework7({
 		},
 		showLoadError(msg) {
 			this.methods.showMessage(msg ||
-				'Ошибка загрузки данных.<br>Проверьте подключение к интернету',
+				'Ошибка загрузки данных',
 				'bg-color-red');
 		},
 		showMessage(msg, bgcolor, timeout) {
@@ -237,7 +237,11 @@ const app = new Framework7({
 			try {
 				return await app.dataManager.get(source, ...args);
 			} catch (err) {
-				app.methods.showLoadError();
+				let msg;
+				if (err.message === 'Network error') {
+					msg = 'Ошибка загрузки данных.<br>Проверьте подключение к сети Интернет';
+				}
+				app.methods.showLoadError(msg);
 				throw err;
 			} finally {
 				app.preloader.hide();

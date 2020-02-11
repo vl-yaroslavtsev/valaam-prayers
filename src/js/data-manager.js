@@ -279,6 +279,9 @@ class DataManager {
 		try {
 			let response = await fetch(url);
 			if (!response.ok) {
+				if (response.statusText === 'Network error') {
+					throw new Error('Network error');
+				}
 				throw new Error('Fetch error');
 			}
 
