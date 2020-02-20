@@ -6,6 +6,7 @@ import 'framework7/components/popover.css';
 import 'framework7/components/toast.css';
 import 'framework7/components/preloader.css';
 import 'framework7/components/progressbar.css';
+import 'framework7/components/virtual-list.css';
 import 'framework7/components/tabs.css';
 import 'framework7/components/form.css';
 import 'framework7/components/input.css';
@@ -35,6 +36,7 @@ import Popover 			from 'framework7/components/popover/popover';
 import Toast        from 'framework7/components/toast/toast.js';
 import Preloader    from 'framework7/components/preloader/preloader.js';
 import Progressbar  from 'framework7/components/progressbar/progressbar';
+import VirtualList  from 'framework7/components/virtual-list/virtual-list';
 import Tabs	        from 'framework7/components/tabs/tabs.js';
 import Form	        from 'framework7/components/form/form.js';
 import Input        from 'framework7/components/input/input.js';
@@ -79,7 +81,8 @@ Framework7.use([
 	Tabs,
 	Toast,
 	Toggle,
-	Typography
+	Typography,
+	VirtualList
 ]);
 
 import moment from 'moment';

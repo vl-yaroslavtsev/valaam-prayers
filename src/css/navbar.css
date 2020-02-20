@@ -1,6 +1,13 @@
 /* region navbar */
-.md:not(.theme-dark) .navbar {
+/* .md:not(.theme-dark) .navbar {
 	background-image: url('../images/bg.jpg');
+	background-repeat: no-repeat;
+	background-size: 100% auto;
+	background-color: var(--f7-page-bg-color);
+} */
+
+.md:not(.theme-dark) .navbar-bg {
+	background-image: url(../images/bg.jpg);
 	background-repeat: no-repeat;
 	background-size: 100% auto;
 	background-color: var(--f7-page-bg-color);

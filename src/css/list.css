@@ -115,3 +115,10 @@
 }
 
 /* endregion */
+
+/** region .list-transparent */
+.md:not(.theme-dark) .list-transparent {
+	--f7-list-bg-color: transparent;
+	color: white;
+}
+/** endregion */

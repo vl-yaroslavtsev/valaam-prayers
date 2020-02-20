@@ -2,7 +2,7 @@
 	<div class="page" data-name="{{id}}">
 
 		<div class="navbar">
-			<div class="navbar-bg"></div>
+			<div class="navbar-bg {{#if showSearchbar}}height-92{{/if}}"></div>
 			<div class="navbar-inner sliding">
 				{{#if name}}
 				<div class="left">
@@ -16,6 +16,22 @@
 				<div class="right">
 					{{> "navbar-right"}}
 				</div>
+
+				<div class="{{#if showSearchbar}}subnavbar{{else}}display-none{{/if}}">
+					<form class="searchbar searchbar-init searchbar-transparent"
+								data-search-container="[data-name='{{id}}'] .virtual-list"
+								data-search-item="li"
+								data-search-in=".item-title">
+						<div class="searchbar-inner">
+							<div class="searchbar-input-wrap">
+								<input type="search" placeholder="Поиск в разделе"/>
+								<i class="searchbar-icon"></i>
+								<span class="input-clear-button"></span>
+							</div>
+							<!-- <span class="searchbar-disable-button">Отмена</span> -->
+						</div>
+					</form>
+      	</div>
 			</div>
 		</div>
 
@@ -26,46 +42,23 @@
 			<h2 class="block">{{title}}</h2>
 			{{/if}}
 
-			<div class="list ucase-list">
+			<div class="list simple-list list-transparent searchbar-not-found no-hairlines-md">
 				<ul>
-					{{#if loading}}
-					{{#each '123456'}}
-					 <li key="{{this}}">
- 						<!--suppress HtmlUnknownTarget -->
- 						<div class="item-link item-content">
- 							<div class="item-inner">
- 								<div class="item-title skeleton-block"
-										 style="width:{{../skeletonWordLen()}}ch;"></div>
- 							</div>
- 						</div>
- 					</li>
-					{{/each}}
-					{{else}}
-					{{#each items}}
-					<li key="{{id}}">
-						<!--suppress HtmlUnknownTarget -->
-						<a href="{{href}}" class="item-link item-content">
-							<div class="item-inner">
-								<div class="item-title">{{name}}</div>
-							</div>
-						</a>
-					</li>
-					{{/each}}
-					{{/if}}
-					<!--<li>-->
-						<!--<a href="/prayers/text/72283" class="item-link item-content" data-view="#view-others">-->
-							<!--<div class="item-inner">-->
-								<!--<div class="item-title">Тест ссылки</div>-->
-							<!--</div>-->
-						<!--</a>-->
-					<!--</li>-->
+					<li>Увы, ничего не нашлось.</li>
 				</ul>
+			</div>
+
+			<div class="list ucase-list virtual-list searchbar-found">
+			  <!-- keep it empty -->
 			</div>
 		</div>
 
 	</div>
 </template>
 <style>
+	.navbar-bg.height-92 {
+		height: 92px;
+	}
 </style>
 <!--suppress JSAnnotator -->
 <script>
@@ -76,25 +69,77 @@
 		data() {
 			app = this.$app;
 
-			let prayerData = {
+			return {
 				loading: true,
-				skeletonWordLen: app.methods.skeletonWordLen,
 				name: false,
+				showSearchbar: false,
 				title: this.$router.view.name,
-				items: []
+				loadPromise: loadData.call(this)
 			};
+		},
+		on: {
+			async pageInit(e, page) {
+				this.virtualList = app.virtualList.create({
+				  // List Element
+				  el: page.$el.find('.virtual-list'),
+				  // Pass array with items
+				  items: [1,2,3,4,5,6],
+				  // Custom search function for searchbar
+				  searchAll(query, items) {
+						//debugger;
+				    var found = [];
+				    for (var i = 0; i < items.length; i++) {
+				      if (items[i].name.toLowerCase().indexOf(query.toLowerCase()) >= 0 || query.trim() === '') found.push(i);
+				    }
+				    return found; //return array with mathced indexes
+				  },
+				  // List item Template7 template
+				  itemTemplate: `
+						{{#if this.id}}
+						<li key="{{this.id}}">
+							<a href="{{href}}" class="item-link item-content">
+								<div class="item-inner">
+									<div class="item-title">{{name}}</div>
+								</div>
+							</a>
+						</li>
+						{{else}}
+						<li key="{{this}}">
+							<div class="item-link item-content">
+								<div class="item-inner">
+									<div class="item-title skeleton-block"
+											 style="width:{{js "5 + Math.round(Math.random() * 15)"}}ch;"></div>
+								</div>
+							</div>
+						</li>
+						{{/if}}
+					`,
+				  // Item height
+				  height: 39, //app.theme === 'ios' ? 63 : (app.theme === 'md' ? 73 : 46),
+				});
 
-			loadData.call(this);
-			return prayerData;
+				let {items, state} = await this.loadPromise;
+				state.showSearchbar = (items.length > 30);
+
+				this.$setState(state);
+				if (state.showSearchbar) {
+					this.$el.addClass('page-with-subnavbar');
+				}
+				this.virtualList.replaceAllItems(items);
+    	},
+			pageBeforeRemove(e, page) {
+				this.virtualList.destroy();
+  		},
 		}
 	};
 
 	async function loadData() {
 		try {
 			let prayers = await app.dataManager.get('prayers');
-			//this.$tick(() => handleData.call(this, prayers));
-			handleData.call(this, prayers);
+			let data = handleData.call(this, prayers);
 			app.emit('mainPageLoaded', 'prayers', this);
+
+			return data;
 		} catch (err) {
 			app.methods.showLoadError();
 			throw err;
@@ -103,11 +148,12 @@
 
 	function handleData(prayers) {
 		let sectionId = this.$route.params.sectionId || "0";
-		let state = {items: []};
+		let state = {};
+		let items = [];
 
 		prayers.s.forEach((data) => {
 			if (data.parent === sectionId) {
-				state.items.push(Object.assign(data, {
+				items.push(Object.assign(data, {
 					href: '/prayers/' + data.id
 				}));
 			}
@@ -120,12 +166,15 @@
 		prayers.e
 			.filter(({parent}) => parent === sectionId)
 			.forEach((data) => {
-				state.items.push(Object.assign(data, {href: '/prayers/text/' + data.id}));
+				items.push(Object.assign(data, {href: '/prayers/text/' + data.id}));
 			});
 
 		state.loading = false;
-		state.items = sortBy(state.items, ['sort', 'name']);
+		items = sortBy(items, ['sort', 'name']);
 
-		this.$tick(() => this.$setState(state));
+		return {
+			items,
+			state
+		};
 	}
 </script>

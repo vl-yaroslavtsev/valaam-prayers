@@ -3,6 +3,7 @@
 	<div class="view view-init">
 		<div class="page page-with-subnavbar page-popup page-search">
 			<div class="navbar">
+				<div class="navbar-bg"></div>
 				<div class="navbar-inner">
 					<div class="title">Поиск</div>
 					<div class="right">
@@ -69,7 +70,6 @@
 	{{/each}}
 </template-partial>
 <style scoped>
-
 </style>
 <!--suppress JSAnnotator -->
 <script>
@@ -88,6 +88,7 @@
 				searchbar.phrase = searchbar.$inputEl.val();
 
 				$el.find('#searchbarResult').empty();
+				$el.find('.searchbar-not-found').hide();
 				$el.find('.preloader.infinite-scroll-preloader').addClass('display-none');
 
 				app.preloader.show();
@@ -102,9 +103,10 @@
 				$el = popup.$el;
 				//debugger;
 				searchbar = app.searchbar.create({
-					el: 'form.searchbar',
+					el: $el.find('form.searchbar'),
 					searchContainer: '.search-list',
 					searchIn: '.item-title',
+					notFoundEl: '.searchbar-not-found',
 					customSearch: true,
 					on: {
 						search(sb, query, previousQuery) {
@@ -174,6 +176,10 @@
 		searchbar.countItem += result.items.length;
 
 		$el.find('#searchbarResult').append(html);
+
+		if (!searchbar.countItem) {
+			$el.find('.searchbar-not-found').show();
+		}
 
 		if(searchbar.countItem >= parseInt(result.total)) {
 			$el.find('.preloader.infinite-scroll-preloader').addClass('display-none');

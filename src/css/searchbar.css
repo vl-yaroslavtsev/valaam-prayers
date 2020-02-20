@@ -1,0 +1,43 @@
+/** region searchbar */
+#searchbarResult li .item-title,
+#searchbarResult li .item-subtitle {
+	white-space: normal;
+}
+
+#searchbarResult li .item-text {
+	-webkit-line-clamp: unset;
+	max-height: none;
+	font-size: 0.75em;
+}
+
+#searchbarResult li .item-title > b,
+#searchbarResult li .item-text > b {
+	color: var(--f7-theme-color);
+}
+
+.searchbar {
+	--f7-searchbar-height: 55px;
+	--f7-searchbar-inner-padding-left: 16px; /*8px;*/
+	--f7-searchbar-inner-padding-right: 16px; /*8px;*/
+}
+
+.md:not(.theme-dark) .searchbar {
+	--f7-searchbar-bg-color: rgb(248,248,248);
+}
+
+.vm-searchbar-button {
+	flex-shrink: 0;
+	margin-left: var(--f7-searchbar-inner-padding-left);
+}
+
+.md:not(.theme-dark) .searchbar-transparent {
+	--f7-searchbar-bg-color: rgba(255, 255, 255, 0);
+	--f7-searchbar-input-clear-button-color: rgba(255, 255, 255, .7);
+	--f7-searchbar-input-text-color: rgb(255, 255, 255);
+	--f7-searchbar-link-color: rgba(255, 255, 255, .7);
+	--f7-searchbar-search-icon-color: rgba(255, 255, 255, .7);
+	--f7-searchbar-placeholder-color: rgba(255, 255, 255, .5);
+
+	--f7-searchbar-in-page-content-margin: 0;
+}
+/** endregion */
