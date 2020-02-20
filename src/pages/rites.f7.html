@@ -261,10 +261,16 @@
 							<div class="item-inner">
 								<div class="item-input-wrap">
 									<!--suppress HtmlUnknownAttribute -->
-									<input type="email" name="email" value="{{email}}" id="formRites-email"
-										   placeholder="e-mail@site.com" autocomplete="home email"
-										   validate pattern=".+@.+\\.[a-z]{2,}"
-										   data-error-message="Введите корректный адрес">
+									<input type="email"
+												 name="email"
+												 value="{{email}}"
+												 id="formRites-email"
+										   	 placeholder="e-mail@site.com"
+												 autocomplete="home email"
+										   	 validate
+												 required
+												 pattern=".+@.+\\.[a-z]{2,}"
+										   	 data-error-message="Введите корректный адрес">
 									<span class="input-clear-button"></span>
 									<div class="item-input-info">
 										Для уведомлений о статусе пожертвования

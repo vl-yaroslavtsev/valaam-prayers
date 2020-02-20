@@ -7,9 +7,12 @@
 	--f7-navbar-title-line-height: 20px;
 	--f7-navbar-link-color: rgb(191,191,191);
 	--f7-navbar-text-color: rgba(0,0,0,.9);
-
-  background: rgba(248,248,248,0.82);
 }
+
+.md:not(.theme-dark) .smart-select-page .navbar-bg {
+	background: rgba(248,248,248,0.82);
+}
+
 .smart-select-page .navbar .title {
 	/* font-family: 'Gotham Pro'; */
 	font-family: 'Geometria';
