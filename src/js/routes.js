@@ -23,6 +23,7 @@ import Search from '../pages/search.f7.html';
 
 import Settings from '../pages/settings.f7.html';
 import SettingsFonts from '../pages/settings-fonts.f7.html';
+import SettingsDownload from '../pages/settings-download.f7.html';
 
 import Prayers from '../pages/prayers.f7.html';
 import PrayersText from '../pages/prayers-text.f7.html';
@@ -215,6 +216,10 @@ export default [
 	{
 		path: '/settings/fonts',
 		component: SettingsFonts
+	},
+	{
+		path: '/settings/download',
+		component: SettingsDownload
 	},
 	// Default route (404 page). MUST BE THE LAST
 	{

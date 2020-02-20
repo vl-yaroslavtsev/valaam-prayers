@@ -48,8 +48,8 @@
 					</div>
 				</li>
 				<li>
-					<a class="item-link item-content {{#if downloading}}disabled{{/if}}"
-						 @click="download">
+					<a href="/settings/download/"
+						 class="item-link item-content">
 						<div class="item-media">
 						 	<i class="icon material-icons  disabled">get_app</i>
 					 	</div>
@@ -259,10 +259,9 @@
 
 			let style = getBgStyle();
 
-			console.log(style);
+			//console.log(style);
 			return {
 				themeDark: document.querySelector('html').classList.contains('theme-dark'),
-				downloading: app.methods.storageGet('reload-working'),
 				bgItems: BACKGROUND_ITEMS.map((item) => {
 					item.selected = (item.value === style.bgColor ||
 												   item.value === style.bgImage) ? 'selected' : '';
@@ -292,16 +291,6 @@
 			},
 			testFitures() {
 				reloadManager.testFitures();
-			},
-			async download() {
-				this.$setState({downloading: true});
-
-				try {
-					await reloadManager.download();
-					this.$setState({downloading: false});
-				} catch (ex) {
-					this.$setState({downloading: false});
-				}
 			}
 	 	},
 		on: {

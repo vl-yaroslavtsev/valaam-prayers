@@ -1,6 +1,6 @@
 /**
  * Клиентский код для serviсeWorker
- * Запускает serviсeWorker и управляет обновлением оффлайн данных.
+ * Запускает serviсeWorker и управляет обновлением офлайн данных.
  */
 import moment from 'moment';
 import ReloaderWorker from './reloader.wkr.js';
@@ -9,7 +9,7 @@ import ImagePreloader from './image-preloader.js';
 let app;
 
 /**
- * Минимальный размер оффлайн-данных для обновления в Мб,
+ * Минимальный размер офлайн-данных для обновления в Мб,
  * для которого обновляем втихую, без запроса пользоватлею.
  */
 const RELOAD_CONFIRM_MIN_SIZE_MB = 5;
@@ -72,7 +72,7 @@ async function preload() {
 		}
 
 		let result = await confirmReloadData(sizeMb, quotaMb);
-		// Обновляем базовые данные для оффлайн версии
+		// Обновляем базовые данные для офлайн версии
 		if (!result) {
 			return; // reloadAction('base');
 		}
@@ -105,7 +105,7 @@ async function download() {
 			app.dialog.alert(
 				`У Вас самые свежие данные.<br>
 				 Обновление не требуется`,
-				'Оффлайн версия'
+				'Офлайн версия'
 			);
 			return;
 		}
@@ -126,14 +126,14 @@ async function download() {
 		if (quotaMb - usageMb < MIN_STORAGE_AVAILABLE_TO_RELOAD_MB ||
 		    sizeMb.data + MIN_STORAGE_AVAILABLE_TO_RELOAD_MB > quotaMb) {
 			app.dialog.alert(
-				`На Вашем устройстве недостаточно места для хранения оффлайн версии`,
+				`На Вашем устройстве недостаточно места для хранения офлайн версии`,
 				'Оффлайн версия'
 			);
 			return;
 		}
 
 		let result = await confirmReloadData(sizeMb, quotaMb, true);
-		// Обновляем базовые данные для оффлайн версии
+		// Обновляем базовые данные для офлайн версии
 		if (!result) {
 			return; // reloadAction('base');
 		}
@@ -147,7 +147,7 @@ async function download() {
 }
 
 /**
- * Спрашиваем у пользователя обновлять ли оффлайн данные.
+ * Спрашиваем у пользователя обновлять ли офлайн данные.
  * Возвращает Promise, который разрешается в true, если данные обновлены, false - если отказ.
  * @param {Object} sizeMb Размер обновляемых данных
  * @param {number} quotaMb Размер хранилища
@@ -157,7 +157,7 @@ async function download() {
 function confirmReloadData(sizeMb, quotaMb, force = false) {
 	let msg = `
 		<p>
-		Доступно обновление для оффлайн версии молитвослова и календаря.
+		Доступно обновление для офлайн версии молитвослова и календаря.
 		</p>
 		<p>
 			<label class="radio">
@@ -235,7 +235,7 @@ async function processReloadUI({useImages}) {
 	let toast = app.toast.create({
 		text: `
 			Загрузка <span class="toast-type">данных</span>
-			для оффлайн версии: <span class="toast-progress">0</span>%.<br>
+			для офлайн версии: <span class="toast-progress">0</span>%.<br>
 			Пожалуйста, не переходите на другие вкладки.
 		`,
 		destroyOnClose: true
@@ -259,7 +259,7 @@ async function processReloadUI({useImages}) {
 		toast.close();
 
 		toast = app.toast.create({
-			text: 'Данные загружены! Теперь можно использовать молитвослов и календарь оффлайн',
+			text: 'Данные загружены! Теперь можно использовать молитвослов и календарь офлайн',
 			closeButton: true,
 			destroyOnClose: true
 		});

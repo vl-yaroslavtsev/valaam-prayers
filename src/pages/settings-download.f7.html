@@ -1,0 +1,92 @@
+<template>
+
+<div class="page page-white">
+
+	<div class="navbar">
+		<div class="navbar-bg"></div>
+		<div class="navbar-inner sliding">
+			<div class="left">
+				<a href="#" class="link back">
+					<i class="icon icon-back"></i>
+					<span class="">Назад</span>
+				</a>
+			</div>
+			<div class="title"></div>
+		</div>
+	</div>
+
+	<div class="page-content">
+		<h2 class="block">Молитвослов офлайн</h2>
+		<div class="block">
+			<p>Молитвослов, Библия, календарь, жития святых,
+				духовная литература для работы офлайн.</p>
+			<p>Доступно для скачивания</p>
+		</div>
+		<div class="list media-list no-hairlines">
+			<ul>
+				<li>
+					<a class="item-link item-content {{#if downloading}}disabled{{/if}}"
+						 @click="download">
+						<div class="item-media">
+							<i class="icon material-icons  disabled">get_app</i>
+						</div>
+						<div class="item-inner">
+							<div class="item-title-row">
+								<div class="item-title">Молитвослов и календарь
+								</div>
+							</div>
+						</div>
+					</a>
+				</li>
+			</ul>
+		</div>
+	</div>
+</div>
+</template>
+<style scoped>
+	.list .item-media {
+		min-width: auto;
+	}
+
+	.block-title {
+		margin-top: 2em;
+		/* font: 18px/24px Geometria; */
+		text-transform: none;
+		/* font-weight: 500; */
+	}
+
+
+</style>
+<!--suppress JSAnnotator -->
+<script>
+	import reloadManager from '../js/reload-manager.js';
+
+	let app, $el;
+	export default {
+		data() {
+			app = this.$app;
+
+			return {
+				downloading: app.methods.storageGet('reload-working'),
+			};
+		},
+		methods: {
+			async download() {
+				this.$setState({downloading: true});
+
+				try {
+					await reloadManager.download();
+					this.$setState({downloading: false});
+				} catch (ex) {
+					this.$setState({downloading: false});
+				}
+			}
+	 	},
+		on: {
+			pageInit(e, page) {
+			},
+			pageBeforeRemove() {
+			}
+		}
+	};
+</script>
