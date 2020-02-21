@@ -19,15 +19,19 @@
 	background-image: none;
 }
 
+.md:not(.theme-dark) .page-popup .navbar-bg {
+	background-image: none;
+}
+
 .popup .navbar-bg:after {
 	width: 100%;
 	left: 0;
 	right: 0;
 }
 
-.page-popup.page-with-subnavbar {
+/* .page-popup.page-with-subnavbar {
 	--f7-subnavbar-height: 55px;
-}
+} */
 
 .md:not(.theme-dark) .page-popup.page-with-subnavbar {
 	--f7-navbar-border-color: transparent;

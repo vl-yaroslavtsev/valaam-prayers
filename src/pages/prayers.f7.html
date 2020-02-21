@@ -2,7 +2,7 @@
 	<div class="page" data-name="{{id}}">
 
 		<div class="navbar">
-			<div class="navbar-bg {{#if showSearchbar}}height-92{{/if}}"></div>
+			<div class="navbar-bg"></div>
 			<div class="navbar-inner sliding">
 				{{#if name}}
 				<div class="left">
@@ -56,13 +56,11 @@
 	</div>
 </template>
 <style>
-	.navbar-bg.height-92 {
-		height: 92px;
-	}
 </style>
 <!--suppress JSAnnotator -->
 <script>
 	import {sortBy} from 'lodash-es';
+	import {Dom7 as $$} from 'framework7';
 	let app;
 
 	export default {
@@ -115,7 +113,7 @@
 						{{/if}}
 					`,
 				  // Item height
-				  height: 39, //app.theme === 'ios' ? 63 : (app.theme === 'md' ? 73 : 46),
+				  height:  $$(window).width() < 768 ? 39 : 80
 				});
 
 				let {items, state} = await this.loadPromise;

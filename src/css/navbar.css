@@ -1,16 +1,31 @@
 /* region navbar */
-/* .md:not(.theme-dark) .navbar {
-	background-image: url('../images/bg.jpg');
-	background-repeat: no-repeat;
-	background-size: 100% auto;
-	background-color: var(--f7-page-bg-color);
-} */
+:root {
+	--f7-navbar-font-size: 14px;
+	--f7-navbar-height: 40px; /* 56px; */
+	--f7-subnavbar-height: 55px;
+	--f7-navbar-title-font-weight: bold;
+	--f7-navbar-link-color: rgba(255,255,255,.7);
+}
+
+.md:not(.theme-dark) {
+	--f7-navbar-shadow-image: transparent;
+	--f7-navbar-border-color: rgba(255,255,255,.25);
+	--f7-navbar-text-color: white;
+	--f7-navbar-bg-color: transparent; /*#1b1b35;*/
+
+	--f7-subnavbar-bg-color: transparent;
+	--f7-subnavbar-bg-image: transparent;
+	--f7-subnavbar-shadow-image: transparent;
+}
 
 .md:not(.theme-dark) .navbar-bg {
 	background-image: url(../images/bg.jpg);
 	background-repeat: no-repeat;
 	background-size: 100% auto;
-	background-color: var(--f7-page-bg-color);
+}
+
+.page-with-subnavbar .navbar-bg {
+	height: calc(var(--f7-navbar-height) + var(--f7-subnavbar-height));
 }
 
 .navbar-bg:after {
@@ -71,6 +86,17 @@
 }
 
 @media (min-width: 768px) {
+	:root {
+		--f7-navbar-font-size: 20px;
+		--f7-navbar-title-font-size: 20px;
+		--f7-navbar-title-margin-left: 35px;
+		--f7-navbar-height: 52px;
+
+		--f7-subnavbar-height: 80px;
+		--f7-subnavbar-inner-padding-left: 35px;
+		--f7-subnavbar-inner-padding-right: 35px;
+	}
+
 	.navbar .title {
 		letter-spacing: 1.5px;
 	}
