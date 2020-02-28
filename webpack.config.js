@@ -5,7 +5,6 @@ const TerserJSPlugin = require('terser-webpack-plugin');
 const MiniCssExtractPlugin = require('mini-css-extract-plugin');
 const OptimizeCSSAssetsPlugin = require('optimize-css-assets-webpack-plugin');
 const CopyPlugin = require('copy-webpack-plugin');
-const MomentLocalesPlugin = require('moment-locales-webpack-plugin');
 const OfflinePlugin = require('offline-plugin');
 
 module.exports = (env = {}) => {
@@ -36,9 +35,6 @@ module.exports = (env = {}) => {
 				},
 				'src/manifest.webmanifest',
 	    ]),
-			new MomentLocalesPlugin({
-          localesToKeep: ['en','ru'],
-      }),
 			new OfflinePlugin({
 				ServiceWorker: {
 	        events: true,

@@ -85,9 +85,6 @@ Framework7.use([
 	VirtualList
 ]);
 
-import moment from 'moment';
-moment.locale('ru');
-
 import './data-sources.js';
 
 import routes from './routes.js';
@@ -99,7 +96,8 @@ import favoriteManager from './favorite-manager.js';
 import settingsManager from './settings-manager.js';
 import historyManager from './history-manager.js';
 import viewsManager   from './views-manager.js';
-import imageLazyDb from '../js/image-lazy-db.js';
+import imageLazyDb from './image-lazy-db.js';
+import {init as dateUtilsInit} from './date-utils.js';
 
 // Framework7 App main instance
 const app = new Framework7({
@@ -129,6 +127,7 @@ const app = new Framework7({
 			favoriteManager.init(this);
 			imageLazyDb.init(this);
 			settingsManager.init(this);
+			dateUtilsInit(this);
 
 			if (window['webkit']) {
 				this.once('canApplePay', (result) => {

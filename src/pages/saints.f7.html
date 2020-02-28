@@ -173,7 +173,7 @@
 </style>
 <!--suppress JSAnnotator -->
 <script>
-	import moment from 'moment';
+	import {format, parse, addDays, subDays} from '../js/date-utils.js';
 
 	export default {
 		data() {
@@ -188,6 +188,7 @@
 				.replace(/<\/?[^>]+>/gi, '')
 				.replace(/КРАТ­КОЕ ЖИ­ТИЕ[^\n]*\n/ig, '')
 				.replace(/КРАТКОЕ ЖИТИЕ[^\n]*\n/ig, '')
+				.replace(/КРАТКИЕ ЖИТИЯ[^\n]*\n/ig, '')
 				.slice(0, 300)
 			;
 
@@ -214,11 +215,11 @@
 				element = Object.assign({}, element);
 
 				let section = prayers.s.find((s) => s.id === element.parent);
-				let mt = moment(moment().format('YYYY') + section.code, 'YYYYMMDD');
+				let dt = parse(format(new Date(), 'yyyy') + section.code, 'yyyyMMdd');
 
-				element.header = mt.format('D MMMM') +
+				element.header = format(dt, 'D MMMM') +
 						   ' / ' +
-						   mt.add(13, 'day').format('D MMMM') ;
+						   format(addDays(dt, 13), 'D MMMM');
 				return element;
 			});
 

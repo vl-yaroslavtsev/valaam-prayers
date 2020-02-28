@@ -1,21 +1,23 @@
 import {Template7} from 'framework7';
-import moment from 'moment';
+import {format, parse, addDays, subDays} from './date-utils.js';
 
-Template7.registerHelper('moment', function (date, options) {
+let helpers = {format, parse, addDays, subDays};
+
+Template7.registerHelper('date', function (date, options) {
   if (date.hash) {
 		options = date;
 		date = undefined;
 	}
 
-	let mt = moment(date, 'YYYYMMDD');
+	let res = parse(date);
 
 	Object
 		.entries(options.hash)
 		.forEach(([key, value]) => {
-			mt = mt[key](value);
+			res = helpers[key](res, value);
 		});
 
-  return mt;
+  return res;
 });
 
-export default ['moment'];
+export default ['date'];

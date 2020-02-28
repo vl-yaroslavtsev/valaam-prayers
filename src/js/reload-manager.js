@@ -2,7 +2,7 @@
  * Клиентский код для serviсeWorker
  * Запускает serviсeWorker и управляет обновлением офлайн данных.
  */
-import moment from 'moment';
+import {unixNow} from './date-utils.js';
 import ReloaderWorker from './reloader.wkr.js';
 import ImagePreloader from './image-preloader.js';
 
@@ -197,7 +197,7 @@ function confirmReloadData(sizeMb, quotaMb, force = false) {
 				return resolve(false);
 			}
 
-			if (moment().unix() - confirmTs < RELOAD_CONFIRM_TIMEOUT_SEC) {
+			if (unixNow() - confirmTs < RELOAD_CONFIRM_TIMEOUT_SEC) {
 				return resolve(false);
 			}
 		}
@@ -206,13 +206,13 @@ function confirmReloadData(sizeMb, quotaMb, force = false) {
 			msg,
 			'Оффлайн версия',
 			() => {
-				app.methods.storageSet('reload-confirm-ts', moment().unix());
+				app.methods.storageSet('reload-confirm-ts', unixNow());
 				resolve({
 					useImages: dialog.$el.find('#confirm-reload-image:checked').length
 				});
 			},
 			() => {
-				app.methods.storageSet('reload-confirm-ts', moment().unix());
+				app.methods.storageSet('reload-confirm-ts', unixNow());
 				if (!force) {
 					app.methods.storageSet('reload-confirm-reject', ++rejectCount);
 				}

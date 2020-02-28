@@ -35,7 +35,15 @@
 </template>
 <!--suppress JSAnnotator -->
 <script>
-	import moment from 'moment';
+	import {
+		format,
+		parse,
+		addDays,
+		subDays,
+		endOfWeek,
+		getEaster,
+		isLeapYear
+	} from '../js/date-utils.js';
 
 	let dataManager;
 	export default {
@@ -47,24 +55,11 @@
 		},
 		data() {
 			dataManager = this.$app.dataManager;
-			let year = this.$route.params.year || moment().format('YYYY');
+			let year = this.$route.params.year || format(new Date(), 'YYYY');
 			let type = this.$route.params.type;
 
 			return getData(type, year);
 		}
-	}
-
-	/**
-	 * Пасха для текущего года
-	 * @param  {string} year Год
-	 * @return {Moment}
-	 */
-	function getEaster(year) {
-		let [date] = Object
-			.entries(dataManager.cache.calendar)
-			.find(([date, desc]) => date.startsWith(year) && desc === "e") || [];
-
-		return moment(date, 'YYYYMMDD');
 	}
 
 	/**
@@ -74,7 +69,7 @@
 	 * @return {string}
 	 */
 	function afterEaster(year, days) {
-		return getEaster(year).add(days, 'days').format('YYYYMMDD');
+		return format(addDays(getEaster(year), days));
 	}
 
 	/**
@@ -84,7 +79,7 @@
 	 * @return {string}
 	 */
 	function beforeEaster(year, days) {
-		return getEaster(year).subtract(days, 'days').format('YYYYMMDD');
+		return format(subDays(getEaster(year), days));
 	}
 
 	/**
@@ -92,8 +87,8 @@
 	 * @param  {string} date Дата в формате YYYYMMDD
 	 * @return {string}      [description]
 	 */
-	function endOfWeek(date) {
-		return moment(date, 'YYYYMMDD').endOf('week').format('YYYYMMDD');
+	function formatEndOfWeek(date) {
+		return format(endOfWeek(parse(date)));
 	}
 
 	/**
@@ -105,7 +100,7 @@
 	 * @return {string}
 	 */
 	function dateLeapYear(year, month, day, leapYearDay) {
-		return `${year}${month}${moment([year]).isLeapYear() ? leapYearDay : day}`;
+		return `${year}${month}${isLeapYear(new Date(year, 1, 1)) ? leapYearDay : day}`;
 	}
 
 
@@ -181,8 +176,10 @@
 				`,
 				holidays: [{
 					items: {
-						[endOfWeek(`${year}0711`)]: "Валаамской иконы Божией Матери",
-						[endOfWeek(`${year}0819`)]: "Собор Всех Валаамских святых",
+						// Первое воскресение после прпп. Сергия и Германа Валаамских (11 июля)
+						[formatEndOfWeek(`${year}0713`)]: "Валаамской иконы Божией Матери",
+						// Первое воскресение после Преображения (19 августа)
+						[formatEndOfWeek(`${year}0820`)]: "Собор Всех Валаамских святых",
 						[`${year}1213`]: "День возрождения Валаамского монастыря",
 						[`${year}1111`]: "Прп. Авраамий Ростовский",
 						[`${year}0711`]: "Прпп. Сергий и Герман Валаамские чудотворцы",
@@ -205,7 +202,7 @@
 						[`${year}0607`]: "Прмч. Таврион (Толоконцев)",
 						[`${year}1220`]: "Прмч. Галактион (Урбанович – Новиков)",
 						[`${year}1206`]: "Блгв. вел. кн. Александр Невский",
-						[endOfWeek(`${year}0819`)]: "Прп. Илия Верхотурский"
+						/*[formatEndOfWeek(`${year}0819`)]: "Прп. Илия Верхотурский"*/
 					}
 				}]
 			};
@@ -316,7 +313,7 @@
 						[afterEaster(year, 7 + 2)]: "Радоница (во вторник второй недели после Пасхи)",
 						[afterEaster(year, 49 - 1)]: "Троицкая вселенская родительская суббота",
 						[`${year}0509`]: "День поминовения всех погибших в период Великой Отечественной войны",
-						[moment(`${year}1103`, 'YYYYMMDD').endOf('week').subtract(1, 'days').format('YYYYMMDD')]: "Димитриевская родительская суббота",
+						[format(subDays(endOfWeek(parse(`${year}1103`)), 1))]: "Димитриевская родительская суббота",
 					}
 				}]
 			};

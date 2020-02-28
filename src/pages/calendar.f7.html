@@ -199,7 +199,7 @@
 </style>
 <!--suppress JSAnnotator -->
 <script>
-	import moment from 'moment';
+	import {format, parse, addDays, subDays, getEaster, months, weekdaysMin} from '../js/date-utils.js';
 	let app, calendarData, calendarView, dataManager;
 
 	export default {
@@ -234,14 +234,7 @@
 
 			return {
 				loading: true,
-				holidays: [
-					{
-						// name: "Посты и праздники",
-						items: {
-							"20190428": "ПАСХА ХРИСТОВА"
-						}
-					}
-				]
+				holidays: []
 			};
 		}
 	}
@@ -255,19 +248,6 @@
 		}
 	}
 
-	/**
-	 * Пасха для текущего года
-	 * @param  {string} year Год
-	 * @return {Moment}
-	 */
-	function getEaster(year) {
-		let [date] = Object
-			.entries(dataManager.cache.calendar)
-			.find(([date, desc]) => date.startsWith(year) && desc === "e") || [];
-
-		return moment(date, 'YYYYMMDD');
-	}
-
 	function createCalendar() {
 		let context = this;
 		let calendarDays = app.calendar.create({
@@ -275,83 +255,82 @@
 			weekendDays: [0],
 			minDate: new Date(1000 * calendarData.min),
 			maxDate: new Date(1000 * calendarData.max),
-			monthNames: moment.months()
-				.map((value) => value.substr(0, 1).toUpperCase() + value.substr(1)),
-			dayNamesShort: moment.weekdaysMin(),
+			monthNames: months().map((value) => value.substr(0, 1).toUpperCase() + value.substr(1)),
+			dayNamesShort: weekdaysMin(),
 			rangesClasses: [
 				{
 					cssClass: 'vm-calendar-day-fasting',
 					range(date) {
-						return (calendarData[moment(date).format('YYYYMMDD')] || '').indexOf('f') !== -1;
+						return (calendarData[format(date)] || '').indexOf('f') !== -1;
 					}
 				},
 				{
 					cssClass: 'vm-calendar-day-week',
 					range(date) {
-						return (calendarData[moment(date).format('YYYYMMDD')] || '').indexOf('w') !== -1;
+						return (calendarData[format(date)] || '').indexOf('w') !== -1;
 					}
 				},
 				{
 					cssClass: 'vm-calendar-day-valaam',
 					range(date) {
-						return (calendarData[moment(date).format('YYYYMMDD')] || '').indexOf('v') !== -1;
+						return (calendarData[format(date)] || '').indexOf('v') !== -1;
 					}
 				},
 				{
 					cssClass: 'vm-calendar-day-holiday',
 					range(date) {
-						return (calendarData[moment(date).format('YYYYMMDD')] || '').indexOf('h') !== -1;
+						return (calendarData[format(date)] || '').indexOf('h') !== -1;
 					}
 				},
 				{
 					cssClass: 'vm-calendar-day-grandholiday',
 					range(date) {
-						return (calendarData[moment(date).format('YYYYMMDD')] || '').indexOf('g') !== -1;
+						return (calendarData[format(date)] || '').indexOf('g') !== -1;
 					}
 				},
 				{
 					cssClass: 'vm-calendar-day-commemorationdead',
 					range(date) {
-						return (calendarData[moment(date).format('YYYYMMDD')] || '').indexOf('c') !== -1;
+						return (calendarData[format(date)] || '').indexOf('c') !== -1;
 					}
 				},
 				{
 					cssClass: 'vm-calendar-day-lightweek',
 					range(date) {
-						return (calendarData[moment(date).format('YYYYMMDD')] || '').indexOf('l') !== -1;
+						return (calendarData[format(date)] || '').indexOf('l') !== -1;
 					}
 				},
 				{
 					cssClass: 'vm-calendar-day-easter',
 					range(date) {
-						return (calendarData[moment(date).format('YYYYMMDD')] || '').indexOf('e') !== -1;
+						return (calendarData[format(date)] || '').indexOf('e') !== -1;
 					}
 				}
 			],
 			on: {
 				init(calendar) {
 					let {
-						year  = (+moment().format('YYYY')),
-						month = (moment().format('MM') - 1)
+						year  = (+format(new Date(), 'yyyy')),
+						month = (format(new Date(),'MM') - 1)
 					} = app.methods.storageGet('calendar-date') || {};
 
 					context.$setState({
 						year,
-						Easter: getEaster(year).format('YYYYMMDD')
+						Easter: format(getEaster(year))
 					});
 
 					calendar.setYearMonth(year, month, 0);
 					calendar.update();
 				},
 				dayClick(calendar, dayEl, year, month, day) {
-					calendarView.router.navigate('/days/' + moment([year, month, day]).format('YYYYMMDD'));
+					calendarView.router.navigate('/days/' + format(new Date(year, month, day)));
 				},
 				monthYearChangeEnd(calendar, year, month) {
 					app.methods.storageSet('calendar-date', {year, month});
 
 					context.$setState({
 						year,
-						Easter: getEaster(year).format('YYYYMMDD')
+						Easter: format(getEaster(year))
 					});
 				}
 			}
@@ -362,9 +341,10 @@
 	}
 
 	function clearDate(calendar) {
+		let now = new Date();
 		calendar.setYearMonth(
-			+moment().format('YYYY'),
-			(moment().format('MM') - 1)
+			+format(now, 'yyyy'),
+			(format(now, 'MM') - 1)
 		);
 		calendar.update();
 	}

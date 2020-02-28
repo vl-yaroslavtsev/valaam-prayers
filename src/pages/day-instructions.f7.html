@@ -41,7 +41,7 @@
 </style>
 <!--suppress JSAnnotator -->
 <script>
-	import moment from 'moment';
+	import {format, parse, subDays} from '../js/date-utils.js';
 	import {upperFirst} from 'lodash-es';
 
 	export default {
@@ -50,13 +50,13 @@
 				dayCode = this.$route.params.id,
 				dayData = this.day,
 				data = {},
-				oldstyleDate = moment(dayData.code, 'YYYYMMDD').subtract(13, 'days'),
-				newstyleDate = moment(dayData.code, 'YYYYMMDD'),
-				dayOfWeek = upperFirst(newstyleDate.format('dddd'));
+				oldstyleDate = subDays(parse(dayData.code), 13),
+				newstyleDate = parse(dayData.code),
+				dayOfWeek = upperFirst(format(newstyleDate, 'EEEE'));
 
 			data.title = 'Богослужебные указания';
-			data.subtitle = oldstyleDate.format('D MMMM / ') +
-											newstyleDate.format(`D MMMM YYYY г. ${dayOfWeek}.`);
+			data.subtitle = format(oldstyleDate, 'd MMMM / ') +
+											format(newstyleDate, `d MMMM yyyy г. ${dayOfWeek}.`);
 			data.text = /*marked*/(dayData.instructions)
 				.replace(/\^(\d+)/g, '<sup>$1</sup>')
 				.replace(/href="(https?)/g, 'class="external" href="$1')

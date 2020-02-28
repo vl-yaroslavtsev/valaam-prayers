@@ -1,8 +1,17 @@
 /**
  * Worker. Управляет обновлением оффлайн данных.
  */
+import {
+	format,
+	parse,
+	startOfYear,
+	endOfYear,
+	startOfWeek,
+	endOfWeek,
+	getUnixTime,
+	unixNow
+} from './date-utils.js';
 
-import moment from 'moment';
 import localforage from 'localforage';
 
 const BASE_URL = 'https://valaam.ru';
@@ -115,14 +124,14 @@ function getPeriod(type = 'week') {
 	switch (type) {
 		case 'week':
 		return {
-			start: moment().startOf('week'),
-			end: moment().endOf('week')
+			start: startOfWeek(new Date()),
+			end: endOfWeek(new Date())
 		};
 
 		case 'year':
 		return {
-			start: moment().startOf('year'),//.add(13, 'days'),
-			end: moment().endOf('year')//.add(13, 'days')
+			start: startOfYear(new Date()),
+			end: endOfYear(new Date())
 		};
 
 		default:
@@ -154,7 +163,7 @@ async function clearOldData() {
 	// Удаляем прошлогодние записи
 	let keys = await idbDays.keys();
 	keys
-		.filter((key) => moment(key, 'YYYYMMDD') < getPeriod('year').start)
+		.filter((key) => parse(key) < getPeriod('year').start)
 		.forEach((key) => idbDays.removeItem(key));
 }
 
@@ -175,7 +184,7 @@ async function checkData(type = 'full' , force = false) {
 
 	if (!force) {
 		let checkTs = await idbStat.getItem(`last_check_${type}_ts`);
-		if ((moment().unix() - checkTs < config.reload_period)) {
+		if ((unixNow() - checkTs < config.reload_period)) {
 			return {status: 'data-fresh'};
 		}
 	}
@@ -200,8 +209,8 @@ async function checkData(type = 'full' , force = false) {
 				name: 'days',
 				url: `${API_URL}days/list/`,
 				params: {
-					from_date: getPeriod('year').start.format('YYYYMMDD'),
-					to_date:  getPeriod('year').end.format('YYYYMMDD') // Текущий год
+					from_date: format(getPeriod('year').start),
+					to_date:  format(getPeriod('year').end) // Текущий год
 				}
 			},
 			{
@@ -222,7 +231,7 @@ async function checkData(type = 'full' , force = false) {
 			count.total += count[name];
 		}
 
-		await idbStat.setItem(`last_check_${type}_ts`, moment().unix());
+		await idbStat.setItem(`last_check_${type}_ts`, unixNow());
 
 		return {
 			status: count.total > 0 ? 'need-update' : 'data-fresh',
@@ -307,7 +316,7 @@ async function reloadData(type = 'base', {
 	try {
 		let reloadTs = await idbStat.getItem(`last_reload_${type}_ts`);
 		if (reloadTs) {
-			if (moment().unix() - reloadTs < config.reload_period) {
+			if (unixNow() - reloadTs < config.reload_period) {
 				throw new Error('data-fresh');
 			} else {
 				fromTs = reloadTs;
@@ -381,7 +390,7 @@ async function reloadData(type = 'base', {
 			sourceIndex++;
 		}
 
-		await idbStat.setItem(`last_reload_${type}_ts`, moment().unix());
+		await idbStat.setItem(`last_reload_${type}_ts`, unixNow());
 
 		console.timeEnd(`[reloader.wkr] reloadData ${type}`);
 		isUpdating = false;
@@ -418,9 +427,9 @@ function getSources(type, fromTs) {
 				storage: 'saints',
 				url:  `${API_URL}saints/list/`,
 				params: {
-					from_ts: fromTs < getPeriod('week').start.unix() ? 0 : fromTs,
-					from_date: getPeriod('week').start.format('YYYYMMDD'),
-					to_date:  getPeriod('week').end.format('YYYYMMDD')
+					from_ts: fromTs < getUnixTime(getPeriod('week').start) ? 0 : fromTs,
+					from_date: format(getPeriod('week').start),
+					to_date:  format(getPeriod('week').end)
 				}
 			},
 			{
@@ -457,9 +466,9 @@ function getSources(type, fromTs) {
 				url:  `${API_URL}days/list/`,
 				key: 'code',
 				params: {
-					from_ts: fromTs < getPeriod('week').start.unix() ? 0 : fromTs,
-					from_date: getPeriod('week').start.format('YYYYMMDD'),
-					to_date:  getPeriod('week').end.format('YYYYMMDD') // Текущая неделя
+					from_ts: fromTs < getUnixTime(getPeriod('week').start) ? 0 : fromTs,
+					from_date: format(getPeriod('week').start),
+					to_date:  format(getPeriod('week').end) // Текущая неделя
 				}
 			}
 		];
@@ -481,8 +490,8 @@ function getSources(type, fromTs) {
 				url:  `${API_URL}days/list/`,
 				key: 'code',
 				params: {
-					from_date: getPeriod('year').start.format('YYYYMMDD'),
-					to_date:  getPeriod('year').end.format('YYYYMMDD') // Текущий год
+					from_date: format(getPeriod('year').start),
+					to_date:  format(getPeriod('year').end) // Текущий год
 				}
 			},
 		];

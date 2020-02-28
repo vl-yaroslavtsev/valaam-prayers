@@ -214,7 +214,7 @@
 </style>
 <!--suppress JSAnnotator -->
 <script>
-	import moment from 'moment';
+	import {format, parse, addDays, subDays} from '../js/date-utils.js';
 	import {upperFirst} from 'lodash-es';
 
 	let app;
@@ -251,23 +251,20 @@
 				);
 			}
 
-			// noinspection JSUnresolvedVariable
-			let oldstyleDate = moment(day.code, 'YYYYMMDD').subtract(13, 'days');
-			// noinspection JSUnresolvedVariable
-			let newstyleDate = moment(day.code, 'YYYYMMDD');
-			let dayOfWeek = upperFirst(newstyleDate.format('dddd'));
+			let oldstyleDate = subDays(parse(day.code), 13);
+			let newstyleDate = parse(day.code);
+			let dayOfWeek = upperFirst(format(newstyleDate, 'EEEE'));
 
-			day.subtitle = oldstyleDate.format('D MMMM по старому стилю');
-			day.title = newstyleDate.format(`D MMMM YYYY г. ${dayOfWeek}`);
-			day.full_title = oldstyleDate.format('D MMMM / ') +
-														day.title;
-			//day.title = `${day.name}. ${dayCode.substr(0, 4)} год`;
+			day.subtitle = format(oldstyleDate, 'd MMMM по старому стилю');
+			day.title = format(newstyleDate, `d MMMM yyyy г. ${dayOfWeek}`);
+			day.full_title = format(oldstyleDate, 'd MMMM / ') +
+											 day.title;
 
 			return {
 				dayCode,
 				day,
-				dayPrev: moment(day.code, 'YYYYMMDD').subtract(1, 'day').format('YYYYMMDD'),
-				dayNext: moment(day.code, 'YYYYMMDD').add(1, 'day').format('YYYYMMDD'),
+				dayPrev: format(subDays(parse(day.code), 1)),
+				dayNext: format(addDays(parse(day.code), 1)),
 				searchMode: this.$route.query.mode === 'search'
 			};
 		}
