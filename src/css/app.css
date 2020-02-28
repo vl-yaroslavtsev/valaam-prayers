@@ -37,6 +37,7 @@ body,
   --scrollbar-width: 2px;
   /*--f7-safe-area-outer-right: calc(env(safe-area-inset-right, 0px) - var(--scrollbar-width));*/
 	overflow-y: overlay;
+	overflow-x: hidden;
 }
 
 .page-content::-webkit-scrollbar {

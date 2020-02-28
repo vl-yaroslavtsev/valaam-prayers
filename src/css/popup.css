@@ -19,7 +19,8 @@
 	background-image: none;
 }
 
-.md:not(.theme-dark) .page-popup .navbar-bg {
+.md:not(.theme-dark) .page-popup .navbar-bg,
+.md:not(.theme-dark) .photo-browser-popup .navbar-bg {
 	background-image: none;
 }
 
