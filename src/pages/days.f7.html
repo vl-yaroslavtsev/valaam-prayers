@@ -48,21 +48,25 @@
 
 				<div class="block-title">Евангельские Чтения</div>
 				<div class="block margin-top-half">{{day.readers_text}}</div>
-				<!--
-				<div class="list no-hairlines-md">
+
+				{{#if day.synaxarion}}
+				<div class="block-title">Cинаксарь</div>
+				<div class="block-header">Объяснение праздника Триоди составленное Никифором Ксанфопулом
+				</div>
+				<div class="list media-list no-hairlines-md">
 					<ul>
-						{{#each day.readers}}
 						<li>
-							<a href="/days/{{@root.dayCode}}/readers/{{id}}" class="item-link item-content">
+							<a href="/prayers/text/{{day.synaxarion.id}}" class="item-link item-content">
 								<div class="item-inner">
-									<div class="item-title">{{name}}</div>
+									<div class="item-title-row">
+										<div class="item-title">{{day.synaxarion.name}}</div>
+									</div>
 								</div>
 							</a>
 						</li>
-						{{/each}}
 					</ul>
 				</div>
-				-->
+				{{/if}}
 
 				{{#if day.prayers.text}}
 				<div class="block-title">Мысли на каждый день года</div>
@@ -248,6 +252,12 @@
 			if (day.prayers.daily_tak) {
 				day.prayers.daily_tak = prayers.e.find(
 					(e) => e.id === day.prayers.daily_tak
+				);
+			}
+
+			if (day.synaxarion) {
+				day.synaxarion = prayers.e.find(
+					(e) => e.id === day.synaxarion
 				);
 			}
 
