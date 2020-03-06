@@ -187,7 +187,6 @@
 			saintData.text_short = saintData.text
 				.replace(/<\/?[^>]+>/gi, '')
 				.replace(/КРАТ­КОЕ ЖИ­ТИЕ[^\n]*\n/ig, '')
-				.replace(/КРАТКОЕ ЖИТИЕ[^\n]*\n/ig, '')
 				.replace(/КРАТКИЕ ЖИТИЯ[^\n]*\n/ig, '')
 				.slice(0, 300)
 			;
@@ -217,9 +216,9 @@
 				let section = prayers.s.find((s) => s.id === element.parent);
 				let dt = parse(format(new Date(), 'yyyy') + section.code, 'yyyyMMdd');
 
-				element.header = format(dt, 'D MMMM') +
+				element.header = format(dt, 'd MMMM') +
 						   ' / ' +
-						   format(addDays(dt, 13), 'D MMMM');
+						   format(addDays(dt, 13), 'd MMMM');
 				return element;
 			});
 
