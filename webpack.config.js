@@ -79,7 +79,7 @@ module.exports = (env = {}) => {
 				{
 					test: /\.m?js$/,
 					exclude: [
-						/node_modules\/(?!(framework7|template7|dom7|lodash-es)\/).*/,
+						/node_modules\/(?!(framework7|template7|dom7|lodash-es|date-fns)\/).*/,
 						/\/js\/sw-template\.js$/
 					],
 					//include: path.resolve(__dirname, 'src'),
