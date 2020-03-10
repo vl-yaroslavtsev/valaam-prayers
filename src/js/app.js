@@ -56,6 +56,8 @@ import Skeleton 	  from 'framework7/components/skeleton/skeleton.js';
 import Elevation 		from 'framework7/components/elevation/elevation.js';
 import Typography	  from 'framework7/components/typography/typography.js';
 
+import Framework7PhoneGap from './framework7.phonegap.js';
+
 // Install F7 Components using .use() method on Framework7 class:
 Framework7.use([
 	Autocomplete,
@@ -82,11 +84,10 @@ Framework7.use([
 	Toast,
 	Toggle,
 	Typography,
-	VirtualList
-]);
+	VirtualList,
 
-import Framework7PhoneGap from './framework7.phonegap.js';
-Framework7.use(Framework7PhoneGap);
+	Framework7PhoneGap
+]);
 
 import './data-sources.js';
 
