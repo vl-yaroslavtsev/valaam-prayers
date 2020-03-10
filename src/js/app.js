@@ -85,6 +85,9 @@ Framework7.use([
 	VirtualList
 ]);
 
+import Framework7PhoneGap from './framework7.phonegap.js';
+Framework7.use(Framework7PhoneGap);
+
 import './data-sources.js';
 
 import routes from './routes.js';
@@ -285,7 +288,7 @@ let promiseLoaded = Promise.all([
 ])
 
 promiseLoaded.then(() => {
-	offlinePluginInstall();
+	//offlinePluginInstall();
 	reloadManager.preload();
 });
 

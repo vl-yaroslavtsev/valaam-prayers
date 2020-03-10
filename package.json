@@ -1,6 +1,6 @@
 {
   "name": "ru.valaam.prayers",
-  "version": "1.3.3",
+  "version": "1.4.0",
   "description": "Молитвослов и календарь от Валаамского монастыря",
   "private": true,
   "scripts": {
@@ -8,7 +8,7 @@
     "watch": "webpack --watch --progress",
     "build:dev": "webpack",
     "build:dist": "webpack --env.production",
-    "build:prod": "webpack --env.production && rm -rf ../../prayers.f7/* && cp -r ./dist/. ../../prayers.f7/"
+		"build:prod": "webpack --env.production && rm -rf ../../prayers.v2.f7/* && cp -r ./dist/. ../../prayers.v2.f7/"
   },
   "keywords": [],
   "author": "",
