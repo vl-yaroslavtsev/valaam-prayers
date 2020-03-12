@@ -39,18 +39,8 @@
 
 	--f7-line-height: 1.3;
 
-	--f7-list-inset-border-radius: 6px;
-
-	--f7-list-item-min-height: 39px;
-	/* --f7-list-item-text-font-weight: 300; */
-	--f7-list-item-text-max-lines: 3;
-	--f7-list-item-title-font-size: var(--f7-font-size);
-	--f7-list-item-title-font-weight: normal;
-  --f7-list-item-title-line-height: var(--f7-line-height);
-	--f7-list-media-item-padding-vertical: var(--f7-list-item-padding-vertical);
-
-	--f7-list-margin-vertical: 16px; /* 32px */
-
+	--f7-panel-left-width: 100%;
+	
 	--f7-preloader-color: rgb(255,128,32);
 	--f7-preloader-modal-bg-color: transparent;
 	--f7-preloader-modal-preloader-size: 75px;
@@ -80,15 +70,6 @@
 	--f7-input-outline-bg-color: rgba(0,0,0,.06);
 	--f7-input-outline-border-color: transparent;
 	--f7-input-info-text-color: rgba(0,0,0,.5);
-
-	--f7-list-item-after-text-color:  rgba(0,0,0,.5);
-	--f7-list-item-border-color: rgba(0,0,0,.08); /* rgb(222,222,222); */
-	/* --f7-list-item-after-font-weight: 300; */
-	--f7-list-item-title-text-color: var(--f7-text-color);
-	--f7-list-item-subtitle-text-color: var(--f7-text-color);
-
-	--f7-list-item-text-text-color: rgba(0,0,0,.5);
-	--f7-list-chevron-icon-color: rgba(0,0,0,.25);
 
 	--f7-page-bg-color: #1b1b35;
 
@@ -123,7 +104,5 @@
 		--f7-block-padding-vertical: 35px;
 
 		--f7-font-size: 24px;
-
-		--f7-list-item-padding-horizontal: 35px;
 	}
 }
