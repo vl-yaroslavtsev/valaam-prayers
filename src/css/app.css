@@ -4,12 +4,13 @@
 @import 'vars.css';
 
 @import 'navbar.css';
-@import 'searchbar.css';
+@import 'toolbar.css';
 @import 'tabs.css';
 @import 'list.css';
 @import 'radio.css';
 @import 'smart-select.css';
 @import 'popup.css';
+@import 'searchbar.css';
 
 @import 'text-content.css';
 @import 'slavonic.css';

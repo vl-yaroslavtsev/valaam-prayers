@@ -40,7 +40,7 @@
 	--f7-line-height: 1.3;
 
 	--f7-panel-left-width: 100%;
-	
+
 	--f7-preloader-color: rgb(255,128,32);
 	--f7-preloader-modal-bg-color: transparent;
 	--f7-preloader-modal-preloader-size: 75px;
@@ -56,8 +56,6 @@
 	--f7-theme-color: rgb(255, 128, 32); /* #ed883e;#ef883d;*/
 	--f7-theme-color-rgb: 255, 128, 32;
 	--f7-theme-color-gradient: rgb(255, 198, 32);
-
-	--f7-toolbar-font-size: var(--f7-font-size);
 }
 
 .md:not(.theme-dark) {
@@ -72,9 +70,6 @@
 	--f7-input-info-text-color: rgba(0,0,0,.5);
 
 	--f7-page-bg-color: #1b1b35;
-
-	--f7-toolbar-text-color: var(--f7-text-color);
-	--f7-toolbar-bg-color: #fff;
 
 	--f7-theme-color-shade: rgb(225, 128, 32);
 	--f7-text-color: rgba(0,0,0,.8);
