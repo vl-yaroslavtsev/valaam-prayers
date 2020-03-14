@@ -2,7 +2,6 @@
 :root {
 	--f7-list-inset-border-radius: 6px;
 
-	--f7-list-item-min-height: 39px;
 	/* --f7-list-item-text-font-weight: 300; */
 	--f7-list-item-text-max-lines: 3;
 	--f7-list-item-title-font-size: var(--f7-font-size);
@@ -23,13 +22,6 @@
 	--f7-list-item-text-text-color: rgba(0,0,0,.5);
 	--f7-list-chevron-icon-color: rgba(0,0,0,.25);
 }
-
-@media (min-width: 768px) {
-	:root {
-		--f7-list-item-min-height: 60px;
-	}
-}
-
 
 .list .item-inner:after {
 	height: 2px;
@@ -57,6 +49,7 @@
 
 /* region form-list */
 .form-list {
+	--f7-list-item-min-height: 39px;
 	--f7-list-item-padding-vertical: 2px; /* 8px*/
 	--f7-list-item-padding-horizontal: 15px;
 }
@@ -66,7 +59,7 @@
 }
 
 .form-list.ext-margin {
-    margin-bottom: calc(16px + var(--f7-list-margin-vertical));
+    margin-bottom: calc(23px + var(--f7-list-margin-vertical));
 }
 
 .form-list li {
@@ -97,6 +90,10 @@
 	background: var(--f7-input-outline-bg-color);
 	border-radius: var(--f7-input-outline-border-radius);
 	padding-left: var(--f7-input-outline-padding-horizontal);
+}
+
+.block-title + .form-list {
+	margin-top: 3px;
 }
 /* endregion */
 
@@ -129,6 +126,10 @@
 }
 
 @media (min-width: 768px) {
+
+	.form-list {
+		--f7-list-item-min-height: 60px;
+	}
 	.ucase-list {
 		--f7-list-item-title-font-size: 20px;
 		--f7-list-item-title-line-height: 20px;

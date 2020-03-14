@@ -145,8 +145,8 @@ h3.block {
 }
 
 .tile {
-	--f7-block-margin-vertical: 21px;
-	--f7-block-title-margin-bottom: 3px;
+	--f7-block-margin-vertical: 24px;
+	--f7-block-title-margin-bottom: 0;
 	background-color: var(--f7-block-strong-bg-color);
 	border-radius: var(--f7-block-inset-border-radius);
 	margin: var(--f7-block-inset-side-margin);
