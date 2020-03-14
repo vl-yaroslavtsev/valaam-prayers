@@ -4,11 +4,35 @@
 import {Dom7 as $$} from 'framework7';
 
 let app;
+const viewsIds = ['#view-valaam', '#view-prayers', '#view-calendar', '#view-rites'];
 
 function init(appInstance) {
 	app = appInstance;
-
 	initViewTabs();
+}
+
+/**
+ * Разбираем хэш.
+ * Если он в виде #view-valaam:/url , грузим url во #view-valaam
+ */
+function parseHash() {
+	let [viewId, url] = document.location.hash.split(':');
+	if (!viewsIds.includes(viewId) || !url) return;
+
+	let panel = app.panel.get('.panel-left');
+	if (panel) {
+		panel.close(false);
+	} else {
+		app.once('panelOpen', (panel) => {
+			panel.close(false);
+		});
+	}
+
+	app.tab.show(viewId);
+
+	let view = app.views.get(viewId);
+	view.router.navigate(url);
+	document.location.hash = '';
 }
 
 /**
@@ -16,27 +40,15 @@ function init(appInstance) {
  * @param  {{Framework7}} app
  */
 function initViewTabs() {
-	//location.hash = location.hash.split(':')[0] || '#view-valaam';
-	location.hash = location.hash || '#view-valaam';
-
 	app.root.find('.views.tabs').on('tab:show', (event) => {
 		let id = event.target.id;
 		if (!id || !id.startsWith('view-'))
-			return;
-
-		if (!location.hash.startsWith('#' + id)) {
-			location.hash = '#' + id;
-		}
-
+		 	return;
 		createView('#' + id, app);
 	});
 
-	$$(window).on('hashchange', () => {
-		let hash = document.location.hash.split(':')[0] || '#view-valaam';
-		app.tab.show(hash);
-	});
-
-	app.tab.show(location.hash.split(':')[0]);
+	parseHash();
+	$$(window).on('hashchange', parseHash);
 }
 
 /**
@@ -44,11 +56,8 @@ function initViewTabs() {
  * @param  {string} id айдишник
  */
 function createView(id, app) {
-	const viewsIds = ['#view-valaam', '#view-prayers', '#view-calendar', '#view-rites'];
 	let view;
 	if (!viewsIds.includes(id)) return;
-
-	//history.go(1 - history.length);
 
 	if (id == '#view-calendar') {
 		app.methods.storageSet('calendar-date');
@@ -71,16 +80,7 @@ function createView(id, app) {
 		case '#view-prayers':
 			view = app.views.create('#view-prayers', {
 				name: 'Полный молитвослов',
-				url: '/prayers/842',
-				on: {
-					pageAfterIn(page) {
-						let location = document.location.hash.split(':')[1];
-						if (location) {
-							page.view.router.navigate(location);
-							document.location.hash = 'view-prayers';
-						}
-					}
-				}
+				url: '/prayers/842'
 			});
 			break;
 
@@ -94,16 +94,7 @@ function createView(id, app) {
 		case '#view-rites':
 			view = app.views.create('#view-rites', {
 				name: 'Поминовения',
-				url: '/rites',
-				on: {
-					pageAfterIn(page) {
-						let location = document.location.hash.split(':')[1];
-						if (page.name === 'rites' && location) {
-							page.view.router.navigate(location);
-							document.location.hash = 'view-rites';
-						}
-					}
-				}
+				url: '/rites'
 			});
 			break;
 

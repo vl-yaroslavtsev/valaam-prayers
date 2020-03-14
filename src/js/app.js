@@ -8,6 +8,7 @@ import 'framework7/components/preloader.css';
 import 'framework7/components/progressbar.css';
 import 'framework7/components/virtual-list.css';
 import 'framework7/components/tabs.css';
+import 'framework7/components/panel.css';
 import 'framework7/components/form.css';
 import 'framework7/components/input.css';
 import 'framework7/components/radio.css';
@@ -35,9 +36,10 @@ import Popup	      from 'framework7/components/popup/popup.js';
 import Popover 			from 'framework7/components/popover/popover';
 import Toast        from 'framework7/components/toast/toast.js';
 import Preloader    from 'framework7/components/preloader/preloader.js';
-import Progressbar  from 'framework7/components/progressbar/progressbar';
-import VirtualList  from 'framework7/components/virtual-list/virtual-list';
+import Progressbar  from 'framework7/components/progressbar/progressbar.js';
+import VirtualList  from 'framework7/components/virtual-list/virtual-list.js';
 import Tabs	        from 'framework7/components/tabs/tabs.js';
+import Panel 				from 'framework7/components/panel/panel.js';
 import Form	        from 'framework7/components/form/form.js';
 import Input        from 'framework7/components/input/input.js';
 import Radio				from 'framework7/components/radio/radio.js';
@@ -56,7 +58,7 @@ import Skeleton 	  from 'framework7/components/skeleton/skeleton.js';
 import Elevation 		from 'framework7/components/elevation/elevation.js';
 import Typography	  from 'framework7/components/typography/typography.js';
 
-import Framework7PhoneGap from './framework7.phonegap.js';
+//import Framework7PhoneGap from './framework7.phonegap.js';
 
 // Install F7 Components using .use() method on Framework7 class:
 Framework7.use([
@@ -68,6 +70,7 @@ Framework7.use([
 	InfiniteScroll,
 	Input,
 	Lazy,
+	Panel,
 	PhotoBrowser,
 	Popover,
 	Popup,
@@ -98,19 +101,24 @@ import {DataManager} from './data-manager.js';
 import reloadManager from './reload-manager.js';
 import favoriteManager from './favorite-manager.js';
 import settingsManager from './settings-manager.js';
-import historyManager from './history-manager.js';
+//import historyManager from './history-manager.js';
 import viewsManager   from './views-manager.js';
 import imageLazyDb from './image-lazy-db.js';
 import {init as dateUtilsInit} from './date-utils.js';
 
 // Framework7 App main instance
 const app = new Framework7({
-	root: '#app',
+	root: '#root',
 	id: 'ru.valaam.prayers',
 	name: 'Валаам',
 	theme: navigator.userAgent.match(/Debug/) !== null ? 'auto' : 'md',
 	disabled: false,
 	// theme: 'ios',
+
+	statusbar: {
+		androidTextColor: 'white',
+		androidOverlaysWebView: true
+	},
 
 	panel: {
 		swipe: 'left',
@@ -126,27 +134,30 @@ const app = new Framework7({
 			}
 
 			this.dataManager = new DataManager();
-			historyManager.init(this);
+			//historyManager.init(this);
 			reloadManager.init(this);
 			favoriteManager.init(this);
 			imageLazyDb.init(this);
 			settingsManager.init(this);
 			dateUtilsInit(this);
 
-			if (window['webkit']) {
-				this.once('canApplePay', (result) => {
-					this.data.canApplePay = result;
-				});
-
-				// noinspection JSUnresolvedVariable
-				window.webkit.messageHandlers.canApplePay.postMessage(null);
-			}
+			this.phonegap.canApplePay().then((result) => {
+				this.data.canApplePay = result;
+			});
 
 			viewsManager.init(this);
 
 			this.root.on('click', '.page-current img[data-srcorig]', (e) => {
 				imgFullscreen(e.target);
 			});
+
+			if(this.device.android) {
+				this.phonegap.statusbar.show();
+			}
+
+			this.phonegap.hideSplash();
+			this.phonegap.networkIndicator(false);
+			this.phonegap.appInit();
 		}
 	},
 

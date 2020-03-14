@@ -35,8 +35,9 @@ module.exports = (env = {}) => {
 					from: 'src/images',
 					to: 'images'
 				},
-				'src/manifest.webmanifest',
+				/*'src/manifest.webmanifest',*/
 				'src/cordova.js',
+				'src/framework7.phonegap.js',
 	    ]),
 			new OfflinePlugin({
 				ServiceWorker: {
@@ -58,8 +59,6 @@ module.exports = (env = {}) => {
 					'**/*.map',
 					'**/*.gz',
 					'images/[67]*.jpg',
-					'images/startup-image-*.png',
-					'images/icon-*.png'
 				]
 			})
 		],
@@ -139,7 +138,7 @@ module.exports = (env = {}) => {
       	}
 			]
 		},
-		devtool: devMode ? 'inline-source-map' : false,
+		devtool: devMode ? 'source-map' : false,
 		output: {
 			//filename: devMode ? '[name].js' : '[name].[contenthash].js',
 			filename: '[name].js',

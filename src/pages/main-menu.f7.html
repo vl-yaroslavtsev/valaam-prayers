@@ -1,0 +1,130 @@
+<template>
+	<div class="page">
+
+		<div class="page-content">
+
+			<h1 class="block">Валаамский молитвослов</h1>
+
+			<div class="block text-white">
+				Полный молитвослов, православный календарь, духовная литература, аудио, поминовения
+			</div>
+
+			<div class="list ucase-list">
+				<ul>
+					<li>
+						<a href="#"
+							 class="item-link item-content panel-close"
+							 @click="showTab('#view-valaam')">
+							<div class="item-inner">
+								<div class="item-title">
+									<i class="icon material-icons">info</i>
+									О монастыре
+								</div>
+							</div>
+						</a>
+					</li>
+					<li>
+						<a href="#"
+						   class="item-link item-content panel-close"
+							 @click="showTab('#view-prayers')">
+							<div class="item-inner">
+								<div class="item-title">
+									<i class="icon material-icons">menu_book</i>
+									Полный молитвослов
+								</div>
+							</div>
+						</a>
+					</li>
+					<li>
+						<a href="#"
+						   class="item-link item-content panel-close"
+						   @click="showTab('#view-calendar')">
+							<div class="item-inner">
+								<div class="item-title">
+									<i class="icon material-icons">date_range</i>
+									Календарь
+								</div>
+							</div>
+						</a>
+					</li>
+					<li>
+						<a href="#"
+						   class="item-link tab-link item-content panel-close"
+							 @click="showTab('#view-rites')">
+							<div class="item-inner">
+								<div class="item-title">
+									<i class="icon material-icons">whatshot</i>
+									Поминовения
+								</div>
+							</div>
+						</a>
+					</li>
+					<li>
+						<a href="/favorites" class="item-link tab-link item-content">
+							<div class="item-inner">
+								<div class="item-title">
+									<i class="icon material-icons">star</i>
+									Избранное
+								</div>
+							</div>
+						</a>
+					</li>
+					<li>
+						<a href="/settings" class="item-link tab-link item-content">
+							<div class="item-inner">
+								<div class="item-title">
+									<i class="icon material-icons">settings</i>
+									Настройки
+								</div>
+							</div>
+						</a>
+					</li>
+				</ul>
+			</div>
+		</div>
+
+	</div>
+</template>
+<style scoped>
+
+	.page-content {
+		--f7-list-item-padding-horizontal: 32px;
+		--f7-block-padding-horizontal: 32px;
+	}
+
+	h1.block {
+		font: 700 45px/45px 'Geometria';
+		letter-spacing: .5px;
+		color: white;
+	}
+
+	.item-link .icon {
+		padding-bottom: 4px;
+		padding-right: 23px;
+		font-weight: 400;
+	}
+
+	.ucase-list {
+		margin-top: calc(2 * var(--f7-list-margin-vertical));
+	}
+</style>
+<script>
+	let app;
+
+	export default {
+		methods: {
+			showTab(viewId) {
+				app.tab.show(viewId, false);
+			}
+		},
+		data() {
+			app = this.$app;
+			return {};
+		},
+		on: {
+			pageInit(e, page) {
+				app.panel.get('.panel-left').open(false);
+    	},
+		}
+	};
+</script>

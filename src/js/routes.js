@@ -32,6 +32,8 @@ import Rites from '../pages/rites.f7.html';
 import RitesName from '../pages/rites-name.f7.html';
 import RitesStatus from '../pages/rites-status.f7.html';
 
+import MainMenu from '../pages/main-menu.f7.html';
+
 import NotFound from '../pages/404.f7.html';
 
 export default [
@@ -220,6 +222,10 @@ export default [
 	{
 		path: '/settings/download',
 		component: SettingsDownload
+	},
+	{
+		path: '/menu',
+		component: MainMenu
 	},
 	// Default route (404 page). MUST BE THE LAST
 	{
