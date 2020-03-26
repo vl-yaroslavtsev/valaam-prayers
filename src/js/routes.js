@@ -207,9 +207,8 @@ export default [
 	},
 	{
 		path: '/favorites',
-		popup: {
-			component: Favorites
-		}
+		component: Favorites,
+		beforeEnter: requireData('prayers')
 	},
 	{
 		path: '/settings',
