@@ -309,7 +309,7 @@
 		},
 		methods: {
 			onFontChange(event, value) {
-				console.log('onFontChange', event, value);
+				//.log('onFontChange', event, value);
 				let newState = {};
 				let target = event.target;
 				//console.log(event, value);
@@ -357,7 +357,7 @@
 							break;
 				}
 
-				console.log(newState);
+				//console.log(newState);
 				this.$setState(newState);
 				fontPreview.open(target);
 

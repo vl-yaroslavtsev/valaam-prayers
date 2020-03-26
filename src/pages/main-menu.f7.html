@@ -1,6 +1,9 @@
 <template>
 	<div class="page">
-
+		<div class="navbar">
+			<div class="navbar-bg"></div>
+			<div class="navbar-inner sliding"></div>
+		</div>
 		<div class="page-content">
 
 			<h1 class="block">Валаамский молитвослов</h1>
@@ -12,9 +15,8 @@
 			<div class="list ucase-list">
 				<ul>
 					<li>
-						<a href="#"
-							 class="item-link item-content panel-close"
-							 @click="showTab('#view-valaam')">
+						<a href="/prayers/1736"
+						   class="item-link item-content">
 							<div class="item-inner">
 								<div class="item-title">
 									<i class="icon material-icons">info</i>
@@ -49,7 +51,19 @@
 					</li>
 					<li>
 						<a href="#"
-						   class="item-link tab-link item-content panel-close"
+						   class="item-link item-content panel-close"
+						   @click="showTab('#view-books')">
+							<div class="item-inner">
+								<div class="item-title">
+									<i class="icon material-icons">book</i>
+									Духовная литература
+								</div>
+							</div>
+						</a>
+					</li>
+					<li>
+						<a href="#"
+						   class="item-link item-content panel-close"
 							 @click="showTab('#view-rites')">
 							<div class="item-inner">
 								<div class="item-title">
@@ -60,7 +74,7 @@
 						</a>
 					</li>
 					<li>
-						<a href="/favorites" class="item-link tab-link item-content">
+						<a href="/favorites" class="item-link item-content">
 							<div class="item-inner">
 								<div class="item-title">
 									<i class="icon material-icons">star</i>
@@ -70,7 +84,7 @@
 						</a>
 					</li>
 					<li>
-						<a href="/settings" class="item-link tab-link item-content">
+						<a href="/settings" class="item-link item-content">
 							<div class="item-inner">
 								<div class="item-title">
 									<i class="icon material-icons">settings</i>
@@ -86,7 +100,14 @@
 	</div>
 </template>
 <style scoped>
-
+	* {
+		--f7-navbar-height: var(--statusbar-height);
+	}
+	
+	.navbar-bg:after {
+		height: 0;
+	}
+	
 	.page-content {
 		--f7-list-item-padding-horizontal: 32px;
 		--f7-block-padding-horizontal: 32px;
@@ -96,6 +117,7 @@
 		font: 700 45px/45px 'Geometria';
 		letter-spacing: .5px;
 		color: white;
+		margin-top: 40px;
 	}
 
 	.item-link .icon {
@@ -104,9 +126,11 @@
 		font-weight: 400;
 	}
 
+	/*
 	.ucase-list {
 		margin-top: calc(2 * var(--f7-list-margin-vertical));
 	}
+	*/
 </style>
 <script>
 	let app;
@@ -123,8 +147,9 @@
 		},
 		on: {
 			pageInit(e, page) {
+				console.log('page init');
 				app.panel.get('.panel-left').open(false);
-    	},
+			},
 		}
 	};
 </script>

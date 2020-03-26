@@ -22,7 +22,7 @@
 				«Валаам» и «Поминовение».</p>
 		</div>
 		<div class="list media-list no-hairlines">
-		  <ul>
+			<ul>
 				<li>
 					<div class="item-content">
 						<div class="item-media">
@@ -138,26 +138,48 @@
 						</div>
 					</a>
 				</li>
-		    <li>
-		      <div class="item-content">
-		        <div class="item-media">
+				<li>
+					<div class="item-content">
+						<div class="item-media">
 							<i class="icon material-icons  disabled">brightness_3</i>
 						</div>
-		        <div class="item-inner">
+						<div class="item-inner">
 							<div class="item-title-row">
 								<div class="item-title">
 									Ночной режим
 								</div>
-		            <div class="item-after">
+								<div class="item-after">
 									<label class="toggle toggle-init"
-												 @toggle:change="onThemeChange">
+											 @toggle:change="onThemeChange">
 										<input type="checkbox" {{#if themeDark}}checked{{/if}}>
 										<span class="toggle-icon"></span>
 									</label>
-							  </div>
+								</div>
 							</div>
-		        </div>
-		      </div>
+						</div>
+					</div>
+				</li>
+				<li>
+					<div class="item-content">
+						<div class="item-media">
+							<i class="icon material-icons  disabled">fullscreen</i>
+						</div>
+						<div class="item-inner">
+							<div class="item-title-row">
+								<div class="item-title">
+									Полноэкранный режим 
+								</div>
+								<div class="item-after">
+									<label class="toggle toggle-init"
+												 @toggle:change="onStatusbarChange">
+										<input type="checkbox" {{#if hideStatusbar}}checked{{/if}}>
+										<span class="toggle-icon"></span>
+									</label>
+								</div>
+							</div>
+							<div class="item-text">Скрывать строку состояния в режиме чтения</div>
+						</div>
+					</div>
 				</li>
 				<li>
 					<a class="item-link smart-select smart-select-init"
@@ -262,6 +284,7 @@
 			//console.log(style);
 			return {
 				themeDark: document.querySelector('html').classList.contains('theme-dark'),
+				hideStatusbar: settingsManager.get('hideStatusbar'),
 				bgItems: BACKGROUND_ITEMS.map((item) => {
 					item.selected = (item.value === style.bgColor ||
 												   item.value === style.bgImage) ? 'selected' : '';
@@ -276,6 +299,14 @@
 
 				settingsManager.apply({
 					themeDark: this.themeDark
+				});
+			},
+			onStatusbarChange(event) {
+				let toggle = event.target.querySelector('input');
+				this.hideStatusbar = toggle.checked;
+
+				settingsManager.save({
+					hideStatusbar: this.hideStatusbar
 				});
 			},
 			onBgChange(event) {
