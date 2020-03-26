@@ -1,14 +1,21 @@
 /**
- * Обработка истории браузера
+ * Обработка главный view приложения
  */
 import {Dom7 as $$} from 'framework7';
+import settingsManager from './settings-manager.js';
 
 let app;
-const viewsIds = ['#view-valaam', '#view-prayers', '#view-calendar', '#view-rites'];
+const viewsIds = ['#view-books', '#view-prayers', '#view-calendar', '#view-rites'];
+// Количественно последовательных нажатий кнопки Назад
+let backButtonAttempts = 0;
 
 function init(appInstance) {
 	app = appInstance;
 	initViewTabs();
+	
+	document.addEventListener("backbutton", (e) => {
+		return handleBackButton(e);
+	}, false);
 }
 
 /**
@@ -37,7 +44,6 @@ function parseHash() {
 
 /**
  * Инициализируем табы - представления
- * @param  {{Framework7}} app
  */
 function initViewTabs() {
 	app.root.find('.views.tabs').on('tab:show', (event) => {
@@ -45,6 +51,53 @@ function initViewTabs() {
 		if (!id || !id.startsWith('view-'))
 		 	return;
 		createView('#' + id, app);
+	});
+	
+	app.on('pageBeforeIn', (page) => {
+		let isWhite = page.$el.hasClass('page-white');
+		let isDarkMode = $$('html').hasClass('theme-dark');
+		app.statusbar.setTextColor(isWhite && !isDarkMode ? 'black' : 'white');
+	});
+	
+	app.on('navbarShow', (navbarEl) => {
+		let $el = app.$(navbarEl);
+		$el.transitionEnd(() => {
+			if (settingsManager.get('hideStatusbar')) {
+				app.statusbar.hide();
+				app.statusbar.show();
+				app.statusbar.overlaysWebView(true);
+			} else {
+				app.root.find('.statusbar-bg').hide();
+			}
+			
+		});
+	});
+	
+	app.on('navbarHide', (navbarEl) => {
+		if (settingsManager.get('hideStatusbar')) {
+			app.statusbar.hide();
+		} else {
+			app.root.find('.statusbar-bg').show();
+		}
+	});
+	
+	app.on('popupOpened', (popup) => {
+		//console.log('popupOpen', popup);
+		let $el = popup.$el;
+		let isTablet = app.width >= 768;
+		let isDarkMode = $$('html').hasClass('theme-dark') || 
+						 $el.find('.photo-browser-dark').length;
+		
+		if (isTablet && !$el.hasClass('popup-tablet-fullscreen')) {
+			return;
+		}
+		
+		app.statusbar.setTextColor(isDarkMode ? 'white' : 'black');		
+	});
+	
+	app.on('popupClose', (popup) => {
+		//console.log('popupClose', popup);		
+		app.statusbar.setTextColor('white');		
 	});
 
 	parseHash();
@@ -70,13 +123,6 @@ function createView(id, app) {
 	}
 
 	switch (id) {
-		case '#view-valaam':
-			view = app.views.create('#view-valaam', {
-				name: 'Валаамский монастырь',
-				url: '/prayers/1736',
-			});
-			break;
-
 		case '#view-prayers':
 			view = app.views.create('#view-prayers', {
 				name: 'Полный молитвослов',
@@ -88,6 +134,13 @@ function createView(id, app) {
 			view = app.views.create('#view-calendar', {
 				name: 'Календарь',
 				url: '/calendar'
+			});
+			break;
+			
+		case '#view-books':
+			view = app.views.create('#view-books', {
+				name: 'Духовная литература',
+				url: '/prayers/976',
 			});
 			break;
 
@@ -103,6 +156,95 @@ function createView(id, app) {
 	}
 
 	app.emit('viewShown', view);
+}
+
+/**
+ * Обработка системной кнопки назад
+ */
+function handleBackButton(e) {
+	if ($$('.actions-modal.modal-in').length) {
+		app.actions.close('.actions-modal.modal-in');
+		e.preventDefault();
+		return false;
+	}
+	if ($$('.dialog.modal-in').length) {
+		app.dialog.close('.dialog.modal-in');
+		e.preventDefault();
+		return false;
+	}
+	if ($$('.sheet-modal.modal-in').length) {
+		app.sheet.close('.sheet-modal.modal-in');
+		e.preventDefault();
+		return false;
+	}
+	if ($$('.popover.modal-in').length) {
+		app.popover.close('.popover.modal-in');
+		e.preventDefault();
+		return false;
+	}
+	if ($$('.popup.modal-in').length) {
+		if ($$('.popup.modal-in>.view').length) {
+			const currentView = app.views.get('.popup.modal-in>.view');
+			if (currentView && currentView.router && currentView.router.history.length > 1) {
+				currentView.router.back();
+				e.preventDefault();
+				return false;
+			}
+		}
+	
+		app.popup.close('.popup.modal-in');
+		e.preventDefault();
+		return false;
+	}
+	
+	if ($$('.login-screen.modal-in').length) {
+		app.loginScreen.close('.login-screen.modal-in');
+		e.preventDefault();
+		return false;
+	}
+
+	if ($$('.searchbar-enabled').length) {
+		app.searchbar.disable();
+		e.preventDefault();
+		return false;
+	}
+
+	const currentView = app.views.current;
+	if (currentView && currentView.router && currentView.router.history.length > 1) {
+		currentView.router.back();
+		e.preventDefault();
+		return false;
+	}
+
+	if (currentView.$el.hasClass('tab')) {
+		app.panel.get('.panel-left').open();
+		e.preventDefault();
+		return false;
+	}
+
+	// if ($$$('.panel.panel-in').length) {
+		// app.panel.close('.panel.panel-in');
+		// e.preventDefault();
+		// return false;
+	// }
+	
+	if (!backButtonAttempts) {
+		let toast = app.toast.show({
+			text: 'Нажмите ещё раз "Назад" для выхода',
+			closeTimeout: 2000,
+			destroyOnClose: true,
+			on: {
+				closed() {
+					backButtonAttempts = 0;
+				}
+			}
+		});
+	} else if (backButtonAttempts >= 1) {
+		navigator.app.exitApp();
+	}	
+	
+	backButtonAttempts++;
+	return true;
 }
 
 export default {init};
