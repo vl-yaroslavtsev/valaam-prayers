@@ -12,7 +12,7 @@ let backButtonAttempts = 0;
 function init(appInstance) {
 	app = appInstance;
 	initViewTabs();
-	
+
 	document.addEventListener("backbutton", (e) => {
 		return handleBackButton(e);
 	}, false);
@@ -52,13 +52,13 @@ function initViewTabs() {
 		 	return;
 		createView('#' + id, app);
 	});
-	
+
 	app.on('pageBeforeIn', (page) => {
 		let isWhite = page.$el.hasClass('page-white');
 		let isDarkMode = $$('html').hasClass('theme-dark');
 		app.statusbar.setTextColor(isWhite && !isDarkMode ? 'black' : 'white');
 	});
-	
+
 	app.on('navbarShow', (navbarEl) => {
 		let $el = app.$(navbarEl);
 		$el.transitionEnd(() => {
@@ -69,10 +69,10 @@ function initViewTabs() {
 			} else {
 				app.root.find('.statusbar-bg').hide();
 			}
-			
+
 		});
 	});
-	
+
 	app.on('navbarHide', (navbarEl) => {
 		if (settingsManager.get('hideStatusbar')) {
 			app.statusbar.hide();
@@ -80,24 +80,24 @@ function initViewTabs() {
 			app.root.find('.statusbar-bg').show();
 		}
 	});
-	
+
 	app.on('popupOpened', (popup) => {
 		//console.log('popupOpen', popup);
 		let $el = popup.$el;
 		let isTablet = app.width >= 768;
-		let isDarkMode = $$('html').hasClass('theme-dark') || 
+		let isDarkMode = $$('html').hasClass('theme-dark') ||
 						 $el.find('.photo-browser-dark').length;
-		
+
 		if (isTablet && !$el.hasClass('popup-tablet-fullscreen')) {
 			return;
 		}
-		
-		app.statusbar.setTextColor(isDarkMode ? 'white' : 'black');		
+
+		app.statusbar.setTextColor(isDarkMode ? 'white' : 'black');
 	});
-	
+
 	app.on('popupClose', (popup) => {
-		//console.log('popupClose', popup);		
-		app.statusbar.setTextColor('white');		
+		//console.log('popupClose', popup);
+		app.statusbar.setTextColor('white');
 	});
 
 	parseHash();
@@ -136,11 +136,11 @@ function createView(id, app) {
 				url: '/calendar'
 			});
 			break;
-			
+
 		case '#view-books':
 			view = app.views.create('#view-books', {
-				name: 'Духовная литература',
-				url: '/prayers/976',
+				name: 'Книги',
+				url: '/prayers/1983',
 			});
 			break;
 
@@ -191,12 +191,12 @@ function handleBackButton(e) {
 				return false;
 			}
 		}
-	
+
 		app.popup.close('.popup.modal-in');
 		e.preventDefault();
 		return false;
 	}
-	
+
 	if ($$('.login-screen.modal-in').length) {
 		app.loginScreen.close('.login-screen.modal-in');
 		e.preventDefault();
@@ -227,7 +227,7 @@ function handleBackButton(e) {
 		// e.preventDefault();
 		// return false;
 	// }
-	
+
 	if (!backButtonAttempts) {
 		let toast = app.toast.show({
 			text: 'Нажмите ещё раз "Назад" для выхода',
@@ -241,8 +241,8 @@ function handleBackButton(e) {
 		});
 	} else if (backButtonAttempts >= 1) {
 		navigator.app.exitApp();
-	}	
-	
+	}
+
 	backButtonAttempts++;
 	return true;
 }
