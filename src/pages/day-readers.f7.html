@@ -1,5 +1,5 @@
 <template>
-	<div class="page page-with-tabs-subnavbar">
+	<div class="page page-with-tabs-subnavbar" data-name="day-ereaders-{{id}}">
 
 		<div class="navbar">
 			<div class="navbar-bg"></div>
@@ -27,8 +27,8 @@
 			<div class="subnavbar tabs-subnavbar">
 				<div class="subnavbar-inner">
 					<div class="segmented segmented-raised">
-						<a class="button tab-link" href="#tab-churchslavonic">Церковнославянский</a>
-						<a class="button tab-link" href="#tab-slavonic">Русский</a>
+						<a class="button tab-link" href="#" data-tab=".page[data-name='day-ereaders-{{id}}'] #tab-churchslavonic">Церковнославянский</a>
+						<a class="button tab-link" href="#" data-tab=".page[data-name='day-ereaders-{{id}}'] #tab-slavonic">Русский</a>
 					</div>
 				</div>
 			</div>
