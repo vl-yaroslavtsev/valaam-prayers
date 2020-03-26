@@ -61,6 +61,10 @@
 <script>
 	import {sortBy} from 'lodash-es';
 	import {Dom7 as $$} from 'framework7';
+
+	const PRAYERS_SID = "842";
+	const BOOKS_SID = "1983";
+
 	let app;
 
 	export default {
@@ -155,6 +159,14 @@
 					href: '/prayers/' + data.id
 				}));
 			}
+
+			// Временно: объединяем Полный молитвослов (842) и Книги (1983)
+			if (sectionId === PRAYERS_SID && data.parent === BOOKS_SID) {
+				items.push(Object.assign(data, {
+					href: '/prayers/' + data.id
+				}));
+			}
+
 			if (data.id === sectionId && data.parent !== "0") {
 				// prayerData.name = data.name;
 				Object.assign(state, {id: `PR${data.id}` , name: data.name});
