@@ -31,34 +31,34 @@ import '../css/app.css';
 
 import Framework7, {Dom7 as $$} from 'framework7';
 // Import additional components
-import Dialog	      from 'framework7/components/dialog/dialog.js';
-import Popup	      from 'framework7/components/popup/popup.js';
-import Popover 			from 'framework7/components/popover/popover';
+import Dialog	    from 'framework7/components/dialog/dialog.js';
+import Popup	    from 'framework7/components/popup/popup.js';
+import Popover 		from 'framework7/components/popover/popover';
 import Toast        from 'framework7/components/toast/toast.js';
 import Preloader    from 'framework7/components/preloader/preloader.js';
 import Progressbar  from 'framework7/components/progressbar/progressbar.js';
 import VirtualList  from 'framework7/components/virtual-list/virtual-list.js';
 import Tabs	        from 'framework7/components/tabs/tabs.js';
-import Panel 				from 'framework7/components/panel/panel.js';
+import Panel 		from 'framework7/components/panel/panel.js';
 import Form	        from 'framework7/components/form/form.js';
 import Input        from 'framework7/components/input/input.js';
-import Radio				from 'framework7/components/radio/radio.js';
+import Radio		from 'framework7/components/radio/radio.js';
 import Toggle       from 'framework7/components/toggle/toggle.js';
-import Range 				from 'framework7/components/range/range.js';
-import Stepper 			from 'framework7/components/stepper/stepper.js';
+import Range 		from 'framework7/components/range/range.js';
+import Stepper 		from 'framework7/components/stepper/stepper.js';
 import SmartSelect  from 'framework7/components/smart-select/smart-select.js';
 import Calendar     from 'framework7/components/calendar/calendar.js';
-import InfiniteScroll	from 'framework7/components/infinite-scroll/infinite-scroll.js';
+import InfiniteScroll from 'framework7/components/infinite-scroll/infinite-scroll.js';
 import Lazy         from 'framework7/components/lazy/lazy.js';
 import Searchbar    from 'framework7/components/searchbar/searchbar.js';
-import Swiper	      from 'framework7/components/swiper/swiper.js';
+import Swiper	    from 'framework7/components/swiper/swiper.js';
 import PhotoBrowser from 'framework7/components/photo-browser/photo-browser.js';
 import Autocomplete from 'framework7/components/autocomplete/autocomplete.js';
-import Skeleton 	  from 'framework7/components/skeleton/skeleton.js';
-import Elevation 		from 'framework7/components/elevation/elevation.js';
-import Typography	  from 'framework7/components/typography/typography.js';
+import Skeleton 	from 'framework7/components/skeleton/skeleton.js';
+import Elevation    from 'framework7/components/elevation/elevation.js';
+import Typography	from 'framework7/components/typography/typography.js';
 
-//import Framework7PhoneGap from './framework7.phonegap.js';
+import 'abortcontroller-polyfill/dist/polyfill-patch-fetch';
 
 // Install F7 Components using .use() method on Framework7 class:
 Framework7.use([
@@ -92,17 +92,15 @@ Framework7.use([
 	Framework7PhoneGap
 ]);
 
-import './data-sources.js';
-
 import routes from './routes.js';
 import * as OfflinePlugin from 'offline-plugin/runtime';
 
-import {DataManager} from './data-manager.js';
 import dataManager from './data/manager.js';
 import reloadManager from './reload-manager.js';
+import loadManager from './load-manager.js';
 import favoriteManager from './favorite-manager.js';
 import settingsManager from './settings-manager.js';
-//import historyManager from './history-manager.js';
+
 import viewsManager   from './views-manager.js';
 import imageLazyDb from './image-lazy-db.js';
 import {init as dateUtilsInit} from './date-utils.js';
@@ -127,16 +125,22 @@ const app = new Framework7({
 	},
 
 	on: {
-		init() {
+		async init() {
 
 			if (!checkSupport(this)) {
 				this.disabled = true;
 				return;
 			}
 
-			this.dataManager = new DataManager();
-			//historyManager.init(this);
+			try {
+				await dataManager.init();
+			} catch(ex) {
+				this.methods.showLoadError(`Ошибка при инициализации данных: [${ex.name}]: ${ex.message} `, 30000);
+			}
+			
 			reloadManager.init(this);
+			loadManager.init(this);
+			this.loadManager = loadManager;
 			favoriteManager.init(this);
 			imageLazyDb.init(this);
 			settingsManager.init(this);
@@ -153,7 +157,15 @@ const app = new Framework7({
 			});
 
 			if(this.device.android) {
-				this.phonegap.statusbar.show();
+				//this.phonegap.statusbar.show();
+				
+				// Внимание: говнокод!
+				// Для Андроид 6 строчка выше не делает оверлей для статусбара, 
+				// когда мы вышли из приложения по кнопке "назад" и снова зашли на него.
+				// Вы этом случае помогают эти 3 строчки.
+				this.statusbar.hide();
+				this.statusbar.show();
+				this.statusbar.overlaysWebView(true);
 			}
 
 			this.phonegap.hideSplash();
@@ -211,10 +223,10 @@ const app = new Framework7({
 
 			return data ? data[idx] : idx;
 		},
-		showLoadError(msg) {
+		showLoadError(msg, timeout) {
 			this.methods.showMessage(msg ||
 				'Ошибка загрузки данных',
-				'bg-color-red');
+				'bg-color-red', timeout);
 		},
 		showMessage(msg, bgcolor, timeout) {
 			this.toast.create({
@@ -253,7 +265,7 @@ const app = new Framework7({
 
 			app.preloader.show();
 			try {
-				return await app.dataManager.get(source, ...args);
+				return await dataManager.get(source, ...args);
 			} catch (err) {
 				let msg;
 				if (err.message === 'Network error') {
@@ -302,7 +314,7 @@ let promiseLoaded = Promise.all([
 
 promiseLoaded.then(() => {
 	//offlinePluginInstall();
-	reloadManager.preload();
+	//reloadManager.preload();
 });
 
 
@@ -400,7 +412,7 @@ function checkSupport(app) {
 		`;
 	}
 
-	let $app = document.querySelector('#app');
+	let $app = document.querySelector('#root');
 	$app.innerHTML = msg;
 	$app.style.padding = '10px';
 	$app.style.color = 'black';
