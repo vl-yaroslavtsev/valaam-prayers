@@ -1,7 +1,9 @@
 /* region navbar */
 :root {
+	--statusbar-height: 24px;
+	
 	--f7-navbar-font-size: 14px;
-	--f7-navbar-height: 40px; /* 56px; */
+	--f7-navbar-height: calc(42px + var(--statusbar-height)); /* 56px; */
 	--f7-subnavbar-height: 55px;
 	--f7-navbar-title-font-weight: bold;
 	--f7-navbar-link-color: rgba(255,255,255,.7);
@@ -33,6 +35,30 @@
 	width: auto;
 	left: var(--f7-block-padding-horizontal);
 	right: var(--f7-block-padding-horizontal);
+}
+
+.statusbar-bg {
+	position: absolute;
+	top: 0;
+	left:0;
+	width: 100%;
+	height: var(--statusbar-height);
+	background-image: url('../images/bg.jpg'); /* var(--bg-image); */
+	background-repeat: no-repeat;
+	background-size: 100% auto;
+	background-color: var(--f7-navbar-bg-color, var(--f7-bars-bg-color));
+	display: none;
+	z-index: 9500;
+}
+
+.md.theme-dark .statusbar-bg {
+	background-image: none;
+}
+
+.navbar-inner {
+	top: var(--statusbar-height);
+	height: calc(100% - var(--statusbar-height));
+	border-top: 1px solid var(--f7-navbar-border-color);
 }
 
 .navbar .title {
@@ -90,7 +116,7 @@
 		--f7-navbar-font-size: 20px;
 		--f7-navbar-title-font-size: 20px;
 		--f7-navbar-title-margin-left: 35px;
-		--f7-navbar-height: 52px;
+		--f7-navbar-height: calc(52px + var(--statusbar-height));
 
 		--f7-subnavbar-height: 80px;
 		--f7-subnavbar-inner-padding-left: 35px;
@@ -107,12 +133,12 @@
 
 	.navbar a.link.back {
 		letter-spacing: 1.5px;
-	  padding-left: var(--f7-block-padding-horizontal);
+		padding-left: var(--f7-block-padding-horizontal);
 	}
 
 	.navbar a.link.back .icon-back {
-    margin-left: -14px;
-    width: 40px;
+		margin-left: -14px;
+		width: 40px;
 	}
 
 	.navbar a.link.back span {
@@ -131,8 +157,8 @@
 	.md .icon-forward,
 	.md .icon-next,
 	.md .icon-prev {
-    width: 28px;
-    height: 28px;
+		width: 28px;
+		height: 28px;
 	}
 
 	.md .navbar .material-icons {

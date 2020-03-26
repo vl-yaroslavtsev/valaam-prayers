@@ -2,25 +2,14 @@
 	/* --bg-image: url('../images/bg.jpg'); */
 
 	--kinovar-color: rgb(227,66,52); /* rgba(255,0,0,.8) */
-
-  --f7-block-footer-font-size: 12px;
-
-	--f7-block-margin-vertical: 16px; /* 32 px*/
-
-	--f7-block-inset-border-radius: 10px;
-
-	--f7-block-title-font-size: 14px;
-	--f7-block-title-font-weight: bold;
-  --f7-block-title-line-height: 20px;
-	--f7-block-title-text-color: inherit;
-	--f7-block-title-text-transform: uppercase;
+	--scrollbar-width: 2px;
 
 	--f7-button-border-radius: 6px;
 	--f7-button-large-height: 45px;
-  --f7-button-large-font-size: 14px;
-  --f7-button-large-font-weight: bold;
+	--f7-button-large-font-size: 14px;
+	--f7-button-large-font-weight: bold;
 	--f7-button-small-font-size: 12px;
-  --f7-button-small-font-weight: bold;
+	--f7-button-small-font-weight: bold;
 
 	--f7-button-raised-box-shadow: none;
 
@@ -59,8 +48,6 @@
 }
 
 .md:not(.theme-dark) {
-	--f7-block-footer-text-color: rgba(0,0,0,.5);
-
 	--f7-calendar-day-text-color: rgba(0,0,0,.56);
 	--f7-calendar-prev-next-text-color: rgba(0,0,0,.18);
 	--f7-calendar-week-header-text-color: rgba(0,0,0,.35);
@@ -82,22 +69,17 @@
 	--f7-input-outline-border-color: #222222;
 
 	--f7-dialog-text-color: #fff;
-  --f7-dialog-bg-color: #1c1c1d;
-  --f7-dialog-title-text-color: #fff;
-  --f7-dialog-button-pressed-bg-color: rgba(255, 255, 255, 0.1);
-  --f7-dialog-input-bg-color: transparent;
-  --f7-dialog-input-placeholder-color: rgba(255, 255, 255, 0.54);
+	--f7-dialog-bg-color: #1c1c1d;
+	--f7-dialog-title-text-color: #fff;
+	--f7-dialog-button-pressed-bg-color: rgba(255, 255, 255, 0.1);
+	--f7-dialog-input-bg-color: transparent;
+	--f7-dialog-input-placeholder-color: rgba(255, 255, 255, 0.54);
 
 	background-image: none;
 }
 
 @media (min-width: 768px) {
 	:root {
-		--f7-block-inset-side-margin: 35px;
-		--f7-block-margin-vertical: 35px;
-		--f7-block-padding-horizontal: 35px;
-		--f7-block-padding-vertical: 35px;
-
 		--f7-font-size: 24px;
 	}
 }

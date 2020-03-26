@@ -22,6 +22,7 @@
 <body>
 
 <div id="root">
+	<div class="statusbar-bg"></div>
 	<div class="panel panel-left panel-cover panel-init"
 			 data-swipe="false">
 		<div class="view panel-view view-init view-menu"
@@ -30,15 +31,11 @@
 	<!-- Views/Tabs container -->
 	<div class="views tabs ios-edges">
 		<!-- Tabbar for switching views-tabs -->
-		<div class="tabbar-labels toolbar toolbar-bottom ">
+		<div class="tabbar-labels toolbar toolbar-bottom">
 			<div class="toolbar-inner">
 				<a href="#" data-panel=".panel-left" class="tab-link panel-open">
 					<i class="icon material-icons md-only">menu</i>
 					<span class="tabbar-label">Меню</span>
-				</a>
-				<a href="#view-valaam" class="tab-link">
-					<i class="icon material-icons md-only">info</i>
-					<span class="tabbar-label">Валаам</span>
 				</a>
 				<a href="#view-prayers" class="tab-link">
 					<i class="icon material-icons md-only">menu_book</i>
@@ -48,15 +45,16 @@
 					<i class="icon material-icons md-only">date_range</i>
 					<span class="tabbar-label">Календарь</span>
 				</a>
+				<a href="#view-books" class="tab-link">
+					<i class="icon material-icons md-only">book</i>
+					<span class="tabbar-label">Книги</span>
+				</a>
 				<a href="#view-rites" class="tab-link">
 					<i class="icon material-icons md-only">whatshot</i>
 					<span class="tabbar-label">Поминовения</span>
 				</a>
 			</div>
 		</div>
-
-		<!-- Валаам -->
-		<div id="view-valaam" class="view tab"></div>
 
 		<!-- Молитвослов -->
 		<div id="view-prayers" class="view tab">
@@ -66,6 +64,9 @@
 
 		<!-- Календарь -->
 		<div id="view-calendar" class="view tab"></div>
+
+		<!-- Книги -->
+		<div id="view-books" class="view tab"></div>
 
 		<!-- Прочее -->
 		<div id="view-rites" class="view tab"></div>

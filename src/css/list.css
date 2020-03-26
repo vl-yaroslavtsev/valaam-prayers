@@ -1,13 +1,17 @@
 /* region list */
 :root {
+	--f7-list-font-size: var(--f7-font-size);
+	
 	--f7-list-inset-border-radius: 6px;
 
 	/* --f7-list-item-text-font-weight: 300; */
 	--f7-list-item-text-max-lines: 3;
 	--f7-list-item-title-font-size: var(--f7-font-size);
 	--f7-list-item-title-font-weight: normal;
-  --f7-list-item-title-line-height: var(--f7-line-height);
+	--f7-list-item-title-line-height: var(--f7-line-height);
 	--f7-list-media-item-padding-vertical: var(--f7-list-item-padding-vertical);
+	--f7-list-media-item-padding-horizontal: var(--f7-list-item-padding-horizontal);
+	
 
 	--f7-list-margin-vertical: 16px; /* 32px */
 }
@@ -33,7 +37,7 @@
 
 .list .item-text {
 	text-overflow: ellipsis;
-  display: -webkit-box;
+	display: -webkit-box;
 	-webkit-box-orient: vertical;
 }
 
@@ -51,7 +55,7 @@
 .form-list {
 	--f7-list-item-min-height: 39px;
 	--f7-list-item-padding-vertical: 2px; /* 8px*/
-	--f7-list-item-padding-horizontal: 15px;
+	/*--f7-list-item-padding-horizontal: 15px;*/
 }
 
 .theme-dark .form-list {
@@ -126,6 +130,9 @@
 }
 
 @media (min-width: 768px) {
+	:root{
+		--f7-list-item-padding-horizontal: 35px;
+	}
 
 	.form-list {
 		--f7-list-item-min-height: 60px;
@@ -143,9 +150,9 @@
 	}
 
 	.md .item-media .material-icons {
-    font-size: 28px;
-    width: 28px;
-    height: 28px;
+		font-size: 28px;
+		width: 28px;
+		height: 28px;
 	}
 }
 

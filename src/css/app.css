@@ -5,8 +5,11 @@
 
 @import 'navbar.css';
 @import 'toolbar.css';
-@import 'tabs.css';
+
+@import 'block.css';
 @import 'list.css';
+
+@import 'tabs.css';
 @import 'radio.css';
 @import 'smart-select.css';
 @import 'popup.css';
@@ -24,9 +27,6 @@ body,
 	background-image: url('../images/bg.jpg'); /* var(--bg-image); */
 	background-repeat: no-repeat;
 	background-size: 100% auto;
-}
-
-.page {
 	background-color: var(--f7-page-bg-color);
 }
 
@@ -35,7 +35,6 @@ body,
 }
 
 :root .page-content {
-  --scrollbar-width: 2px;
   /*--f7-safe-area-outer-right: calc(env(safe-area-inset-right, 0px) - var(--scrollbar-width));*/
 	overflow-y: overlay;
 	overflow-x: hidden;
@@ -48,7 +47,7 @@ body,
 
 .page-content::-webkit-scrollbar-thumb {
     border-radius: var(--scrollbar-width);
-    background-color: rgba(255, 255, 255, .4);
+    background-color: rgba(255, 255, 255, .7);
 }
 /* .md.device-pixel-ratio-2 .page-content { */
 	/* background-image: url('../images/bg@2x.jpg');	 */
@@ -61,11 +60,11 @@ body,
 /* hack for Chrome 49 =( */
 .page-content {
 	padding-top: calc(var(--f7-navbar-height) +
-										var(--f7-safe-area-top) +
-										var(--f7-page-toolbar-top-offset, 0px) +
-										var(--f7-page-subnavbar-offset, 0px) +
-										var(--f7-page-searchbar-offset, 0px) +
-										var(--f7-page-content-extra-padding-top, 0px));
+				var(--f7-safe-area-top) +
+				var(--f7-page-toolbar-top-offset, 0px) +
+				var(--f7-page-subnavbar-offset, 0px) +
+				var(--f7-page-searchbar-offset, 0px) +
+				var(--f7-page-content-extra-padding-top, 0px));
 
 }
 
@@ -79,44 +78,6 @@ body,
 
 .md .icon-forward:after {
     content: 'chevron_right';
-}
-
-h2.block {
-	/* font: 500 28px/32px 'Gotham Pro'; */
-	font: 500 29px/32px 'Geometria';
-	margin: 27px 0 19px 0; /* 16px 0 16px 0 */
-}
-
-.md:not(.theme-dark) h2.block {
-	color: white;
-}
-
-.md:not(.theme-dark) .block.text-white {
-    color: white;
-}
-
-h3.block {
-  color: white;
-  text-transform: uppercase;
-  overflow: hidden;
-  white-space: nowrap;
-  text-overflow: ellipsis;
-  font-size: 13px;
-  font-weight: bold;
-  line-height: 14px;
-  margin: 16px 0;
-}
-
-@media (min-width: 768px) {
-	h2.block {
-    font: 500 46px/54px 'Geometria';
-    margin: 40px 0 30px 0;
-	}
-
-	h3.block {
-    font-size: 18px;
-    line-height: 30px;
-	}
 }
 
 .button,
@@ -144,46 +105,10 @@ h3.block {
 	padding-bottom: 0;
 }
 
-.tile {
-	--f7-block-margin-vertical: 24px;
-	--f7-block-title-margin-bottom: 0;
-	background-color: var(--f7-block-strong-bg-color);
-	border-radius: var(--f7-block-inset-border-radius);
-	margin: var(--f7-block-inset-side-margin);
-	overflow: hidden;
-}
-
-.theme-dark .block-strong.inset,
-.theme-dark .tile  {
-	background-color: var(--f7-page-bg-color);
-	border-radius: 0;
-	margin-left: 0;
-	margin-right: 0;
-}
-
 .day-saints-text h2 {
 	font-size: 1.3em;
 	line-height: 1.3em;
 }
-
-/* region inset img */
-.block-strong.inset p > img {
-	width: calc(100% + 2 * var(--f7-block-inset-side-margin));
-    margin-left: calc(-1 * var(--f7-block-inset-side-margin));
-}
-
-.block-strong.inset p:first-child > img {
-  margin-top: calc(-1 * var(--f7-block-inset-side-margin));
-	border-top-left-radius: var(--f7-block-inset-border-radius);
-	border-top-right-radius: var(--f7-block-inset-border-radius);
-}
-
- .block-strong.inset p:last-child > img {
-  margin-bottom: calc(-1 * var(--f7-block-inset-side-margin) - 6px);
-	border-bottom-left-radius: var(--f7-block-inset-border-radius);
-	border-bottom-right-radius: var(--f7-block-inset-border-radius);
-}
-/* endregion */
 
 /* region page-white */
 .md:not(.theme-dark) .page-white {
@@ -206,8 +131,12 @@ h3.block {
    --f7-navbar-border-color: rgba(0, 0, 0, 0.08);
 }
 
+.page-white .navbar-bg:after {
+	height: 0;
+}
+
 .md:not(.theme-dark) .page-white h2.block {
-  color: var(--f7-text-color);
+	color: var(--f7-text-color);
 }
 /* end region */
 
