@@ -5,3 +5,4 @@ webpack || exit 1
 rm -rf ../../prayers.v2.f7/* || exit 1
 cp -a ./dev/. ../../prayers.v2.f7/ || exit 1
 rm -rf ../../prayers.v2.f7/cordova.js || exit 1
+cp -a ./scripts/cordova/* ../../prayers.v2.f7/ || exit 1

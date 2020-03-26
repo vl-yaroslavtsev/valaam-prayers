@@ -5,6 +5,39 @@ Attribute formatMinei.VB_ProcData.VB_Invoke_Func = "Normal.FormatMinei.formatMin
 ' Форматируем службу минеи
 '
 '
+    Dim sEditor
+    
+    
+    Set fs = CreateObject("Scripting.FileSystemObject")
+    
+    If fs.FileExists("C:\Program Files\Notepad++\notepad++.exe") Then
+        sEditor = "C:\Program Files\Notepad++\notepad++.exe"
+    Else
+        sEditor = "notepad.exe"
+    End If
+    
+    Selection.Find.ClearFormatting
+    Selection.Find.Font.Bold = True
+    With Selection.Find.ParagraphFormat
+        .SpaceBeforeAuto = False
+        .SpaceAfterAuto = False
+        .Alignment = wdAlignParagraphCenter
+    End With
+    Selection.Find.Replacement.ClearFormatting
+    With Selection.Find
+        .Text = ""
+        .Replacement.Text = "## ^&^0013"
+        .Forward = True
+        .Wrap = wdFindContinue
+        .Format = True
+        .MatchCase = False
+        .MatchWholeWord = False
+        .MatchWildcards = False
+        .MatchSoundsLike = False
+        .MatchAllWordForms = False
+    End With
+    Selection.Find.Execute Replace:=wdReplaceAll
+    
     Selection.Find.Replacement.ClearFormatting
     Selection.Find.Replacement.Font.Color = wdColorAutomatic
     Selection.Find.ClearFormatting
@@ -169,15 +202,10 @@ Attribute formatMinei.VB_ProcData.VB_Invoke_Func = "Normal.FormatMinei.formatMin
         .SpaceAfterAuto = False
         .FirstLineIndent = CentimetersToPoints(0)
     End With
-	
-	 Dim arrName() As String
-    
-    arrName = Split(ActiveDocument.FullName, ".")
-    arrName(UBound(arrName)) = "txt"
-   
+           
     ActiveDocument.SaveAs2 _
-        FileName:=Join(arrName, "."), _
-        FileFormat:=wdFormatText, _
+        FileName:=ActiveDocument.FullName & ".txt", _
+        FileFormat:=wdFormatTextLineBreaks, _
         Encoding:=65001, _
         LockComments:=False, _
         Password:="", _
@@ -191,4 +219,6 @@ Attribute formatMinei.VB_ProcData.VB_Invoke_Func = "Normal.FormatMinei.formatMin
         InsertLineBreaks:=False, _
         AllowSubstitutions:=False, _
         LineEnding:=wdCRLF, CompatibilityMode:=0
+        
+    Call Shell(sEditor & " " & ActiveDocument.FullName, vbNormalFocus)
 End Sub
