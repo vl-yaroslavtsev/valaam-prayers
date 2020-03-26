@@ -174,13 +174,13 @@
 <!--suppress JSAnnotator -->
 <script>
 	import {format, parse, addDays, subDays} from '../js/date-utils.js';
+	import dataManager from '../js/data/manager.js';
 
 	export default {
 		data() {
-			let dataManager = this.$app.dataManager,
-					saintId = (this.$route.context && this.$route.context.actionId) ||
-										this.$route.params.saintId,
-					prayers = dataManager.cache.prayers;
+			let saintId = (this.$route.context && this.$route.context.actionId) ||
+				    		this.$route.params.saintId,
+				prayers = dataManager.cache.prayers;
 
 			let saintData = Object.assign({}, this.saint);
 

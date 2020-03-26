@@ -55,11 +55,10 @@
 <script>
 	export default {
 		data() {
-			let dataManager = this.$app.dataManager,
-					dayCode = this.$route.params.id,
-					readerId = (this.$route.context && this.$route.context.actionId) || this.$route.params.readerId,
-					readerData = {},
-					text;
+			let dayCode = this.$route.params.id,
+				readerId = (this.$route.context && this.$route.context.actionId) || this.$route.params.readerId,
+				readerData = {},
+				text;
 
 			readerData = Object.assign(
 				{},

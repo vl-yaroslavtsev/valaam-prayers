@@ -42,10 +42,9 @@
 <script>
 	export default {
 		data() {
-			let dataManager = this.$app.dataManager,
-					dayCode = this.$route.params.id,
-					prayerId = (this.$route.context && this.$route.context.actionId) || this.$route.params.prayerId,
-					prayerData = {};
+			let dayCode = this.$route.params.id,
+				prayerId = (this.$route.context && this.$route.context.actionId) || this.$route.params.prayerId,
+				prayerData = {};
 
 			prayerData = Object.assign(
 				{},

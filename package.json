@@ -8,8 +8,8 @@
     "watch": "webpack --watch --progress",
     "build:web": "webpack",
     "build:web:dist": "webpack --env.production",
-		"build:dev":  "./scripts/build.dev.sh",
-		"build:prod": "./scripts/build.prod.sh"
+    "build:dev": "./scripts/build.dev.sh",
+    "build:prod": "./scripts/build.prod.sh"
   },
   "keywords": [],
   "author": "Ивайло Тилев <ivaylo@tilev.ru>, Валаамский монастырь <webmaster@valaam.ru>",
@@ -35,10 +35,11 @@
     "worker-loader": "^2.0.0"
   },
   "dependencies": {
+    "abortcontroller-polyfill": "^1.4.0",
     "core-js": "^3.6.4",
     "date-fns": "^2.10.0",
     "framework7": "^5.4.5",
-    "localforage": "^1.7.3",
+    "idb": "^5.0.1",
     "lodash-es": "^4.17.15"
   },
   "browserslist": [

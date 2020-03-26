@@ -54,9 +54,8 @@
 <script>
 	export default {
 		data() {
-			let dataManager = this.$app.dataManager,
-					dayCode = this.$route.params.id,
-					dayData = {};
+			let dayCode = this.$route.params.id,
+				dayData = {};
 
 			dayData.thoughts = this.day.prayers;
 			dayData.searchMode = this.$route.query.mode === 'search';

@@ -100,16 +100,18 @@
 <!--suppress JSAnnotator -->
 <script>
 	import favoriteManager from '../js/favorite-manager.js';
+	import dataManager from '../js/data/manager.js';
+	
 	let app;
 
 	export default {
 		data() {
 			app = this.$app;
-			let prayers = app.dataManager.cache.prayers,
-					prayer = this.prayer,
-					data = {
-						searchMode: this.$route.query.mode === 'search'
-					};
+			let prayers = dataManager.cache.prayers,
+				prayer = this.prayer,
+				data = {
+					searchMode: this.$route.query.mode === 'search'
+				};
 			data.title = data.searchMode ? 'Поиск' : this.$router.view.name;
 
 			handleData(data, prayers, prayer);

@@ -83,12 +83,13 @@
 <!--suppress JSAnnotator, JSIgnoredPromiseFromCall -->
 <script>
 	import { Request } from 'framework7';
+	import dataManager from '../js/data/manager.js';
 
 	export default {
 		data() {
 			let idx = this.$route.params.idx,
 				app = this.$app,
-				ritesConfig = app.dataManager.cache.ritesConfig,
+				ritesConfig = dataManager.cache.ritesConfig,
 				$name = this.$$('#rite-name-' + idx),
 				$ss = app.smartSelect.get('.vm-rites-rite .smart-select')
 			;
@@ -103,7 +104,7 @@
 			pageBeforeOut(e, page) {
 				let idx = this.$route.params.idx,
 					app = this.$app,
-					ritesConfig = app.dataManager.cache.ritesConfig,
+					ritesConfig = dataManager.cache.ritesConfig,
 					$name = this.$$('#rite-name-' + idx),
 					name = page.$el.find('#autocomplete-names').val().trim(),
 					explanations = page.$el.find('#autocomplete-explanations').val().trim()

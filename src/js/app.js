@@ -98,6 +98,7 @@ import routes from './routes.js';
 import * as OfflinePlugin from 'offline-plugin/runtime';
 
 import {DataManager} from './data-manager.js';
+import dataManager from './data/manager.js';
 import reloadManager from './reload-manager.js';
 import favoriteManager from './favorite-manager.js';
 import settingsManager from './settings-manager.js';

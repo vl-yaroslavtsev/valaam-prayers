@@ -2,8 +2,8 @@
  * Если картинки нет в кэше браузера грузим из БД.
  * Необходмо, чтобы у картинок было lazy
  */
+import db from './data/db.js';
 
-let dataManager;
 let blobUrls = {};
 let inited = false;
 
@@ -13,8 +13,6 @@ let inited = false;
  */
 function init (app) {
 	if (inited) return;
-
-	dataManager = app.dataManager;
 
 	attach(app.root);
 
@@ -33,7 +31,7 @@ function init (app) {
 async function getBlobUrl(src) {
 	if (blobUrls[src]) return blobUrls[src];
 
- 	let blob = await dataManager.idb.images.getItem(src);
+ 	let blob = await db.images.get(src);
  	if (!blob) {
 		return;
 	}

@@ -36,6 +36,8 @@ import MainMenu from '../pages/main-menu.f7.html';
 
 import NotFound from '../pages/404.f7.html';
 
+import dataManager from './data/manager.js';
+
 export default [
 	{
 		path: '/',
@@ -249,7 +251,7 @@ function requireData(source) {
 
 		try {
 			app.preloader.show();
-			await Promise.all(params.map((source) => app.dataManager.get(source)));
+			await Promise.all(params.map((source) => dataManager.get(source)));
 			app.preloader.hide();
 			resolve();
 		} catch(ex) {

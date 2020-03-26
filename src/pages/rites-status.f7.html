@@ -68,6 +68,8 @@
 <!--suppress JSAnnotator, JSIgnoredPromiseFromCall -->
 <script>
 	import {Request} from 'framework7';
+	import dataManager from '../js/data/manager.js';
+	
 	let ritesConfig;
 	export default {
 		methods: {
@@ -96,7 +98,7 @@
 			}
 		},
 		data() {
-			ritesConfig = this.$app.dataManager.cache.ritesConfig;
+			ritesConfig = dataManager.cache.ritesConfig;
 			let ctx = this.$route.context;
 
 			ctx.rite[1] = ctx.rite[1].replace(/(\d+) /, '$1&nbsp;');

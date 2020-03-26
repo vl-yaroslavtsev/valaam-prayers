@@ -5,6 +5,7 @@
 import {unixNow} from './date-utils.js';
 import ReloaderWorker from './reloader.wkr.js';
 import ImagePreloader from './image-preloader.js';
+import db 			  from './data/db.js';
 
 let app;
 
@@ -390,81 +391,52 @@ async function testFitures() {
 
 	if (navigator.serviceWorker) {
 		//navigator.serviceWorker.register('./sw-phonegap.js');
-		msg += 'ServiceWorker: yes<br>';
+		msg += 'ServiceWorker: да<br>';
 	} else {
-		msg += 'ServiceWorker: no<br>';
+		msg += 'ServiceWorker: нет<br>';
 	}
 
 	if ('onLine' in navigator) {
-		msg += 'navigator.onLine: yes, value: ' + navigator.onLine + '<br>';
+		msg += 'navigator.onLine: да, ' + navigator.onLine + '<br>';
 	} else {
-		msg += 'navigator.onLine: no<br>';
+		msg += 'navigator.onLine: нет<br>';
 	}
 
 	if (window.indexedDB || window.mozIndexedDB || window.webkitIndexedDB || window.msIndexedDB) {
-		msg += 'indexedDB: yes<br>';
+		msg += 'indexedDB: да<br>';
 	} else {
-		msg += 'indexedDB: no<br>';
+		msg += 'indexedDB: Нет<br>';
 	}
 
 	msg = msg + 'UA: ' + navigator.userAgent + '<br>';
 
-	if ('storage' in navigator && 'estimate' in navigator.storage) {
-		let {usage, quota} = await navigator.storage.estimate();
-		let percentUsed = Math.round(usage / quota * 100);
-		let usageInMib = Math.round(usage / (1024 * 1024));
-		let quotaInMib = Math.round(quota / (1024 * 1024));
-		let details = `estimate: ${usageInMib} out of ${quotaInMib} MiB used (${percentUsed}%)<br>`;
 
-		msg = msg + details;
-	}
-
-	if ('webkitTemporaryStorage' in navigator) {
-		let {used, granted} = await new Promise(function(resolve, reject) {
-			navigator.webkitTemporaryStorage.queryUsageAndQuota (
-				(used, granted) => resolve({used, granted}),
-				(e) => reject(e)
-			);
-		});
-
-		let percentUsed = Math.round(used / granted * 100);
-		let usageInMib = Math.round(used / (1024 * 1024));
-		let quotaInMib = Math.round(granted / (1024 * 1024));
-		let details = `webkitTemporaryStorage: ${usageInMib} out of ${quotaInMib} MiB used (${percentUsed}%)<br>`;
-
-		msg = msg + details;
-	}
+	let quota = await getQuota();
+	msg = msg + `Использовано: ${quota.usageMb} из ${quota.quotaMb} МБ<br>`;
 
 	await (async function _testBlobImg() {
 		let blob, result;
-		let src = '/upload/iblock/cd4/cd421e9680e52c2b4aef5a8d2aa1f370.jpg';
-		result = await new Promise((resolve) => {
-			let img = new Image();
-			img.onload = () => resolve(true);
-			img.onerror = () => resolve(false);
-			img.src = src;
-		});
-		msg = msg + `new Image() load: ${result}<br>`;
-		msg = msg + `image from disk cache : <img height="50px" src="https://valaam.ru${src}"><br>`;
-
 		let src2 = 'https://valaam.ru/upload/iblock/59f/59fcea0d296ab35820997e98bed8c3bd.jpg';
 		result = '';
 		try {
 			let response = await fetch(src2);
 			if (!response.ok) throw new Error('Bad fetch response');
 			blob = await response.blob();
-			await app.dataManager.idb.images.setItem(src2, blob);
+			await db.images.put({
+				url: src2, 
+				image: blob
+			});
 			result = 'ok';
 		} catch(err) {
 			result = `err: ${err.name}: ${err.message}`;
 		}
-		msg = msg + `image saved to db: ${result}<br>`;
+		msg = msg + `икона сохранена в БД: ${result}<br>`;
 
 		result = '';
 		blob = null;
 		let blobUrl;
 		try {
-			blob = await app.dataManager.idb.images.getItem(src2);
+			({image: blob} = await db.images.get(src2));
 	 		if (!blob) {
 				throw new Error('no blob found');
 			}
@@ -473,7 +445,7 @@ async function testFitures() {
 		} catch (err) {
 			result = `err: ${err.name}: ${err.message}`;
 		}
-		msg = msg + `image from db: ${result} <img height="50px" src="${blobUrl}"><br>`;
+		msg = msg + `икона из БД: ${result} <img height="30px" src="${blobUrl}"><br>`;
 	}) ();
 
 	app.dialog.alert(msg);

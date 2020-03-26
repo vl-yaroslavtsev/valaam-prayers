@@ -331,6 +331,7 @@
 <!--suppress JSAnnotator, JSIgnoredPromiseFromCall -->
 <script>
 	import { Request } from 'framework7';
+	import dataManager from '../js/data/manager.js';
 
 	let app, $el, ritesConfig;
 	export default {
@@ -340,7 +341,7 @@
 					$form = this.$$('#formRites'),
 					formData = app.form.convertToData('#formRites'),
 					$btn = this.$$('#formRites-button'),
-					valaamGid = await app.dataManager.get('valaamGid')
+					valaamGid = await dataManager.get('valaamGid')
 				;
 
 				app.input.validateInputs($form);
@@ -499,7 +500,7 @@
 
 	async function loadData() {
 		try {
-			ritesConfig = await app.dataManager.get('ritesConfig');
+			ritesConfig = await dataManager.get('ritesConfig');
 			//await new Promise((resolve) => setTimeout(resolve, 160000));
 			handleData.call(this);
 			app.emit('mainPageLoaded', 'rites', this);

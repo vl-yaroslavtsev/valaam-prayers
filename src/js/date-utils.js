@@ -6,6 +6,7 @@ import {
 	getUnixTime
 } from 'date-fns';
 import { ru } from 'date-fns/locale';
+import dataManager from './data/manager.js';
 
 let app, monthNames;
 
@@ -15,7 +16,7 @@ function init(appInstance) {
 
 function getEaster(year) {
 	let [date] = Object
-		.entries(app.dataManager.cache.calendar)
+		.entries(dataManager.cache.calendar)
 		.find(([date, desc]) => date.startsWith(year) && desc === "e") || [];
 
 	return parse(date);

@@ -45,7 +45,6 @@
 		isLeapYear
 	} from '../js/date-utils.js';
 
-	let dataManager;
 	export default {
 		on: {
 			pageAfterIn: function(e, page) {
@@ -54,7 +53,6 @@
 			}
 		},
 		data() {
-			dataManager = this.$app.dataManager;
 			let year = this.$route.params.year || format(new Date(), 'YYYY');
 			let type = this.$route.params.type;
 

@@ -2,6 +2,8 @@
  * Управляет избранным
  */
 
+import dataManager from './data/manager.js';
+
 let app;
 
 function init(appInstance) {
@@ -38,7 +40,7 @@ function list() {
 
 function formatItem(item) {
 	if (item.type === 'prayer-e') {
-		let prayers = app.dataManager.cache.prayers;
+		let prayers = dataManager.cache.prayers;
 		let prayer = prayers.e.find(({id}) => id === item.id);
 		let parentSection = prayers.s.find(({id}) => id === prayer.parent);
 		let parentSection2 = prayers.s.find(({id, parent}) => {

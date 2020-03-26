@@ -12,7 +12,7 @@ import {
 	unixNow
 } from './date-utils.js';
 
-import localforage from 'localforage';
+import db from './data/db.js';
 
 const BASE_URL = 'https://valaam.ru';
 const API_URL = 'https://valaam.ru/phonegap/';
@@ -23,26 +23,6 @@ const config = {
 	data_row_size_kb: 10.8, // Размер строчки данных в БД в килобайтах (в среднем)
 	image_size_kb: 61.9 // Размер картинки в килобайтах (в среднем)
 };
-
-const idbImages = localforage.createInstance({
-	'name': config.db_name,
-	'storeName': 'images'
-});
-
-const idbDays = localforage.createInstance({
-	'name': config.db_name,
-	'storeName': 'days'
-});
-
-const idbStat = localforage.createInstance({
-	'name': config.db_name,
-	'storeName': 'stat'
-});
-
-const idbCollections = localforage.createInstance({
-	'name': config.db_name,
-	'storeName': 'collections'
-});
 
 let isUpdating = false;
 
@@ -343,10 +323,7 @@ async function reloadData(type = 'base', {
 				params.from_ts = fromTs;
 			}
 
-			let idbStore = localforage.createInstance({
-				'name': config.db_name,
-				'storeName': storage
-			});
+			let dbStore = db[storage];
 
 			let itemIndex = 1, itemCount = 0, itemProgress = 0;
 			for await (let item of fetchResultGen(url, params)) {
@@ -356,7 +333,7 @@ async function reloadData(type = 'base', {
 					continue;
 				}
 
-				await idbStore.setItem(item[key], item);
+				await dbStore.put(item);
 
 				let progress = 100 * itemIndex / itemCount;
 				if (progress - itemProgress >= 1) {

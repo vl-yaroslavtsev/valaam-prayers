@@ -220,7 +220,8 @@
 <script>
 	import {format, parse, addDays, subDays} from '../js/date-utils.js';
 	import {upperFirst} from 'lodash-es';
-
+	import dataManager from '../js/data/manager.js';
+	
 	let app;
 
 	export default {
@@ -231,10 +232,9 @@
 		},
 		data() {
 			app = this.$app;
-			let dataManager = app.dataManager,
-					prayers = dataManager.cache.prayers,
-					dayCode = this.$route.params.id,
-					day = Object.assign({}, this.day);
+			let prayers = dataManager.cache.prayers,
+				dayCode = this.$route.params.id,
+				day = Object.assign({}, this.day);
 
 			day.text = /*marked*/(day.text)
 				.replace(/href="E(\d+)"/g, 'href="/prayers/text/$1"')

@@ -200,7 +200,9 @@
 <!--suppress JSAnnotator -->
 <script>
 	import {format, parse, addDays, subDays, getEaster, months, weekdaysMin} from '../js/date-utils.js';
-	let app, calendarData, calendarView, dataManager;
+	import dataManager from '../js/data/manager.js';
+	
+	let app, calendarData, calendarView;
 
 	export default {
 		on: {
@@ -230,7 +232,6 @@
 		},
 		data() {
 			app = this.$app;
-			dataManager = app.dataManager;
 
 			return {
 				loading: true,
@@ -241,7 +242,7 @@
 
 	async function loadData() {
 		try {
-			calendarData = await app.dataManager.get('calendar');
+			calendarData = await dataManager.get('calendar');
 		} catch (err) {
 			app.methods.showLoadError();
 			throw err;
