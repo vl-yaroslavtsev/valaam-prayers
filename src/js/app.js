@@ -109,15 +109,18 @@ import {init as dateUtilsInit} from './date-utils.js';
 const app = new Framework7({
 	root: '#root',
 	id: 'ru.valaam.prayers',
-	name: 'Валаам',
+	name: 'Валаамский молитвослов',
 	theme: navigator.userAgent.match(/Debug/) !== null ? 'auto' : 'md',
 	disabled: false,
 	// theme: 'ios',
 
 	statusbar: {
 		androidTextColor: 'white',
-		androidOverlaysWebView: true
+		androidOverlaysWebView: true,
 	},
+
+	// в четвёртй раз ставлю эту переменную
+	initOnDeviceReady: false,
 
 	panel: {
 		swipe: 'left',
@@ -125,6 +128,7 @@ const app = new Framework7({
 	},
 
 	on: {
+		// эти функции не должны быть асинхронными - сбивается порядок выполнения - потом концов не найдёте
 		async init() {
 
 			if (!checkSupport(this)) {
@@ -137,7 +141,7 @@ const app = new Framework7({
 			} catch(ex) {
 				this.methods.showLoadError(`Ошибка при инициализации данных: [${ex.name}]: ${ex.message} `, 30000);
 			}
-			
+
 			reloadManager.init(this);
 			loadManager.init(this);
 			this.loadManager = loadManager;
@@ -158,9 +162,9 @@ const app = new Framework7({
 
 			if(this.device.android) {
 				//this.phonegap.statusbar.show();
-				
+
 				// Внимание: говнокод!
-				// Для Андроид 6 строчка выше не делает оверлей для статусбара, 
+				// Для Андроид 6 строчка выше не делает оверлей для статусбара,
 				// когда мы вышли из приложения по кнопке "назад" и снова зашли на него.
 				// Вы этом случае помогают эти 3 строчки.
 				this.statusbar.hide();
