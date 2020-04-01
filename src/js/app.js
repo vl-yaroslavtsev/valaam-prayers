@@ -97,7 +97,7 @@ import * as OfflinePlugin from 'offline-plugin/runtime';
 
 import dataManager from './data/manager.js';
 import reloadManager from './reload-manager.js';
-import loadManager from './load-manager.js';
+import downloadManager from './download-manager.js';
 import favoriteManager from './favorite-manager.js';
 import settingsManager from './settings-manager.js';
 
@@ -287,6 +287,16 @@ const app = new Framework7({
 		},
 		skeletonWordLen(min = 5, max = 20) {
 			return min + Math.round(Math.random() * (max - min));
+		},
+		scrollToEl($el, $page) {
+			$page = $page || $$(this.views.current.router.currentPageEl);
+			let $pageContent = $page.find('.page-content');
+			let scrollTop = $pageContent.scrollTop();
+			scrollTop = scrollTop +
+				$el.offset().top -
+				parseInt($el.styles().marginTop) -
+				$page.find('.navbar').height();
+				$pageContent.scrollTop(scrollTop, 500);
 		}
 	},
 

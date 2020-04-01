@@ -301,7 +301,7 @@
 </template>
 
 <!--suppress HtmlUnknownAttribute -->
-<style>
+<style scoped>
 
 	input:-webkit-autofill {
 		-webkit-box-shadow: inset 0 0 0 100px #fff !important;
@@ -326,11 +326,15 @@
 		height: var(--f7-block-title-line-height);
 	}
 
+	.tile {
+		margin-bottom: 100%;
+	}
+
 </style>
 
 <!--suppress JSAnnotator, JSIgnoredPromiseFromCall -->
 <script>
-	import { Request } from 'framework7';
+	import { Request, Dom7 as $$ } from 'framework7';
 	import dataManager from '../js/data/manager.js';
 
 	let app, $el, ritesConfig;
@@ -445,9 +449,18 @@
 		on: {
 			pageInit() {
 				$el = this.$el;
+
+				$el.on('focusin', 'input', (e) => {
+					app.methods.scrollToEl(
+						$$(e.target).parents('.list').prev('.block-title')
+					);
+				});
 			},
 			async pageAfterIn(e, page) {
 				await this.loadingPromise;
+
+				console.log('pageInit rites 111', $el.find('input'));
+
 
 				this.$tick(() => {
 					let	$namesValue = $el.find('#formRites-names'),
@@ -475,6 +488,9 @@
 					$el.find('#formRites-phone').attr('autocomplete', 'home phone');
 					$el.find('#formRites-email').attr('autocomplete', 'home email');
 				});
+			},
+			pageBeforeRemove(e, page) {
+					$el.off('focusin');
 			}
 		},
 		data() {

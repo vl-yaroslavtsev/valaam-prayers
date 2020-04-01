@@ -79,11 +79,17 @@
 	.item-input-invalid .item-input-error-message {
 		display: none;
 	}
+
+	.tile {
+		margin-bottom: 100%;
+	}
 </style>
 <!--suppress JSAnnotator, JSIgnoredPromiseFromCall -->
 <script>
-	import { Request } from 'framework7';
+	import { Request, Dom7 as $$ } from 'framework7';
 	import dataManager from '../js/data/manager.js';
+
+	let $el;
 
 	export default {
 		data() {
@@ -124,11 +130,13 @@
 			pageBeforeRemove() {
 				this.acNames.destroy();
 				this.acExplanations.destroy();
+				$el.off('focusin');
 			},
 			pageInit(e, page) {
 				let explanations = this.explanations,
-						app = this.$app,
-						$el = page.$el;
+						app = this.$app;
+
+				$el = page.$el;
 
 				this.acNames = app.autocomplete.create({
 					inputEl: '#autocomplete-names',
@@ -165,6 +173,10 @@
 				$el.find('#autocomplete-names').prop('autocomplete', 'off');
 				$el.find('#autocomplete-names').focus();
 				$el.find('#autocomplete-explanations').prop('autocomplete', 'off');
+
+				$el.on('focusin', 'input', (e) => {
+					app.methods.scrollToEl($$(e.target).parents('.list').prev('.block-title'));
+				});
 			}
 		}
 	}
