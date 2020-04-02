@@ -7,11 +7,12 @@ import {
 	startOfYear,
 	endOfYear,
 	getUnixTime
-} from './date-utils.js';
+} from '../date-utils.js';
 
-import db from './data/db.js';
+import db from '../data/db.js';
 import Framework7 from 'framework7';
 
+import BackgroundFetchTask from './bg-fetch-task.js';
 
 const BASE_URL = 'https://valaam.ru';
 const API_URL = 'https://valaam.ru/phonegap/';
@@ -50,12 +51,14 @@ let manager = new Framework7.Events();
 
 function init(appInstance) {
 	app = appInstance;
-	
+
+	window['dm'] = manager;
+
 	// Состояние по умолчанию
 	state(app.methods.storageGet('load-manager') || {
 		status: 'idle'
 	});
-	
+
 	// Продолжаем прерванную загрузку
 	if (_state.status === 'loading') {
 		load(_state.type, true);
@@ -70,8 +73,8 @@ function state(value) {
 	if (!value) {
 		return _state;
 	}
-	
-	let state = app.methods.storageGet('load-manager') || {};	
+
+	let state = app.methods.storageGet('load-manager') || {};
 	_state = Object.assign(state, value);
 	app.methods.storageSet('load-manager', _state);
 	//console.log('state: ', _state);
@@ -81,7 +84,7 @@ function getState() {
 	let res = {
 		status: _state.status
 	};
-	
+
 	if (_state.status === 'loading') {
 		Object.assign(res, {
 			type: _state.type,
@@ -89,14 +92,62 @@ function getState() {
 			progress: _state.progress
 		});
 	}
-	
+
 	return res;
+}
+
+/**
+ * Обработка данных постраничной загрузки
+ * @param  {Object} data        Данные
+ * @param  {DataStore} dbStore  Хранилище данных
+ * @param  {number} sourceIndex индекс массива url источника
+ * @param  {number} sourceCount количество url источника
+ * @param  {number} page        номер страницы
+ * @param  {number} pageCount   Количество страниц
+ * @return {Promise}
+ */
+async function processPageData(data, {
+	dbStore,
+	sourceIndex,
+	sourceCount,
+	page,
+	pageCount
+}) {
+
+	let progress = ({sourceIndex, sourceCount, page, pageCount, step}) => {
+		let pageProgress = 100 * (2 * page + step - 1 ) / (2 * pageCount);
+		if (!pageCount) pageProgress = 100;
+
+		let progress = Math.floor((100 * sourceIndex + pageProgress) / sourceCount);
+		state({
+			progress
+		});
+		manager.emit("progress", progress);
+
+		return progress;
+	};
+
+	progress({
+		sourceIndex,
+		sourceCount,
+		page,
+		pageCount,
+		step: 0
+	});
+	await dbStore.putAll(data);
+	progress({
+		sourceIndex,
+		sourceCount,
+		page,
+		pageCount,
+		step: 1
+	});
 }
 
 /**
  * Старт загрузки определенного типа
  */
-async function load(type, force) {
+async function download(type, force) {
 	if (state().status == 'loading' && !force) {
 		app.dialog.alert(
 			`Пожалуйста, дождитесь окончания загрузки`,
@@ -104,7 +155,7 @@ async function load(type, force) {
 		);
 		return false;
 	}
-	
+
 	if (!navigator.onLine && !force) {
 		app.dialog.alert(
 			`Скачивание невозможно.<br>
@@ -112,62 +163,42 @@ async function load(type, force) {
 			'Оффлайн версия'
 		);
 		return false;
-	}	
-	
-	
+	}
+
 	controller = new AbortController();
-	
-	let source = getSource(type);
+
+	let source = getSource(type, 'list');
 	let loadedTs = getUnixTime(await db.stat.get(`${type}-loaded-date`) || 0);
 	let signal = controller.signal;
-	
+
 	//controller.abort(); // отмена!
 	//alert(controller.signal.aborted); // true
-	
-	
-	let progress = ({sourceIndex, sourceCount, page, pageCount, step}) => {
-		let pageProgress = 100 * (2 * page + step - 1 ) / (2 * pageCount);
-		if (!pageCount) pageProgress = 100;
-		
-		let progress = Math.floor((100 * sourceIndex + pageProgress) / sourceCount);
-		
-		state({
-			progress
-		});
-		
-		return progress;
-	}
-	
-	let processData = async (data, {dbStore, sourceIndex, sourceCount, page, pageCount}) => {		
-		manager.emit(
-			"progress", 
-			progress({
-				sourceIndex, 
-				sourceCount, 
-				page, 
-				pageCount, 
-				step: 0
-			})
-		);
-		await dbStore.putAll(data);		
-		manager.emit(
-			"progress", 
-			progress({
-				sourceIndex, 
-				sourceCount, 
-				page, 
-				pageCount, 
-				step: 1
-			})
-		);
-	};
-	
+
 	state({
 		status: 'loading',
 		type
 	});
-	
-	try {	
+
+	try {
+		let keys = await db.collections.getAllKeys();
+		if (type == 'calendar' && !keys.includes('calendar')) {
+			let data = await fetchJson(
+				`${API_URL}days/calendar/`,
+				{type: 'json'},
+				signal
+			);
+			await db.collections.put(data, 'calendar');
+		}
+
+		if (!keys.includes('prayers')) {
+			let data = await fetchJson(
+				`${API_URL}prayers/`,
+				{type: 'json'},
+				signal
+			);
+			await db.collections.put(data, 'prayers');
+		}
+
 		let sourceIndex = _state.sourceIndex || 0, sourceCount = source.length;
 		for (;sourceIndex < sourceCount; sourceIndex++) {
 			let {url, store, params = {}} = source[sourceIndex];
@@ -176,34 +207,37 @@ async function load(type, force) {
 			}
 
 			let dbStore = db[store];
-			
+
 			state({
 				sourceIndex
 			});
-			
+
 			await pageFetchJson(
-				url, 
-				params, 
+				url,
+				params,
 				async (data, page, pageCount) => {
-					await processData(data, {dbStore, sourceIndex, sourceCount, page, pageCount})
-				}, 
+					await processPageData(
+						data,
+						{dbStore, sourceIndex, sourceCount, page, pageCount}
+					);
+				},
 				signal
 			);
-		}	
+		}
 	} catch(err) {
 		// Нет сети интернет
 		if (err.name === 'TypeError' && err.message === 'Failed to fetch') {
 			// Пробуем еще раз
-			if (!signal.aborted && retryCount < 30 * 30) {
+			if (!signal.aborted && retryCount < 60 * 12) {
 				setTimeout(() => {
 					retryCount++;
 					load(type, true);
-				}, 2000);
+				}, 5000);
 			}
-			
+
 			throw err;
 		}
-		
+
 		state({
 			status: 'idle',
 			type: null,
@@ -211,13 +245,13 @@ async function load(type, force) {
 			page: null,
 			progress: null
 		});
-		
-		console.log(`[load-manager] load("${type}"): error [${err.name}]: ${err.message}`);		
+
+		console.log(`[load-manager] load("${type}"): error [${err.name}]: ${err.message}`);
 		throw err;
 	}
-	
+
 	await db.stat.put(new Date(), `${type}-loaded-date`);
-	
+
 	state({
 		status: 'idle',
 		type: null,
@@ -228,6 +262,10 @@ async function load(type, force) {
 	return true;
 }
 
+/**
+ * Отмена загрузки
+ * @return {[type]} [description]
+ */
 function cancel() {
 	if (!controller) {
 		return;
@@ -239,45 +277,42 @@ function cancel() {
  * Проверка обновлений определенного типа
  */
 async function check(type) {
-	
+
 	if (_state.status != 'idle') {
 		return false;
 	}
-	
-	let source = getSource(type);
+
+	let source = getSource(type, 'count');
 	let loadedTs = getUnixTime(await db.stat.get(`${type}-loaded-date`) || 0);
-	let recordCount = 0;
-	
+	let count = 0;
+
 	let	defParams = {
-		page_size: 1,
-		subsections: 1,
-		nav_only: 1,
 		from_ts: loadedTs
 	}
-	
+
 	try {
-		let sourceIndex = _state.sourceIndex || 0, sourceCount = source.length;
+		let sourceIndex = 0, sourceCount = source.length;
 		for (;sourceIndex < sourceCount; sourceIndex++) {
 			let {url, store, params = {}} = source[sourceIndex];
 			params = Object.assign({}, defParams, params);
-			
-			let {nav} = await fetchJson(
-				url, 
+
+			let {count: cnt} = await fetchJson(
+				url.replace('/list/', '/count/'),
 				params
 			);
-			
-			recordCount += nav.record_count;
+
+			count += cnt;
 		}
 	} catch(err) {
-		console.log(`[load-manager] load("${type}"): error [${err.name}]: ${err.message}`);		
+		console.log(`[load-manager] check("${type}"): error [${err.name}]: ${err.message}`);
 		throw err;
 	}
-	
+
 	return {
 		type,
 		status: !loadedTs ? 'new' : (recordCount ? 'update' : 'fresh'),
-		count: recordCount,
-		size: recordCount * DATA_SIZE_KB[type]
+		count,
+		size: count * DATA_SIZE_KB[type]
 	};
 }
 
@@ -306,25 +341,25 @@ async function pageFetchJson(url, params = {}, process, abortSignal) {
 		subsections: 1
 	}
 	params = Object.assign({}, defParams, params);
-		
+
 	for (let page = _state.page || 1, pageCount = page; page <= pageCount; page++) {
 		params['PAGEN_1'] = page;
-		
+
 		state({
 			page
 		});
-		
+
 		let {data, nav} = await fetchJson(url, params, abortSignal);
-		pageCount = nav.page_count; 
-		
+		pageCount = nav.page_count;
+
 		if (process) {
 			await process(data, page, pageCount);
-		}			
+		}
 	}
-	
+
 	state({
 		page: null
-	});	
+	});
 }
 
 /**
@@ -399,17 +434,17 @@ function getPeriod(type = 'year') {
  * @param  {string} source Тип обновления
  * @return {Array}
  */
-function getSource(source) {
+function getSource(source, method = 'list') {
 	let sources = {
 		'calendar': [ // Календарь: святые + дни календаря
 			{
 				store: 'saints',
-				url:  `${API_URL}saints/list/`,
+				url:  `${API_URL}saints/${method}/`,
 				params: {}
 			},
 			{
 				store: 'days',
-				url:  `${API_URL}days/list/`,
+				url:  `${API_URL}days/${method}/`,
 				params: {
 					from_date: format(getPeriod('year').start),
 					to_date:  format(getPeriod('year').end) // Текущий год
@@ -419,47 +454,112 @@ function getSource(source) {
 		'liturgical_books': [ // Богослужебные книги
 			{
 				store: 'prayers',
-				url:  `${API_URL}prayers/list/`,
+				url:  `${API_URL}prayers/${method}/`,
 				params: {
-					section_id: 937, 
+					section_id: 937,
 				}
 			},
 		],
 		'spiritual_books': [ // Духовная литература
 			{
 				store: 'prayers',
-				url:  `${API_URL}prayers/list/`,
+				url:  `${API_URL}prayers/${method}/`,
 				params: {
-					section_id: 976, 
+					section_id: 976,
 				}
 			},
 		],
 		'prayers': [ // Молитвослов и Библия
 			{
 				store: 'prayers',
-				url:  `${API_URL}prayers/list/`,
+				url:  `${API_URL}prayers/${method}/`,
 				params: {
-					section_id: 843, // Молитвослов
-					//section_id: 842, // Полный молитвослов
-					//except_section: 937, // Без Богослужебных книг
-					
+					//section_id: 843, // Молитвослов
+					section_id: 842, // Полный молитвослов
+					except_section: 937, // Без Богослужебных книг
 				}
 			},
 			{
 				store: 'prayers',
-				url:  `${API_URL}prayers/list/`,
+				url:  `${API_URL}prayers/${method}/`,
 				params: {
 					section_id: 1736,  // Валаам
 				}
 			},
 		],
-		'icons': ['saints', 'calendar']	
+		'icons': ['saints', 'calendar']
 	};
 
 	if (source) {
 		return sources[source];
 	}
 	return sources;
+}
+
+async function bgFetch() {
+	let bgTask = new BackgroundFetchTask('saints', [
+	 'https://valaam.ru/phonegap/saints/list/?page_size=100&PAGEN_1=1',
+	 'https://valaam.ru/phonegap/saints/list/?page_size=100&PAGEN_1=2',
+	 'https://valaam.ru/phonegap/saints/list/?page_size=100&PAGEN_1=3',
+	 'https://valaam.ru/phonegap/saints/list/?page_size=100&PAGEN_1=4',
+	 'https://valaam.ru/phonegap/saints/list/?page_size=100&PAGEN_1=5',
+	 'https://valaam.ru/phonegap/saints/list/?page_size=100&PAGEN_1=6',
+	 'https://valaam.ru/phonegap/saints/list/?page_size=100&PAGEN_1=7',
+	 'https://valaam.ru/phonegap/saints/list/?page_size=100&PAGEN_1=8',
+	 'https://valaam.ru/phonegap/saints/list/?page_size=100&PAGEN_1=9',
+	 'https://valaam.ru/phonegap/saints/list/?page_size=100&PAGEN_1=10',
+	 'https://valaam.ru/phonegap/saints/list/?page_size=100&PAGEN_1=11',
+	 'https://valaam.ru/phonegap/saints/list/?page_size=100&PAGEN_1=12',
+	 'https://valaam.ru/phonegap/saints/list/?page_size=100&PAGEN_1=13',
+	 'https://valaam.ru/phonegap/saints/list/?page_size=100&PAGEN_1=14',
+	 'https://valaam.ru/phonegap/saints/list/?page_size=100&PAGEN_1=15',
+	 'https://valaam.ru/phonegap/saints/list/?page_size=100&PAGEN_1=16',
+	 'https://valaam.ru/phonegap/saints/list/?page_size=100&PAGEN_1=17',
+	 'https://valaam.ru/phonegap/saints/list/?page_size=100&PAGEN_1=18',
+	 'https://valaam.ru/phonegap/saints/list/?page_size=100&PAGEN_1=19',
+	 'https://valaam.ru/phonegap/saints/list/?page_size=100&PAGEN_1=20',
+	 'https://valaam.ru/phonegap/saints/list/?page_size=100&PAGEN_1=21',
+	 'https://valaam.ru/phonegap/saints/list/?page_size=100&PAGEN_1=22',
+	 'https://valaam.ru/phonegap/saints/list/?page_size=100&PAGEN_1=23',
+	 'https://valaam.ru/phonegap/saints/list/?page_size=100&PAGEN_1=24',
+	 'https://valaam.ru/phonegap/saints/list/?page_size=100&PAGEN_1=25',
+	 'https://valaam.ru/phonegap/saints/list/?page_size=100&PAGEN_1=26',
+	 'https://valaam.ru/phonegap/saints/list/?page_size=100&PAGEN_1=27',
+	 'https://valaam.ru/phonegap/saints/list/?page_size=100&PAGEN_1=28',
+	 'https://valaam.ru/phonegap/saints/list/?page_size=100&PAGEN_1=29',
+	 'https://valaam.ru/phonegap/saints/list/?page_size=100&PAGEN_1=30',
+ 	],
+	{
+		title: `Святые`,
+		expectedSize: 3000 * 10.8 * 1024
+		//downloadTotal: 32065147
+	});
+
+	bgTask.on('download:start', () => {
+		console.log(`Прогресс загрузки начат`);
+	});
+
+	bgTask.on('download:progress', ({progress, downloaded}) => {
+		console.log(`Прогресс загрузки ${progress}% ${downloaded}`);
+	});
+
+	bgTask.on('save:progress', ({progress}) => {
+		console.log(`Прогресс cохранения ${progress}%`);
+	});
+
+	bgTask.on('done', () => {
+		console.log(`Успешно загружено и сохранено`);
+		bgTask.destroy();
+	});
+
+	bgTask.on('error', ({name, description}) => {
+		console.log(`Ошибка: [${name}]: ${description}`);
+		bgTask.destroy();
+	});
+
+	bgTask.fetch();
+
+	return;
 }
 
 /**
@@ -502,7 +602,7 @@ async function testFitures() {
 			if (!response.ok) throw new Error('Bad fetch response');
 			blob = await response.blob();
 			await db.images.put({
-				url: src2, 
+				url: src2,
 				image: blob
 			});
 			result = 'ok';
@@ -530,11 +630,13 @@ async function testFitures() {
 	app.dialog.alert(msg);
 }
 
-manager.init = init; 
-manager.load = load;
+manager.init = init;
+manager.download = download;
 manager.cancel = cancel;
 manager.check = check;
 manager.state = getState;
 manager.testFitures = testFitures;
-	
+
+manager.bgFetch = bgFetch;
+
 export default manager;

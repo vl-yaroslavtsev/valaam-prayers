@@ -59,7 +59,7 @@
 </style>
 <!--suppress JSAnnotator -->
 <script>
-	import reloadManager from '../js/reload-manager.js';
+	import downloadManager from '../js/download/manager.js';
 
 	let app, $el;
 	export default {
@@ -75,7 +75,7 @@
 				this.$setState({downloading: true});
 
 				try {
-					await reloadManager.download();
+					await downloadManager.download();
 					this.$setState({downloading: false});
 				} catch (ex) {
 					this.$setState({downloading: false});

@@ -423,7 +423,7 @@ async function testFitures() {
 			if (!response.ok) throw new Error('Bad fetch response');
 			blob = await response.blob();
 			await db.images.put({
-				url: src2, 
+				url: src2,
 				image: blob
 			});
 			result = 'ok';

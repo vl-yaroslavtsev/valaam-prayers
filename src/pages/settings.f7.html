@@ -167,7 +167,7 @@
 						<div class="item-inner">
 							<div class="item-title-row">
 								<div class="item-title">
-									Полноэкранный режим 
+									Полноэкранный режим
 								</div>
 								<div class="item-after">
 									<label class="toggle toggle-init"
@@ -249,7 +249,7 @@
 <!--suppress JSAnnotator -->
 <script>
 	import settingsManager from '../js/settings-manager.js';
-	import reloadManager from '../js/reload-manager.js';
+	import downloadManager from '../js/download/manager.js';
 
 	const BACKGROUND_ITEMS = [
 		{
@@ -321,7 +321,7 @@
 				settingsManager.save(state);
 			},
 			testFitures() {
-				reloadManager.testFitures();
+				downloadManager.testFitures();
 			}
 	 	},
 		on: {
