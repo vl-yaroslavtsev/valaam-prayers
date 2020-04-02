@@ -5,6 +5,7 @@ import {Dom7 as $$} from 'framework7';
 import settingsManager from './settings-manager.js';
 
 let app;
+const mainView = '#view-menu';
 const viewsIds = ['#view-books', '#view-prayers', '#view-calendar', '#view-rites'];
 // Количественно последовательных нажатий кнопки Назад
 let backButtonAttempts = 0;
@@ -24,9 +25,22 @@ function init(appInstance) {
  */
 function parseHash() {
 	let [viewId, url] = document.location.hash.split(':');
-	if (!viewsIds.includes(viewId) || !url) return;
-
+	if (!viewId || !url) return;
+	
 	let panel = app.panel.get('.panel-left');
+	let view = app.views.get(viewId);
+
+	if (viewId === mainView) {
+		if (panel) {
+			panel.open(false);
+		}
+		view.router.navigate(url);
+		document.location.hash = '';
+		return;
+	}
+
+	if (!viewsIds.includes(viewId)) return;
+
 	if (panel) {
 		panel.close(false);
 	} else {
@@ -36,8 +50,6 @@ function parseHash() {
 	}
 
 	app.tab.show(viewId);
-
-	let view = app.views.get(viewId);
 	view.router.navigate(url);
 	document.location.hash = '';
 }

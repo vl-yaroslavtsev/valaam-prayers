@@ -49,6 +49,7 @@ body,
     border-radius: var(--scrollbar-width);
     background-color: rgba(255, 255, 255, .7);
 }
+
 /* .md.device-pixel-ratio-2 .page-content { */
 	/* background-image: url('../images/bg@2x.jpg');	 */
 /* } */

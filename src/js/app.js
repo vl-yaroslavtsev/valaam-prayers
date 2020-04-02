@@ -96,8 +96,7 @@ import routes from './routes.js';
 import * as OfflinePlugin from 'offline-plugin/runtime';
 
 import dataManager from './data/manager.js';
-import reloadManager from './reload-manager.js';
-import downloadManager from './download-manager.js';
+import downloadManager from './download/manager.js';
 import favoriteManager from './favorite-manager.js';
 import settingsManager from './settings-manager.js';
 
@@ -139,12 +138,12 @@ const app = new Framework7({
 			try {
 				await dataManager.init();
 			} catch(ex) {
-				this.methods.showLoadError(`Ошибка при инициализации данных: [${ex.name}]: ${ex.message} `, 30000);
+				this.methods.showLoadError(`
+					Ошибка при инициализации данных: [${ex.name}]: ${ex.message}
+				`, 30000);
 			}
 
-			reloadManager.init(this);
-			loadManager.init(this);
-			this.loadManager = loadManager;
+			downloadManager.init(this);
 			favoriteManager.init(this);
 			imageLazyDb.init(this);
 			settingsManager.init(this);
@@ -327,8 +326,12 @@ let promiseLoaded = Promise.all([
 ])
 
 promiseLoaded.then(() => {
-	//offlinePluginInstall();
-	//reloadManager.preload();
+	// Для iOS10 не работает нативно оффлайн версия
+	if (app.device.ios &&
+			parseInt(app.device.osVersion) === 10) {
+		offlinePluginInstall();
+	}
+	//downloadManager.preload();
 });
 
 
