@@ -1,5 +1,5 @@
 import {Template7} from 'framework7';
-import {format, parse, addDays, subDays} from './date-utils.js';
+import {format, parse, addDays, subDays} from './utils/date-utils.js';
 
 let helpers = {format, parse, addDays, subDays};
 

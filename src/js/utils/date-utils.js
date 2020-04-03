@@ -6,7 +6,7 @@ import {
 	getUnixTime
 } from 'date-fns';
 import { ru } from 'date-fns/locale';
-import dataManager from './data/manager.js';
+import dataManager from '../data/manager.js';
 
 let app, monthNames;
 

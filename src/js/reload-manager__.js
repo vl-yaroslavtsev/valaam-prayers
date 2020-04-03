@@ -2,7 +2,7 @@
  * Клиентский код для serviсeWorker
  * Запускает serviсeWorker и управляет обновлением офлайн данных.
  */
-import {unixNow} from './date-utils.js';
+import {unixNow} from './utils/date-utils.js';
 import ReloaderWorker from './reloader.wkr.js';
 import ImagePreloader from './image-preloader.js';
 import db 			  from './data/db.js';

@@ -10,7 +10,7 @@ import {
 	endOfWeek,
 	getUnixTime,
 	unixNow
-} from './date-utils.js';
+} from './utils/date-utils.js';
 
 import db from './data/db.js';
 

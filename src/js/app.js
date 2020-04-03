@@ -102,7 +102,7 @@ import settingsManager from './settings-manager.js';
 
 import viewsManager   from './views-manager.js';
 import imageLazyDb from './image-lazy-db.js';
-import {init as dateUtilsInit} from './date-utils.js';
+import {init as dateUtilsInit} from './utils/date-utils.js';
 
 // Framework7 App main instance
 const app = new Framework7({

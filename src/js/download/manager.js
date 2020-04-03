@@ -7,7 +7,8 @@ import {
 	startOfYear,
 	endOfYear,
 	getUnixTime
-} from '../date-utils.js';
+} from '../utils/date-utils.js';
+import { bytesToSize, fetchJson } from '../utils/utils.js';
 
 import db from '../data/db.js';
 import Framework7 from 'framework7';
