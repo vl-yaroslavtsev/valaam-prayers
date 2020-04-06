@@ -5,9 +5,10 @@
 	<meta charset="utf-8">
 	<meta http-equiv="Content-Security-Policy"
 		    content="default-src * 'self' 'unsafe-inline' 'unsafe-eval' blob: data: gap: content:">
-	<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+	<meta name="viewport"
+		  content="width=device-width, initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=no, viewport-fit=cover">
 	<meta name="apple-mobile-web-app-capable" content="yes">
-	<meta name="apple-mobile-web-app-status-bar-style" content="default">
+	<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 	<meta name="theme-color" content="#3878a8">
 	<meta name="format-detection" content="telephone=no">
 	<meta name="msapplication-tap-highlight" content="no">
@@ -22,7 +23,7 @@
 <body>
 
 <div id="root">
-	<div class="statusbar-bg"></div>
+<!--	<div class="statusbar-bg"></div>-->
 	<div class="panel panel-left panel-cover panel-init"
 			 data-swipe="false">
 		<div class="view panel-view view-init view-menu"
@@ -30,7 +31,7 @@
 				 data-url="/menu"></div>
 	</div>
 	<!-- Views/Tabs container -->
-	<div class="views tabs ios-edges">
+	<div class="views tabs safe-areas">
 		<!-- Tabbar for switching views-tabs -->
 		<div class="tabbar-labels toolbar toolbar-bottom">
 			<div class="toolbar-inner">

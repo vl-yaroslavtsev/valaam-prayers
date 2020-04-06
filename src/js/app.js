@@ -114,12 +114,9 @@ const app = new Framework7({
 	// theme: 'ios',
 
 	statusbar: {
-		androidTextColor: 'white',
+		// androidTextColor: 'white',
 		androidOverlaysWebView: true,
 	},
-
-	// в четвёртй раз ставлю эту переменную
-	initOnDeviceReady: false,
 
 	panel: {
 		swipe: 'left',
@@ -149,26 +146,36 @@ const app = new Framework7({
 			settingsManager.init(this);
 			dateUtilsInit(this);
 
-			this.phonegap.canApplePay().then((result) => {
-				this.data.canApplePay = result;
-			});
-
 			viewsManager.init(this);
 
 			this.root.on('click', '.page-current img[data-srcorig]', (e) => {
 				imgFullscreen(e.target);
 			});
 
-			if(this.device.android) {
+			this.phonegap.canApplePay().then((result) => {
+				this.data.canApplePay = result;
+			});
+
+			if (this.device.android) {
 				//this.phonegap.statusbar.show();
 
 				// Внимание: говнокод!
 				// Для Андроид 6 строчка выше не делает оверлей для статусбара,
 				// когда мы вышли из приложения по кнопке "назад" и снова зашли на него.
 				// Вы этом случае помогают эти 3 строчки.
-				this.statusbar.hide();
-				this.statusbar.show();
-				this.statusbar.overlaysWebView(true);
+				this.phonegap.statusbar.hide();
+				this.phonegap.statusbar.show();
+				this.phonegap.statusbar.overlaysWebView(true);
+
+			} else if (this.device.ios) {
+				// this.phonegap.statusbar.overlaysWebView(true); // не работает
+				// this.phonegap.statusbar.backgroundColorByName('red'); // не работает
+				// this.phonegap.statusbar.backgroundColorByHexString('#3878a8'); // не работает
+				//
+				// this.phonegap.statusbar.hide();// работает!
+				// this.phonegap.statusbar.show();// работает!
+				// this.phonegap.statusbar.styleDefault();// работает!
+				// this.phonegap.statusbar.styleLightContent();// работает!
 			}
 
 			this.phonegap.hideSplash();

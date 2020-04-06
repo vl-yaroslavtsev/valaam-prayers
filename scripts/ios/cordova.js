@@ -90,4 +90,8 @@
 	window.StatusBar = StatusBar;
 	window.cordova = !!window['webkit'];
 
+	window.addEventListener('load', function() {
+		document.dispatchEvent(new Event('deviceready'));
+	});
+
 })(window);
