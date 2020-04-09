@@ -39,10 +39,10 @@ async function fetchJson(url, params = {}, abortSignal) {
  * @return {string}
  */
 function formatUrl(url, params) {
-	let urlParams = Object.keys(obj).map((key) => {
-		return key + '=' + encodeURIComponent(obj[key]);
+	let urlParams = Object.keys(params).map((key) => {
+		return key + '=' + encodeURIComponent(params[key]);
 	}).join('&');
-	if (urlParams) urlParams = `?${urlParams}`;
+	if (urlParams) urlParams = (url.indexOf('?') === -1 ? '?' : '&') + urlParams;
 	return url + urlParams;
 }
 

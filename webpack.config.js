@@ -40,10 +40,11 @@ module.exports = (env = {}) => {
 				'src/framework7.phonegap.js',
 	    ]),
 			new OfflinePlugin({
-				ServiceWorker: {
-	        events: true,
-					entry: './src/js/sw-template.js'
-	      },
+				ServiceWorker: null,
+				// {
+	      //   events: true,
+				// 	entry: './src/js/sw-template.js'
+	      // },
 	      AppCache: {
 	        events: true
 	      },
@@ -81,8 +82,9 @@ module.exports = (env = {}) => {
 				{
 					test: /\.m?js$/,
 					exclude: [
-						/node_modules\/(?!(framework7|template7|dom7|lodash-es|date-fns)\/).*/,
-						/\/js\/sw-template\.js$/
+						/node_modules\/(?!(framework7|template7|dom7|lodash-es|date-fns|idb)\/).*///,
+						// /\/js\/sw-template\.js$/,
+						// /\/js\/download\/bg-fetch\.wkr\.js$/
 					],
 					//include: path.resolve(__dirname, 'src'),
 					use: {

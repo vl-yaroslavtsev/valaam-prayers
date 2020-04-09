@@ -6,12 +6,12 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "watch": "webpack --watch --progress",
-    "build:web": "webpack",
-    "build:web:dist": "webpack --env.production",
-    "build:dev": "./scripts/build.dev.sh android",
-    "build:prod": "./scripts/build.prod.sh android",
-		"build:ios:dev": "./scripts/build.dev.sh ios",
-    "build:ios:prod": "./scripts/build.prod.sh ios",
+    "web:dev": "webpack",
+    "web:dist": "webpack --env.production",
+    "android:dev": "./scripts/build.dev.sh android",
+    "android:prod": "./scripts/build.prod.sh android",
+		"ios:dev": "./scripts/build.dev.sh ios",
+    "ios:prod": "./scripts/build.prod.sh ios",
 		"android": "cp ./scripts/android/cordova.js ../../prayers.v2.f7/",
 		"ios": "cp ./scripts/ios/cordova.js ../../prayers.v2.f7/"
   },
