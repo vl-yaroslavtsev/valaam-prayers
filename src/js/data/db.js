@@ -15,7 +15,7 @@ const stores = [
 	'images',
 	'prayers',
 	'saints',
-	'stat'
+	'state'
 ];
 
 /**
@@ -33,6 +33,8 @@ function registerStores(idb) {
  * @return {Promise} Промис отдает IDBDatabase
  */
 db.open = async function() {
+	if (idb) return idb;
+
 	idb = await openDB('phonegap', 1, {
 		upgrade(db, oldVersion, newVersion, transaction) {
 			switch(oldVersion) { // существующая (старая) версия базы данных
@@ -41,12 +43,12 @@ db.open = async function() {
 				db.createObjectStore('days', {keyPath: 'code'});
 				db.createObjectStore('prayers', {keyPath: 'id'});
 				db.createObjectStore('saints', {keyPath: 'id'});
-				db.createObjectStore('stat');
-				
+				db.createObjectStore('state');
+
 				const imagesStore = db.createObjectStore('images', {keyPath: 'url'});
 				imagesStore.createIndex('by-type', 'type');
 		    case 1:
-				
+
 			}
 		},
 		blocked() {
@@ -65,7 +67,7 @@ db.open = async function() {
 		terminated () {
 		}
 	});
-	
+
 	registerStores(idb);
 	return idb;
 }
