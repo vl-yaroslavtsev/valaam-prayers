@@ -26,7 +26,7 @@ function init(appInstance) {
 function parseHash() {
 	let [viewId, url] = document.location.hash.split(':');
 	if (!viewId || !url) return;
-	
+
 	let panel = app.panel.get('.panel-left');
 	let view = app.views.get(viewId);
 
@@ -152,7 +152,7 @@ function createView(id, app) {
 		case '#view-books':
 			view = app.views.create('#view-books', {
 				name: 'Книги',
-				url: '/prayers/1983',
+				url: '/prayers/976',
 			});
 			break;
 

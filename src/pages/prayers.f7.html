@@ -41,11 +41,11 @@
 			{{else}}
 			<h2 class="block">{{title}}</h2>
 			{{/if}}
-			
+
 			{{#if description}}
 			<div class="block text-white">{{description}}</div>
 			{{/if}}
-			
+
 			<div class="list simple-list list-transparent searchbar-not-found no-hairlines-md">
 				<ul>
 					<li>Увы, ничего не нашлось.</li>
@@ -66,7 +66,10 @@
 	import {sortBy} from 'lodash-es';
 	import {Dom7 as $$} from 'framework7';
 	import dataManager from '../js/data/manager.js';
-	
+
+	const PRAYERS_SID = "842"; // Полный молитвослов
+	const LITURGICAL_BOOKS_SID = "937"; // Богослужебные книги
+
 	let app;
 
 	export default {
@@ -124,9 +127,9 @@
 				});
 
 				let {items, state} = await this.loadPromise;
-				
+
 				this.virtualList.replaceAllItems(items);
-				
+
 				state.showSearchbar = (items.length > 30);
 				this.$setState(state);
 				if (state.showSearchbar) {
@@ -172,10 +175,18 @@
 					href: '/prayers/' + data.id
 				}));
 			}
+
+			// Временно: добавляем Богослужебные книги (937) Полный молитвослов (842)
+			if (sectionId === PRAYERS_SID && data.id === LITURGICAL_BOOKS_SID) {
+				items.push(Object.assign(data, {
+					href: '/prayers/' + data.id
+				}));
+			}
+
 			if (data.id === sectionId && data.parent !== "0") {
 				// prayerData.name = data.name;
 				Object.assign(state, {
-					id: data.id , 
+					id: data.id ,
 					name: data.name,
 					description: data.description
 				});
