@@ -14,9 +14,8 @@
 				<div class="right">
 					<!--<a href="#" class="link churchslavonic">Ц</a>-->
 					<!--<a href="#" class="link slavonic">Р</a>-->
-					{{#if searchMode}}
+					{{#unless searchMode}}
 					<!--<a class="link popup-close">Закрыть</a>-->
-					{{else}}
 					<a href="/prayers/text/{{prevId}}"
 						 data-reload-current="true"
 						 class="link {{#unless prevId}}disabled{{/unless}}">
@@ -27,8 +26,8 @@
 						 class="link {{#unless nextId}}disabled{{/unless}}">
 						<i class="icon icon-forward"></i>
 					</a>
-				 		{{> "navbar-right"}}
-					{{/if}}
+					{{/unless}}
+					{{> "navbar-right"}}
 				</div>
 			</div>
 		</div>
@@ -101,7 +100,7 @@
 <script>
 	import favoriteManager from '../js/favorite-manager.js';
 	import dataManager from '../js/data/manager.js';
-	
+
 	let app;
 
 	export default {
