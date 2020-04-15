@@ -18,18 +18,37 @@ function bytesToSize(bytes, decimals) {
  * Получаем данные из сети в json
  * @param {string}      url Урл для запроса данных
  * @param {Object}      [params] Параметры запроса данных
+ * @param {AbortSignal} [signal] Сигнал отмены
+ * @return {Promise} Promise должен возвращать [данные, размер]
+ */
+async function fetchJson(url, {params = {}, signal} = {}) {
+	let response = await fetch(formatUrl(url, params), {
+		signal
+	});
+
+	if (!response.ok) {
+		return null;
+	}
+	//response.headers.get('data-length');
+	return await response.json();
+}
+
+/**
+ * Получаем данные из сети в json
+ * @param {string}      url Урл для запроса данных
+ * @param {Object}      [params] Параметры запроса данных
  * @param {AbortSignal} [abortSignal] Сигнал отмены
  * @return {Promise} Promise должен возвращать данные
  */
-async function fetchJson(url, params = {}, abortSignal) {
+async function fetchBlob(url, {params = {}, signal} = {}) {
 	let response = await fetch(formatUrl(url, params), {
-		signal: abortSignal
+		signal
 	});
 	if (!response.ok) {
-		throw new Error(`Bad fetch response. Status: ${response.status}`);
+		return null;
 	}
 
-	return await response.json();
+	return await response.blob();
 }
 
 /**
@@ -49,5 +68,6 @@ function formatUrl(url, params) {
 export {
 	bytesToSize,
 	fetchJson,
+	fetchBlob,
 	formatUrl
 };

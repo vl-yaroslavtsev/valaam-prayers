@@ -24,7 +24,6 @@ class StateStore extends Framework7.Events {
 
 	destroy() {
 		this.setState(null);
-		this.state = null;
 	}
 
 	/** Получаем состояние */
@@ -40,11 +39,15 @@ class StateStore extends Framework7.Events {
 		let key = this.stateKey;
 
 		if (value === null) {
-			this.state = {};
+			this.state = null;
 			await db.state.delete(key);
 		} else {
 			this.state = Object.assign(this.state || {}, value);
-			await db.state.put(this.state, key);
+			try {
+				await db.state.put(this.state, key);
+			} catch(err) {
+				console.error(err);
+			}
 		}
 		this.emit('state:changed', { changed: value, state: this.state });
 	}
