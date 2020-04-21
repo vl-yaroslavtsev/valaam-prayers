@@ -49,11 +49,11 @@ module.exports = (env = {}) => {
 	        events: true
 	      },
         externals: [
-					'/local/templates/valaam/images/ideograph-1.png',
-          '/local/templates/valaam/images/ideograph-2.png',
-					'/local/templates/valaam/images/ideograph-3.png',
-					'/local/templates/valaam/images/ideograph-4.png',
-					'/local/templates/valaam/images/ideograph-5.png'
+					'./src/images/ideograph-1.png',
+          './src/images/ideograph-2.png',
+					'./src/images/ideograph-3.png',
+					'./src/images/ideograph-4.png',
+					'./src/images/ideograph-5.png'
 				],
 				excludes: [
 					'**/.*',
