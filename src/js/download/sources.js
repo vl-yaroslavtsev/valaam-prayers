@@ -1,3 +1,7 @@
+/**
+ * Источники данных для загрузки
+ */
+
 import {
 	format,
 	parse,
@@ -7,7 +11,6 @@ import {
 } from '../utils/date-utils.js';
 
 import db from '../data/db.js';
-import DownloadSourceGroup from './source-group.js';
 
 const API_URL = 'https://valaam.ru/phonegap/';
 
@@ -24,8 +27,24 @@ function getPeriod(type = 'year') {
 	}
 }
 
-class Calendar {
+class Source {
+	constructor(params = {}) {}
+
+	async save(data) {
+		throw new Error('Source.save not implemented!');
+	}
+
+	async delete() {
+	}
+
+	async count() {
+		return 0;
+	}
+}
+
+class Calendar extends Source {
 	constructor() {
+		super();
 		this.url = `${API_URL}days/calendar/`;
 		this.params = {
 			type: 'json'
@@ -37,10 +56,14 @@ class Calendar {
 	}
 }
 
-class Prayers {
+class Prayers extends Source {
 	constructor(params = {}) {
+		super();
 		this.url = `${API_URL}prayers/`;
-		this.params = Object.assign({type: 'json'}, params);
+		this.params = {
+			type: 'json',
+			...params
+		};
 	}
 
 	async save(data) {
@@ -48,108 +71,102 @@ class Prayers {
 	}
 }
 
-class SaintsList {
+class SaintsList extends Source {
 	constructor(params = {}) {
+		super();
 		this.url = `${API_URL}saints/list/`;
 		this.urlCount = `${API_URL}saints/count/`;
-		this.params = Object.assign(
-			{
-				page_size: 100
-			},
-			params
-		);
-		this.paging = true;
+		this.params = {
+			page_size: 100,
+			...params
+		};
 	}
 
-	async save(data) {
-		await db.saints.putAll(data.data);
+	async save({data}, dowloadItemId) {
+		await db.saints.putAll(data);
+	}
+
+	getImageUrls(item) {
+		return [item.picture];
+	}
+
+	async delete() {
+		await db.saints.clear();
+	}
+
+	async count() {
+		return await db.saints.count();
 	}
 }
 
-class DaysList {
+class DaysList extends Source {
 	constructor(params = {}) {
+		super();
 		this.url = `${API_URL}days/list/`;
 		this.urlCount = `${API_URL}days/count/`;
-		this.params = Object.assign(
-			{
-				page_size: 100
-			},
-			params
+		this.params = {
+			page_size: 100,
+			...params
+		};
+	}
+
+	async save({data}, dowloadItemId) {
+		await db.days.putAll(data);
+	}
+
+	getImageUrls(item) {
+		return [item.picture, item.prayers.picture];
+	}
+
+	async delete() {
+		await db.days.delete(
+			IDBKeyRange.bound(this.params.from_date, this.params.to_date)
 		);
 	}
 
-	async save(data) {
-		await db.days.putAll(data.data);
+	async count() {
+		return await db.days.count(
+			IDBKeyRange.bound(this.params.from_date, this.params.to_date)
+		);
 	}
 }
 
-class PrayersList {
+class PrayersList extends Source {
 	constructor(params = {}) {
+		super();
 		this.url = `${API_URL}prayers/list/`;
 		this.urlCount = `${API_URL}prayers/count/`;
-		this.params = Object.assign(
-			{
-				page_size: 100
-			},
-			params
-		);
+		this.params = {
+			page_size: 100,
+			...params
+		}
 	}
 
-	async save(data) {
-		await db.prayers.putAll(data.data);
+	async save({data}, dowloadItemId) {
+		data.forEach(item => item.root_id = this.params.section_id);
+		await db.prayers.putAll(data);
+	}
+
+	getImageUrls(item) {
+		return [item.picture];
+	}
+
+	async delete(dowloadItemId) {
+		await db.prayers.deleteFromIndex('by-root-id', this.params.section_id);
+	}
+
+	async count(dowloadItemId) {
+		return await db.prayers.countFromIndex('by-root-id', this.params.section_id);
 	}
 }
 
-export default [
-	new DownloadSourceGroup({
-		id: 'calendar', // Календарь: святые + дни календаря
-		title: 'Православный календарь ' + format(new Date, 'yyyy'),
-		row_size: 16.3 * 1024,
-		sources: [
-			new Calendar(),
-			new SaintsList(),
-			new DaysList({
-				from_date: format(getPeriod('year').start),
-				to_date:  format(getPeriod('year').end) // Текущий год
-			})
-		]
-	}),
-	new DownloadSourceGroup({
-		id: 'liturgical_books',// Богослужебные книги
-		title: 'Богослужебные книги',
-		row_size: 43.18 * 1024,
-		sources: [
-			new Prayers(),
-			new PrayersList({
-				section_id: 937,
-			})
-		]
-	}),
-	new DownloadSourceGroup({
-		id: 'spiritual_books', // Духовная литература
-		title: 'Духовная литература',
-		row_size: 33.08 * 1024,
-		sources: [
-			new Prayers(),
-			new PrayersList({
-				section_id: 976,
-			})
-		]
-	}),
-	new DownloadSourceGroup({
-		id: 'prayers', // Молитвослов и Библия
-		title: 'Молитвослов',
-		row_size: 16.22 * 1024,
-		sources: [
-			new Prayers(),
-			new PrayersList({
-				section_id: 842, // Полный молитвослов
-			}),
-			new PrayersList({
-				section_id: 1736,  // Валаам
-			})
-		]
-	})
-];
+export {
+	getPeriod,
+	Calendar,
+	Prayers,
+	DaysList,
+	PrayersList,
+	SaintsList
+};
 
 //'icons': ['saints', 'calendar']

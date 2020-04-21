@@ -19,35 +19,44 @@
 		<h2 class="block">Молитвослов офлайн</h2>
 		<div class="block">
 			<p>Молитвослов, Библия, календарь, жития святых,
-				духовная литература для работы офлайн.</p>
-			<p>Доступно для скачивания</p>
+				духовная литература для работы без сети Интернет.</p>
+		</div>
+
+		{{#if new.length}}
+		<div class="block-header">
+			<p>Доступные для скачивания</p>
 		</div>
 		<div class="list media-list no-hairlines">
 			<ul>
-				<li>
-					<a class="item-link item-content {{#if downloading}}disabled{{/if}}"
-						 @click="download">
-						<div class="item-media">
-							<i class="icon material-icons  disabled">get_app</i>
-						</div>
-						<div class="item-inner">
-							<div class="item-title-row">
-								<div class="item-title">Молитвослов и календарь
-								</div>
-							</div>
-						</div>
-					</a>
-				</li>
+				{{#each new}}
+				<download-list-item
+					id="download-item-{{id}}"
+					data-item="{{id}}">
+				</download-list-item>
+				{{/each}}
 			</ul>
 		</div>
+		{{/if}}
+
+		{{#if loaded.length}}
+		<div class="block-header">
+			<p>Загруженные</p>
+		</div>
+		<div class="list media-list no-hairlines">
+			<ul>
+				{{#each loaded}}
+				<download-list-item
+					id="download-item-{{id}}"
+					data-item="{{id}}">
+				</download-list-item>
+				{{/each}}
+			</ul>
+		</div>
+		{{/if}}
 	</div>
 </div>
 </template>
 <style scoped>
-	.list .item-media {
-		min-width: auto;
-	}
-
 	.block-title {
 		margin-top: 2em;
 		/* font: 18px/24px Geometria; */
@@ -55,37 +64,64 @@
 		/* font-weight: 500; */
 	}
 
-
+	.item-content .progressbar {
+		--f7-progressbar-height: 3px;
+		position: absolute;
+		bottom: 1px;
+		left: 0;
+		right: 0;
+	}
 </style>
 <!--suppress JSAnnotator -->
 <script>
 	import downloadManager from '../js/download/manager.js';
 
+	const downloadItemIds = [
+		'calendar',
+		'calendar_icons',
+		'prayers',
+		'liturgical_books',
+		'spiritual_books',
+	];
+
 	let app, $el;
+
 	export default {
 		data() {
 			app = this.$app;
+			app.preloader.show();
 
 			return {
-				downloading: app.methods.storageGet('reload-working'),
+				all: downloadItemIds.map(id => downloadManager.get(id)),
+				new: [],
+				loaded: [],
 			};
 		},
 		methods: {
-			async download() {
-				this.$setState({downloading: true});
-
-				try {
-					await downloadManager.download();
-					this.$setState({downloading: false});
-				} catch (ex) {
-					this.$setState({downloading: false});
+			updateState() {
+				this.$setState({
+					loaded: this.all.filter(({state:{status}}) => status === 'fresh'),
+					new: this.all.filter(({state:{status}}) => status !== 'fresh'),
+				});
+			},
+			onDownloadItemChanged({state, changed}) {
+				if (changed.status) {
+					this.updateState();
 				}
 			}
 	 	},
 		on: {
-			pageInit(e, page) {
+			async pageInit(e, page) {
+				await downloadManager.refreshAll();
+
+				this.all.forEach(
+					item => item.on('state:changed', this.onDownloadItemChanged)
+				);
+				this.updateState();
+				app.preloader.hide();
 			},
 			pageBeforeRemove() {
+				this.all.forEach(item => item.off('state:changed', this.onDownloadItemChanged));
 			}
 		}
 	};

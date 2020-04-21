@@ -41,13 +41,13 @@ db.open = async function() {
 		    case 0:
 				db.createObjectStore('collections');
 				db.createObjectStore('days', {keyPath: 'code'});
-				db.createObjectStore('prayers', {keyPath: 'id'});
+				const prayersStore = db.createObjectStore('prayers', {keyPath: 'id'});
 				db.createObjectStore('saints', {keyPath: 'id'});
 				db.createObjectStore('state');
-
 				const imagesStore = db.createObjectStore('images', {keyPath: 'url'});
-				imagesStore.createIndex('by-type', 'type');
-		    case 1:
+
+				prayersStore.createIndex('by-root-id', 'root_id');
+				imagesStore.createIndex('by-source-id', 'source_id');
 
 			}
 		},

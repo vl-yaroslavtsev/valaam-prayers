@@ -22,7 +22,7 @@ class Store {
 	async get(query) {
 		return this.idb.get(this.name, query);
 	}
-	
+
 	/**
 	 * Получаем все элементы по ключу или запросу IDBKeyRange
 	 * Chrome 48, Firefox 44, and Safari 10.1.
@@ -35,7 +35,7 @@ class Store {
 	}
 
 	/**
-	 * Сохраняем элемент. 
+	 * Сохраняем элемент.
 	 * @param  {*|IDBKeyRange}  value значеие
 	 * @param  {*} key Необязательно. Если нет keyPath
 	 * @return {Promise}
@@ -50,7 +50,7 @@ class Store {
 	}
 
 	/**
-	 * Сохраняем массив элементов одной транзакцией. 
+	 * Сохраняем массив элементов одной транзакцией.
 	 * @param  {Array<*>}  values значеия
 	 * @return {Promise}
 	 */
@@ -61,19 +61,19 @@ class Store {
 		}
 		await tx.done;
 	}
-	
+
 	/**
 	 * Поиск всех ключей, которые удовлетворяют запросу.
 	 * Возможно ограничить поиск, передав count.
 	 * Chrome 48, Firefox 44, and Safari 10.1.
 	 * @param  {IDBKeyRange} query запрос
-	 * @param  {number} count Необязательно. 
-	 * @return {Promise}		
+	 * @param  {number} count Необязательно.
+	 * @return {Promise}
 	*/
 	async getAllKeys(query, count) {
 		return this.idb.getAllKeys(this.name, query, count);
 	}
-	
+
 	/**
 	 * Удаляем элементы по ключу или запросу IDBKeyRange
 	 * @param  {*|IDBKeyRange}  query Ключ или запрос
@@ -82,7 +82,7 @@ class Store {
 	async delete(query) {
 		return this.idb.delete(this.name, query);
 	}
-	
+
 	/**
 	 * Очистить хранилище
 	 * @return {Promise}
@@ -90,7 +90,7 @@ class Store {
 	async clear() {
 		return this.idb.clear(this.name);
 	}
-	
+
 	/**
 	 * Получить общее количество ключей, которые удовлетворяют запросу
 	 * @param  {IDBKeyRange}  query запрос
@@ -99,9 +99,62 @@ class Store {
 	async count(query) {
 		return this.idb.count(this.name, query);
 	}
-	
+
+	async iterate(callback = (key, value) => {}) {
+		let cursor = await this.idb.transaction(this.name).store.openCursor();
+
+		while (cursor) {
+		  callback(cursor.key, cursor.value);
+		  cursor = await cursor.continue();
+		}
+	}
+
+	/**
+	 * Получаем 1-ый элемент из индекса или запросу IDBKeyRange
+	 * @param  {string}  indexName [description]
+	 * @param  {*|IDBKeyRange}  key  Значение индекса или запрос IDBKeyRange
+	 * @return {Promise}
+	 */
 	async getFromIndex(indexName, key) {
 		return this.idb.getFromIndex(this.name, indexName, key);
+	}
+
+	/**
+	 * Удаляем элементы по значению индекса или запросу IDBKeyRange
+	 * @param  {string}  indexName [description]
+	 * @param  {*|IDBKeyRange}  query     Значение индекса или запрос IDBKeyRange
+	 * @return {Promise}
+	 */
+	async deleteFromIndex(indexName, query) {
+		const tx = this.idb.transaction(this.name, 'readwrite');
+		const store = tx.store;
+		let cursor = await store.index(indexName).openKeyCursor(query);
+
+		while (cursor) {
+		  store.delete(cursor.primaryKey);
+		  cursor = await cursor.continue();
+		}
+		await tx.done;
+	}
+
+	/**
+	 * Подсчитываем количество элементов в индексе
+	 * @param  {string}  indexName [description]
+	 * @param  {*|IDBKeyRange}  query Значение индекса или запрос IDBKeyRange
+	 * @return {Promise}
+	 */
+	async countFromIndex(indexName, query) {
+		return await this.idb.countFromIndex(this.name, indexName, query);
+	}
+
+	async iterateFromIndex(indexName, query, callback = (key, value) => {}) {
+		const tx = this.idb.transaction(this.name);
+		let cursor = await tx.store.index(indexName).openCursor(query);
+
+		while (cursor) {
+		  callback(cursor.key, cursor.value);
+		  cursor = await cursor.continue();
+		}
 	}
 }
 

@@ -1,5 +1,5 @@
 
-import { Request } from 'framework7';
+import Framework7, { Request } from 'framework7';
 import './t7-helpers.js';
 
 import Calendar from '../pages/calendar.f7.html';
@@ -24,6 +24,7 @@ import Search from '../pages/search.f7.html';
 import Settings from '../pages/settings.f7.html';
 import SettingsFonts from '../pages/settings-fonts.f7.html';
 import SettingsDownload from '../pages/settings-download.f7.html';
+import SettingsDownloadItem from '../pages/settings-download-item.f7.html';
 
 import Prayers from '../pages/prayers.f7.html';
 import PrayersText from '../pages/prayers-text.f7.html';
@@ -37,6 +38,8 @@ import MainMenu from '../pages/main-menu.f7.html';
 import NotFound from '../pages/404.f7.html';
 
 import dataManager from './data/manager.js';
+
+Framework7.registerComponent('download-list-item', SettingsDownloadItem);
 
 export default [
 	{

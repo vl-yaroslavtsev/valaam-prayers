@@ -14,9 +14,7 @@ import {
 import { bytesToSize, fetchJson } from '../utils/utils.js';
 
 import db from '../data/db.js';
-import sourceGroupsList from './sources.js';
-//import BackgroundFetchTask from './bg-fetch-task.js';
-import FetchTask from './fetch-task.js';
+import downloadItemsList from './items.js';
 
 const BASE_URL = 'https://valaam.ru';
 const API_URL = 'https://valaam.ru/phonegap/';
@@ -34,163 +32,40 @@ const MIN_STORAGE_AVAILABLE_MB = 5;
 
 let app;
 let state;
-let sourceGroups = {};
+let downloadItems = {};
 let manager = new Framework7.Events();
-let fetchTask;
 
 function init(appInstance) {
 	app = appInstance;
 
 	window['dm'] = manager;
+	window['db'] = db;
 
 	registerSources();
-
 	continueDownload();
 }
 
-/**
- * Старт загрузки определенного типа
- */
-async function download(id = 'calendar', force) {
-	let sourceGroup = sourceGroups[id];
-
-	if (sourceGroup.state.status == 'loading' && !force) {
-		app.dialog.alert(
-			`Пожалуйста, дождитесь окончания загрузки`,
-			'Оффлайн версия'
-		);
-		return false;
-	}
-
-	if (!navigator.onLine && !force) {
-		app.dialog.alert(
-			`Скачивание невозможно.<br>
-			 Вы не подключениы к сети Интернет`,
-			'Оффлайн версия'
-		);
-		return false;
-	}
-
-	if (!force) {
-		await sourceGroup.refresh();
-
-	}
-
-	//console.log(sourceGroup);
-
-	if (sourceGroup.state.status === 'fresh' && !force) {
-		return console.log('У Вас самые свежие данные!');
-	}
-
-	fetchTask = new FetchTask({
-		id: sourceGroup.id,
-		urls: sourceGroup.urls,
-		size: sourceGroup.state.size,
-		save: async (data, url) => sourceGroup.save(data, url)
-	});
-
-	fetchTask.on('start', () => {
-		console.log(`Прогресс загрузки начат`);
-		sourceGroup.setState({
-			status: 'loading'
-		});
-		manager.emit('download:start', {sourceGroup});
-	});
-
-	fetchTask.on('continue', () => {
-		console.log(`Прогресс загрузки продолжается`);
-		sourceGroup.setState({
-			status: 'loading'
-		});
-		manager.emit('download:continue', {sourceGroup});
-	});
-
-	fetchTask.on('progress', ({progress, downloaded}) => {
-		console.log(`Прогресс загрузки ${progress}% ${bytesToSize(downloaded)}`);
-		sourceGroup.setState({
-			progress,
-			downloaded
-		});
-		manager.emit('download:progress', {progress, downloaded, sourceGroup});
-	});
-
-	fetchTask.on('done', () => {
-		console.log(`Успешно загружено и сохранено`);
-		sourceGroup.setState({
-			status: 'fresh',
-			progress: 0,
-			size: 0,
-			loadedSize: sourceGroup.state.size,
-			loadedDate: new Date()
-		});
-		fetchTask = null;
-		manager.emit('download:done', {sourceGroup});
-	});
-
-	// QuotaExceededError, AbortError
-	fetchTask.on('error', ({name, message}) => {
-		console.log(`Ошибка: [${name}]: ${message}`);
-
-		if (name === 'AbortError') {
-			sourceGroup.setState({
-				status: 'need-update',
-			});
-
-		} else {
-			sourceGroup.setState({
-				status: 'error',
-				progress: 0,
-				size: 0,
-			});
-		}
-
-		fetchTask = null;
-		manager.emit('download:error', {name, message, sourceGroup});
-	});
-
-	fetchTask.fetch();
-
-	return true;
-}
-
 async function continueDownload() {
-	let groups = Object.values(sourceGroups);
+	let items = Object.values(downloadItems);
 	await Promise.all(
-		groups.map(group => group.statePromise)
+		items.map(item => item.statePromise)
 	);
-	let sourceGroup = groups.find(({state}) => state.status === 'loading');
+	let downloadItem = items.find(({state}) => state.status === 'loading');
 
-	if (sourceGroup) {
-		download(sourceGroup.id, true);
+	if (downloadItem) {
+		downloadItem.download(true);
 	}
 }
 
 function get(id) {
-	return sourceGroups[id];
-}
-
-async function refresh(id = 'calendar') {
-	let sourceGroup = sourceGroups[id];
-
-	await sourceGroup.refresh();
+	return downloadItems[id];
 }
 
 async function refreshAll() {
 	await Promise.all(
-		Object.values(sourceGroups).map(sourceGroup => sourceGroup.refresh())
+		Object.values(downloadItems).map(item => item.refresh())
 	);
 }
-
-async function cancel(id = 'calendar') {
-	let sourceGroup = sourceGroups[id];
-
-	if (!fetchTask || sourceGroup.state.status != 'loading') {
-		return;
-	}
-
-	await fetchTask.cancel();
-};
-
 
 /**
  * Получаем количество доступного и использованного пространства для хранения данных
@@ -226,8 +101,17 @@ async function getQuota() {
 }
 
 function registerSources() {
-	sourceGroupsList.forEach(item => {
-			sourceGroups[item.id] = item;
+	downloadItemsList.forEach(item => {
+			downloadItems[item.id] = item;
+
+			if (item.master) {
+				let masterId = item.master;
+				let master = downloadItemsList.find(({id}) => id === masterId);
+
+				master.on('state:changed', item.onMasterStateChanged.bind(item));
+				master.on('data:saved', item.onMasterSaved.bind(item));
+				master.on('data:deleted', item.onMasterDeleted.bind(item));
+			}
 	});
 }
 
@@ -306,9 +190,6 @@ async function testFitures() {
 }
 
 manager.init = init;
-manager.download = download;
-manager.cancel = cancel;
-manager.refresh = refresh;
 manager.refreshAll = refreshAll;
 manager.get = get;
 manager.testFitures = testFitures;

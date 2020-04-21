@@ -1,0 +1,142 @@
+<template>
+	<li id="{{$props.id}}">
+		<div class="item-content">
+			<div class="item-inner">
+				<div class="item-title-row">
+					<div class="item-title">{{downloadItem.title}}</div>
+					{{#js_if "this.status === 'fresh'"}}
+						<div class="item-after link"
+								 @click="delete">
+							<i class="icon material-icons">delete</i>
+						</div>
+					{{/js_if}}
+					{{#js_if "this.status === 'deleting'"}}
+						<div class="item-after link disabled">
+							<i class="icon material-icons">delete</i>
+						</div>
+					{{/js_if}}
+					{{#js_if "this.status === 'loading'"}}
+						<div class="item-after link"
+								 @click="cancel">
+							<i class="icon material-icons">clear</i>
+						</div>
+					{{/js_if}}
+					{{#js_if "['new','update', 'error'].indexOf(this.status) > -1"}}
+						<div class="item-after link"
+								 @click="download">
+							<i class="icon material-icons">get_app</i>
+						</div>
+					{{/js_if}}
+				</div>
+				<div class="item-text">
+					{{#js_if "this.status === 'new'"}}
+						<span>{{size}}</span>
+					{{/js_if}}
+					{{#js_if "this.status === 'fresh'"}}
+						<span>{{loadedSize}}</span>
+					{{/js_if}}
+					{{#js_if "this.status === 'loading'"}}
+						<span>Загружено {{downloaded}} из {{size}}</span>
+					{{/js_if}}
+					{{#js_if "this.status === 'update'"}}
+						<span class="badge color-theme float-right">Обновление {{size}}</span>
+						{{loadedSize}}
+					{{/js_if}}
+					{{#js_if "this.status === 'deleting'"}}
+						<span>Удаление...</span>
+					{{/js_if}}
+					{{#js_if "this.status === 'error'"}}
+						<span class="text-color-red">{{message}}</span>
+					{{/js_if}}
+				</div>
+				{{#js_if "this.status === 'loading'"}}
+					<div id="{{$props.id}}-progress"
+							 data-progress="{{progress}}"
+							 class="progressbar"></div>
+				{{/js_if}}
+				{{#js_if "this.status === 'deleting'"}}
+					<div class="progressbar progressbar-infinite"></div>
+				{{/js_if}}
+			</div>
+		</div>
+	</li>
+</template>
+<style scoped>
+</style>
+<!--suppress JSAnnotator -->
+<script>
+	import downloadManager from '../js/download/manager.js';
+	import { bytesToSize } from '../js/utils/utils.js';
+
+	let app, $el;
+	export default {
+		data() {
+			app = this.$app;
+
+			let downloadItemId = this.$props.dataItem;
+			let downloadItem = downloadManager.get(downloadItemId);
+
+			//console.log(downloadItem);
+
+			return {
+				downloadItem,
+			};
+		},
+		methods: {
+			async download() {
+				let downloadItem = this.downloadItem;
+				if (downloadItem.state.status == 'loading') {
+					app.dialog.alert(
+						`Пожалуйста, дождитесь окончания загрузки`,
+						'Оффлайн версия'
+					);
+					return false;
+				}
+
+				if (!navigator.onLine) {
+					app.dialog.alert(
+						`Скачивание невозможно.<br>
+						 Вы не подключениы к сети Интернет`,
+						'Офлайн версия'
+					);
+					return false;
+				}
+				//await downloadItem.refresh();
+				await downloadItem.download();
+			},
+			async cancel() {
+				await this.downloadItem.cancel();
+			},
+			async delete() {
+				this.$setState({
+					status: 'deleting'
+				});
+				await this.downloadItem.deleteAll();
+			},
+			onDownloadItemChanged({changed, state}) {
+				this.$setState({
+					status: state.status,
+					progress: state.progress,
+					message: state.message,
+					downloaded: bytesToSize(state.downloaded, 0),
+					size: bytesToSize(state.size, 0),
+					loadedSize: bytesToSize(state.loadedSize, 0)
+				});
+			}
+	 	},
+		// hooks
+    beforeCreate () {
+    },
+    async mounted () {
+			let downloadItem = this.downloadItem;
+			downloadItem.on('state:changed', this.onDownloadItemChanged);
+
+			await downloadItem.statePromise;
+
+			this.onDownloadItemChanged({state: downloadItem.state});
+    },
+    beforeDestroy () {
+			this.downloadItem.off('state:changed', this.onDownloadItemChanged);
+    },
+	};
+</script>

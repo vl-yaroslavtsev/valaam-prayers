@@ -21,7 +21,7 @@ function bytesToSize(bytes, decimals) {
  * @param {AbortSignal} [signal] Сигнал отмены
  * @return {Promise} Promise должен возвращать [данные, размер]
  */
-async function fetchJson(url, {params = {}, signal} = {}) {
+async function fetchJson(url, {params = {}, signal, size} = {}) {
 	let response = await fetch(formatUrl(url, params), {
 		signal
 	});
@@ -29,7 +29,13 @@ async function fetchJson(url, {params = {}, signal} = {}) {
 	if (!response.ok) {
 		return null;
 	}
-	//response.headers.get('data-length');
+
+	if (size) {
+		return [
+			await response.json(),
+			response.headers.get('data-length')*1
+		];
+	}
 	return await response.json();
 }
 
