@@ -21,7 +21,6 @@
 @import 'calendar.css';
 @import 'rites.css';
 
-
 body,
 .page {
 	background-image: url('../images/bg.jpg'); /* var(--bg-image); */

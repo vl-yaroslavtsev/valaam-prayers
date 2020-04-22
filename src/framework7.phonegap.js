@@ -5,7 +5,6 @@
  * Copyright 2020 Ивайло Тилев
  */
 
-/** @namespace StatusBar */
 /** @namespace webkit.messageHandlers.appInit */
 /** @namespace webkit.messageHandlers.callbackDebug */
 /** @namespace webkit.messageHandlers.hideSplash */
@@ -34,8 +33,7 @@ const Framework7PhoneGap = {
 
 			appInit() {
 				if(app.device['android']) {
-				}
-				else if(app.device['webview']) {
+				} else if(app.device['webview']) {
 					webkit.messageHandlers.appInit.postMessage(null);
 				}
 			},
@@ -151,15 +149,27 @@ const Framework7PhoneGap = {
 				},
 
 				hide() {
+					if(app.device.android)
+						app.$('html').removeClass('android-statusbar');
+					else if(app.device.ios && parseInt(app.device.osVersion) === 10)
+						app.$('html').removeClass('ios-statusbar');
+
 					StatusBar.hide();
 				},
 
 				show() {
+					StatusBar.hide();
 					StatusBar.show();
+
+					if(app.device.android) {
+						StatusBar.overlaysWebView(true);
+						StatusBar.styleLightContent();
+						app.$('html').addClass('android-statusbar');
+					} else if(app.device.ios && parseInt(app.device.osVersion) === 10)
+						app.$('html').addClass('ios-statusbar');
 				},
 
 				visible() {
-					// noinspection BadExpressionStatementJS
 					return StatusBar.isVisible;
 				}
 			},
@@ -178,8 +188,8 @@ const Framework7PhoneGap = {
 					if(app.device['webview'])
 						webkit.messageHandlers.callbackDebug.postMessage(params);
 				})
-			},
+			}
 		}
-	},
+	}
 
 };

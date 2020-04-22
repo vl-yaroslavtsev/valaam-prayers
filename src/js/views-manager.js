@@ -68,29 +68,28 @@ function initViewTabs() {
 	app.on('pageBeforeIn', (page) => {
 		let isWhite = page.$el.hasClass('page-white');
 		let isDarkMode = $$('html').hasClass('theme-dark');
-		app.statusbar.setTextColor(isWhite && !isDarkMode ? 'black' : 'white');
+		if (isWhite && !isDarkMode) {
+			app.phonegap.statusbar.styleDefault();
+		} else {
+			app.phonegap.statusbar.styleLightContent();
+		}
 	});
 
 	app.on('navbarShow', (navbarEl) => {
-		let $el = app.$(navbarEl);
-		$el.transitionEnd(() => {
+		//let $el = app.$(navbarEl);
+		//$el.transitionEnd(() => {
 			if (settingsManager.get('hideStatusbar')) {
-				app.statusbar.hide();
-				app.statusbar.show();
-				app.statusbar.overlaysWebView(true);
-			} else {
-				app.root.find('.statusbar-bg').hide();
+				app.phonegap.statusbar.show();
 			}
-
-		});
+		//});
 	});
 
 	app.on('navbarHide', (navbarEl) => {
 		if (settingsManager.get('hideStatusbar')) {
-			app.statusbar.hide();
-		} else {
-			app.root.find('.statusbar-bg').show();
-		}
+			let $el = app.$(navbarEl);
+			$el.addClass('navbar-hidden-statusbar');
+			app.phonegap.statusbar.hide();
+    }
 	});
 
 	app.on('popupOpened', (popup) => {
@@ -104,12 +103,16 @@ function initViewTabs() {
 			return;
 		}
 
-		app.statusbar.setTextColor(isDarkMode ? 'white' : 'black');
+		if (isDarkMode) {
+			app.phonegap.statusbar.styleLightContent();
+		} else {
+			app.phonegap.statusbar.styleDefault();
+		}
+
 	});
 
 	app.on('popupClose', (popup) => {
-		//console.log('popupClose', popup);
-		app.statusbar.setTextColor('white');
+		app.phonegap.statusbar.styleLightContent();
 	});
 
 	parseHash();
@@ -242,7 +245,7 @@ function handleBackButton(e) {
 
 	if (!backButtonAttempts) {
 		let toast = app.toast.show({
-			text: 'Нажмите ещё раз "Назад" для выхода',
+			text: 'Нажмите ещё для выхода',
 			closeTimeout: 2000,
 			destroyOnClose: true,
 			on: {

@@ -85,6 +85,7 @@
 			webkit.messageHandlers.statusBarShow.postMessage(null);
 			StatusBar.isVisible = true;
 		}
+
 	};
 
 	window.StatusBar = StatusBar;
