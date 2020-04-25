@@ -5,44 +5,33 @@
 import {
 	format,
 	parse,
-	startOfYear,
-	endOfYear,
-	getUnixTime
 } from '../utils/date-utils.js';
+
+import { jsonSize } from '../utils/utils.js';
 
 import db from '../data/db.js';
 
 const API_URL = 'https://valaam.ru/phonegap/';
 
-function getPeriod(type = 'year') {
-	switch (type) {
-		case 'year':
-		return {
-			start: startOfYear(new Date()),
-			end: endOfYear(new Date())
-		};
-
-		default:
-		return null;
-	}
-}
-
-class Source {
+/**
+ * Базовый класс для источника json
+ */
+class JsonSource {
 	constructor(params = {}) {}
 
 	async save(data) {
-		throw new Error('Source.save not implemented!');
+		throw new Error('JsonSource.save not implemented!');
 	}
 
 	async delete() {
 	}
 
-	async count() {
+	async size() {
 		return 0;
 	}
 }
 
-class Calendar extends Source {
+class Calendar extends JsonSource {
 	constructor() {
 		super();
 		this.url = `${API_URL}days/calendar/`;
@@ -54,9 +43,14 @@ class Calendar extends Source {
 	async save(data) {
 		await db.collections.put(data, 'calendar');
 	}
+
+	async size() {
+		let value = await db.collections.get('calendar');
+		return jsonSize(value);
+	}
 }
 
-class Prayers extends Source {
+class Prayers extends JsonSource {
 	constructor(params = {}) {
 		super();
 		this.url = `${API_URL}prayers/`;
@@ -69,9 +63,14 @@ class Prayers extends Source {
 	async save(data) {
 		await db.collections.put(data, 'prayers');
 	}
+
+	async size() {
+		let value = await db.collections.get('prayers');
+		return jsonSize(value);
+	}
 }
 
-class SaintsList extends Source {
+class SaintsList extends JsonSource {
 	constructor(params = {}) {
 		super();
 		this.url = `${API_URL}saints/list/`;
@@ -82,24 +81,24 @@ class SaintsList extends Source {
 		};
 	}
 
-	async save({data}, dowloadItemId) {
+	async save({data}) {
 		await db.saints.putAll(data);
-	}
-
-	getImageUrls(item) {
-		return [item.picture];
 	}
 
 	async delete() {
 		await db.saints.clear();
 	}
 
-	async count() {
-		return await db.saints.count();
+	async size() {
+		let size = 0;
+		await db.saints.iterate((key, value) => {
+			size += jsonSize(value);
+		})
+		return size;
 	}
 }
 
-class DaysList extends Source {
+class DaysList extends JsonSource {
 	constructor(params = {}) {
 		super();
 		this.url = `${API_URL}days/list/`;
@@ -110,12 +109,8 @@ class DaysList extends Source {
 		};
 	}
 
-	async save({data}, dowloadItemId) {
+	async save({data}) {
 		await db.days.putAll(data);
-	}
-
-	getImageUrls(item) {
-		return [item.picture, item.prayers.picture];
 	}
 
 	async delete() {
@@ -124,14 +119,19 @@ class DaysList extends Source {
 		);
 	}
 
-	async count() {
-		return await db.days.count(
+	async size() {
+		let size = 0;
+		await db.days.iterate(
+			(key, value) => {
+				size += jsonSize(value);
+			},
 			IDBKeyRange.bound(this.params.from_date, this.params.to_date)
 		);
+		return size;
 	}
 }
 
-class PrayersList extends Source {
+class PrayersList extends JsonSource {
 	constructor(params = {}) {
 		super();
 		this.url = `${API_URL}prayers/list/`;
@@ -142,31 +142,104 @@ class PrayersList extends Source {
 		}
 	}
 
-	async save({data}, dowloadItemId) {
-		data.forEach(item => item.root_id = this.params.section_id);
+	async save({data}) {
+		data.forEach(item => item.root_id = this.params.section_id); // root section
 		await db.prayers.putAll(data);
 	}
 
-	getImageUrls(item) {
-		return [item.picture];
-	}
-
-	async delete(dowloadItemId) {
+	async delete() {
 		await db.prayers.deleteFromIndex('by-root-id', this.params.section_id);
 	}
 
-	async count(dowloadItemId) {
-		return await db.prayers.countFromIndex('by-root-id', this.params.section_id);
+	async size() {
+		let size = 0;
+		await db.prayers.iterateFromIndex(
+			'by-root-id',
+			this.params.section_id,
+			(key, value) => {
+				size += jsonSize(value);
+			}
+		);
+		return size;
+	}
+}
+
+/**
+ * Базовый класс для источника икон
+ */
+class IconsSource {
+	constructor(params = {}) {
+		this.id = '';
+		this.url = ``;
+	}
+
+	async save(data) {
+		await db.images.putAll(data);
+	}
+
+	async delete() {
+		await db.images.deleteFromIndex('by-source-id', this.id);
+	}
+
+	async size() {
+		let size = 0;
+		await db.images.iterateFromIndex(
+			'by-source-id',
+			this.id,
+			(key, {image}) => size += image.size
+		);
+		return size;
+	}
+}
+
+class SaintsIcons extends IconsSource {
+	constructor(params = {}) {
+		super();
+		this.id = 'saints';
+		this.url = `${API_URL}saints/list/`;
+		this.params = {
+			image_only: 1,
+			image_size: 's',
+			...params
+		};
+	}
+}
+
+class DaysIcons extends IconsSource {
+	constructor(params = {}) {
+		super();
+		this.id = 'days' + (params.from_date ? `-${format(parse(params.from_date), 'yyyy')}` : '');
+		this.url = `${API_URL}days/list/`;
+		this.params = {
+			image_only: 1,
+			image_size: 's',
+			...params
+		};
+	}
+}
+
+class PrayersIcons extends IconsSource {
+	constructor(params = {}) {
+		super();
+		this.id = 'prayers';
+		this.url = `${API_URL}prayers/list/`;
+		this.params = {
+			image_only: 1,
+			image_size: 's',
+			...params
+		};
 	}
 }
 
 export {
-	getPeriod,
 	Calendar,
 	Prayers,
 	DaysList,
+	DaysIcons,
 	PrayersList,
-	SaintsList
+	PrayersIcons,
+	SaintsList,
+	SaintsIcons
 };
 
 //'icons': ['saints', 'calendar']

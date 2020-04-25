@@ -11,7 +11,6 @@ import {
 	endOfYear,
 	getUnixTime
 } from '../utils/date-utils.js';
-import { bytesToSize, fetchJson } from '../utils/utils.js';
 
 import db from '../data/db.js';
 import downloadItemsList from './items.js';
@@ -46,19 +45,23 @@ function init(appInstance) {
 }
 
 async function continueDownload() {
-	let items = Object.values(downloadItems);
-	await Promise.all(
-		items.map(item => item.statePromise)
-	);
-	let downloadItem = items.find(({state}) => state.status === 'loading');
-
+	let downloadItem = await getLoading();
 	if (downloadItem) {
-		downloadItem.download(true);
+		downloadItem.download();
 	}
 }
 
 function get(id) {
 	return downloadItems[id];
+}
+
+async function getLoading() {
+	let items = Object.values(downloadItems);
+	await Promise.all(
+		items.map(item => item.statePromise)
+	);
+
+	return items.find(({state}) => state.status === 'loading');
 }
 
 async function refreshAll() {
@@ -192,6 +195,7 @@ async function testFitures() {
 manager.init = init;
 manager.refreshAll = refreshAll;
 manager.get = get;
+manager.getLoading = getLoading;
 manager.testFitures = testFitures;
 
 

@@ -36,7 +36,7 @@
 						<span>{{loadedSize}}</span>
 					{{/js_if}}
 					{{#js_if "this.status === 'loading'"}}
-						<span>Загружено {{downloaded}} из {{size}}</span>
+						Загружено {{downloaded}} из {{size}}
 					{{/js_if}}
 					{{#js_if "this.status === 'update'"}}
 						<span class="badge color-theme float-right">Обновление {{size}}</span>
@@ -85,42 +85,49 @@
 		methods: {
 			async download() {
 				let downloadItem = this.downloadItem;
-				if (downloadItem.state.status == 'loading') {
-					app.dialog.alert(
-						`Пожалуйста, дождитесь окончания загрузки`,
-						'Оффлайн версия'
-					);
+				let loading = await downloadManager.getLoading();
+
+				if (loading) {
+					app.methods.showMessage(`
+						Пожалуйста, дождитесь окончания текущей загрузки.
+					`);
 					return false;
 				}
 
 				if (!navigator.onLine) {
-					app.dialog.alert(
-						`Скачивание невозможно.<br>
-						 Вы не подключениы к сети Интернет`,
-						'Офлайн версия'
-					);
+					app.methods.showMessage(`
+						Скачивание невозможно.<br>
+						Вы не подключениы к сети Интернет.
+					`);
 					return false;
 				}
-				//await downloadItem.refresh();
-				await downloadItem.download();
+				downloadItem.download();
 			},
-			async cancel() {
-				await this.downloadItem.cancel();
+			cancel() {
+				app.dialog.confirm(
+					'Отменить загрузку?',
+					() => this.downloadItem.cancel()
+				);
 			},
-			async delete() {
-				this.$setState({
-					status: 'deleting'
-				});
-				await this.downloadItem.deleteAll();
+			delete() {
+				app.dialog.confirm(
+					'Удалить данные?',
+					() => {
+						this.$setState({
+							status: 'deleting'
+						});
+						this.downloadItem.deleteAll();
+					}
+				);
 			},
 			onDownloadItemChanged({changed, state}) {
 				this.$setState({
 					status: state.status,
 					progress: state.progress,
 					message: state.message,
-					downloaded: bytesToSize(state.downloaded, 0),
-					size: bytesToSize(state.size, 0),
-					loadedSize: bytesToSize(state.loadedSize, 0)
+					downloaded: bytesToSize(state.downloaded, {decimals: 1}),
+					size: bytesToSize(state.size),
+					loadedSize: bytesToSize(state.loadedSize)
 				});
 			}
 	 	},

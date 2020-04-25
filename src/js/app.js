@@ -157,29 +157,6 @@ const app = new Framework7({
 			});
 
 			this.phonegap.statusbar.show();
-
-			// if (this.device.android) {
-			// 	//this.phonegap.statusbar.show();
-			//
-			// 	// Внимание: говнокод!
-			// 	// Для Андроид 6 строчка выше не делает оверлей для статусбара,
-			// 	// когда мы вышли из приложения по кнопке "назад" и снова зашли на него.
-			// 	// Вы этом случае помогают эти 3 строчки.
-			// 	this.phonegap.statusbar.hide();
-			// 	this.phonegap.statusbar.show();
-			// 	this.phonegap.statusbar.overlaysWebView(true);
-			//
-			// } else if (this.device.ios) {
-			// 	// this.phonegap.statusbar.overlaysWebView(true); // не работает
-			// 	// this.phonegap.statusbar.backgroundColorByName('red'); // не работает
-			// 	// this.phonegap.statusbar.backgroundColorByHexString('#3878a8'); // не работает
-			// 	//
-			// 	// this.phonegap.statusbar.hide();// работает!
-			// 	// this.phonegap.statusbar.show();// работает!
-			// 	// this.phonegap.statusbar.styleDefault();// работает!
-			// 	// this.phonegap.statusbar.styleLightContent();// работает!
-			// }
-
 			this.phonegap.hideSplash();
 			this.phonegap.networkIndicator(false);
 			this.phonegap.appInit();
@@ -235,19 +212,24 @@ const app = new Framework7({
 
 			return data ? data[idx] : idx;
 		},
-		showLoadError(msg, timeout) {
-			this.methods.showMessage(msg ||
-				'Ошибка загрузки данных',
-				'bg-color-red', timeout);
-		},
-		showMessage(msg, bgcolor, timeout) {
-			this.toast.create({
-				text: msg || 'Ошибка',
-				position: 'top',
-				closeTimeout: timeout || 5000,
+		showMessage(msg, {css, timeout = 5000, position = 'bottom'} = {}) {
+			this.toast.show({
+				text: msg,
+				position,
+				closeTimeout: timeout,
 				destroyOnClose: true,
-				cssClass: bgcolor
-			}).open();
+				cssClass: css
+			});
+		},
+		showError(msg, timeout) {
+			this.methods.showMessage(msg, {
+				css: 'bg-color-red',
+				timeout,
+				position: 'top'
+			});
+		},
+		showLoadError(msg, timeout) {
+			this.methods.showError(msg ||	'Ошибка загрузки данных');
 		},
 		storageGet(key) {
 			key = this.id + '_' + key;

@@ -51,7 +51,8 @@ class Store {
 
 	/**
 	 * Сохраняем массив элементов одной транзакцией.
-	 * @param  {Array<*>}  values значеия
+	 * @param {Array<*>}  values значеия
+	 * @param {AbortSignal} signal
 	 * @return {Promise}
 	 */
 	async putAll(values) {
@@ -100,8 +101,8 @@ class Store {
 		return this.idb.count(this.name, query);
 	}
 
-	async iterate(callback = (key, value) => {}) {
-		let cursor = await this.idb.transaction(this.name).store.openCursor();
+	async iterate(callback = (key, value) => {}, query) {
+		let cursor = await this.idb.transaction(this.name).store.openCursor(query);
 
 		while (cursor) {
 		  callback(cursor.key, cursor.value);

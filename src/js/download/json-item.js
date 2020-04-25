@@ -1,6 +1,6 @@
 import { getUnixTime } from '../utils/date-utils.js';
 import { fetchJson, formatUrl } from '../utils/utils.js';
-import StateStore from '../state-store.js';
+import DownloadItem from './item.js';
 import FetchTask from './fetch-task.js';
 /**
  * Размер элемента данных в килобайтах (в среднем)
@@ -11,37 +11,19 @@ const ROW_SIZE_AVG = 20.8 * 1024;
 /**
  * Элемент загрузки офлайн данных
  */
-class JsonDownloadItem extends StateStore {
+class JsonDownloadItem extends DownloadItem {
 	constructor({
 		id,
 		title,
 		sources,
 		row_size = ROW_SIZE_AVG
 	}) {
-		super(
-			'download-item-' + id,
-			{
-				status: 'new',
-				progress: 0, // прогресс скачивания данных
-				size: 0, // Размер данных доступных для скачивания
-				loadedSize: 0, // Размер сохраненных данных
-				loadedDate: 0, // Дата последней загрузки данных
-			}
-		);
+		super({
+			id,
+			title,
+			sources
+		});
 
-		if (!id) {
-			throw new Error(`Невозможно создать JsonDownloadItem. Не задан id`);
-		}
-		if (!sources) {
-			throw new Error(`Невозможно создать JsonDownloadItem. Не задан sources`);
-		}
-
-		this.id = id;
-		this.title = title;
-		/**
-		 * @type {Array.<DownloadSource>}
-		 */
-		this.sources = sources;
 		this.row_size = row_size;
 		this.count = 0; // количество элементов для скачивания
 		this.urls = [];
@@ -120,7 +102,6 @@ class JsonDownloadItem extends StateStore {
 			throw err;
 		}
 
-		this.count = totalCount;
 		await this.setState({
 			status: !loadedTs ? 'new' : (totalCount ? 'update' : 'fresh'),
 			size: totalCount * this.row_size,
@@ -131,6 +112,7 @@ class JsonDownloadItem extends StateStore {
 
 	/**
 	 * Обновляем состояние
+	 * @override
 	 * @return {Promise}
 	 */
 	async refresh() {
@@ -144,6 +126,7 @@ class JsonDownloadItem extends StateStore {
 
 	/**
 	 * Сохраняем элемент данных
+	 * @override
 	 * @param  {Object}  data
 	 * @param  {string}  sourceUrl
 	 * @return {Promise}
@@ -153,122 +136,53 @@ class JsonDownloadItem extends StateStore {
 		let source = this.sources.find(
 			({url}) => url === (sourceUrl.origin + sourceUrl.pathname)
 		);
-		await source.save(data, this.id);
+		await source.save(data);
 
 		this.emit('data:saved', data, source);
 	}
 
-	async deleteAll() {
-		await Promise.all(
-			this.sources.map(source => source.delete(this.id))
-		);
-		await this.setState({
-			loadedSize: 0,
-			loadedDate: 0
-		});
-		await this.refresh();
-		this.emit('data:deleted');
-	}
-
-	async countTotal() {
-		let res = await Promise.all(
-			this.sources.map(source => source.count(this.id))
-		);
-
-		return res.reduce((total, count) => total += count);
-	}
-
 	/**
 	 * Старт загрузки
+	 * @override
 	 */
 	async download() {
-		//console.log(downloadItem);
-
-		let fetchTask = this.fetchTask = new FetchTask({
+		this.fetchTask = new FetchTask({
 			id: this.id,
 			urls: this.urls,
 			type: 'json',
 			save: async (data, url) => this.save(data, url)
 		});
 
-		fetchTask.on('start', () => {
-			//console.log(`Прогресс загрузки начат`);
-			this.setState({
-				status: 'loading'
-			});
+		this.fetchTask.on('start', () => {
+			this.emit('download:start');
 		});
 
-		fetchTask.on('continue', () => {
-			//console.log(`Прогресс загрузки продолжается`);
-			this.setState({
-				status: 'loading'
-			});
+		this.fetchTask.on('continue', () => {
+			this.emit('download:continue');
 		});
 
-		fetchTask.on('progress', ({progress, downloaded}) => {
-			//console.log(`Прогресс загрузки ${progress}% ${bytesToSize(downloaded)}`);
-			this.setState({
-				progress,
-				downloaded
-			});
+		this.fetchTask.on('progress', ({downloaded}) => {
+			this.emit('download:progress', {downloaded});
 		});
 
-		fetchTask.on('done', async () => {
-			console.log(`Успешно загружено и сохранено`);
-
-			console.time('json-item: count');
-			let total = await this.countTotal();
-			console.timeEnd('json-item: count');
-			console.log('json-item: count', total);
-
-			this.setState({
-				status: 'fresh',
-				downloaded: 0,
-				progress: 0,
-				loadedSize: total * this.row_size,
-				loadedDate: new Date()
-			});
-			fetchTask = null;
-		});
-
-		// QuotaExceededError, AbortError
-		fetchTask.on('error', ({name, message}) => {
-			console.log(`Ошибка: [${name}]: ${message}`);
-
-			if (name === 'AbortError') {
-				this.setState({
-					status: this.state.loadedSize ? 'update' : 'new',
-					progress: 0,
-					downloaded: 0
-				});
-
-			} else if (name === 'QuotaExceededError') {
-				this.setState({
-					status: 'error',
-					message: 'Недостаточно места на устройстве для сохранения данных',
-					progress: 0,
-					downloaded: 0
-				});
-
-			} else {
-				this.setState({
-					status: 'error',
-					message: `Ошибка при загрузке данных. [${name}]: ${message}`,
-					progress: 0,
-					size: 0,
-				});
-			}
-
+		this.fetchTask.on('done', async () => {
+			this.emit('download:done');
 			this.fetchTask = null;
 		});
 
-		fetchTask.fetch();
+		this.fetchTask.on('error', ({name, message}) => {
+			this.emit('download:error', {name, message});
+			this.fetchTask = null;
+		});
 
-		this.fetchTask = fetchTask;
-
+		this.fetchTask.fetch();
 		return true;
 	}
 
+	/**
+	 * Отменяем загрузку
+	 * @override
+	 */
 	cancel() {
 		this.fetchTask.cancel();
 	}

@@ -352,7 +352,7 @@
 				let errors = $form.find('input.input-invalid');
 
 				if(!formData.names) {
-					app.methods.showMessage('Введите имя', 'bg-color-red', 3000);
+					app.methods.showError('Введите имя');
 					this.$router.navigate(this.$$('.vm-rites-names > ul > li:first-child > a').attr('href'));
 					return;
 				}
@@ -388,7 +388,7 @@
 								error.push(result[e]);
 						});
 
-						app.methods.showMessage(result.error || error.join('<br>'), 'bg-color-red');
+						app.methods.showError(result.error || error.join('<br>'));
 					} else {
 						self.$router.navigate('/rites-status?id=' + (result.id || result['payment_id']));
 

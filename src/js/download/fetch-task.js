@@ -22,7 +22,6 @@ class FetchTask extends StateStore {
 		super(
 			'fetch-task-' + id,
 			{
-				status: 'new',
 				index: 0,
 				urls: [],
 				retryCount: 0,
@@ -72,33 +71,44 @@ class FetchTask extends StateStore {
 				let data;
 
 				bulkUrls.push(url);
-				if (bulkUrls.length < this.bulk_size) {
+				if (bulkUrls.length < this.bulk_size &&
+						bulkUrls.length < len) {
 					continue;
 				}
 
-				await this.setState({
-					status: 'loading',
-					index: i,
-				});
-
 				if (this.type === 'json') {
 					data = await Promise.all(
-						bulkUrls.map(url => fetchJson(url, {signal, size: true}))
+						bulkUrls.map(url => fetchJson(
+							url,
+							{
+								signal,
+								progress: ({chunk}) => {
+									downloaded += chunk;
+									this.emit('progress', {
+										downloaded
+									});
+								}
+							}
+						))
 					);
-					let dataJson = [];
-					for (let [json, size] of data) {
-						if (!json) continue;
-						downloaded += size;
-						dataJson.push(json);
-					}
-					data = dataJson;
+					data = data.filter(json => !!json);
 					if (this.bulk_size === 1) data = data[0];
 				} else if (this.type === 'blob') {
 					data = await Promise.all(
-						bulkUrls.map(url => fetchBlob(url, {signal}))
+						bulkUrls.map(url => fetchBlob(
+							url,
+							{
+								signal,
+								progress: ({chunk}) => {
+									downloaded += chunk;
+									this.emit('progress', {
+										downloaded
+									});
+								}
+							}
+						))
 					);
 					data = data.filter(blob => !!blob);
-					data.forEach(blob => {downloaded += blob.size});
 					if (this.bulk_size === 1) data = data[0];
 				}
 
@@ -107,33 +117,33 @@ class FetchTask extends StateStore {
 				});
 
 				this.emit('progress', {
-					downloaded,
- 				 	progress: Math.floor(100 * (2 * (i + 1) - 1 ) / (2 * len))
+					downloaded
 				});
 
-				await this.save(data, this.bulk_size === 1 ? url : bulkUrls);
+				await this.save(data,	this.bulk_size === 1 ? url : bulkUrls);
 
-				this.emit('progress', {
-					downloaded,
- 				 	progress: Math.floor(100 * (2 * (i + 1) - 0) / (2 * len))
+				await this.setState({
+					index: i + 1,
 				});
 
 				bulkUrls = [];
 			}
 		} catch(err) {
+			console.log(err);
 			// Нет сети интернет
+			//console.log('fetch task catch:', err.name, err.message, err);
 			if (err.name === 'TypeError' && err.message === 'Failed to fetch') {
 				// Пробуем еще раз
-				if (!signal.aborted && this.state.retryCount < MAX_RETRY_COUNT) {
-					setTimeout(() => {
+				if (signal.aborted) {
+					err = new DOMException('Aborted', 'AbortError');
+				} else if (this.state.retryCount < MAX_RETRY_COUNT) {
+					return setTimeout(() => {
 						this.setState({
 							retryCount: ++this.state.retryCount
 						});
 						this.fetch();
 					}, RETRY_PERIOD);
 				}
-
-				throw err;
 			}
 
 			this.emit('error', {

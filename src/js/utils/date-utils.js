@@ -66,6 +66,7 @@ function unixNow() {
 export {
 	addDays,
 	subDays,
+	addYears,
 	startOfYear,
 	endOfYear,
 	isLeapYear,

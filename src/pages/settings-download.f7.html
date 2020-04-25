@@ -22,13 +22,13 @@
 				духовная литература для работы без сети Интернет.</p>
 		</div>
 
-		{{#if new.length}}
+		{{#if loaded.length}}
 		<div class="block-header">
-			<p>Доступные для скачивания</p>
+			<p>Загруженные</p>
 		</div>
 		<div class="list media-list no-hairlines">
 			<ul>
-				{{#each new}}
+				{{#each loaded}}
 				<download-list-item
 					id="download-item-{{id}}"
 					data-item="{{id}}">
@@ -38,13 +38,13 @@
 		</div>
 		{{/if}}
 
-		{{#if loaded.length}}
+		{{#if new.length}}
 		<div class="block-header">
-			<p>Загруженные</p>
+			<p>Доступные для скачивания</p>
 		</div>
 		<div class="list media-list no-hairlines">
 			<ul>
-				{{#each loaded}}
+				{{#each new}}
 				<download-list-item
 					id="download-item-{{id}}"
 					data-item="{{id}}">
@@ -71,6 +71,16 @@
 		left: 0;
 		right: 0;
 	}
+
+	.item-text .digit {
+		font-family: monospace;
+		font-size: 1.1em;
+		letter-spacing: -0.5px;
+	}
+
+	.item-text .badge .digit {
+		display: contents;
+	}
 </style>
 <!--suppress JSAnnotator -->
 <script>
@@ -79,7 +89,12 @@
 	const downloadItemIds = [
 		'calendar',
 		'calendar_icons',
+		'calendar_next',
+		'calendar_next_icons',
+		'saints',
+		'saints_icons',
 		'prayers',
+		'prayers_icons',
 		'liturgical_books',
 		'spiritual_books',
 	];
@@ -112,13 +127,18 @@
 	 	},
 		on: {
 			async pageInit(e, page) {
-				await downloadManager.refreshAll();
-
 				this.all.forEach(
 					item => item.on('state:changed', this.onDownloadItemChanged)
 				);
-				this.updateState();
-				app.preloader.hide();
+
+				try {
+					await downloadManager.refreshAll();
+					this.updateState();
+				} catch (err) {
+					app.methods.showLoadError();
+				} finally {
+					app.preloader.hide();
+				}
 			},
 			pageBeforeRemove() {
 				this.all.forEach(item => item.off('state:changed', this.onDownloadItemChanged));
