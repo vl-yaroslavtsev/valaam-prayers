@@ -26,9 +26,8 @@
 			<div class="block block-strong inset text-content">
 				{{#if picture}}
 				<img class="lazy"
-					 data-src="https://valaam.ru{{picture}}"
-					 data-src-db="{{picture}}"
-					 data-srcorig="https://valaam.ru{{picture_3x}}"
+					 data-src="{{picture}}"
+					 data-src-full="{{picture_full}}"
 					 title="{{name}}">
 					 <!--data-srcset="{{picture_srcset}}"
 					 sizes="45vw"-->
@@ -53,17 +52,30 @@
 </style>
 <!--suppress JSAnnotator -->
 <script>
-	export default {
-		data() {
+	import { getUrl } from '../js/image-manager.js';
 
-			var saintId = (this.$route.context && this.$route.context.actionId) ||
+	export default {
+		async data() {
+			let saintId = (this.$route.context && this.$route.context.actionId) ||
 									  this.$route.params.saintId,
 					app = this.$app,
-					liveData = Object.assign({}, this.saint);
+					saintData = Object.assign({}, this.saint);
 
-			liveData.searchMode = this.$route.query.mode === 'search';
+			if (saintData.picture) {
+				saintData.picture = await getUrl({
+					s: this.saint.picture,
+					m: this.saint.picture_2x
+				});
+				saintData.picture_full = await getUrl({
+					s: this.saint.picture_3x,
+					sOffline: this.saint.picture,
+					mOffline: this.saint.picture_2x
+				});
+			}
 
-			return liveData;
+			saintData.searchMode = this.$route.query.mode === 'search';
+
+			return saintData;
 		}
 	};
 </script>

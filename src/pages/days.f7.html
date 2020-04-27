@@ -33,9 +33,8 @@
 				<div class="block day-saints-icon">
 					<div class="item-media media-obj no-bg">
 						<img class="media-obj-img lazy"
-							 data-src="https://valaam.ru{{day.picture}}"
-							 data-src-db="{{day.picture}}"
-							 data-srcorig="https://valaam.ru{{day.picture_3x}}"
+							 data-src="{{day.picture}}"
+							 data-src-full="{{day.picture_full}}"
 							 title="{{day.picture_desc}}">
 							 <!-- data-srcset="{{day.picture_srcset}}"
 	 						sizes="60vw" -->
@@ -218,9 +217,11 @@
 </style>
 <!--suppress JSAnnotator -->
 <script>
-	import {format, parse, addDays, subDays} from '../js/utils/date-utils.js';
-	import {upperFirst} from 'lodash-es';
+	import Framework7 from 'framework7';
+	import { format, parse, addDays, subDays } from '../js/utils/date-utils.js';
+	import { upperFirst } from 'lodash-es';
 	import dataManager from '../js/data/manager.js';
+	import { getUrl } from '../js/image-manager.js';
 
 	let app;
 
@@ -228,9 +229,9 @@
 		on: {
 			pageAfterIn(e, page) {
 				// this.$router.navigate('/days/20190428', {});
-			}
+			},
 		},
-		data() {
+		async data() {
 			app = this.$app;
 			let prayers = dataManager.cache.prayers,
 				dayCode = this.$route.params.id,
@@ -243,6 +244,16 @@
 			day.text = (day.text)
 				.replace(/\/local\/templates\/valaam\/images\/(ideograph-\d\.png)/ig, 'images\/$1')
 			;
+
+			day.picture = await getUrl({
+				s: this.day.picture,
+				m: this.day.picture_2x
+			});
+			day.picture_full = await getUrl({
+				s: this.day.picture_3x,
+				sOffline: this.day.picture,
+				mOffline: this.day.picture_2x
+			});
 
 			day.picture_desc = app.methods.hyphenate(day.picture_desc);
 

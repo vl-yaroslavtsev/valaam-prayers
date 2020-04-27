@@ -21,6 +21,39 @@ function bytesToSize(bytes, {decimals = 0, wrapDigit = true} = {}) {
 	}
 }
 
+function getProgressResponse(response, progress) {
+	let reader = response.body.getReader();
+
+	return new Response(
+		new ReadableStream({
+			start(controller) {
+				read();
+				async function read() {
+					try {
+						let {done, value} = await reader.read();
+						if (done) {
+							controller.close();
+							return;
+						}
+						progress(value.byteLength);
+						controller.enqueue(value);
+						read(controller);
+					} catch(err) {
+						console.log('ReadableStream error:', err.name, err.message);
+						controller.error(err);
+						//throw err;
+					}
+				}
+			}
+		}),
+		{
+			status: response.status,
+			statusText:	response.statusText,
+			headers: response.headers
+		}
+	);
+}
+
 /**
  * Получаем данные из сети в json
  * @param {string}      url Урл для запроса данных
@@ -87,35 +120,6 @@ async function fetchJson2(url, {params = {}, signal, start, progress} = {}) {
 	}
 
 	return data;
-}
-
-function getProgressResponse(response, progress) {
-	let reader = response.body.getReader();
-
-	return new Response(
-		new ReadableStream({
-			start(controller) {
-				read();
-				async function read() {
-					try {
-						let {done, value} = await reader.read();
-						if (done) {
-							controller.close();
-							return;
-						}
-						progress(value.byteLength);
-						controller.enqueue(value);
-						read(controller);
-					} catch(err) {
-						console.log('ReadableStream error:', err.name, err.message);
-						controller.error(err);
-						//throw err;
-					}
-				}
-			}
-		}),
-		response.headers
-	);
 }
 
 /**

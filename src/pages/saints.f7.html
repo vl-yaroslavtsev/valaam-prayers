@@ -27,15 +27,13 @@
 				{{#if picture}}
 				<div class="saint-icon media-obj">
 					<img class="media-obj-tile lazy"
-						 data-src="https://valaam.ru{{picture}}"
-						 data-src-db="{{picture}}">
+						 data-src="{{picture}}">
 						 <!--
 						 data-srcset="{{picture_srcset}}"
 						 sizes="100vw" -->
 					<img class="media-obj-img lazy"
-						 data-src="https://valaam.ru{{picture}}"
-						 data-src-db="{{picture}}"
-						 data-srcorig="https://valaam.ru{{picture_3x}}"
+						 data-src="{{picture}}"
+						 data-src-full="{{picture_full}}"
 						 title="{{name}}">
 						 <!-- data-srcset="{{picture_srcset}}"
 						 sizes="100vw" -->
@@ -175,14 +173,27 @@
 <script>
 	import {format, parse, addDays, subDays} from '../js/utils/date-utils.js';
 	import dataManager from '../js/data/manager.js';
+	import { getUrl } from '../js/image-manager.js';
 
 	export default {
-		data() {
+		async data() {
 			let saintId = (this.$route.context && this.$route.context.actionId) ||
 				    		this.$route.params.saintId,
 				prayers = dataManager.cache.prayers;
 
 			let saintData = Object.assign({}, this.saint);
+
+			if (saintData.picture) {
+				saintData.picture = await getUrl({
+					s: this.saint.picture,
+					m: this.saint.picture_2x
+				});
+				saintData.picture_full = await getUrl({
+					s: this.saint.picture_3x,
+					sOffline: this.saint.picture,
+					mOffline: this.saint.picture_2x
+				});
+			}
 
 			saintData.text_short = saintData.text
 				.replace(/<\/?[^>]+>/gi, '')

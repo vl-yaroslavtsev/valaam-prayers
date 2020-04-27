@@ -155,6 +155,9 @@ body,
 	position: relative;
 	background-color: #b3b3b3;
 	overflow: hidden;
+	display: flex;
+	justify-content: center;
+	align-items: center;
 }
 
 .media-obj.no-bg {
@@ -178,10 +181,10 @@ body,
 
 .media-obj-img {
 	position: relative;
-	display: block;
-	width: 100%;
-	height: 100%;
-	object-fit: contain;
+	width: auto;
+	height: auto;
+	max-width: 100%;
+	max-height: 100%;
 }
 
 .skeleton-text, .skeleton-text * {

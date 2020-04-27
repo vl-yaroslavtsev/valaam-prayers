@@ -27,9 +27,8 @@
 			<div class="block block-strong inset text-content">
 				{{#if thoughts.picture}}
 				<img class="lazy"
-					data-src="https://valaam.ru{{thoughts.picture}}"
-					data-src-db="{{thoughts.picture}}"
-					data-srcorig="https://valaam.ru{{thoughts.picture_3x}}"
+					data-src="{{thoughts.picture}}"
+					data-src-full="{{thoughts.picture_full}}"
 					>
 				{{/if}}
 					<!-- data-srcset="{{thoughts.picture_srcset}}"
@@ -52,12 +51,28 @@
 </style>
 <!--suppress JSAnnotator -->
 <script>
-	export default {
-		data() {
-			let dayCode = this.$route.params.id,
-				dayData = {};
+	import { getUrl } from '../js/image-manager.js';
 
-			dayData.thoughts = this.day.prayers;
+	export default {
+		async data() {
+			let dayCode = this.$route.params.id,
+					dayData = {},
+					prayers = this.day.prayers;
+
+			dayData.thoughts = Object.assign({}, prayers);
+
+			if (dayData.thoughts.picture) {
+				dayData.thoughts.picture = await getUrl({
+					s: prayers.picture,
+					m: prayers.picture_2x
+				});
+				dayData.thoughts.picture_full = await getUrl({
+					s: prayers.picture_3x,
+					sOffline: prayers.picture,
+					mOffline: prayers.picture_2x
+				});
+			}
+
 			dayData.searchMode = this.$route.query.mode === 'search';
 
 			return dayData;

@@ -101,7 +101,7 @@ import favoriteManager from './favorite-manager.js';
 import settingsManager from './settings-manager.js';
 
 import viewsManager   from './views-manager.js';
-import imageLazyDb from './image-lazy-db.js';
+import * as imageManager from './image-manager.js';
 import {init as dateUtilsInit} from './utils/date-utils.js';
 
 // Framework7 App main instance
@@ -142,15 +142,12 @@ const app = new Framework7({
 
 			downloadManager.init(this);
 			favoriteManager.init(this);
-			imageLazyDb.init(this);
+			imageManager.init(this);
 			settingsManager.init(this);
 			dateUtilsInit(this);
 
 			viewsManager.init(this);
 
-			this.root.on('click', '.page-current img[data-srcorig]', (e) => {
-				imgFullscreen(e.target);
-			});
 
 			this.phonegap.canApplePay().then((result) => {
 				this.data.canApplePay = result;
@@ -324,54 +321,6 @@ promiseLoaded.then(() => {
 	}
 	//downloadManager.preload();
 });
-
-
-window.addEventListener('beforeinstallprompt', (e) => {
-  // Stash the event so it can be triggered later.
-  //console.log('beforeinstallprompt', e);
-  //let deferredPrompt = e;
-  //deferredPrompt.prompt();
-});
-
-/**
- * Раскрываем фото на полный экран,
- * если у него есть атрибут data-srcorig
- * @param {HTMLImageElement} el
- */
-function imgFullscreen(el) {
-	let $el = $$(el);
-	let browser = $el.data('photoBrowser');
-	let src = $el.attr('data-srcorig');
-
-	if (!src) return;
-
-	if (!browser) {
-		browser = app.photoBrowser.create({
-			photos : [
-				{
-					url: src,
-					caption: $el.attr('title')
-				}
-			],
-			type: 'standalone',
-			toolbar: false,
-			exposition: false,
-			theme: 'dark',
-			routableModals: false,
-			popupCloseLinkText: '<i class="icon material-icons">close</i>',
-			swiper: {
-				zoom: {
-					enabled: true,
-					maxRatio: 10,
-					minRatio: 1
-				}
-			}
-		});
-
-		$el.data('photoBrowser', browser);
-	}
-	browser.open();
-}
 
 function checkSupport(app) {
 	let isIOsWebview = !!window.webkit;
