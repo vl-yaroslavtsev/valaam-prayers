@@ -33,6 +33,7 @@ export default [
 		row_size: 55.1 * 1024,
 		sources: [
 			new Calendar(),
+			new Prayers(),
 			new DaysList({
 				from_date: format(startOfYear(new Date)),
 				to_date:  format(endOfYear(new Date)) // Текущий год

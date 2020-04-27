@@ -105,13 +105,13 @@
 			},
 			cancel() {
 				app.dialog.confirm(
-					'Отменить загрузку?',
+					'Отменить загрузку данных?',
 					() => this.downloadItem.cancel()
 				);
 			},
 			delete() {
 				app.dialog.confirm(
-					'Удалить данные?',
+					'Удалить скачанные данные?',
 					() => {
 						this.$setState({
 							status: 'deleting'

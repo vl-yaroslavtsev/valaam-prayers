@@ -84,13 +84,14 @@
 </style>
 <!--suppress JSAnnotator -->
 <script>
+	import { format } from '../js/utils/date-utils.js';
 	import downloadManager from '../js/download/manager.js';
 
-	const downloadItemIds = [
+	let downloadItemIds = [
 		'calendar',
 		'calendar_icons',
-		'calendar_next',
-		'calendar_next_icons',
+		isDecember() ? 'calendar_next' : '',
+		isDecember() ? 'calendar_next_icons': '',
 		'saints',
 		'saints_icons',
 		'prayers',
@@ -99,12 +100,14 @@
 		'spiritual_books',
 	];
 
+	downloadItemIds = downloadItemIds.filter(item => !!item);
+
 	let app, $el;
 
 	export default {
 		data() {
 			app = this.$app;
-			app.preloader.show();
+			//app.preloader.show();
 
 			return {
 				all: downloadItemIds.map(id => downloadManager.get(id)),
@@ -115,8 +118,8 @@
 		methods: {
 			updateState() {
 				this.$setState({
-					loaded: this.all.filter(({state:{status}}) => status === 'fresh'),
-					new: this.all.filter(({state:{status}}) => status !== 'fresh'),
+					loaded: this.all.filter(({state:{loadedSize}}) => !!loadedSize),
+					new: this.all.filter(({state:{loadedSize}}) => !loadedSize),
 				});
 			},
 			onDownloadItemChanged({state, changed}) {
@@ -132,12 +135,16 @@
 				);
 
 				try {
-					await downloadManager.refreshAll();
-					this.updateState();
+					await Promise.all(
+						this.all.map(item => item.statePromise)
+					);
+					await Promise.all(
+						this.all.map(item => item.refresh())
+					);
 				} catch (err) {
-					app.methods.showLoadError();
+					//app.methods.showLoadError();
 				} finally {
-					app.preloader.hide();
+					this.updateState();
 				}
 			},
 			pageBeforeRemove() {
@@ -145,4 +152,8 @@
 			}
 		}
 	};
+
+	function isDecember() {
+		return format(new Date, 'M') == '12';
+	}
 </script>
