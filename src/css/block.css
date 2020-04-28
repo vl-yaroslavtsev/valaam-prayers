@@ -1,4 +1,4 @@
-:root {	
+:root {
 	--f7-block-footer-font-size: 12px;
 
 	--f7-block-margin-vertical: 16px; /* 32 px*/
@@ -63,13 +63,16 @@ h3.block {
 }
 
 .theme-dark .block-strong.inset,
-.theme-dark .tile  {	
+.theme-dark .tile  {
 	background-color: var(--f7-page-bg-color);
 	border-radius: 0;
 	/*margin-left: 0;
 	margin-right: 0;*/
 }
 
+.tile .block:first-child {
+	margin-top: calc(16px - var(--f7-block-inset-side-margin));
+}
 
 /* region .block-strong.inset */
 .block-strong.inset p > img {
@@ -97,14 +100,14 @@ h3.block {
 		--f7-block-padding-horizontal: 35px;
 		--f7-block-padding-vertical: 35px;
 	}
-	
+
 	.tile,
 	.block-strong.inset,
 	.tile .media-list {
 		--f7-block-padding-horizontal: calc(35px - var(--f7-block-inset-side-margin));
 		--f7-list-item-padding-horizontal: calc(35px - var(--f7-block-inset-side-margin));
 	}
-	
+
 	h2.block {
 		font: 500 46px/54px 'Geometria';
 		margin: 40px 0 30px 0;
