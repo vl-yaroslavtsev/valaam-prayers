@@ -3,6 +3,7 @@
  */
 import {Dom7 as $$} from 'framework7';
 import settingsManager from './settings-manager.js';
+import { isMobile } from './utils/utils.js';
 
 let app;
 const mainView = '#view-menu';
@@ -95,7 +96,7 @@ function initViewTabs() {
 	app.on('popupOpened', (popup) => {
 		//console.log('popupOpen', popup);
 		let $el = popup.$el;
-		let isTablet = !app.methods.isMobile();
+		let isTablet = !isMobile();
 		let isDarkMode = $$('html').hasClass('theme-dark') ||
 						 $el.find('.photo-browser-dark').length;
 

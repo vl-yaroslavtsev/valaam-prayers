@@ -73,7 +73,8 @@
 </style>
 <!--suppress JSAnnotator -->
 <script>
-	import {Request} from 'framework7';
+	import { Request } from 'framework7';
+	import { isMobile } from '../js/utils/utils.js';
 
 	const URL_SEARCH = 'https://valaam.ru/phonegap/search/';
 	const resultTemplate = Template7.compile('{{> "result"}}');
@@ -130,13 +131,13 @@
 				}
 			},
 			popupOpened(p) {
-				if (app.methods.isMobile() && !app.$('html').hasClass('theme-dark')) {
+				if (isMobile() && !app.$('html').hasClass('theme-dark')) {
 					app.statusbar.setTextColor('black');
 				}
 
 			},
 			popupClose() {
-				if (app.methods.isMobile()) {
+				if (isMobile()) {
 					app.statusbar.setTextColor('white');
 				}
 			}

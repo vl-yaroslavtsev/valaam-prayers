@@ -2,7 +2,7 @@
  * Управляем картинками
  */
 import { Dom7 as $$ } from 'framework7';
-import { isOnline } from './utils/utils.js';
+import { isOnline, isMobile as isMobileDevice } from './utils/utils.js';
 import db from './data/db.js';
 let inited = false;
 let isMobile = true;
@@ -14,7 +14,7 @@ let isMobile = true;
 function init (app) {
 	if (inited) return;
 
-	isMobile = app.methods.isMobile();
+	isMobile = isMobileDevice();
 
 	app.on('pageBeforeRemove', (page) => {
 		revoke(page.$el);

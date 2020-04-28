@@ -103,6 +103,7 @@ import settingsManager from './settings-manager.js';
 import viewsManager   from './views-manager.js';
 import * as imageManager from './image-manager.js';
 import {init as dateUtilsInit} from './utils/date-utils.js';
+import {init as utilsInit} from './utils/utils.js';
 
 // Framework7 App main instance
 const app = new Framework7({
@@ -126,6 +127,8 @@ const app = new Framework7({
 	on: {
 		// эти функции не должны быть асинхронными - сбивается порядок выполнения - потом концов не найдёте
 		async init() {
+
+			utilsInit(this);
 
 			if (!checkSupport(this)) {
 				this.disabled = true;
@@ -267,9 +270,6 @@ const app = new Framework7({
 			} finally {
 				app.preloader.hide();
 			}
-		},
-		isMobile() {
-			return this.width < 768 || this.height < 768;
 		},
 		scrollToEl($el, $page) {
 			$page = $page || $$(this.views.current.router.currentPageEl);

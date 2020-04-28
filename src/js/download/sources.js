@@ -7,7 +7,7 @@ import {
 	parse,
 } from '../utils/date-utils.js';
 
-import { jsonSize } from '../utils/utils.js';
+import { jsonSize, isMobile } from '../utils/utils.js';
 
 import db from '../data/db.js';
 
@@ -199,7 +199,7 @@ class SaintsIcons extends IconsSource {
 		this.url = `${API_URL}saints/list/`;
 		this.params = {
 			image_only: 1,
-			image_size: 's',
+			image_size:  isMobile() ? 's' : 'm',
 			...params
 		};
 	}
@@ -212,7 +212,7 @@ class DaysIcons extends IconsSource {
 		this.url = `${API_URL}days/list/`;
 		this.params = {
 			image_only: 1,
-			image_size: 's',
+			image_size: isMobile() ? 's' : 'm',
 			...params
 		};
 	}
@@ -225,7 +225,7 @@ class PrayersIcons extends IconsSource {
 		this.url = `${API_URL}prayers/list/`;
 		this.params = {
 			image_only: 1,
-			image_size: 's',
+			image_size: isMobile() ? 's' : 'm',
 			...params
 		};
 	}

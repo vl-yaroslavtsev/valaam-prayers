@@ -1,6 +1,17 @@
 
 import {Request} from 'framework7';
 
+let app;
+
+function init(appInstance) {
+	app = appInstance;
+	console.log('utils init ', app);
+}
+
+function isMobile() {
+	return app.width < 768 || app.height < 768;
+}
+
 /**
  * Байты в человекочитаемую строку
  * @param  {integer} bytes    Кол-во байт
@@ -201,12 +212,14 @@ async function isOnline() {
 	} catch (err) {
 		isOnline.cache = false;
 	}
-	
+
 	isOnline.date = new Date;
 	return isOnline.cache;
 }
 
 export {
+	init,
+	isMobile,
 	bytesToSize,
 	fetchJson,
 	fetchBlob,
