@@ -7,8 +7,8 @@ import Framework7 from 'framework7';
 import StateStore from '../state-store.js';
 import { fetchJson, fetchBlob } from '../utils/utils.js';
 
-const RETRY_PERIOD = 5 * 1000;
-const MAX_RETRY_COUNT = 17280; // 1 сутки
+const RETRY_PERIOD = 2 * 1000;
+const MAX_RETRY_COUNT = 43200; // 1 сутки
 
 class FetchTask extends StateStore {
 
@@ -136,6 +136,7 @@ class FetchTask extends StateStore {
 				// Пробуем еще раз
 				if (signal.aborted) {
 					err = new DOMException('Aborted', 'AbortError');
+
 				} else if (this.state.retryCount < MAX_RETRY_COUNT) {
 					return setTimeout(() => {
 						this.setState({
@@ -144,6 +145,13 @@ class FetchTask extends StateStore {
 						this.fetch();
 					}, RETRY_PERIOD);
 				}
+			} else if (err.name === 'DataError') {
+				return setTimeout(() => {
+					this.setState({
+						retryCount: ++this.state.retryCount
+					});
+					this.fetch();
+				}, RETRY_PERIOD);
 			}
 
 			this.emit('error', {
