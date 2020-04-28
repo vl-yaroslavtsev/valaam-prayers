@@ -30,7 +30,6 @@ const RELOAD_PERIOD = 24 * 3600 * 1000;
 const MIN_STORAGE_AVAILABLE_MB = 5;
 
 let app;
-let state;
 let downloadItems = {};
 let manager = new Framework7.Events();
 
@@ -104,17 +103,9 @@ async function getQuota() {
 }
 
 function registerSources() {
-	downloadItemsList.forEach(item => {
+	console.log('dm registerSources ', app);
+	downloadItemsList().forEach(item => {
 			downloadItems[item.id] = item;
-
-			if (item.master) {
-				let masterId = item.master;
-				let master = downloadItemsList.find(({id}) => id === masterId);
-
-				master.on('state:changed', item.onMasterStateChanged.bind(item));
-				master.on('data:saved', item.onMasterSaved.bind(item));
-				master.on('data:deleted', item.onMasterDeleted.bind(item));
-			}
 	});
 }
 

@@ -132,6 +132,10 @@ class DownloadItem extends StateStore {
 		this.on('download:done', async () => {
 			console.log(`DownloadItem.fetch: Успешно загружено и сохранено`);
 
+			this.setState({
+				status: 'processing',
+			});
+
 			let loadedSize = await this.getSize();
 
 			this.setState({
