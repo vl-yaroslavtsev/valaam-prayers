@@ -96,9 +96,18 @@ h3.block {
 
 @media (min-width: 768px) {
 	:root {
+		--f7-block-header-font-size: 18px;
+
 		--f7-block-margin-vertical: 35px;
 		--f7-block-padding-horizontal: 35px;
 		--f7-block-padding-vertical: 35px;
+
+		--f7-block-title-font-size: 20px;
+		--f7-block-title-line-height: 30px;
+	}
+
+	.block-title {
+		letter-spacing: 1.5px;
 	}
 
 	.tile,
@@ -106,6 +115,10 @@ h3.block {
 	.tile .media-list {
 		--f7-block-padding-horizontal: calc(35px - var(--f7-block-inset-side-margin));
 		--f7-list-item-padding-horizontal: calc(35px - var(--f7-block-inset-side-margin));
+	}
+
+	.tile .block:first-child {
+    margin-top: calc(35px - var(--f7-block-inset-side-margin));
 	}
 
 	h2.block {
