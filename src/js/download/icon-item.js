@@ -59,7 +59,9 @@ class IconDownloadItem extends DownloadItem {
 			}
 		} catch(err) {
 			console.log(`[IconItem] refresh(): error [${err.name}]: ${err.message}`);
-			throw err;
+			//throw err;
+			totalSize = !loadedTs ? this.state.size : 0;
+			totalUrls = [];
 		}
 
 		this.urls = totalUrls;

@@ -99,7 +99,8 @@ class JsonDownloadItem extends DownloadItem {
 			}
 		} catch(err) {
 			console.log(`[DownloadItem] doCount(): error [${err.name}]: ${err.message}`);
-			throw err;
+			totalCount = !loadedTs ? Math.round(this.state.size / this.row_size) : 0;
+			//throw err;
 		}
 
 		await this.setState({
