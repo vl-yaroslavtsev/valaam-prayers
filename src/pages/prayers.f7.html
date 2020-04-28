@@ -127,7 +127,7 @@
 						{{/if}}
 					`,
 					// Item height
-					height:  app.width < 768 ? 52 : 83
+					height: app.methods.isMobile() ? 52 : 83
 				});
 
 				let {items, state} = await this.loadPromise;

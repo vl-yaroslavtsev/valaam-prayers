@@ -130,13 +130,13 @@
 				}
 			},
 			popupOpened(p) {
-				if (app.width < 768 && !app.$('html').hasClass('theme-dark')) {
+				if (app.methods.isMobile() && !app.$('html').hasClass('theme-dark')) {
 					app.statusbar.setTextColor('black');
 				}
-				
+
 			},
 			popupClose() {
-				if (app.width < 768) {
+				if (app.methods.isMobile()) {
 					app.statusbar.setTextColor('white');
 				}
 			}

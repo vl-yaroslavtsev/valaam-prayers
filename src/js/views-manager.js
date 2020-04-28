@@ -95,7 +95,7 @@ function initViewTabs() {
 	app.on('popupOpened', (popup) => {
 		//console.log('popupOpen', popup);
 		let $el = popup.$el;
-		let isTablet = app.width >= 768;
+		let isTablet = !app.methods.isMobile();
 		let isDarkMode = $$('html').hasClass('theme-dark') ||
 						 $el.find('.photo-browser-dark').length;
 

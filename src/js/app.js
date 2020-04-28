@@ -268,12 +268,8 @@ const app = new Framework7({
 				app.preloader.hide();
 			}
 		},
-		skeletonWord(min = 5, max = 20) {
-			let length = min + Math.round(Math.random() * (max - min));
-			return new Array(length).fill('_').join('');
-		},
-		skeletonWordLen(min = 5, max = 20) {
-			return min + Math.round(Math.random() * (max - min));
+		isMobile() {
+			return this.width < 768 || this.height < 768;
 		},
 		scrollToEl($el, $page) {
 			$page = $page || $$(this.views.current.router.currentPageEl);

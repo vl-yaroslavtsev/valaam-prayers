@@ -13,7 +13,7 @@ let isMobile = true;
 function init (app) {
 	if (inited) return;
 
-	isMobile = app.width < 768 || app.height < 768;
+	isMobile = app.methods.isMobile();
 
 	app.on('pageBeforeRemove', (page) => {
 		revoke(page.$el);
