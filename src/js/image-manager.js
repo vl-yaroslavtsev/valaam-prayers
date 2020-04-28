@@ -2,6 +2,7 @@
  * Управляем картинками
  */
 import { Dom7 as $$ } from 'framework7';
+import { isOnline } from './utils/utils.js';
 import db from './data/db.js';
 let inited = false;
 let isMobile = true;
@@ -41,7 +42,8 @@ async function getUrl({s, m, sOffline, mOffline}) {
 
 	let urlOnline = isMobile ? s : m;
 
-	if (navigator.onLine) {
+	// navigator.onLine always true !!!
+	if (await isOnline()) {
 		return urlOnline;
 	}
 
