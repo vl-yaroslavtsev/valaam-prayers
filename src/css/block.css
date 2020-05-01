@@ -1,6 +1,8 @@
 :root {
 	--f7-block-footer-font-size: 12px;
 
+	--f7-block-header-margin: 0;
+
 	--f7-block-margin-vertical: 16px; /* 32 px*/
 
 	--f7-block-inset-border-radius: 10px;

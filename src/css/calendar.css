@@ -24,6 +24,14 @@
 	--calendar-easter-bg:      rgba(255, 0, 0, .7);
 	--calendar-desc-easter-bg: rgba(255, 0, 0, .7);
 	--dark-calendar-easter-bg: rgba(255, 0, 0, .7);
+
+	--calendar-desc-circle-width: 24px;
+	--calendar-border-bottom-width: 2px;
+	--calendar-padding-bottom: 21px;
+}
+
+.calendar-inline {
+	--f7-toolbar-bg-color: transparent;
 }
 
 .calendar-inline .toolbar-top {
@@ -35,10 +43,14 @@
 	height: 25%;
 }
 
-.calendar-inline .calendar-week-header,
-.calendar-inline .calendar-months {
-	border-bottom: calc(2px / var(--f7-device-pixel-ratio)) solid rgba(0,0,0,.08);
+.calendar-inline .calendar-week-header {
+	border-bottom: calc(var(--calendar-border-bottom-width) / var(--f7-device-pixel-ratio)) solid rgba(0,0,0,.08);
 	margin-bottom: 6px;
+}
+
+#calendar-days {
+  border-bottom: calc(var(--calendar-border-bottom-width) / var(--f7-device-pixel-ratio)) solid rgba(0,0,0,.08);
+  padding-bottom: var(--calendar-padding-bottom);
 }
 
 .calendar-months {
@@ -77,6 +89,7 @@ a.link.calendar-next-year-button {
 .calendar-day {
 	font-weight: bold;
 	position: relative;
+	box-sizing: border-box;
 }
 
 .calendar-day:nth-child(7n+1)  {
@@ -113,8 +126,8 @@ a.link.calendar-next-year-button {
 
 .vm-calendar-day-description span {
 	border-radius: 50%;
-  width: 24px;
-  height: 24px;
+  width: var(--calendar-desc-circle-width);
+  height: var(--calendar-desc-circle-width);
 	box-sizing: border-box;
 }
 
@@ -138,8 +151,8 @@ a.link.calendar-next-year-button {
 	content: '';
 	position: absolute;
 	left: -50%;
-	top: calc((100% - 34px) / 2);
-	height: 34px;
+	top: calc((100% - var(--f7-calendar-day-size)) / 2);
+	height: var(--f7-calendar-day-size);
 	width: 100%;
 	background-color: var(--calendar-fasting-bg);
 }
@@ -164,7 +177,7 @@ a.link.calendar-next-year-button {
 	content: '';
 	position: absolute;
 	left: -50%;
-	height: 34px;
+	height: var(--f7-calendar-day-size);
 	width: 100%;
 	background-color:  var(--calendar-week-bg);
 }
@@ -199,7 +212,6 @@ a.link.calendar-next-year-button {
 
 .vm-calendar-day-grandholiday:not(.calendar-day-disabled):not(.calendar-day-prev):not(.calendar-day-next) .calendar-day-number {
 	/*background-color: rgba(255,164,96,.7);*/
-	--f7-calendar-day-size: 32px;
 	border: solid 2px var(--calendar-holiday-bg);
 }
 
@@ -210,7 +222,6 @@ a.link.calendar-next-year-button {
 }
 
 .vm-calendar-day-commemorationdead:not(.calendar-day-disabled):not(.calendar-day-prev):not(.calendar-day-next) .calendar-day-number {
-	--f7-calendar-day-size: 32px;
 	border: solid 2px var(--calendar-commemoration-border);
 }
 
@@ -240,7 +251,7 @@ a.link.calendar-next-year-button {
 	content: '';
 	position: absolute;
 	left: -50%;
-	height: 34px;
+	height: var(--f7-calendar-day-size);
 	width: 100%;
 	background-color: var(--calendar-week-bg);
 }
@@ -263,3 +274,43 @@ a.link.calendar-next-year-button {
 	color: rgba(186,18,18,.7); /* rgba(186,18,18,.56) */
 }
 /* endregion */
+
+@media (min-width: 768px) {
+	:root {
+		--calendar-desc-circle-width: 36px;
+		--calendar-border-bottom-width: 3px;
+		--calendar-padding-bottom: 30px;
+
+		--f7-calendar-day-size: 55px;
+		--f7-calendar-day-font-size: 21px;
+		--f7-calendar-height: 520px;
+		--f7-calendar-picker-font-size: 24px;
+		--f7-calendar-week-header-font-size: 24px;
+		--f7-calendar-week-header-height: 55px;
+	}
+
+	.calendar-inline {
+		--f7-toolbar-font-size: 24px;
+		--f7-toolbar-height: 45px;
+	}
+
+	.calendar-inline .toolbar {
+		margin-bottom: 14px;
+	}
+
+	.calendar-day {
+    letter-spacing: 0.42px;
+	}
+
+	.calendar-week-header {
+		letter-spacing: 0.2px;
+	}
+
+	.md .list .item-media {
+    min-width: 60px;
+	}
+
+	.vm-calendar-day-description .item-link {
+		margin-bottom: 9px;
+	}
+}
