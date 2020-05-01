@@ -198,7 +198,7 @@ function jsonSize(json) {
  */
 async function isOnline() {
 
-	// TODO: использовать navigator.onLine !!
+	// TODO: использовать navigator.onLine !!!
 	// Пока navigator.onLine всегда true
 	isOnline.date = isOnline.date || 0;
 	if (new Date - isOnline.date < 300) {
@@ -206,7 +206,12 @@ async function isOnline() {
 	}
 
 	try {
-		await fetch('images/default.png?sid=' + Math.random());
+		await Promice.race(
+			[
+				new Promice((resolve, reject) => {setTimeout(resolve, 100)}),
+				fetch('images/default.png?sid=' + Math.random())
+			]
+		);
 		isOnline.cache = true;
 	} catch (err) {
 		isOnline.cache = false;
