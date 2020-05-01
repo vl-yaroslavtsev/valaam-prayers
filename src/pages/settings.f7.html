@@ -64,66 +64,6 @@
 						</div>
 					</a>
 				</li>
-				<!--
-				<li>
-				  <a class="item-link smart-select smart-select-init link-download"
-						 data-open-in="popover">
-				    <select name="dowload-data" multiple="" class="input-with-value">
-				        <option value="prayers"
-												selected=""
-												data-display-as="Молитвослов">Молитвослов (30 МБ)</option>
-				        <option value="days"
-												selected=""
-												data-display-as="Календарь">Календарь  (20 МБ)</option>
-				        <option value="saints"
-												selected=""
-												data-display-as="Святые">Святые (80 МБ)</option>
-				        <option value="literature"
-												data-display-as="Литература">Духовная литература (100 МБ)</option>
-				        <option value="icons"
-												data-display-as="Иконы">Иконы (300 МБ)</option>
-				    </select>
-				    <div class="item-content">
-				      <div class="item-media">
-							 	<i class="icon material-icons disabled">get_app</i>
-						 	</div>
-				      <div class="item-inner">
-					    	<div class="item-title-row">
-					        <div class="item-title" >Скачать
-									</div>
-									<div class="item-after">Молитвослов, Календарь, Святые</div>
-					      </div>
-								<div class="item-subtitle">(150 МБ)</div>
-							</div>
-				    </div>
-				  </a>
-					<div class="item-content">
-						<div class="item-media">
-						 	<i class="icon material-icons disabled"></i>
-					 	</div>
-						<div class="item-inner no-padding">
-							<div class="item-text padding-bottom-half">
-								<i class="icon material-icons color-green md-18 padding-right-half">done</i>
-								Скачано
-							</div>
-							<div class="item-link item-text padding-bottom-half padding-top-half">
-								<i class="icon material-icons md-18 padding-right-half">clear</i>
-								Удалить скачанные данные
-							</div>
-							<div class="item-text padding-bottom-half padding-top-half">
-								Скачиваем (36%)...
-								<div data-progress="36"
-										 class="progressbar margin-top-half"
-										 id="download-progressbar"></div>
-							</div>
-							<div class="item-link item-text padding-bottom-half padding-top-half">
-								<i class="icon material-icons md-18 padding-right-half">clear</i>
-								Отменить скачивание
-							</div>
-						</div>
-					</div>
-				</li>
-				-->
 				<li>
 					<a href="/settings/fonts/" class="item-link item-content">
 						<div class="item-media">
@@ -185,6 +125,7 @@
 					<a class="item-link smart-select smart-select-init"
 						 data-open-in="popover"
 						 data-close-on-select="true"
+						 data-css-class="smart-select-icon-round"
 						 data-popup-close-link-text="<i class='icon material-icons'>close</i>">
 						<select id="select-bg"
 										@change="onBgChange">
@@ -192,7 +133,7 @@
 							<!--suppress HtmlUnknownAttribute -->
 								<option value="{{value}}" {{selected}}
 												data-option-image="{{image}}"
-												data-option-color="{{color}}">
+												data-option-icon="{{icon}}">
 									{{name}}
 							</option>
 							{{/each}}
@@ -254,12 +195,12 @@
 	const BACKGROUND_ITEMS = [
 		{
 			name: 'Белый',
-			color: 'white',
+			icon: 'icon-white',
 			value: 'rgb(255,255,255)'
 		},
 		{
 			name: 'Светло-жёлтый',
-			color: 'bg-light-yellow',
+			icon: 'icon-yellow',
 			value: 'rgb(255,245,209)'
 		},
 		{

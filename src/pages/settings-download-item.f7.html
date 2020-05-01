@@ -114,6 +114,16 @@
 					`);
 					return false;
 				}
+
+				let isEnoughQuota = await downloadManager.isEnoughQuota(downloadItem);
+				if (!isEnoughQuota) {
+					app.methods.showMessage(`
+						Недостаточно места для загрузки.<br>
+						Пожалуйста, освободите место на устройстве.
+					`);
+					return false;
+				}
+
 				downloadItem.download();
 			},
 			cancel() {

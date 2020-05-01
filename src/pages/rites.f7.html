@@ -117,7 +117,7 @@
 					<ul>
 						<li class="vm-rites-rite">
 							<a class="item-link smart-select smart-select-init"
-								 data-open-in="popup"
+								 data-open-in="page"
 								 data-close-on-select="true"
 							   data-page-back-link-text="Назад"
 								 data-popup-close-link-text="<i class='icon material-icons md-only'>close</i>"
@@ -201,9 +201,9 @@
 					<ul>
 						<li class="vm-rites-payment">
 							<a class="item-link smart-select smart-select-init"
-								 data-open-in="popup"
+								 data-open-in="page"
 								 data-close-on-select="true"
-							   data-page-back-link-text="Назад"
+								 data-page-back-link-text="Назад"
 								 data-popup-close-link-text="<i class='icon material-icons md-only'>close</i>"
 								 data-page-title="Пожертвовать через"
 							   data-value-el=".vm-rites-payment .item-title"
@@ -328,6 +328,12 @@
 
 	.tile {
 		margin-bottom: 100%;
+	}
+
+	@media (min-width: 768px) {
+		.vm-rites-payment .item-after > img {
+			height: 41px;
+		}
 	}
 
 </style>

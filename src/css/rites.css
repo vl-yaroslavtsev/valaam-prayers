@@ -34,23 +34,22 @@
 	position: absolute;
 	top: 50%;
 	width: auto;
-	height: 14px;
-	margin-top: -7px;
-	margin-right: -10px;
-  font-size: 25px;
-  line-height: 14px;
+	margin-right: -4px;
+	margin-top: calc( -1.3 * var(--f7-input-font-size) / 2 );
+	font-size: calc(1.3 * var(--f7-input-font-size));
   color: var(--f7-list-chevron-icon-color);
   pointer-events: none;
-  right: calc(var(--f7-list-item-padding-horizontal) + var(--f7-safe-area-right));
+  right: calc(var(--f7-input-outline-padding-horizontal) + var(--f7-safe-area-right));
   content: 'add';
 }
 
 .vm-rites-donate .item-input-wrap:before {
 	content: 'руб.';
+	line-height: 1;
 	position: absolute;
 	top: 50%;
 	right: var(--f7-input-outline-padding-horizontal);
-	margin-top: -10px;
+	margin-top: calc( -1 * var(--f7-input-font-size) / 2 );
 	font-size: var(--f7-input-font-size);
 }
 

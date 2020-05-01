@@ -4,6 +4,8 @@
 	--kinovar-color: rgb(227,66,52); /* rgba(255,0,0,.8) */
 	--scrollbar-width: 2px;
 
+	--f7-autocomplete-dropdown-text-matching-font-weight: 600;
+
 	--f7-button-border-radius: 6px;
 	--f7-button-large-height: 45px;
 	--f7-button-large-font-size: 14px;
@@ -20,14 +22,7 @@
 
 	--f7-font-family: Circe, 'Helvetica Neue', Arial, sans-serif;
 	--f7-font-size: 15px;
-
-	--f7-input-font-size: 15px;
-	--f7-input-outline-border-radius: 6px;
-	--f7-input-outline-height: 39px;
-	--f7-input-text-color: var(--f7-text-color);
-
 	--f7-line-height: 1.3;
-
 	--f7-panel-left-width: 100%;
 
 	--f7-preloader-color: rgb(255,128,32);
@@ -52,10 +47,6 @@
 	--f7-calendar-prev-next-text-color: rgba(0,0,0,.18);
 	--f7-calendar-week-header-text-color: rgba(0,0,0,.35);
 
-	--f7-input-outline-bg-color: rgba(0,0,0,.06);
-	--f7-input-outline-border-color: transparent;
-	--f7-input-info-text-color: rgba(0,0,0,.5);
-
 	--f7-page-bg-color: #1b1b35;
 
 	--f7-theme-color-shade: rgb(225, 128, 32);
@@ -64,22 +55,22 @@
 
 .theme-dark {
 	/*--bg-image: 'none'; */
-
-	--f7-input-outline-bg-color: #1c1c1d;
-	--f7-input-outline-border-color: #222222;
-
-	--f7-dialog-text-color: #fff;
-	--f7-dialog-bg-color: #1c1c1d;
-	--f7-dialog-title-text-color: #fff;
-	--f7-dialog-button-pressed-bg-color: rgba(255, 255, 255, 0.1);
-	--f7-dialog-input-bg-color: transparent;
-	--f7-dialog-input-placeholder-color: rgba(255, 255, 255, 0.54);
-
 	background-image: none;
 }
 
 @media (min-width: 768px) {
 	:root {
 		--f7-font-size: 24px;
+
+	 	--f7-badge-font-size: 16px;
+	 	--f7-badge-size: 24px;
+
+		--f7-button-border-radius: 9px;
+		--f7-button-large-height: 70px;
+		--f7-button-large-font-size: 20px;
+	}
+
+	.button-large {
+		--f7-button-letter-spacing: 1.5px;
 	}
 }

@@ -1,9 +1,6 @@
 /**
  * Загружает данные для оффлайн версии
  */
-
-import Framework7 from 'framework7';
-
 import {
 	format,
 	parse,
@@ -11,6 +8,8 @@ import {
 	endOfYear,
 	getUnixTime
 } from '../utils/date-utils.js';
+
+import { bytesToSize } from '../utils/utils.js';
 
 import db from '../data/db.js';
 import downloadItemsList from './items.js';
@@ -27,17 +26,13 @@ const RELOAD_PERIOD = 24 * 3600 * 1000;
 /**
  * Минимально доступное пространство для загрузки данных
  */
-const MIN_STORAGE_AVAILABLE_MB = 5;
+const MIN_STORAGE_AVAILABLE = 5 * 1024 * 1024;
 
 let app;
 let downloadItems = {};
-let manager = new Framework7.Events();
 
 function init(appInstance) {
 	app = appInstance;
-
-	window['dm'] = manager;
-	window['db'] = db;
 
 	registerSources();
 	continueDownload();
@@ -77,8 +72,9 @@ async function getQuota() {
 	if ('storage' in navigator && 'estimate' in navigator.storage) {
 		let {usage, quota} = await navigator.storage.estimate();
 		return {
-			usageMb: Math.round(usage / (1024 * 1024)),
-			quotaMb: Math.round(quota / (1024 * 1024))
+			usage,
+			free: quota - usage,
+			quota
 		};
 	}
 
@@ -87,8 +83,9 @@ async function getQuota() {
 			navigator.webkitTemporaryStorage.queryUsageAndQuota (
 				(usage, quota) => {
 					resolve({
-						usageMb: Math.round((usage / (1024 * 1024))),
-						quotaMb: Math.round((quota / (1024 * 1024)))
+						usage,
+						free: quota - usage,
+						quota
 					});
 				},
 				function(ex) {reject(ex);}
@@ -97,13 +94,13 @@ async function getQuota() {
 	}
 
 	return {
-		usageMb: 0,
-		quotaMb: Infinity
+		usage: 0,
+		free:  Infinity,
+		quota: Infinity
 	};
 }
 
 function registerSources() {
-	console.log('dm registerSources ', app);
 	downloadItemsList().forEach(item => {
 			downloadItems[item.id] = item;
 	});
@@ -144,7 +141,11 @@ async function testFitures() {
 
 
 	let quota = await getQuota();
-	msg = msg + `Использовано: ${quota.usageMb} из ${quota.quotaMb} МБ<br>`;
+	msg = msg + `
+	Использовано:
+		${bytesToSize(quota.usage, {wrapDigit:false})} из
+		${bytesToSize(quota.quota, {wrapDigit:false})}<br>
+	`;
 
 	await (async function _testBlobImg() {
 		let blob, result;
@@ -183,11 +184,23 @@ async function testFitures() {
 	app.dialog.alert(msg);
 }
 
-manager.init = init;
-manager.refreshAll = refreshAll;
-manager.get = get;
-manager.getLoading = getLoading;
-manager.testFitures = testFitures;
+/**
+ * Достаточно ли места для загруки данных
+ * @param  {string|object}  id Элемент для загрузки
+ * @return {Boolean}    [description]
+ */
+async function isEnoughQuota(item) {
+	item = typeof item === 'string' ? get(item) : item;
+	let quota = await getQuota();
+	return item.state.size + MIN_STORAGE_AVAILABLE < quota.free;
+}
 
 
-export default manager;
+export default {
+	init,
+	refreshAll,
+	get,
+	getLoading,
+	testFitures,
+	isEnoughQuota
+};

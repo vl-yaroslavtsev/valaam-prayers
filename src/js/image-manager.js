@@ -79,7 +79,7 @@ function revoke($el) {
 function revokeUrl(url) {
 	if (!url || !url.startsWith('blob:')) return;
 	URL.revokeObjectURL(url);
-	console.log('[image-manager]: revoke ' + url);
+	//console.log('[image-manager]: revoke ' + url);
 }
 
 /**
@@ -104,7 +104,8 @@ function imgFullscreen(el) {
 			],
 			type: 'standalone',
 			toolbar: false,
-			exposition: false,
+			exposition: true,
+			expositionHideCaptions: true,
 			theme: 'dark',
 			routableModals: false,
 			popupCloseLinkText: '<i class="icon material-icons">close</i>',

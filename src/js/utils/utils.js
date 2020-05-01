@@ -5,7 +5,6 @@ let app;
 
 function init(appInstance) {
 	app = appInstance;
-	console.log('utils init ', app);
 }
 
 function isMobile() {

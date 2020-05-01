@@ -1,10 +1,13 @@
 /** region smart-select-page */
-.md:not(.theme-dark) .smart-select-page .navbar {
-	--f7-navbar-border-color: rgb(191,191,191);
-	--f7-navbar-title-text-align: center;
-	--f7-navbar-title-font-weight: 500;
+.smart-select-page {
 	--f7-navbar-title-font-size: 16px;
 	--f7-navbar-title-line-height: 20px;
+	--f7-navbar-title-text-align: center;
+	--f7-navbar-title-font-weight: 500;
+}
+
+.md:not(.theme-dark) .smart-select-page .navbar {
+	--f7-navbar-border-color: rgb(191,191,191);
 	--f7-navbar-link-color: rgb(191,191,191);
 	--f7-navbar-text-color: rgba(0,0,0,.9);
 }
@@ -14,21 +17,93 @@
 }
 
 .smart-select-page .navbar .title {
-	/* font-family: 'Gotham Pro'; */
-	font-family: 'Geometria';
 	text-transform: none;
+	display: inline-block;
+	letter-spacing: 0;
+	font-family: Geometria;
+	font-size: 16px;
+	letter-spacing: 0;
+}
+
+.smart-select-page  .navbar-bg:after {
+	left: 0;
+	right: 0;
+}
+
+.smart-select-page .navbar-inner {
+  justify-content: center;
+}
+
+.smart-select-page .navbar-inner:before {
+	height: 0;
+}
+
+.smart-select-page .navbar .left {
+  position: absolute;
+  left: 0;
+}
+
+.smart-select-page .navbar .back:after {
+  content: 'Назад';
+  padding-top: 2px;
 }
 
 .md:not(.theme-dark) .smart-select-page .page-content {
 	--f7-list-item-divider-bg-color: rgba(248,248,248,0.82);
-	--f7-list-item-divider-font-size: 15px;
 	--f7-list-border-color: transparent;
 
-    background: #fff;
+  background: #fff;
+}
+/** endregion */
+
+/** region smart-select-icon-round */
+.smart-select-icon-round {
+	--icon-size: 24px;
 }
 
-.smart-select-popover .item-media > img {
-	height: 26px;
+.md .smart-select-icon-round .item-media {
+	min-width: var(--icon-size);
+}
+
+.smart-select-icon-round .icon,
+.smart-select-icon-round img {
+	width: var(--icon-size);
+	height: var(--icon-size);
+	border-radius: calc(var(--icon-size) / 2);
+	border: solid 1px var(--f7-list-item-border-color);
+}
+
+.smart-select-icon-round .icon-yellow {
+	background-color: rgb(255,245,209);
+}
+/** endregion */
+
+/** region smart-select-icon-round */
+.smart-select-payment img {
+	width: 80px;
 	border: solid 1px var(--f7-list-item-border-color);
 }
 /** endregion */
+
+@media (min-width: 768px) {
+	.smart-select-page {
+		--f7-navbar-title-line-height: 30px;
+	  --f7-navbar-title-font-size: 24px;
+	}
+
+	.smart-select-page .navbar a.link.back {
+    letter-spacing: 0;
+	}
+
+	.smart-select-page .navbar .title {
+		font-size: 25px;
+	}
+
+	.smart-select-icon-round {
+		--icon-size: 31px;
+	}
+
+	.smart-select-payment img {
+		width: 120px;
+	}
+}

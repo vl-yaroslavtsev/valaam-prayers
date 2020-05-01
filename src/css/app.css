@@ -10,8 +10,13 @@
 @import 'list.css';
 
 @import 'tabs.css';
+@import 'stepper.css';
+@import 'input.css';
 @import 'radio.css';
 @import 'smart-select.css';
+@import 'toast.css';
+@import 'dialog.css';
+@import 'popover.css';
 @import 'popup.css';
 @import 'searchbar.css';
 
@@ -86,24 +91,6 @@ body,
 	transition-duration: unset !important;
 }
 
-
-.item-input-outline {
-	--f7-input-bg-color: var(--f7-input-outline-bg-color);
-}
-
-.md .input-error-message,
-.md .input-info,
-.md .item-input-error-message,
-.md .item-input-info {
-	padding-left: 0;
-}
-
-.md .input-with-error-message,
-.md .input-with-info,
-.md .item-input-with-error-message,
-.md .item-input-with-info {
-	padding-bottom: 0;
-}
 
 .day-saints-text h2 {
 	font-size: 1.3em;

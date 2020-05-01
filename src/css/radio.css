@@ -49,4 +49,10 @@ label.item-radio input[type=radio]~.icon-radio {
 	left: 0;
 	top: 0;
 }
+
+@media (min-width: 768px) {
+	.md .icon-radio:after {
+		font-size: 24px;
+	}
+}
 /** endregion */

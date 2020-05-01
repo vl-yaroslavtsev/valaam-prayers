@@ -45,7 +45,7 @@ h3.block {
 
 /* region .tile */
 .tile {
-	--f7-block-margin-vertical: 24px;
+	--f7-block-margin-vertical: 25px;
 	--f7-block-title-margin-bottom: 0;
 	background-color: var(--f7-block-strong-bg-color);
 	border-radius: var(--f7-block-inset-border-radius);
@@ -97,6 +97,7 @@ h3.block {
 @media (min-width: 768px) {
 	:root {
 		--f7-block-header-font-size: 18px;
+		--f7-block-footer-font-size: 18px;
 
 		--f7-block-margin-vertical: 35px;
 		--f7-block-padding-horizontal: 35px;
@@ -108,6 +109,10 @@ h3.block {
 
 	.block-title {
 		letter-spacing: 1.5px;
+	}
+
+	.tile {
+		--f7-block-margin-vertical: 42px;
 	}
 
 	.tile,
