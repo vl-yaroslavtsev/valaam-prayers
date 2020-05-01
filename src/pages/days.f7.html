@@ -31,7 +31,9 @@
 			<h2 class="block">{{day.title}}</h2>
 			<div class="tile">
 				<div class="block day-saints-icon">
-					<div class="item-media media-obj no-bg">
+					<div class="item-media media-obj">
+						<img class="media-obj-tile lazy"
+							 data-src="{{day.picture}}">
 						<img class="media-obj-img lazy"
 							 data-src="{{day.picture}}"
 							 data-src-full="{{day.picture_full}}"
@@ -189,16 +191,29 @@
 		display: flex;
 	}
 
+	.day-saints-icon .skeleton-block {
+		--f7-skeleton-color: #c2c2c2;
+		position: absolute;
+		top: 0;
+		left: calc(var(--f7-block-padding-horizontal) + var(--f7-safe-area-left));
+		right: calc(var(--f7-block-padding-horizontal) + var(--f7-safe-area-left));
+		height: 100%;
+		width: auto;
+		z-index: 1;
+	}
+
 	.day-saints-icon .item-media {
-		max-width: 65%;
+		width: 65%; /* max- */
 		height: 250px;
 		flex-shrink: 0;
 	}
 
+	/*
 	.day-saints-icon img {
 		height: 100%;
 		object-fit: contain;
 	}
+	*/
 
 	.day-saints-icon .item-text {
 		padding-left: 10px;
@@ -222,11 +237,13 @@
 		text-transform: uppercase;
 	}
 
-	.day-saints-text img {
-		height: 25px;
-		vertical-align: middle;
-		margin-top: -5px;
-		margin-right: 5px;
+	@media (min-width: 768px) {
+		.day-saints-text img {
+			height: 25px;
+			vertical-align: middle;
+			margin-top: -5px;
+			margin-right: 5px;
+		}
 	}
 </style>
 <!--suppress JSAnnotator -->

@@ -161,9 +161,9 @@ body,
 	height: 100%;
 	object-fit: cover;
 
-	-webkit-filter: blur(20px);
-	filter: blur(20px);
-	opacity: .9;
+	-webkit-filter: blur(10px);
+	filter: blur(10px);
+	opacity: .8;
 }
 
 .media-obj-img {

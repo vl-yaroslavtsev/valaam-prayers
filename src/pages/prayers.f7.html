@@ -156,9 +156,7 @@
 
 	async function loadData() {
 		try {
-			console.log('loadData: before dataManager.get(prayers)');
 			let prayers = await dataManager.get('prayers');
-			console.log('loadData: after dataManager.get(prayers)', prayers)
 			let data = handleData.call(this, prayers);
 			app.emit('mainPageLoaded', 'prayers', this);
 

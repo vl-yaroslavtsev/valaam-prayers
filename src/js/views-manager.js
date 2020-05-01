@@ -246,7 +246,7 @@ function handleBackButton(e) {
 
 	if (!backButtonAttempts) {
 		let toast = app.toast.show({
-			text: 'Нажмите ещё для выхода',
+			text: 'Нажмите ещё раз для выхода',
 			closeTimeout: 2000,
 			destroyOnClose: true,
 			on: {
