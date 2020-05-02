@@ -66,6 +66,10 @@
 	 	--f7-badge-size: 24px;
 
 		--f7-button-border-radius: 9px;
+
+		--f7-button-small-height: 40px;
+    --f7-button-small-font-size: 16px;
+
 		--f7-button-large-height: 70px;
 		--f7-button-large-font-size: 20px;
 	}

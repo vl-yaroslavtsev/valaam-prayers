@@ -121,7 +121,7 @@ const app = new Framework7({
 
 	panel: {
 		swipe: 'left',
-		swipeOnlyClose: true
+		swipeOnlyClose: false
 	},
 
 	on: {
@@ -262,8 +262,15 @@ const app = new Framework7({
 				return await dataManager.get(source, ...args);
 			} catch (err) {
 				let msg;
-				if (err.message === 'Network error') {
-					msg = 'Ошибка загрузки данных.<br>Проверьте подключение к сети Интернет';
+				if (err.name === 'TypeError' && err.message === 'Failed to fetch') {
+					msg = `
+						Ошибка загрузки данных.<br>
+						Проверьте подключение к сети Интернет.<br>
+						Для работы офлайн скачайте
+						<a class="panel-open"
+						   href="/settings/download"
+							 data-view="#view-menu">офлайн версию</a>
+					`;
 				}
 				app.methods.showLoadError(msg);
 				throw err;

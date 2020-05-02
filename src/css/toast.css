@@ -1,3 +1,9 @@
+.toast.bg-color-red a {
+	font-weight: bold;
+	text-decoration: underline;
+	color: #fff;
+}
+
 @media (min-width: 768px) {
 	:root {
 	  --f7-toast-font-size:18px;
