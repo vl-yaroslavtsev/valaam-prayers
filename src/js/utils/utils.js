@@ -31,10 +31,31 @@ function bytesToSize(bytes, {decimals = 0, wrapDigit = true} = {}) {
 	}
 }
 
-function getProgressResponse(response, progress) {
-	let reader = response.body.getReader();
+async function getResponseData(response, {progress, type = 'json'}) {
+	if (!progress) {
+		return await response[type]();
+	}
 
-	return new Response(
+	const header = type === 'json' ? 'data-length' : 'content-length';
+	const contentLength = response.headers.get(header);
+	const total = parseInt(contentLength, 10) || 0;
+	let loaded = 0;
+	let isReadableStream = false;
+	try {
+		new ReadableStream();
+	} catch(ex) {
+		isReadableStream = false;
+	}
+
+	if (!isReadableStream) {
+		progress({loaded, total, chunk: 0});
+		let data = await response[type]();
+		progress({loaded: total, total, chunk: total});
+		return data;
+	}
+
+	let reader = response.body.getReader();
+	response = new Response (
 		new ReadableStream({
 			start(controller) {
 				read();
@@ -45,7 +66,9 @@ function getProgressResponse(response, progress) {
 							controller.close();
 							return;
 						}
-						progress(value.byteLength);
+						let chunk = value.byteLength
+						loaded += chunk;
+						progress({loaded, total, chunk});
 						controller.enqueue(value);
 						read(controller);
 					} catch(err) {
@@ -62,6 +85,8 @@ function getProgressResponse(response, progress) {
 			headers: response.headers
 		}
 	);
+
+	return await response[type]();
 }
 
 /**
@@ -69,7 +94,7 @@ function getProgressResponse(response, progress) {
  * @param {string}      url Урл для запроса данных
  * @param {Object}      [params] Параметры запроса данных
  * @param {AbortSignal} [signal] Сигнал отмены
- * @return {Promise} Promise должен возвращать [данные, размер]
+ * @return {Promise} Promise должен возвращать данные
  */
 async function fetchJson(url, {params = {}, signal, progress} = {}) {
 	let response = await fetch(formatUrl(url, params), {
@@ -80,18 +105,7 @@ async function fetchJson(url, {params = {}, signal, progress} = {}) {
 		return null;
 	}
 
-	if (progress) {
-		const contentLength = response.headers.get('data-length');
-		const total = parseInt(contentLength, 10);
-		let loaded = 0;
-
-		response = getProgressResponse(response, (chunk) => {
-			loaded += chunk;
-			progress({loaded, total, chunk});
-		});
-	}
-
-	return await response.json();
+	return await getResponseData(response, {progress, type: 'json'});
 }
 
 async function fetchJson2(url, {params = {}, signal, start, progress} = {}) {
@@ -148,18 +162,32 @@ async function fetchBlob(url, {params = {}, signal, progress} = {}) {
 		return null;
 	}
 
-	if (progress) {
-		const contentLength = response.headers.get('content-length');
-		const total = parseInt(contentLength, 10);
-		let loaded = 0;
+	return await getResponseData(response, {progress, type: 'blob'});
+}
 
-		response = getProgressResponse(response, (chunk) => {
-			loaded += chunk;
-			progress({loaded, total, chunk});
-		});
+/**
+ * Получаем данные из сети в json
+ * @param {string}      url Урл для запроса данных
+ * @param {Object}      [params] Параметры запроса данных
+ * @param {AbortSignal} [abortSignal] Сигнал отмены
+ * @return {Promise} Promise должен возвращать данные
+ */
+async function fetchRaw(url, {params = {}, signal, progress} = {}) {
+	let response = await fetch(formatUrl(url, params), {
+		signal
+	});
+
+	if (!response.ok) {
+		return null;
 	}
 
-	return await response.blob();
+	const type = response.headers.get('content-type');
+
+	let raw = await getResponseData(response, {progress, type: 'arrayBuffer'});
+	return {
+		raw,
+		type
+	};
 }
 
 /**
@@ -184,7 +212,7 @@ function formatUrl(url, params) {
 function jsonSize(json) {
 	let str = JSON.stringify(json);
 
-	if (TextEncoder) {
+	if (window.TextEncoder) {
 		return (new TextEncoder().encode(str)).length;
 	}
 
@@ -206,9 +234,9 @@ async function isOnline() {
 	}
 
 	try {
-		await Promice.race(
+		await Promise.race(
 			[
-				new Promice((resolve, reject) => {setTimeout(resolve, 100)}),
+				new Promise((resolve, reject) => {setTimeout(resolve, 100)}),
 				fetch('images/default.png?sid=' + Math.random())
 			]
 		);
@@ -227,6 +255,7 @@ export {
 	bytesToSize,
 	fetchJson,
 	fetchBlob,
+	fetchRaw,
 	formatUrl,
 	jsonSize,
 	isOnline

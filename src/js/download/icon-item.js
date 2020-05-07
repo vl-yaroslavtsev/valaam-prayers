@@ -76,17 +76,18 @@ class IconDownloadItem extends DownloadItem {
 	/**
 	 * Сохраняем пачку данных
 	 * @override
-	 * @param  {Array.<Blob>}  blobs
+	 * @param  {Array.<{raw, type}>}  blobs
 	 * @param  {Array.<string>} urls
 	 * @return {Promise}
 	 */
 	async save(blobs, urls) {
-		let data = blobs.map((blob, index) => {
+		let data = blobs.map(({raw, type}, index) => {
 			let url = urls[index];
 			return {
 				url,
 				source_id: this.state.urlSource[url],
-				image: blob
+				raw,
+				type
 			}
 		});
 		await this.sources[0].save(data);
@@ -100,7 +101,7 @@ class IconDownloadItem extends DownloadItem {
 		this.fetchTask = new FetchTask({
 			id: this.id,
 			urls: this.urls,
-			type: 'blob',
+			type: 'raw',
 			bulk_size: 30,
 			save: async (blobs, urls) => this.save(blobs, urls)
 		});

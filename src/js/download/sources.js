@@ -186,7 +186,7 @@ class IconsSource {
 		await db.images.iterateFromIndex(
 			'by-source-id',
 			this.id,
-			(key, {image}) => size += image.size
+			(key, {raw}) => size += raw.byteLength
 		);
 		return size;
 	}

@@ -52,8 +52,10 @@ async function getUrl({s, m, sOffline, mOffline}) {
 	if (!image) {
 		return urlOnline;
 	}
+	let {raw, type} = image;
+	let blob = new Blob([raw], {type});
 
-	return URL.createObjectURL(image.image);
+	return URL.createObjectURL(blob);
 }
 
 /**

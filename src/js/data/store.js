@@ -56,11 +56,17 @@ class Store {
 	 * @return {Promise}
 	 */
 	async putAll(values) {
-		const tx = this.idb.transaction(this.name, 'readwrite');
-		for (let value of values) {
-			tx.store.put(value);
+		try {
+			const tx = this.idb.transaction(this.name, 'readwrite');
+			for (let value of values) {
+				tx.store.put(value);
+			}
+			await tx.done;
+		} catch (err) {
+			console.log('db.store.putAll error: ', err, err.name, err.message);
+			throw err;
 		}
-		await tx.done;
+
 	}
 
 	/**

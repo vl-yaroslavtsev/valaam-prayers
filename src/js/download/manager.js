@@ -33,6 +33,8 @@ let downloadItems = {};
 
 function init(appInstance) {
 	app = appInstance;
+	
+	window.db = db;
 
 	registerSources();
 	continueDownload();

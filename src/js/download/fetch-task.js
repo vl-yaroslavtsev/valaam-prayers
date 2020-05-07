@@ -5,7 +5,7 @@
 import Framework7 from 'framework7';
 
 import StateStore from '../state-store.js';
-import { fetchJson, fetchBlob } from '../utils/utils.js';
+import { fetchJson, fetchRaw } from '../utils/utils.js';
 
 const RETRY_PERIOD = 2 * 1000;
 const MAX_RETRY_COUNT = 43200; // 1 сутки
@@ -93,9 +93,9 @@ class FetchTask extends StateStore {
 					);
 					data = data.filter(json => !!json);
 					if (this.bulk_size === 1) data = data[0];
-				} else if (this.type === 'blob') {
+				} else if (this.type === 'raw') {
 					data = await Promise.all(
-						bulkUrls.map(url => fetchBlob(
+						bulkUrls.map(url => fetchRaw(
 							url,
 							{
 								signal,
@@ -132,20 +132,11 @@ class FetchTask extends StateStore {
 			console.log(err);
 			// Нет сети интернет
 			//console.log('fetch task catch:', err.name, err.message, err);
-			if (err.name === 'TypeError' && err.message === 'Failed to fetch') {
-				// Пробуем еще раз
-				if (signal.aborted) {
-					err = new DOMException('Aborted', 'AbortError');
+			if (signal.aborted && err.name !== 'AbortError') {
+				err = new DOMException('Aborted', 'AbortError');
 
-				} else if (this.state.retryCount < MAX_RETRY_COUNT) {
-					return setTimeout(() => {
-						this.setState({
-							retryCount: ++this.state.retryCount
-						});
-						this.fetch();
-					}, RETRY_PERIOD);
-				}
-			} else if (err.name === 'DataError') {
+			} else if (['TypeError','DataError'].includes(err.name)  &&
+								 this.state.retryCount < MAX_RETRY_COUNT) {
 				return setTimeout(() => {
 					this.setState({
 						retryCount: ++this.state.retryCount
