@@ -5,25 +5,25 @@ import dataSources from './sources.js';
 
 /**
  * Менеджер данных
- */ 
+ */
 class DataManager {
 	constructor() {
 		this._handlerPromise = {};
 		/**
 		 * Источники данных
-		 * @type {Array.<Source>}
+		 * @type {Object}
 		 */
-		this._sources = [];
-		
+		this._sources = {};
+
 		this.cache = {};
 
 		this._registerSources();
 		this._initCache();
 	}
-	
+
 	async init() {
 		await this._openDb();
-		this._preload();		
+		this._preload();
 	}
 
 	/**
@@ -46,7 +46,7 @@ class DataManager {
 
 		if (this._handlerPromise[sourceId])
 			return this._handlerPromise[sourceId];
-		
+
 		if (typeof handler == 'string') {
 			handler = () => {
 				return this[source.handler].call(this, {
@@ -237,7 +237,7 @@ class DataManager {
 	 * Открываем базу данных
 	 */
 	async _openDb() {
-		await db.open();	
+		await db.open();
 	}
 
 	/**
@@ -279,14 +279,18 @@ class DataManager {
 			this.cache[source.id] = source.isCollection() ? {} : null;
 		});
 	}
-	
+
 	/**
 	 * Добавляем источники данных
 	 */
 	_registerSources() {
 		dataSources.forEach((source) => {
 			this._sources[source.id] = source;
-		});		
+		});
+	}
+
+	getSource(sourceId) {
+		return this._sources[sourceId];
 	}
 }
 

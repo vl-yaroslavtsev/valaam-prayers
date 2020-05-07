@@ -104,6 +104,7 @@ import viewsManager   from './views-manager.js';
 import * as imageManager from './image-manager.js';
 import {init as dateUtilsInit} from './utils/date-utils.js';
 import {init as utilsInit} from './utils/utils.js';
+import { isPrayerInSection } from './data/utils.js';
 
 // Framework7 App main instance
 const app = new Framework7({
@@ -142,6 +143,8 @@ const app = new Framework7({
 					Ошибка при инициализации данных: [${ex.name}]: ${ex.message}
 				`, 30000);
 			}
+
+			window['dataManager'] = dataManager;
 
 			downloadManager.init(this);
 			favoriteManager.init(this);
@@ -262,14 +265,38 @@ const app = new Framework7({
 				return await dataManager.get(source, ...args);
 			} catch (err) {
 				let msg;
-				if (err.name === 'TypeError' && err.message === 'Failed to fetch') {
+				console.log('app.load error', err, source);
+				if (err.name === 'TypeError') {
+					let type = 'версию';
+					let dataId;
+					switch (source) {
+						case 'day':
+						case 'calendar':
+							type = 'Православный календарь';
+							break;
+						case 'saint':
+							type = 'Святые';
+							break;
+						case 'prayer':
+							let prayerId = args[0];
+							if (isPrayerInSection(prayerId, ['1736', '842'])) {
+								type = 'Молитвослов';
+
+							} else if (isPrayerInSection(prayerId, ['976'])) {
+								type = 'Духовная литература';
+								
+							} else if (isPrayerInSection(prayerId, ['937']) ) {
+								type = 'Богослужебные книги';
+							}
+							break;
+					}
 					msg = `
 						Ошибка загрузки данных.<br>
 						Проверьте подключение к сети Интернет.<br>
-						Для работы офлайн скачайте
+						Или скачайте
 						<a class="panel-open"
 						   href="/settings/download"
-							 data-view="#view-menu">офлайн версию</a>
+							 data-view="#view-menu">${type} офлайн</a>
 					`;
 				}
 				app.methods.showLoadError(msg);
