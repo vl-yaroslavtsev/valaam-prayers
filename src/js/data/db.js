@@ -15,7 +15,8 @@ const stores = [
 	'images',
 	'prayers',
 	'saints',
-	'state'
+	'state',
+	'downloads'
 ];
 
 /**
@@ -43,7 +44,8 @@ db.open = async function() {
 				db.createObjectStore('days', {keyPath: 'code'});
 				const prayersStore = db.createObjectStore('prayers', {keyPath: 'id'});
 				db.createObjectStore('saints', {keyPath: 'id'});
-				db.createObjectStore('state');
+				db.createObjectStore('state', {keyPath: 'id'});
+				db.createObjectStore('downloads', {keyPath: 'id'});
 				const imagesStore = db.createObjectStore('images', {keyPath: 'url'});
 
 				prayersStore.createIndex('by-root-id', 'root_id');

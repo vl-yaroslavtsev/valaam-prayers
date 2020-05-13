@@ -11,15 +11,16 @@ class DownloadItem extends StateStore {
 		sources
 	}) {
 		super(
-			'download-item-' + id,
 			{
+				id,
 				status: 'new',
 				downloaded: 0, // скачано в прогрессе
 				progress: 0, // прогресс скачивания данных
 				size: 0, // Размер данных доступных для скачивания
 				loadedSize: 0, // Размер сохраненных данных
 				loadedDate: 0, // Дата последней загрузки данных
-			}
+			},
+			'downloads'
 		);
 
 		if (!id) {

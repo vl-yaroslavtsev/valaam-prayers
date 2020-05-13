@@ -19,15 +19,13 @@ class FetchTask extends StateStore {
 		type = 'json',
 		save = async (data, url) => {}
 	}) {
-		super(
-			'fetch-task-' + id,
-			{
-				index: 0,
-				urls: [],
-				retryCount: 0,
-				downloaded: 0
-			}
-		);
+		super({
+			id: 'fetch-task-' + id,
+			index: 0,
+			urls: [],
+			retryCount: 0,
+			downloaded: 0
+		});
 
 		this.id = id;
 		this.urls = urls;

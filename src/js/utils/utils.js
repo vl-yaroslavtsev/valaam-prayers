@@ -40,7 +40,7 @@ async function getResponseData(response, {progress, type = 'json'}) {
 	const contentLength = response.headers.get(header);
 	const total = parseInt(contentLength, 10) || 0;
 	let loaded = 0;
-	let isReadableStream = false;
+	let isReadableStream = true;
 	try {
 		new ReadableStream();
 	} catch(ex) {
