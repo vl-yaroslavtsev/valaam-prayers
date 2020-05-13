@@ -2,7 +2,7 @@ Attribute VB_Name = "FormatMinei"
 Sub formatMinei()
 Attribute formatMinei.VB_ProcData.VB_Invoke_Func = "Normal.FormatMinei.formatMinei"
 '
-' ”орматируем службу минеи
+' Форматируем службу минеи
 '
 '
     Dim sEditor
@@ -17,11 +17,15 @@ Attribute formatMinei.VB_ProcData.VB_Invoke_Func = "Normal.FormatMinei.formatMin
     End If
     
     Selection.Find.ClearFormatting
-    Selection.Find.Font.Bold = True
+    With Selection.Find.Font
+        .Bold = True
+        .Color = wdColorAutomatic
+    End With
     With Selection.Find.ParagraphFormat
         .SpaceBeforeAuto = False
         .SpaceAfterAuto = False
         .Alignment = wdAlignParagraphCenter
+        
     End With
     Selection.Find.Replacement.ClearFormatting
     With Selection.Find
@@ -222,3 +226,4 @@ Attribute formatMinei.VB_ProcData.VB_Invoke_Func = "Normal.FormatMinei.formatMin
         
     Call Shell(sEditor & " " & ActiveDocument.FullName, vbNormalFocus)
 End Sub
+
