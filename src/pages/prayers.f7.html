@@ -1,7 +1,7 @@
 <template>
 	<div class="page" data-name="prayers-{{id}}">
 
-		<div class="navbar">
+		<div class="navbar navbar-large navbar-transparent">
 			<div class="navbar-bg"></div>
 			<div class="navbar-inner sliding">
 				{{#if canGoBack}}
@@ -12,7 +12,10 @@
 					</a>
 				</div>
 				{{/if}}
-				<div class="title">Валаам</div>
+				<div class="title">{{name}}</div> <!-- Валаам -->
+				<div class="title-large">
+	        <div class="title-large-text">{{name}}</div>
+	      </div>
 				<div class="right">
 					{{> "navbar-right"}}
 				</div>
@@ -36,11 +39,13 @@
 		</div>
 
 		<div class="page-content">
+			<!--
 			{{#if name}}
 			<h2 class="block">{{name}}</h2>
 			{{else}}
 			<h2 class="block">{{title}}</h2>
 			{{/if}}
+			-->
 
 			{{#if description}}
 			<div class="block text-white">{{description}}</div>
@@ -60,9 +65,9 @@
 	</div>
 </template>
 <style scoped>
-	.subnavbar {
+	.navbar-large-collapsed .subnavbar:not([style^="transform:"]) {
     background: url(images/bg.jpg) 0 0/100% auto no-repeat;
-    background-position: 0 calc(0px - var(--f7-navbar-height) - var(--f7-safe-area-top));
+    background-position: 0 calc(0px	- var(--f7-navbar-height) - var(--f7-safe-area-top));
 	}
 </style>
 <!--suppress JSAnnotator -->
@@ -83,9 +88,8 @@
 
 			return {
 				loading: true,
-				name: false,
+				name: this.$router.view.name,
 				showSearchbar: false,
-				title: this.$router.view.name,
 				loadPromise: loadData.call(this)
 			};
 		},
@@ -98,11 +102,12 @@
 					items: [1,2,3,4,5,6],
 					// Custom search function for searchbar
 					searchAll(query, items) {
-						console.log('searchAll', query, items);
+						//console.log('searchAll', query, items);
 						//debugger;
 						var found = [];
 						for (var i = 0; i < items.length; i++) {
-							if (items[i].name.toLowerCase().indexOf(query.toLowerCase()) >= 0 || query.trim() === '') found.push(i);
+							if (items[i].name.toLowerCase().indexOf(query.toLowerCase()) >= 0 ||
+									query.trim() === '') found.push(i);
 						}
 						return found; //return array with mathced indexes
 					},
@@ -140,6 +145,15 @@
 				if (state.showSearchbar) {
 					this.$el.addClass('page-with-subnavbar');
 				}
+
+				let title = page.$el.find('.title-large-text');
+				title.css('white-space', 'normal');
+				setTimeout(() => {
+					page.el.style.setProperty(
+						'--f7-navbar-large-title-height',
+						`${title.height() + 8}px`
+					);
+				}, 0);
 			},
 			pageBeforeIn(e, page) {
 				if (page.router.history.length > 1) {

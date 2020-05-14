@@ -66,39 +66,8 @@ body,
   background-color: white;
 }
 
-/*
-let $page = app.views.current.$el.find('.page-current');
-let $pageContent = $page.find('.page-content');
-let $blocks = $pageContent.find('.block-strong.inset');
-let $$ = app.$;
-$pageContent.on('scroll', () => {
-	$blocks.each((i, el) => {
-		let $el = $$(el);
-		let height = $el.height();
-		if (!height) {
-			return;
-		}
-
-		if ($el.offset().top > 0) {
-			$page.removeClass('read-mode') :
-		} else {
-			$page.addClass('read-mode');
-		}
-	})
-});
-
-*/
-
-/* .md.device-pixel-ratio-2 .page-content { */
-	/* background-image: url('../images/bg@2x.jpg');	 */
-/* } */
-
-/* .md.device-pixel-ratio-3 .page-content { */
-	/* background-image: url('../images/bg@3x.jpg');	 */
-/* } */
-
 /* hack for Chrome 49 =( */
-.page-content {
+/* .page-content {
 	padding-top: calc(var(--f7-navbar-height) +
 				var(--f7-safe-area-top) +
 				var(--f7-page-toolbar-top-offset, 0px) +
@@ -106,7 +75,7 @@ $pageContent.on('scroll', () => {
 				var(--f7-page-searchbar-offset, 0px) +
 				var(--f7-page-content-extra-padding-top, 0px));
 
-}
+} */
 
 .preloader.color-white {
   --f7-theme-color: rgb(255,128,32);

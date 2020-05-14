@@ -6,6 +6,11 @@
 	--f7-subnavbar-height: 55px;
 	--f7-navbar-title-font-weight: bold;
 	--f7-navbar-link-color: rgba(255,255,255,.7);
+
+	--f7-navbar-large-title-font-size: 29px;
+	--f7-navbar-large-title-font-weight: 500;
+	--f7-navbar-large-title-line-height: 32px;
+
 }
 
 .md:not(.theme-dark) {
@@ -33,9 +38,9 @@
 	background-size: 100% auto;
 }
 
-/* .page-with-subnavbar .navbar-bg {
-	height: calc(var(--f7-navbar-height) + var(--f7-subnavbar-height));
-} */
+.navbar .title-large {
+	font-family: 'Geometria', Arial;
+}
 
 .navbar-bg:after {
 	height: 2px;
@@ -58,13 +63,14 @@
 }
 
 .navbar .title {
-	text-transform: uppercase;
+	/* text-transform: uppercase; */
+	font-size: 1.1em;
 	padding-top: 1px;
 }
 
-.navbar .left + .title {
+/* .navbar .left + .title {
 	display: none;
-}
+} */
 
 .md .navbar a.link {
 	padding: 0 12px;
@@ -191,9 +197,14 @@
 		--f7-navbar-title-margin-left: 35px;
 		--f7-navbar-height: 52px;
 
+		--f7-navbar-large-title-font-size: 46px;
+		--f7-navbar-large-title-line-height: 54px;
+
 		--f7-subnavbar-height: 80px;
 		--f7-subnavbar-inner-padding-left: 35px;
 		--f7-subnavbar-inner-padding-right: 35px;
+
+
 	}
 
 	.navbar .title {

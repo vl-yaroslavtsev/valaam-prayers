@@ -24,10 +24,12 @@ async function init (appInstance) {
 	await manager.statePromise;
 
 	app.on('pageInit', (page) => {
+		if (!page.el.f7Component) return;
 		attach(page.el.f7Component);
 	});
 
 	app.on('pageBeforeRemove', (page) => {
+		if (!page.el.f7Component) return;
 		detach(page.el.f7Component);
 	});
 

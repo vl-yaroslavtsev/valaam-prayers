@@ -2,10 +2,13 @@
 <template>
 	<div class="page" data-name="rites">
 
-		<div class="navbar">
+		<div class="navbar navbar-large navbar-transparent">
 			<div class="navbar-bg"></div>
 			<div class="navbar-inner sliding">
-				<div class="title">Валаам</div>
+				<div class="title">Поминовение</div>
+				<div class="title-large">
+	        <div class="title-large-text">Поминовение</div>
+	      </div>
 				<div class="right">
 					{{> "navbar-right"}}
 				</div>
@@ -13,7 +16,7 @@
 		</div>
 
 		<div class="page-content">
-			<h2 class="block">Поминовение</h2>
+			<!-- <h2 class="block">Поминовение</h2> -->
 			{{#if loading}}
 			<div class="tile">
 

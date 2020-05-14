@@ -2,10 +2,13 @@
 	<div class="page" data-name="calendar">
 
 		<!-- Top Navbar -->
-		<div class="navbar">
+		<div class="navbar navbar-large navbar-transparent">
 			<div class="navbar-bg"></div>
 			<div class="navbar-inner sliding">
-				<div class="title">Валаам</div>
+				<div class="title">Календарь</div>
+				<div class="title-large">
+	        <div class="title-large-text">Календарь</div>
+	      </div>
 				<div class="right">
 					{{> "navbar-right"}}
 				</div>
@@ -14,7 +17,7 @@
 
 		<!-- Scrollable page content-->
 		<div class="page-content">
-			<h2 class="block">Календарь</h2>
+			<!-- <h2 class="block">Календарь</h2> -->
 			{{#if loading}}
 			<div class="tile">
 				<div class="block">

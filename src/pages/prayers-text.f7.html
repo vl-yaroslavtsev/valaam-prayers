@@ -28,6 +28,14 @@
 						<i class="icon icon-forward"></i>
 					</a>
 					{{/unless}}
+					{{#if twoText}}
+					<a href="#"
+						 id="link-select-language"
+						 data-popover=".popover-select-language"
+						 class="link popover-open">
+						<i class="icon material-icons md-only">translate</i>
+					</a>
+					{{/if}}
 					{{> "navbar-right"}}
 				</div>
 				<div class="navbar-extra">
@@ -86,6 +94,12 @@
 				</div>
 				{{/if}}
 			</div>
+		</div>
+		<div class="popover popover-select-language">
+		  <div class="popover-inner">
+		    <!-- Link to close popover -->
+		    Выберите язык!
+		  </div>
 		</div>
 	</div>
 </template>
