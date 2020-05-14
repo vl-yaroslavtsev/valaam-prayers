@@ -18,10 +18,15 @@
 					{{> "navbar-right"}}
 					{{/if}}
 				</div>
+				<div class="navbar-extra">
+		      <div class="navbar-extra-title">{{name}}</div>
+				</div>
 			</div>
 		</div>
 
-		<div class="page-content hide-navbar-on-scroll hide-toolbar-on-scroll">
+		{{> "read-mode-toolbar"}}
+
+		<div class="page-content hide-navbar-on-scroll">
 			<h2 class="block">{{name}}</h2>
 			<div class="block block-strong inset text-content">
 				{{#if picture}}
@@ -53,9 +58,11 @@
 <!--suppress JSAnnotator -->
 <script>
 	import { getUrl } from '../js/image-manager.js';
+	import readModeMixin from './read-mode-mixin.js';
 
 	export default {
 		async data() {
+
 			let saintId = (this.$route.context && this.$route.context.actionId) ||
 									  this.$route.params.saintId,
 					app = this.$app,
@@ -76,6 +83,7 @@
 			saintData.searchMode = this.$route.query.mode === 'search';
 
 			return saintData;
-		}
+		},
+		mixins: [readModeMixin]
 	};
 </script>

@@ -1,0 +1,16 @@
+<template>
+	<div class="toolbar toolbar-bottom toolbar-hidden read-mode-toolbar">
+		<div class="toolbar-inner">
+			{{#if readMode}}
+			<div class="read-mode-range-text">
+				<span class="read-mode-page">{{readMode.page}}</span> из
+				<span class="read-mode-total">{{readMode.pages}}</span>
+			</div>
+			<div
+				id="prayers-range-{{id}}"
+				class="range-slider read-mode-range">
+			</div>
+			{{/if}}
+		</div>
+	</div>
+</template>

@@ -14,8 +14,13 @@
 				<div class="right">
 					{{> "navbar-right"}}
 				</div>
+				<div class="navbar-extra">
+		      <div class="navbar-extra-title">{{title}}</div>
+				</div>
 			</div>
 		</div>
+
+		{{> "read-mode-toolbar"}}
 
 		<div class="page-content hide-navbar-on-scroll hide-toolbar-on-scroll">
 			<h2 class="block">{{title}}</h2>
@@ -43,6 +48,7 @@
 <script>
 	import {format, parse, subDays} from '../js/utils/date-utils.js';
 	import {upperFirst} from 'lodash-es';
+	import readModeMixin from './read-mode-mixin.js';
 
 	export default {
 		data() {
@@ -63,6 +69,7 @@
 			;
 
 			return data;
-		}
+		},
+		mixins: [readModeMixin]
 	};
 </script>

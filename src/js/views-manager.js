@@ -79,18 +79,18 @@ function initViewTabs() {
 	app.on('navbarShow', (navbarEl) => {
 		//let $el = app.$(navbarEl);
 		//$el.transitionEnd(() => {
-			if (settingsManager.get('hideStatusbar')) {
-				app.phonegap.statusbar.show();
-			}
+			// if (settingsManager.get('hideStatusbar')) {
+			// 	app.phonegap.statusbar.show();
+			// }
 		//});
 	});
 
 	app.on('navbarHide', (navbarEl) => {
-		if (settingsManager.get('hideStatusbar')) {
-			let $el = app.$(navbarEl);
-			$el.addClass('navbar-hidden-statusbar');
-			app.phonegap.statusbar.hide();
-    }
+		// if (settingsManager.get('hideStatusbar')) {
+		// 	let $el = app.$(navbarEl);
+		// 	$el.addClass('navbar-hidden-statusbar');
+		// 	app.phonegap.statusbar.hide();
+    // }
 	});
 
 	app.on('popupOpened', (popup) => {

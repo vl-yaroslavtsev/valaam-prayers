@@ -39,7 +39,6 @@ body,
 }
 
 :root .page-content {
-  /*--f7-safe-area-outer-right: calc(env(safe-area-inset-right, 0px) - var(--scrollbar-width));*/
 	overflow-y: overlay;
 	overflow-x: hidden;
 }
@@ -53,6 +52,42 @@ body,
     border-radius: var(--scrollbar-width);
     background-color: rgba(255, 255, 255, .7);
 }
+
+.read-mode  {
+	--scrollbar-width: 6px;
+}
+
+.read-mode .page-content::-webkit-scrollbar-thumb {
+	border: 2px solid white;
+  background-color: rgba(0, 0, 0, .3);
+}
+
+.read-mode .page-content::-webkit-scrollbar-track {
+  background-color: white;
+}
+
+/*
+let $page = app.views.current.$el.find('.page-current');
+let $pageContent = $page.find('.page-content');
+let $blocks = $pageContent.find('.block-strong.inset');
+let $$ = app.$;
+$pageContent.on('scroll', () => {
+	$blocks.each((i, el) => {
+		let $el = $$(el);
+		let height = $el.height();
+		if (!height) {
+			return;
+		}
+
+		if ($el.offset().top > 0) {
+			$page.removeClass('read-mode') :
+		} else {
+			$page.addClass('read-mode');
+		}
+	})
+});
+
+*/
 
 /* .md.device-pixel-ratio-2 .page-content { */
 	/* background-image: url('../images/bg@2x.jpg');	 */
@@ -161,8 +196,8 @@ body,
 	height: 100%;
 	object-fit: cover;
 
-	-webkit-filter: blur(10px);
-	filter: blur(10px);
+	-webkit-filter: blur(30px);
+	filter: blur(30px);
 	opacity: .8;
 }
 

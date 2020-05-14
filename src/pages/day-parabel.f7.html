@@ -14,8 +14,13 @@
 				<div class="right">
 					{{> "navbar-right"}}
 				</div>
+				<div class="navbar-extra">
+		      <div class="navbar-extra-title">Притча дня</div>
+				</div>
 			</div>
 		</div>
+
+		{{> "read-mode-toolbar"}}
 
 		<div class="page-content">
 			{{#if parabel}}
@@ -32,6 +37,8 @@
 </style>
 <!--suppress JSAnnotator -->
 <script>
+	import readModeMixin from './read-mode-mixin.js';
+
 	export default {
 		data() {
 			let dayCode = this.$route.params.id,
@@ -40,6 +47,7 @@
 			dayData.parabel = this.day.parabel;
 
 			return dayData;
-		}
+		},
+		mixins: [readModeMixin]
 	};
 </script>

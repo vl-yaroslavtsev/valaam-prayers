@@ -1,5 +1,6 @@
 <template>
-	<div class="page page-with-tabs-subnavbar" data-name="prayers-text-{{id}}">
+	<div class="page page-with-tabs-subnavbar"
+			 data-name="prayers-text-{{id}}">
 
 		<div class="navbar">
 			<div class="navbar-bg"></div>
@@ -10,7 +11,7 @@
 						<span class="">Назад</span>
 					</a>
 				</div>
-				<div class="title">{{title}}</div>
+				<div class="title">{{name}}</div>
 				<div class="right">
 					<!--<a href="#" class="link churchslavonic">Ц</a>-->
 					<!--<a href="#" class="link slavonic">Р</a>-->
@@ -29,10 +30,17 @@
 					{{/unless}}
 					{{> "navbar-right"}}
 				</div>
+				<div class="navbar-extra">
+					<div class="navbar-extra-subtitle">{{parentName}}</div>
+		      <div class="navbar-extra-title">{{name}}</div>
+				</div>
 			</div>
 		</div>
 
-		<div class="page-content hide-navbar-on-scroll hide-toolbar-on-scroll">
+		{{> "read-mode-toolbar"}}
+
+		<div class="page-content hide-navbar-on-scroll">
+			<!-- hide-navbar-on-scroll hide-toolbar-on-scroll -->
 			{{#if parentName}}
 			<h3 class="block">{{parentName}}</h3>
 			{{/if}}
@@ -96,6 +104,7 @@
 <script>
 	import favoriteManager from '../js/favorite-manager.js';
 	import dataManager from '../js/data/manager.js';
+	import readModeMixin from './read-mode-mixin.js';
 
 	let app;
 
@@ -113,6 +122,7 @@
 
 			return data;
 		},
+		mixins: [readModeMixin],
 		methods: {
 			toggleFavorite() {
 				let isFavorite = !this.isFavorite;
@@ -126,7 +136,7 @@
 				this.$setState({isFavorite});
 
 				return false;
-			}
+			},
 		},
 		on: {
 			pageInit(e, page) {
@@ -141,6 +151,8 @@
 				page.$el.find('.tabs').on('tab:show', (event) => {
 					app.methods.storageSet('prayers-text-tab', event.target.id);
 				});
+
+				console.log(page, this);
 		  }
 		}
 	};

@@ -18,8 +18,13 @@
 						{{> "navbar-right"}}
 					{{/if}}
 				</div>
+				<div class="navbar-extra">
+		      <div class="navbar-extra-title">{{name}}</div>
+				</div>
 			</div>
 		</div>
+
+		{{> "read-mode-toolbar"}}
 
 		<div class="page-content">
 			<h2 class="block">{{name}}</h2>
@@ -47,12 +52,14 @@
 </template>
 
 <style scoped>
-	.navbar-bg {
+	/* .navbar-bg {
 		height: var(--f7-navbar-height);
-	}
+	} */
 </style>
 <!--suppress JSAnnotator -->
 <script>
+	import readModeMixin from './read-mode-mixin.js';
+	
 	export default {
 		data() {
 			let dayCode = this.$route.params.id,
@@ -87,6 +94,7 @@
 
 			return readerData;
 		},
+		mixins: [readModeMixin],
 		on: {
 			pageInit(e, page) {
 				let tabId = app.methods.storageGet('ereaders-text-tab') ||

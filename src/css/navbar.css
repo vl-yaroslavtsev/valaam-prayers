@@ -44,24 +44,6 @@
 	right: var(--f7-block-padding-horizontal);
 }
 
-/* .statusbar-bg {
-	position: absolute;
-	top: 0;
-	left:0;
-	width: 100%;
-	height: var(--statusbar-height);
-	background-image: url('../images/bg.jpg');
-	background-repeat: no-repeat;
-	background-size: 100% auto;
-	background-color: var(--f7-navbar-bg-color, var(--f7-bars-bg-color));
-	display: none;
-	z-index: 9500;
-} */
-
-.md.theme-dark .statusbar-bg {
-	background-image: none;
-}
-
 /* .navbar-inner {
 	height: calc(100% - var(--statusbar-height));
 } */
@@ -84,10 +66,12 @@
 	display: none;
 }
 
-@media (max-width: 370px) {
-	.md .navbar a.link {
-		padding: 0 12px;
-	}
+.md .navbar a.link {
+	padding: 0 12px;
+}
+
+.md .navbar a.link:last-child {
+	padding-right: 16px;
 }
 
 @media (max-width: 325px) {
@@ -123,6 +107,81 @@
 	margin-right: 8px;
 	display: none;
 	color: #000;
+}
+
+.read-mode {
+	--f7-navbar-extra-height: 52px;
+	--f7-toolbar-height: 60px;
+}
+
+.read-mode .navbar-bg {
+  height: calc(100% + var(--f7-navbar-extra-height, 0));
+}
+
+.read-mode .navbar-hidden {
+  transform: translate3d(0, calc(-1 * var(--f7-navbar-extra-height, 0) - var(--f7-navbar-height)), 0);
+	/*  - var(--f7-safe-area-top) */
+}
+
+.read-mode .navbar-inner {
+	overflow: visible;
+}
+
+.navbar-extra {
+	display: none;
+  position: absolute;
+  top: calc(var(--f7-navbar-height, 0) + var(--f7-safe-area-top, 0));
+  left: 0;
+	right: 0;
+	padding: 0 var(--f7-block-padding-horizontal);
+}
+
+.navbar-hidden .navbar-inner > .navbar-extra {
+    opacity: 0 !important;
+}
+
+.read-mode .navbar-extra {
+	display: block;
+}
+
+.navbar-extra-title,
+.navbar-extra-subtitle {
+	overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.navbar-extra-title {
+	font-size: 21px;
+}
+
+.md:not(.theme-dark) .read-mode-toolbar {
+	--f7-range-bar-active-bg-color: white;
+	--f7-range-knob-color: white;
+	--f7-range-bar-bg-color: rgba(255,255,255, .25);
+
+	background-image: url(../images/bg.jpg);
+	background-repeat: no-repeat;
+	background-size: 100% auto;
+	background-position: 0 calc(-100vh + var(--f7-toolbar-height) + var(--f7-safe-area-bottom));
+	color: white;
+}
+
+.read-mode-toolbar .toolbar-inner {
+	flex-direction: column;
+	justify-content: center;
+	padding: 	0 var(--f7-block-padding-horizontal);
+}
+
+.read-mode-range-text {
+  white-space: nowrap;
+	font-size: 14px;
+	text-align: center;
+}
+
+.navbar-extra-subtitle {
+  color: var(--f7-navbar-link-color);
+	padding-bottom: 2px;
 }
 
 @media (min-width: 768px) {

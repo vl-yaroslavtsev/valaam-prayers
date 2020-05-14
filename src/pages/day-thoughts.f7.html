@@ -18,8 +18,14 @@
 						{{> "navbar-right"}}
 					{{/if}}
 				</div>
+				<div class="navbar-extra">
+					<div class="navbar-extra-subtitle">Мысль дня</div>
+		      <div class="navbar-extra-title">{{thoughts.picture_desc}}</div>
+				</div>
 			</div>
 		</div>
+
+		{{> "read-mode-toolbar"}}
 
 		<div class="page-content">
 			{{#if thoughts.text}}
@@ -52,6 +58,7 @@
 <!--suppress JSAnnotator -->
 <script>
 	import { getUrl } from '../js/image-manager.js';
+	import readModeMixin from './read-mode-mixin.js';
 
 	export default {
 		async data() {
@@ -76,6 +83,7 @@
 			dayData.searchMode = this.$route.query.mode === 'search';
 
 			return dayData;
-		}
+		},
+		mixins: [readModeMixin]
 	};
 </script>

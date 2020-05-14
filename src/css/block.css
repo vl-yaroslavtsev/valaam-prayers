@@ -6,7 +6,8 @@
 	--f7-block-margin-vertical: 16px; /* 32 px*/
 
 	--f7-block-inset-border-radius: 10px;
-	--f7-block-inset-side-margin: calc(2px + var(--scrollbar-width));
+	--f7-block-inset-side-margin: 16px;
+	/*--f7-block-inset-side-margin: calc(2px + var(--scrollbar-width));*/
 
 	--f7-block-title-font-size: 14px;
 	--f7-block-title-font-weight: bold;
@@ -56,14 +57,6 @@ h3.block {
 }
 /* endregion */
 
-
-.tile,
-.block-strong.inset,
-.tile .media-list {
-	--f7-block-padding-horizontal: calc(16px - var(--f7-block-inset-side-margin));
-	--f7-list-item-padding-horizontal: calc(16px - var(--f7-block-inset-side-margin));
-}
-
 .theme-dark .block-strong.inset,
 .theme-dark .tile  {
 	background-color: var(--f7-page-bg-color);
@@ -73,10 +66,26 @@ h3.block {
 }
 
 .tile .block:first-child {
-	margin-top: calc(16px - var(--f7-block-inset-side-margin));
+	margin-top: var(--f7-block-inset-side-margin);/* calc(16px - var(--f7-block-inset-side-margin));*/
 }
 
 /* region .block-strong.inset */
+.read-mode  {
+  --f7-block-inset-side-margin: 0;
+	--f7-block-inset-border-radius: 0;
+}
+
+
+.read-mode .block-strong.inset {
+	position: absolute;
+	top: 0;
+	left: 0;
+	right: 0;
+	margin: 0;
+  padding-bottom: 90vh;
+	z-index: 100;
+}
+
 .block-strong.inset p > img {
 	width: calc(100% + 2 * var(--f7-block-padding-horizontal));
     margin-left: calc(-1 * var(--f7-block-padding-horizontal));
@@ -105,6 +114,8 @@ h3.block {
 		--f7-block-padding-horizontal: 35px;
 		--f7-block-padding-vertical: 35px;
 
+		--f7-block-inset-side-margin: 35px;
+
 		--f7-block-title-font-size: 20px;
 		--f7-block-title-line-height: 30px;
 	}
@@ -117,15 +128,8 @@ h3.block {
 		--f7-block-margin-vertical: 42px;
 	}
 
-	.tile,
-	.block-strong.inset,
-	.tile .media-list {
-		--f7-block-padding-horizontal: calc(35px - var(--f7-block-inset-side-margin));
-		--f7-list-item-padding-horizontal: calc(35px - var(--f7-block-inset-side-margin));
-	}
-
 	.tile .block:first-child {
-    margin-top: calc(35px - var(--f7-block-inset-side-margin));
+    margin-top: 35px;
 	}
 
 	h2.block {
