@@ -50,6 +50,8 @@ function detach({readMode}) {
 	if (!app.phonegap.statusbar.visible()) {
 		app.phonegap.statusbar.show();
 	}
+
+	console.log('read-manager', 'detach');
 	readMode.destroy();
 }
 
@@ -139,6 +141,18 @@ class ReadMode {
 
 		this.context.$update();
 		manager.setState({active});
+	}
+
+	update() {
+		let $content = this.$content;
+		if (!this.active) return;
+
+		this.page = Math.floor($content.scrollTop() / app.height) + 1;
+		this.pages = Math.ceil($content[0].scrollHeight / app.height) - 1;
+
+		this.range.max = this.pages;
+
+		this.context.$update();
 	}
 
 	toggle() {

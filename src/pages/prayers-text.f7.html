@@ -13,8 +13,6 @@
 				</div>
 				<div class="title">{{name}}</div>
 				<div class="right">
-					<!--<a href="#" class="link churchslavonic">Ц</a>-->
-					<!--<a href="#" class="link slavonic">Р</a>-->
 					{{#unless searchMode}}
 					<!--<a class="link popup-close">Закрыть</a>-->
 					<a href="/prayers/text/{{prevId}}"
@@ -29,10 +27,20 @@
 					</a>
 					{{/unless}}
 					{{#if twoText}}
-					<a href="#"
-						 id="link-select-language"
-						 data-popover=".popover-select-language"
-						 class="link popover-open">
+					<a class="link smart-select smart-select-init"
+						 data-open-in="popover"
+						 data-close-on-select="true">
+						<select id="select-language"
+										@change="selectLenguage">
+							<option value="tab-churchslavonic"
+											{{#js_if "this.tabId == 'tab-churchslavonic'"}}selected{{/js_if}}>
+									Церковнославянский
+							</option>
+							<option value="tab-slavonic"
+										  {{#js_if "this.tabId == 'tab-slavonic'"}}selected{{/js_if}}>
+									Русский
+							</option>
+						</select>
 						<i class="icon material-icons md-only">translate</i>
 					</a>
 					{{/if}}
@@ -47,7 +55,7 @@
 
 		{{> "read-mode-toolbar"}}
 
-		<div class="page-content hide-navbar-on-scroll">
+		<div class="page-content">
 			<!-- hide-navbar-on-scroll hide-toolbar-on-scroll -->
 			{{#if parentName}}
 			<h3 class="block">{{parentName}}</h3>
@@ -94,12 +102,6 @@
 				</div>
 				{{/if}}
 			</div>
-		</div>
-		<div class="popover popover-select-language">
-		  <div class="popover-inner">
-		    <!-- Link to close popover -->
-		    Выберите язык!
-		  </div>
 		</div>
 	</div>
 </template>
@@ -151,6 +153,12 @@
 
 				return false;
 			},
+			selectLenguage({target}) {
+				app.tab.show(this.$el.find('#' + target.value));
+				if (this.readMode) {
+					this.readMode.update();
+				}
+			}
 		},
 		on: {
 			pageInit(e, page) {
@@ -160,10 +168,14 @@
 									  'tab-slavonic';
 				if (this.twoText) {
 					app.tab.show(page.$el.find('#' + tabId));
+					this.tabId = tabId;
+					this.$update();
 				}
 
 				page.$el.find('.tabs').on('tab:show', (event) => {
 					app.methods.storageSet('prayers-text-tab', event.target.id);
+					this.tabId = event.target.id;
+					this.$update();
 				});
 
 				console.log(page, this);
