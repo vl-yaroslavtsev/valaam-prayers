@@ -5,19 +5,6 @@
  * Copyright 2020 Ивайло Тилев
  */
 
-/** @namespace webkit.messageHandlers.appInit */
-/** @namespace webkit.messageHandlers.callbackDebug */
-/** @namespace webkit.messageHandlers.hideSplash */
-/** @namespace webkit.messageHandlers.networkActivityIndicatorVisible */
-/** @namespace webkit.messageHandlers.notificationAdd */
-/** @namespace webkit.messageHandlers.notificationRemove */
-/** @namespace webkit.messageHandlers.notificationRemoveAll */
-/** @namespace webkit.messageHandlers.notificationList */
-/** @namespace webkit.messageHandlers.playSystemSound */
-/** @namespace webkit.messageHandlers.playAlertSound */
-
-/** ... */
-
 // noinspection JSUnusedGlobalSymbols
 const Framework7PhoneGap = {
 
@@ -32,88 +19,60 @@ const Framework7PhoneGap = {
 		app.phonegap = {
 
 			appInit() {
-				if(app.device['android']) {
-				} else if(app.device['webview']) {
-					webkit.messageHandlers.appInit.postMessage(null);
-				}
-			},
-
-			canApplePay() {
-				if(app.device['webview'])
-					return new Promise((resolve) => {
-
-						app.once('phonegap_canApplePay', ((res) => {
-							resolve(res);
-						}));
-
-						webkit.messageHandlers.canApplePay.postMessage(null);
-					});
-				else return new Promise(() => false);
-			},
-
-			canEvaluatePolicy() {
-				if(app.device['webview'])
-					return new Promise((resolve) => {
-
-						app.once('phonegap_canEvaluatePolicy', ((res) => {
-							resolve(res);
-						}));
-
-						webkit.messageHandlers.canEvaluatePolicy.postMessage(null);
-					});
-				else return new Promise(() => false);
+				this.exec(arguments.callee.name, null);
 			},
 
 			hideSplash() {
-				if(app.device['android'])
-					navigator['splashscreen'] && navigator['splashscreen'].hide();
-				else if(app.device['webview'])
-					webkit.messageHandlers.hideSplash.postMessage(null);
+				this.exec(arguments.callee.name, null);
 			},
 
 			networkIndicator(visible) {
-				if(app.device['webview'])
-					webkit.messageHandlers.networkActivityIndicatorVisible.postMessage(visible);
+				this.exec('networkActivityIndicatorVisible', visible);
 			},
 
 			playSound(code = 1104, alert = false) {
-				if(app.device['webview'])
-					if(alert)
-						webkit.messageHandlers.playAlertSound.postMessage(code);
-					else webkit.messageHandlers.playSystemSound.postMessage(code);
+				this.exec(alert ? 'playAlertSound' : 'playSystemSound', code);
+			},
+
+			// ...
+
+			canApplePay() {
+				return this.exec(arguments.callee.name, null, 'once', false);
+			},
+
+			canEvaluatePolicy() {
+				return this.exec(arguments.callee.name, null, 'once', false);
+			},
+
+			evaluatePolicy(title) {
+				return this.exec(arguments.callee.name, title, 'once', false);
 			},
 
 			// ...
 
 			notification: {
 				add(schedule) {
-					if(app.device['webview'])
-						webkit.messageHandlers.notificationAdd.postMessage(schedule);
+					app.phonegap.exec('notificationAdd', schedule);
+				},
+
+				update(schedule) {
+					schedule['id'] && app.phonegap.exec('notificationRemove', schedule['id']);
+					app.phonegap.exec('notificationAdd', schedule);
 				},
 
 				remove(items) {
-					if(typeof items === 'string')
+					if(typeof items === 'string' || typeof items === 'number')
 						items = [items];
 
-					if(app.device['webview'])
-						webkit.messageHandlers.notificationRemove.postMessage(items);
+					app.phonegap.exec('notificationRemove', items);
 				},
 
-				removeAll() {
-					if(app.device['webview'])
-						webkit.messageHandlers.notificationRemoveAll.postMessage(null);
+				clear() {
+					app.phonegap.exec('notificationRemoveAll', null);
 				},
 
 				list() {
-					if(app.device['webview'])
-						return new Promise((resolve) => {
-
-							app.once('phonegap_notificationList', ((res) => {
-								resolve(res);
-							}));
-
-							webkit.messageHandlers.notificationList.postMessage(null);
-						});
+					return app.phonegap.exec('notificationList', null, 'once', []);
 				},
 			},
 
@@ -121,31 +80,31 @@ const Framework7PhoneGap = {
 
 			statusbar: {
 				overlaysWebView(doOverlay) {
-					StatusBar.overlaysWebView(doOverlay);
+					window['StatusBar'] && StatusBar.overlaysWebView(doOverlay);
 				},
 
 				styleDefault() {
-					StatusBar.styleDefault();
+					window['StatusBar'] && StatusBar.styleDefault();
 				},
 
 				styleLightContent() {
-					StatusBar.styleLightContent();
+					window['StatusBar'] && StatusBar.styleLightContent();
 				},
 
 				styleBlackTranslucent() {
-					StatusBar.styleBlackTranslucent();
+					window['StatusBar'] && StatusBar.styleBlackTranslucent();
 				},
 
 				styleBlackOpaque() {
-					StatusBar.styleBlackOpaque();
+					window['StatusBar'] && StatusBar.styleBlackOpaque();
 				},
 
 				backgroundColorByName(colorname) {
-					return StatusBar.backgroundColorByName(colorname);
+					return window['StatusBar'] && StatusBar.backgroundColorByName(colorname);
 				},
 
 				backgroundColorByHexString(hexString) {
-					StatusBar.backgroundColorByHexString(hexString);
+					window['StatusBar'] && StatusBar.backgroundColorByHexString(hexString);
 				},
 
 				hide() {
@@ -154,41 +113,88 @@ const Framework7PhoneGap = {
 					else if(app.device.ios && parseInt(app.device.osVersion) === 10)
 						app.$('html').removeClass('ios-statusbar');
 
-					StatusBar.hide();
+					window['StatusBar'] && StatusBar.hide();
 				},
 
 				show() {
-					StatusBar.hide();
-					StatusBar.show();
+					window['StatusBar'] && StatusBar.hide();
+					window['StatusBar'] && StatusBar.show();
 
 					if(app.device.android) {
-						StatusBar.overlaysWebView(true);
-						StatusBar.styleLightContent();
+						window['StatusBar'] && StatusBar.overlaysWebView(true);
+						window['StatusBar'] && StatusBar.styleLightContent();
 						app.$('html').addClass('android-statusbar');
 					} else if(app.device.ios && parseInt(app.device.osVersion) === 10)
 						app.$('html').addClass('ios-statusbar');
 				},
 
 				visible() {
-					return StatusBar.isVisible;
+					return window['StatusBar'] && StatusBar.isVisible;
 				}
 			},
 
 			// ...
 
 			appDebug(params) {
-				return new Promise((resolve, reject) => {
+				return this.exec(arguments.callee.name, params, 'once');
+			},
 
-					app.once('phonegap_callbackDebug', ((res) => {
-						if(res && res.match(/done/i))
-							resolve('done');
-						else reject('error');
-					}));
+			// ...
 
-					if(app.device['webview'])
-						webkit.messageHandlers.callbackDebug.postMessage(params);
-				})
+			exec(fn, params, event, def) {
+
+				function android() {
+					if(app.device.android)
+						switch(fn) {
+							case 'hideSplash':
+								navigator['splashscreen'].hide();
+								return true;
+
+							case 'notificationAdd':
+								if(params['trigger']['every'])
+									params['trigger']['count'] = 0;
+								cordova.plugins.notification.local['schedule'](params);
+								return true;
+							case 'notificationList':
+								cordova.plugins.notification.local['getIds']((res) => {
+									app.emit(`phonegap_${fn}`, res);
+								});
+								return true;
+							case 'notificationRemove':
+								cordova.plugins.notification.local['cancel'](params);
+								return true;
+							case 'notificationRemoveAll':
+								cordova.plugins.notification.local['cancelAll']();
+								return true;
+						}
+					return false;
+				}
+
+				function ios() {
+					if(app.device.webview && webkit.messageHandlers[fn]) {
+						webkit.messageHandlers[fn].postMessage(params);
+						return true;
+					}
+
+					return false;
+				}
+
+				if(typeof event === 'string') {
+					return new Promise((resolve, reject) => {
+						app[event](`phonegap_${fn}`, (result, error) => {
+							result !== undefined ? resolve(result) : reject(error);
+						});
+
+						android() || ios() || resolve(def);
+					});
+				} else android() || ios();
 			}
+		}
+	},
+
+	on: {
+		init() {
+			// this.phonegap.rest = this.params.phonegap.rest;
 		}
 	}
 
