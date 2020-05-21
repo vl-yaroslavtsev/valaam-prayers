@@ -6,7 +6,7 @@ import settingsManager from './settings-manager.js';
 import { isMobile } from './utils/utils.js';
 
 let app;
-const mainView = '#view-menu';
+const menuView = '#view-menu';
 const viewsIds = ['#view-books', '#view-prayers', '#view-calendar', '#view-rites'];
 // Количественно последовательных нажатий кнопки Назад
 let backButtonAttempts = 0;
@@ -14,6 +14,13 @@ let backButtonAttempts = 0;
 function init(appInstance) {
 	app = appInstance;
 	initViewTabs();
+
+	let view = app.views.get(menuView);
+	view.on('pageBeforeOut', (page) => {
+		if (page.router.history.length <= 1) {
+			app.panel.get('.panel-left').close();
+		}
+	});
 
 	document.addEventListener("backbutton", (e) => {
 		return handleBackButton(e);
@@ -31,7 +38,11 @@ function parseHash() {
 	let panel = app.panel.get('.panel-left');
 	let view = app.views.get(viewId);
 
-	if (viewId === mainView) {
+	if (!view) {
+		view = createView(viewId);
+	}
+
+	if (viewId === menuView) {
 		if (panel) {
 			panel.open(false);
 		}
@@ -63,7 +74,7 @@ function initViewTabs() {
 		let id = event.target.id;
 		if (!id || !id.startsWith('view-'))
 		 	return;
-		createView('#' + id, app);
+		createView('#' + id);
 	});
 
 	app.on('pageBeforeIn', (page) => {
@@ -124,7 +135,7 @@ function initViewTabs() {
  * Создаем вью по запросу
  * @param  {string} id айдишник
  */
-function createView(id, app) {
+function createView(id) {
 	let view;
 	if (!viewsIds.includes(id)) return;
 
@@ -172,6 +183,7 @@ function createView(id, app) {
 	}
 
 	app.emit('viewShown', view);
+	return view;
 }
 
 /**
