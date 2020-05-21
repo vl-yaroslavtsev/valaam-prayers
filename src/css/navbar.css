@@ -96,7 +96,7 @@
 }
 
 .navbar a.link.back span {
-	color: var(--f7-navbar-text-color);
+	/* color: var(--f7-navbar-text-color); */
 	font-weight: var(--f7-navbar-title-font-weight);
 	text-transform: uppercase;
 	padding-top: 1px;

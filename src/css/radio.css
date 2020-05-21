@@ -1,5 +1,9 @@
 /* region .item-radio */
 
+:root {
+	--f7-radio-extra-margin: 0px;
+}
+
 label.item-radio .item-inner {
   padding-right: calc(var(--f7-safe-area-right) + 35px);
 }
@@ -8,8 +12,7 @@ label.item-radio input[type=radio]~.icon-radio {
   position: absolute;
   top: 50%;
   margin-top: -11px;
-  right: calc(var(--f7-safe-area-right) + 10px);
-	margin-right: 20px;
+  right: calc(var(--f7-safe-area-right));
 	border: 0 none;
 }
 
