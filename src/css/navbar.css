@@ -42,6 +42,10 @@
 	font-family: 'Geometria', Arial;
 }
 
+.navbar .title-large-text {
+	white-space: normal;
+}
+
 .navbar-bg:after {
 	height: 2px;
 	width: auto;
@@ -63,8 +67,8 @@
 }
 
 .navbar .title {
-	/* text-transform: uppercase; */
-	font-size: 1.1em;
+	text-transform: uppercase;
+	/* font-size: 1.1em; */
 	padding-top: 1px;
 }
 

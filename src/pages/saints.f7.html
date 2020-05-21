@@ -1,7 +1,7 @@
 <template>
 	<div class="page">
 
-		<div class="navbar">
+		<div class="navbar navbar-large navbar-transparent">
 			<div class="navbar-bg"></div>
 			<div class="navbar-inner sliding">
 				<div class="left">
@@ -10,7 +10,10 @@
 						<span class="">Назад</span>
 					</a>
 				</div>
-				<div class="title">{{#if searchMode}}Поиск{{else}}Житие{{/if}}</div>
+				<div class="title">{{name}}</div>
+				<div class="title-large">
+	        <div class="title-large-text">{{name}}</div>
+	      </div>
 				<div class="right">
 					{{#if searchMode}}
 					<!--<a class="link popup-close">Закрыть</a>-->
@@ -22,7 +25,6 @@
 		</div>
 
 		<div class="page-content">
-			<h2 class="block">{{name}}</h2>
 			<div class="tile">
 				{{#if picture}}
 				<div class="saint-icon media-obj">
@@ -197,7 +199,7 @@
 
 			saintData.text_short = saintData.text
 				.replace(/<\/?[^>]+>/gi, '')
-				.replace(/КРАТ­КОЕ ЖИ­ТИЕ[^\n]*\n/ig, '')
+				.replace(/КРАТКОЕ ЖИТИЕ[^\n]*\n/ig, '')
 				.replace(/КРАТКИЕ ЖИТИЯ[^\n]*\n/ig, '')
 				.slice(0, 300)
 			;
@@ -236,6 +238,17 @@
 			saintData.searchMode = this.$route.query.mode === 'search';
 
 			return saintData;
+		},
+		on: {
+			pageInit(e, page) {
+				let title = page.$el.find('.title-large-text');
+				setTimeout(() => {
+					page.el.style.setProperty(
+						'--f7-navbar-large-title-height',
+						`${title.height() + 8}px`
+					);
+				}, 0);
+			}
 		}
 	};
 </script>
