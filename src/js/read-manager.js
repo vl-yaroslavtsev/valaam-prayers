@@ -38,8 +38,7 @@ async function init (appInstance) {
 
 function attach(context) {
 	console.log('read-manager', 'attach', context);
-	let $blocks = context.$el.find('.page-content .block-strong.inset');
-	if (!$blocks.length) return;
+	if (!context.$el.hasClass('read-mode')) return;
 
 	context.readMode = new ReadMode(context);
 }
@@ -79,68 +78,47 @@ class ReadMode {
 		this.$content.on('click', this.handler.click);
 
 		context.$update(() => {
-			this.setActive(this.active);
+			this.init();
 		});
 	}
 
-	setActive(active) {
+	init() {
 		let $page = this.$page;
 		let $content = this.$content;
 		let $navbar = this.$navbar;
 		let $toolbar = this.$toolbar;
 		let $progressbar = this.$progressbar;
 
-		if (active) {
-			$page.addClass('read-mode');
+		this.page = Math.floor($content.scrollTop() / app.height) + 1;
+		this.pages = Math.ceil($content[0].scrollHeight / app.height) - 1;
 
-			this.page = Math.floor($content.scrollTop() / app.height) + 1;
-			this.pages = Math.ceil($content[0].scrollHeight / app.height) - 1;
-
-			this.range = app.range.create({
-				el: $page.find('.read-mode-range')[0],
-				min: 1,
-				max: this.pages,
-				value: this.page,
-				on: {
-					change: (range, value) => {
-						if (this.page === value) {
-							return;
-						}
-						$content.scrollTop(
-							(value - 1) * app.height
-						);
+		this.range = app.range.create({
+			el: $page.find('.read-mode-range')[0],
+			min: 1,
+			max: this.pages,
+			value: this.page,
+			on: {
+				change: (range, value) => {
+					if (this.page === value) {
+						return;
 					}
+					$content.scrollTop(
+						(value - 1) * app.height
+					);
 				}
-			});
-
-			app.navbar.hide($navbar, true, settingsManager.get('hideStatusbar'));
-			app.toolbar.hide($progressbar);
-			app.toolbar.hide($toolbar);
-
-			if (settingsManager.get('hideStatusbar') &&
-		 			app.phonegap.statusbar.visible()) {
-				app.phonegap.statusbar.hide();
 			}
+		});
 
-			this.active = true;
-		} else {
-			if (this.range) {
-				this.range.$el.find('.range-bar, .range-knob-wrap').remove();
-				this.range.destroy();
-				this.range = null;
-			}
-			app.toolbar.hide($progressbar);
-			app.toolbar.show($toolbar);
-			$page.removeClass('read-mode');
+		app.navbar.hide($navbar, true, settingsManager.get('hideStatusbar'));
+		app.toolbar.hide($progressbar);
+		app.toolbar.hide($toolbar);
 
-			if (!app.phonegap.statusbar.visible()) {
-				app.phonegap.statusbar.show();
-			}
-			this.active = false;
+		if (settingsManager.get('hideStatusbar') &&
+	 			app.phonegap.statusbar.visible()) {
+			app.phonegap.statusbar.hide();
 		}
 
 		this.context.$update();
-		manager.setState({active});
 	}
 
 	update() {
@@ -155,10 +133,6 @@ class ReadMode {
 		this.context.$update();
 	}
 
-	toggle() {
-		this.setActive(!this.active);
-	}
-
 	/**
 	 * Обработчик скролла
 	 * @this {F7Component}
@@ -167,20 +141,6 @@ class ReadMode {
 		let $content = this.$content;
 		let $navbar = this.$navbar;
 		let $toolbar = this.$toolbar;
-
-		if (!this.active) {
-			if (!$content.hasClass('hide-navbar-on-scroll')) {
-				return;
-			}
-
-			if ($content.scrollTop() > $content[0].scrollHeight - app.height - $toolbar.height() ||
-					$content.scrollTop() < $navbar.height()) {
-				app.toolbar.show($toolbar);
-			} else {
-				app.toolbar.hide($toolbar);
-			}
-			return;
-		}
 
 		this.page = Math.floor(this.$content.scrollTop() / app.height) + 1;
 		if (this.range) {
@@ -208,22 +168,8 @@ class ReadMode {
 		}
 
 		if (barShown) {
-			if (
-				!this.active &&
-				(
-					!$content.hasClass('hide-navbar-on-scroll') ||
-					$content.scrollTop() > $content[0].scrollHeight - app.height - $bar.height() ||
-					$content.scrollTop() < $navbar.height()
-				)
-			) {
-				return;
-			}
 			app.navbar.hide($navbar);
 			app.toolbar.hide($bar);
-			return;
-		} else if (!this.active) {
-			app.navbar.show($navbar);
-			app.toolbar.show($bar);
 			return;
 		}
 
@@ -241,7 +187,8 @@ class ReadMode {
 		}
 
 		let lineHeight = this.getLineHight();
-		if (e.clientX < app.width / 2 ) {
+		//if (e.clientX < app.width / 2 ) {
+		if (e.clientY < app.height / 2 ) {
 			$content.scrollTop(
 				Math.max($content.scrollTop() - app.height + lineHeight, 0),
 				200

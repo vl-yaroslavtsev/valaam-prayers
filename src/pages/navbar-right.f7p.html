@@ -15,22 +15,6 @@
 		<i class="icon material-icons md-only">star_border</i>
 	</a>
 	{{/js_if}}
-	{{#js_if "this.readMode && this.readMode.active"}}
-	<a href="#"
-		 id="link-toggle-read-mode"
-		 class="link"
-		 @click="toggleReadMode">
-		<i class="icon material-icons md-only">unfold_less</i>
-	</a>
-	{{/js_if}}
-	{{#js_if "this.readMode && !this.readMode.active"}}
-	<a href="#"
-	   id="link-toggle-read-mode"
-		 class="link"
-		 @click="toggleReadMode">
-		<i class="icon material-icons md-only">unfold_more</i>
-	</a>
-	{{/js_if}}
 
 
 	<!--

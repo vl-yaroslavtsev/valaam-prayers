@@ -1,5 +1,5 @@
 <template>
-	<div class="page page-with-tabs-subnavbar"
+	<div class="page page-with-tabs-subnavbar read-mode"
 			 data-name="prayers-text-{{id}}">
 
 		<div class="navbar">
@@ -11,7 +11,7 @@
 						<span class="">Назад</span>
 					</a>
 				</div>
-				<div class="title">{{name}}</div>
+				<div class="title"></div>
 				<div class="right">
 					{{#unless searchMode}}
 					<!--<a class="link popup-close">Закрыть</a>-->
@@ -57,6 +57,7 @@
 
 		<div class="page-content">
 			<!-- hide-navbar-on-scroll hide-toolbar-on-scroll -->
+			<!--
 			{{#if parentName}}
 			<h3 class="block">{{parentName}}</h3>
 			{{/if}}
@@ -74,6 +75,7 @@
 				</div>
 			</div>
 			{{/if}}
+			-->
 
 			{{#js_if "this.text || this.picture" }}
 			<div class="block block-strong inset text-content">
@@ -120,7 +122,6 @@
 <script>
 	import favoriteManager from '../js/favorite-manager.js';
 	import dataManager from '../js/data/manager.js';
-	import readModeMixin from './read-mode-mixin.js';
 
 	let app;
 
@@ -138,7 +139,6 @@
 
 			return data;
 		},
-		mixins: [readModeMixin],
 		methods: {
 			toggleFavorite() {
 				let isFavorite = !this.isFavorite;

@@ -1,5 +1,5 @@
 <template>
-	<div class="page">
+	<div class="page read-mode">
 
 		<div class="navbar">
 			<div class="navbar-bg"></div>
@@ -59,7 +59,6 @@
 <!--suppress JSAnnotator -->
 <script>
 	import { getUrl } from '../js/image-manager.js';
-	import readModeMixin from './read-mode-mixin.js';
 
 	export default {
 		async data() {
@@ -84,7 +83,6 @@
 			saintData.searchMode = this.$route.query.mode === 'search';
 
 			return saintData;
-		},
-		mixins: [readModeMixin]
+		}
 	};
 </script>
