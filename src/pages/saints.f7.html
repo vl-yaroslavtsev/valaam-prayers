@@ -176,6 +176,7 @@
 	import {format, parse, addDays, subDays} from '../js/utils/date-utils.js';
 	import dataManager from '../js/data/manager.js';
 	import { getUrl } from '../js/image-manager.js';
+	import navbarLargeMixin from './navbar-large-mixin.js';
 
 	export default {
 		async data() {
@@ -239,6 +240,7 @@
 
 			return saintData;
 		},
+		mixins: [navbarLargeMixin],
 		on: {
 			pageInit(e, page) {
 				let title = page.$el.find('.title-large-text');

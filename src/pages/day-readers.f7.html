@@ -1,7 +1,7 @@
 <template>
 	<div class="page page-with-tabs-subnavbar" data-name="day-ereaders-{{id}}">
 
-		<div class="navbar">
+		<div class="navbar navbar-large navbar-transparent">
 			<div class="navbar-bg"></div>
 			<div class="navbar-inner sliding">
 				<div class="left">
@@ -10,25 +10,37 @@
 						<span class="">Назад</span>
 					</a>
 				</div>
-				<div class="title">{{#if searchMode}}Поиск{{else}}Чтения{{/if}}</div>
+				<div class="title">{{name}}</div>
+				<div class="title-large">
+	        <div class="title-large-text">{{name}}</div>
+	      </div>
 				<div class="right">
+					<a class="link smart-select smart-select-init"
+						 data-open-in="popover"
+						 data-close-on-select="true">
+						<select id="select-language"
+										@change="selectLenguage">
+							<option value="tab-churchslavonic"
+											{{#js_if "this.tabId == 'tab-churchslavonic'"}}selected{{/js_if}}>
+									Церковнославянский
+							</option>
+							<option value="tab-slavonic"
+										  {{#js_if "this.tabId == 'tab-slavonic'"}}selected{{/js_if}}>
+									Русский
+							</option>
+						</select>
+						<i class="icon material-icons md-only">translate</i>
+					</a>
 					{{#if searchMode}}
 					<!--<a class="link popup-close">Закрыть</a>-->
 					{{else}}
 						{{> "navbar-right"}}
 					{{/if}}
 				</div>
-				<div class="navbar-extra">
-		      <div class="navbar-extra-title">{{name}}</div>
-				</div>
 			</div>
 		</div>
 
-		{{> "read-mode-toolbar"}}
-
 		<div class="page-content">
-			<h2 class="block">{{name}}</h2>
-
 			<div class="subnavbar tabs-subnavbar">
 				<div class="subnavbar-inner">
 					<div class="segmented segmented-raised">
@@ -58,8 +70,8 @@
 </style>
 <!--suppress JSAnnotator -->
 <script>
-	import readModeMixin from './read-mode-mixin.js';
-	
+	import navbarLargeMixin from './navbar-large-mixin.js';
+
 	export default {
 		data() {
 			let dayCode = this.$route.params.id,
@@ -94,7 +106,11 @@
 
 			return readerData;
 		},
-		mixins: [readModeMixin],
+		methods: {
+			selectLenguage({target}) {
+				app.tab.show(this.$el.find('#' + target.value));
+			}
+		},
 		on: {
 			pageInit(e, page) {
 				let tabId = app.methods.storageGet('ereaders-text-tab') ||
@@ -102,10 +118,11 @@
 				app.tab.show(page.$el.find('#' + tabId));
 
 				page.$el.find('.tabs').on('tab:show', (event) => {
+					this.tabId = event.target.id;
 					app.methods.storageSet('ereaders-text-tab', event.target.id);
 				});
 		  }
-		}
-
+		},
+		mixins: [navbarLargeMixin]
 	};
 </script>

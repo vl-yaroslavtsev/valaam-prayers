@@ -76,6 +76,7 @@
 	import {Dom7 as $$} from 'framework7';
 	import dataManager from '../js/data/manager.js';
 	import { isMobile } from '../js/utils/utils.js';
+	import navbarLargeMixin from './navbar-large-mixin.js';
 
 	const PRAYERS_SID = "842"; // Полный молитвослов
 	const LITURGICAL_BOOKS_SID = "937"; // Богослужебные книги
@@ -93,6 +94,7 @@
 				loadPromise: loadData.call(this)
 			};
 		},
+		mixins: [navbarLargeMixin],
 		on: {
 			async pageInit(e, page) {
 				this.virtualList = app.virtualList.create({
@@ -146,13 +148,13 @@
 					this.$el.addClass('page-with-subnavbar');
 				}
 
-				let title = page.$el.find('.title-large-text');
-				setTimeout(() => {
-					page.el.style.setProperty(
-						'--f7-navbar-large-title-height',
-						`${title.height() + 8}px`
-					);
-				}, 0);
+				// let title = page.$el.find('.title-large-text');
+				// setTimeout(() => {
+				// 	page.el.style.setProperty(
+				// 		'--f7-navbar-large-title-height',
+				// 		`${title.height() + 8}px`
+				// 	);
+				// }, 0);
 			},
 			pageBeforeIn(e, page) {
 				if (page.router.history.length > 1) {

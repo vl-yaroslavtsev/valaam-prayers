@@ -1,7 +1,7 @@
 <template>
 	<div class="page">
 
-		<div class="navbar">
+		<div class="navbar navbar-large navbar-transparent">
 			<div class="navbar-bg"></div>
 			<div class="navbar-inner sliding">
 				<div class="left">
@@ -11,20 +11,17 @@
 					</a>
 				</div>
 				<div class="title">Притча дня</div>
+				<div class="title-large">
+	        <div class="title-large-text">Притча дня</div>
+	      </div>
 				<div class="right">
 					{{> "navbar-right"}}
-				</div>
-				<div class="navbar-extra">
-		      <div class="navbar-extra-title">Притча дня</div>
 				</div>
 			</div>
 		</div>
 
-		{{> "read-mode-toolbar"}}
-
 		<div class="page-content">
 			{{#if parabel}}
-			<h2 class="block">Притча дня</h2>
 			<div class="block block-strong inset text-content">
 				{{parabel}}
 			</div>
@@ -37,7 +34,7 @@
 </style>
 <!--suppress JSAnnotator -->
 <script>
-	import readModeMixin from './read-mode-mixin.js';
+	import navbarLargeMixin from './navbar-large-mixin.js';
 
 	export default {
 		data() {
@@ -48,6 +45,6 @@
 
 			return dayData;
 		},
-		mixins: [readModeMixin]
+		mixins: [navbarLargeMixin]
 	};
 </script>

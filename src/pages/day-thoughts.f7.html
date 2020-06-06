@@ -1,7 +1,6 @@
 <template>
 	<div class="page">
-
-		<div class="navbar">
+		<div class="navbar navbar-large navbar-transparent">
 			<div class="navbar-bg"></div>
 			<div class="navbar-inner sliding">
 				<div class="left">
@@ -10,7 +9,10 @@
 						<span class="">Назад</span>
 					</a>
 				</div>
-				<div class="title">{{#if searchMode}}Поиск{{else}}Мысли{{/if}}</div>
+				<div class="title">{{thoughts.picture_desc}}</div>
+				<div class="title-large">
+	        <div class="title-large-text">{{thoughts.picture_desc}}</div>
+	      </div>
 				<div class="right">
 					{{#if searchMode}}
 					<!--<a class="link popup-close">Закрыть</a>-->
@@ -18,18 +20,11 @@
 						{{> "navbar-right"}}
 					{{/if}}
 				</div>
-				<div class="navbar-extra">
-					<div class="navbar-extra-subtitle">Мысль дня</div>
-		      <div class="navbar-extra-title">{{thoughts.picture_desc}}</div>
-				</div>
 			</div>
 		</div>
 
-		{{> "read-mode-toolbar"}}
-
 		<div class="page-content">
 			{{#if thoughts.text}}
-			<h2 class="block">{{thoughts.picture_desc}}</h2>
 			<div class="block block-strong inset text-content">
 				{{#if thoughts.picture}}
 				<img class="lazy"
@@ -58,7 +53,7 @@
 <!--suppress JSAnnotator -->
 <script>
 	import { getUrl } from '../js/image-manager.js';
-	import readModeMixin from './read-mode-mixin.js';
+	import navbarLargeMixin from './navbar-large-mixin.js';
 
 	export default {
 		async data() {
@@ -84,6 +79,6 @@
 
 			return dayData;
 		},
-		mixins: [readModeMixin]
+		mixins: [navbarLargeMixin]
 	};
 </script>

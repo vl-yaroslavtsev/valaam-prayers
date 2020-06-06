@@ -1,7 +1,7 @@
 <template>
 	<div class="page">
 
-		<div class="navbar">
+		<div class="navbar navbar-large navbar-transparent">
 			<div class="navbar-bg"></div>
 			<div class="navbar-inner sliding">
 				<div class="left">
@@ -11,6 +11,9 @@
 					</a>
 				</div>
 				<div class="title">{{#if searchMode}}Поиск{{else}}{{title}}{{/if}}</div>
+				<div class="title-large">
+	        <div class="title-large-text">{{name}}</div>
+	      </div>
 				<div class="right">
 					{{#if searchMode}}
 					<!--<a class="link popup-close">Закрыть</a>-->
@@ -18,16 +21,10 @@
 						{{> "navbar-right"}}
 					{{/if}}
 				</div>
-				<div class="navbar-extra">
-		      <div class="navbar-extra-title">{{name}}</div>
-				</div>
 			</div>
 		</div>
 
-		{{> "read-mode-toolbar"}}
-
 		<div class="page-content">
-			<h2 class="block">{{name}}</h2>
 			<div class="block block-strong inset prayer slavonic text-content">
 				{{text}}
 			</div>
@@ -45,7 +42,7 @@
 	}
 </style>
 <script>
-	import readModeMixin from './read-mode-mixin.js';
+	import navbarLargeMixin from './navbar-large-mixin.js';
 
 	export default {
 		data() {
@@ -64,6 +61,6 @@
 
 			return prayerData;
 		},
-		mixins: [readModeMixin]
+		mixins: [navbarLargeMixin]
 	};
 </script>

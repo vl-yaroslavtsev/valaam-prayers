@@ -8,6 +8,7 @@
 	--f7-subnavbar-shadow-image: none;
 
 	position: static;
+	transform: none !important;
 }
 
 .page-with-tabs-subnavbar,
