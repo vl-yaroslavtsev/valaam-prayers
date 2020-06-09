@@ -46,6 +46,11 @@
 	white-space: normal;
 }
 
+.navbar .title-large-subtext {
+  color: var(--f7-navbar-link-color);
+	font-size: var(--f7-navbar-font-size);
+}
+
 .navbar-bg:after {
 	height: 2px;
 	width: auto;
