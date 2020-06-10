@@ -148,7 +148,7 @@
   top: calc(var(--f7-navbar-height, 0) + var(--f7-safe-area-top, 0));
   left: 0;
 	right: 0;
-	padding: 0 var(--f7-block-padding-horizontal);
+	padding: calc(var(--f7-block-padding-vertical) / 2) var(--f7-block-padding-horizontal);
 }
 
 .navbar-hidden .navbar-inner > .navbar-extra {
@@ -161,9 +161,9 @@
 
 .navbar-extra-title,
 .navbar-extra-subtitle {
-	overflow: hidden;
+	/* overflow: hidden;
   white-space: nowrap;
-  text-overflow: ellipsis;
+  text-overflow: ellipsis; */
 }
 
 .navbar-extra-title {

@@ -118,6 +118,11 @@ class ReadMode {
 			app.phonegap.statusbar.hide();
 		}
 
+		$page[0].style.setProperty(
+			'--f7-navbar-extra-height',
+			`${$navbar.find('.navbar-extra')[0].offsetHeight}px`
+		);
+
 		this.context.$update();
 	}
 
