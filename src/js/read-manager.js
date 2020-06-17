@@ -7,7 +7,6 @@ import settingsManager from './settings-manager.js';
 
 let inited = false;
 let app;
-let manager;
 /**
  * Инициализация
  * @param  {Framework7} appInstance
@@ -15,13 +14,6 @@ let manager;
 async function init (appInstance) {
 	if (inited) return;
 	app = appInstance;
-
-	manager = new StateStore({
-		id: 'read-manager',
-		active: false,
-	});
-
-	await manager.statePromise;
 
 	app.on('pageInit', (page) => {
 		if (!page.el.f7Component) return;
@@ -62,7 +54,6 @@ class ReadMode {
 
 		this.context = context;
 
-		this.active = manager.state.active;
 		this.$page = context.$el;
 		this.$content = this.$page.find('.page-content');
 		this.$navbar = this.$page.find('.navbar');
@@ -89,8 +80,7 @@ class ReadMode {
 		let $toolbar = this.$toolbar;
 		let $progressbar = this.$progressbar;
 
-		this.page = Math.floor($content.scrollTop() / app.height) + 1;
-		this.pages = Math.ceil($content[0].scrollHeight / app.height) - 1;
+		this.countPages();
 
 		this.range = app.range.create({
 			el: $page.find('.read-mode-range')[0],
@@ -102,6 +92,7 @@ class ReadMode {
 					if (this.page === value) {
 						return;
 					}
+
 					$content.scrollTop(
 						(value - 1) * app.height
 					);
@@ -128,10 +119,10 @@ class ReadMode {
 
 	update() {
 		let $content = this.$content;
-		if (!this.active) return;
 
-		this.page = Math.floor($content.scrollTop() / app.height) + 1;
-		this.pages = Math.ceil($content[0].scrollHeight / app.height) - 1;
+		delete this.lineHeight;
+
+		this.countPages();
 
 		this.range.max = this.pages;
 
@@ -147,13 +138,29 @@ class ReadMode {
 		let $navbar = this.$navbar;
 		let $toolbar = this.$toolbar;
 
-		this.page = Math.floor(this.$content.scrollTop() / app.height) + 1;
+		let lineHeight = this.getLineHeight();
+
+		let newPage = Math.floor(this.$content.scrollTop() / (app.height - lineHeight)) + 1;
+
+		if (this.page === newPage) {
+			return;
+		}
+
+		this.page = newPage;
 		if (this.range) {
 			this.range.setValue(this.page);
 		}
 
 		this.context.$update();
 		app.navbar.hide($navbar);
+	}
+
+	countPages() {
+		let $content = this.$content;
+		let lineHeight = this.getLineHeight();
+
+		this.page = Math.floor($content.scrollTop() / (app.height - lineHeight)) + 1;
+		this.pages = Math.ceil($content[0].scrollHeight / (app.height - lineHeight)) - 1;
 	}
 
 	/**
@@ -165,8 +172,7 @@ class ReadMode {
 		let $content = this.$content;
 		let $progressbar = this.$progressbar;
 		let clickCenter = false;
-		let $bar = this.active ? this.$progressbar : this.$toolbar;
-		let barShown = !$bar.hasClass('toolbar-hidden');
+		let barShown = !$progressbar.hasClass('toolbar-hidden');
 
 		if (["A", "BUTTON", "IMG"].includes(e.target.tagName)) {
 			return;
@@ -174,7 +180,7 @@ class ReadMode {
 
 		if (barShown) {
 			app.navbar.hide($navbar);
-			app.toolbar.hide($bar);
+			app.toolbar.hide($progressbar);
 			return;
 		}
 
@@ -187,35 +193,40 @@ class ReadMode {
 
 		if (clickCenter) {
 			app.navbar.show($navbar);
-			app.toolbar.show($bar);
+			app.toolbar.show($progressbar);
 			return;
 		}
 
-		let lineHeight = this.getLineHight();
+		let lineHeight = this.getLineHeight();
 		//if (e.clientX < app.width / 2 ) {
 		if (e.clientY < app.height / 2 ) {
 			$content.scrollTop(
-				Math.max($content.scrollTop() - app.height + lineHeight, 0),
+				Math.round(Math.max($content.scrollTop() - app.height + lineHeight, 0)),
 				200
 			);
 		} else {
 			$content.scrollTop(
-				Math.min(
+				Math.round(Math.min(
 					$content.scrollTop() + app.height - lineHeight,
 					$content[0].scrollHeight - app.height
-				),
+				)),
 				200
 			);
 		}
 	}
 
-	getLineHight() {
+	getLineHeight() {
+		if (this.lineHeight) {
+			return this.lineHeight;
+		}
+
 		let $content = this.$content;
 		let $block = $content.find('.tab-active .block-strong.inset');
 		if (!$block.length) {
 			$block = $content.find('.block-strong.inset');
 		}
-		return parseFloat(window.getComputedStyle($block[0]).lineHeight);
+		this.lineHeight = parseFloat(window.getComputedStyle($block[0]).lineHeight);
+		return this.lineHeight;
 	}
 
 	destroy() {
