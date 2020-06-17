@@ -118,13 +118,10 @@ class ReadMode {
 	}
 
 	update() {
-		let $content = this.$content;
-
-		delete this.lineHeight;
-
 		this.countPages();
 
 		this.range.max = this.pages;
+		this.range.setValue(this.page);
 
 		this.context.$update();
 	}
@@ -157,10 +154,12 @@ class ReadMode {
 
 	countPages() {
 		let $content = this.$content;
+
+		delete this.lineHeight;
 		let lineHeight = this.getLineHeight();
 
-		this.page = Math.floor($content.scrollTop() / (app.height - lineHeight)) + 1;
 		this.pages = Math.ceil($content[0].scrollHeight / (app.height - lineHeight)) - 1;
+		this.page = Math.floor($content.scrollTop() / (app.height - lineHeight)) + 1;
 	}
 
 	/**

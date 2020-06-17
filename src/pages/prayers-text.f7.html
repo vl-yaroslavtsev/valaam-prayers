@@ -155,9 +155,6 @@
 			},
 			selectLenguage({target}) {
 				app.tab.show(this.$el.find('#' + target.value));
-				if (this.readMode) {
-					this.readMode.update();
-				}
 			}
 		},
 		on: {
@@ -175,6 +172,9 @@
 				page.$el.find('.tabs').on('tab:show', (event) => {
 					app.methods.storageSet('prayers-text-tab', event.target.id);
 					this.tabId = event.target.id;
+					if (this.readMode) {
+						this.readMode.update();
+					}
 					this.$update();
 				});
 
