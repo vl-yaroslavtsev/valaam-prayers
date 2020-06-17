@@ -64,6 +64,27 @@
 					</ul>
 				</div>
 				{{/if}}
+				{{#if hagiography.length}}
+				<div class="block-title">
+					Четьи-Минеи
+				</div>
+				<div class="block-header">
+					в изложении свт. Димитрия (Ростовского)
+				</div>
+				<div class="list no-hairlines">
+					<ul>
+						{{#each hagiography}}
+						<li>
+							<a href="/prayers/text/{{id}}" class="item-link item-content">
+								<div class="item-inner">
+									<div class="item-title">{{name}}</div>
+								</div>
+							</a>
+						</li>
+						{{/each}}
+					</ul>
+				</div>
+				{{/if}}
 
 				{{#if days.length}}
 				<div class="block-title">
@@ -170,6 +191,15 @@
 		width: 100%;
 		height: 50vh;
 	}
+	.links-list a {
+		white-space: normal;
+	}
+	.list .item-title {
+		white-space: normal;
+		display: -webkit-box;
+		-webkit-line-clamp: 2;
+		-webkit-box-orient: vertical;
+	}
 </style>
 <!--suppress JSAnnotator -->
 <script>
@@ -180,9 +210,7 @@
 
 	export default {
 		async data() {
-			let saintId = (this.$route.context && this.$route.context.actionId) ||
-				    		this.$route.params.saintId,
-				prayers = dataManager.cache.prayers;
+			let prayers = dataManager.cache.prayers;
 
 			let saintData = Object.assign({}, this.saint);
 
@@ -235,6 +263,13 @@
 						   format(addDays(dt, 13), 'd MMMM');
 				return element;
 			});
+
+			saintData.hagiography = [];
+			if (saintData.hagiography_id) {
+				saintData.hagiography = saintData.hagiography_id.map(
+					(id) => prayers.e.find((e) => e.id === id)
+				);
+			}
 
 			saintData.searchMode = this.$route.query.mode === 'search';
 

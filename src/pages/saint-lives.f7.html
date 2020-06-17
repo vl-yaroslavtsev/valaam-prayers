@@ -28,7 +28,6 @@
 
 		<div class="page-content">
 			<!-- hide-navbar-on-scroll -->
-			<h2 class="block">{{name}}</h2>
 			<div class="block block-strong inset text-content">
 				{{#if picture}}
 				<img class="lazy"
@@ -39,10 +38,18 @@
 					 sizes="45vw"-->
 				{{/if}}
 				{{text}}
-				<div style="clear: both;"></div>
+				{{#if hagiography.length}}
+				<h3>
+					Смотри также в изложении свт. Димитрия (Ростовского)
+				</h3>
+				<ul>
+					{{#each hagiography}}
+					<li><a href="/prayers/text/{{id}}">{{name}}</a></li>
+					{{/each}}
+				</ul>
+				{{/if}}
 			</div>
 		</div>
-
 	</div>
 </template>
 <style scoped>
@@ -55,18 +62,28 @@
 	.text-content img:first-child + p {
 		margin-top: 0;
 	}
+
+	.links-list a {
+		white-space: normal;
+	}
+	.list .item-title {
+		white-space: normal;
+		display: -webkit-box;
+		-webkit-line-clamp: 2;
+		-webkit-box-orient: vertical;
+	}
 </style>
 <!--suppress JSAnnotator -->
 <script>
 	import { getUrl } from '../js/image-manager.js';
+	import dataManager from '../js/data/manager.js';
 
 	export default {
 		async data() {
 
-			let saintId = (this.$route.context && this.$route.context.actionId) ||
-									  this.$route.params.saintId,
-					app = this.$app,
-					saintData = Object.assign({}, this.saint);
+			let app = this.$app,
+					saintData = Object.assign({}, this.saint),
+					prayers = dataManager.cache.prayers;
 
 			if (saintData.picture) {
 				saintData.picture = await getUrl({
@@ -78,6 +95,13 @@
 					sOffline: this.saint.picture,
 					mOffline: this.saint.picture_2x
 				});
+			}
+
+			saintData.hagiography = [];
+			if (saintData.hagiography_id) {
+				saintData.hagiography = saintData.hagiography_id.map(
+					(id) => prayers.e.find((e) => e.id === id)
+				);
 			}
 
 			saintData.searchMode = this.$route.query.mode === 'search';
