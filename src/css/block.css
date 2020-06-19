@@ -22,7 +22,7 @@
 
 h2.block {
 	/* font: 500 28px/32px 'Gotham Pro'; */
-	font: 500 29px/32px 'Geometria';
+	font: 500 29px/32px 'Noto Sans';
 	margin: 27px 0 19px 0; /* 16px 0 16px 0 */
 }
 
@@ -133,7 +133,7 @@ h3.block {
 	}
 
 	h2.block {
-		font: 500 46px/54px 'Geometria';
+		font: 500 46px/54px 'Noto Sans';
 		margin: 40px 0 30px 0;
 	}
 
