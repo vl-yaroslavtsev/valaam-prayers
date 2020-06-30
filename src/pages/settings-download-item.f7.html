@@ -77,7 +77,7 @@
 <!--suppress JSAnnotator -->
 <script>
 	import downloadManager from '../js/download/manager.js';
-	import { bytesToSize, isOnline } from '../js/utils/utils.js';
+	import { bytesToSize } from '../js/utils/utils.js';
 
 	let app, $el;
 	export default {
@@ -105,9 +105,7 @@
 					return false;
 				}
 
-				// navnavigator.onLine
-				let onLine = await isOnline();
-				if (!onLine) {
+				if (!app.online) {
 					app.methods.showMessage(`
 						Скачивание невозможно.<br>
 						Вы не подключениы к сети Интернет.

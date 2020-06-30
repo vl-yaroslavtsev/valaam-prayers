@@ -2,8 +2,9 @@
  * Управляем картинками
  */
 import { Dom7 as $$ } from 'framework7';
-import { isOnline, isMobile as isMobileDevice } from './utils/utils.js';
+import { isMobile as isMobileDevice } from './utils/utils.js';
 import db from './data/db.js';
+let app;
 let inited = false;
 let isMobile = true;
 
@@ -11,7 +12,8 @@ let isMobile = true;
  * Инициализация
  * @param  {Framework7} app
  */
-function init (app) {
+function init (appInstance) {
+	app = appInstance;
 	if (inited) return;
 
 	isMobile = isMobileDevice();
@@ -42,8 +44,7 @@ async function getUrl({s, m, sOffline, mOffline}) {
 
 	let urlOnline = isMobile ? s : m;
 
-	// navigator.onLine always true !!!
-	if (await isOnline()) {
+	if (app.online) {
 		return urlOnline;
 	}
 

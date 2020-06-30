@@ -220,35 +220,6 @@ function jsonSize(json) {
   return str.length + (m ? m.length : 0);
 }
 
-/**
- * navigator.onLine always true!!!
- * @return {Boolean} [description]
- */
-async function isOnline() {
-
-	// TODO: использовать navigator.onLine !!!
-	// Пока navigator.onLine всегда true
-	isOnline.date = isOnline.date || 0;
-	if (new Date - isOnline.date < 300) {
-		return isOnline.cache;
-	}
-
-	try {
-		await Promise.race(
-			[
-				new Promise((resolve, reject) => {setTimeout(resolve, 100)}),
-				fetch('images/default.png?sid=' + Math.random())
-			]
-		);
-		isOnline.cache = true;
-	} catch (err) {
-		isOnline.cache = false;
-	}
-
-	isOnline.date = new Date;
-	return isOnline.cache;
-}
-
 export {
 	init,
 	isMobile,
@@ -257,6 +228,5 @@ export {
 	fetchBlob,
 	fetchRaw,
 	formatUrl,
-	jsonSize,
-	isOnline
+	jsonSize
 };
