@@ -20,6 +20,20 @@ const Framework7PhoneGap = {
 
 			appInit() {
 				this.exec(arguments.callee.name, null);
+
+				if(app.data.debug)
+				{
+					app.phonegap.downloadData('calendars-2021D-1245.image', (count, total) => {
+						console.log(count, total);
+					})
+						.then(() => {
+							console.log('done');
+						})
+						.catch(() => {
+							console.log('error');
+						})
+					;
+				}
 			},
 
 			hideSplash() {
@@ -46,6 +60,17 @@ const Framework7PhoneGap = {
 
 			evaluatePolicy(title) {
 				return this.exec(arguments.callee.name, title, 'once', false);
+			},
+
+			// ...
+
+			downloadData(filename, progress) {
+				app.off('phonegap_DownloadProgress_' + filename)
+				if(typeof progress === 'function')
+					// noinspection JSValidateTypes
+					app.on('phonegap_DownloadProgress_' + filename, progress)
+
+				return this.exec(arguments.callee.name, filename, 'once', false, 'DownloadData_' + filename);
 			},
 
 			// ...
@@ -77,6 +102,8 @@ const Framework7PhoneGap = {
 			},
 
 			// ...
+
+			/** @var StatusBar */
 
 			statusbar: {
 				overlaysWebView(doOverlay) {
@@ -141,9 +168,10 @@ const Framework7PhoneGap = {
 
 			// ...
 
-			exec(fn, params, event, def) {
+			exec(fn, params, event, def, eventname) {
 
 				function android() {
+					/** @var cordova */
 					if(app.device.android)
 						switch(fn) {
 							case 'hideSplash':
@@ -171,6 +199,8 @@ const Framework7PhoneGap = {
 				}
 
 				function ios() {
+					/** @var webkit */
+					/** @var webkit.messageHandlers*/
 					if(app.device.webview && webkit.messageHandlers[fn]) {
 						webkit.messageHandlers[fn].postMessage(params);
 						return true;
@@ -181,7 +211,8 @@ const Framework7PhoneGap = {
 
 				if(typeof event === 'string') {
 					return new Promise((resolve, reject) => {
-						app[event](`phonegap_${fn}`, (result, error) => {
+
+						app[event]('phonegap_' + (eventname || fn), (result, error) => {
 							result !== undefined ? resolve(result) : reject(error);
 						});
 
