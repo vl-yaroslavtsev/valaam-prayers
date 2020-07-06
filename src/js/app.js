@@ -153,8 +153,6 @@ const app = new Framework7({
 				`, 30000);
 			}
 
-			window['dataManager'] = dataManager;
-
 			downloadManager.init(this);
 			favoriteManager.init(this);
 			imageManager.init(this);

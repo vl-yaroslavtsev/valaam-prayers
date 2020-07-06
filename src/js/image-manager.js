@@ -44,7 +44,7 @@ async function getUrl({s, m, sOffline, mOffline}) {
 
 	let urlOnline = isMobile ? s : m;
 
-	if (app.online) {
+	if (navigator.onLine) {
 		return urlOnline;
 	}
 

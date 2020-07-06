@@ -143,8 +143,6 @@ async function testFitures() {
 		msg += 'navigator.onLine: нет<br>';
 	}
 
-	msg += 'app.online: ' + app.online + '<br>';
-
 	if (window.indexedDB || window.mozIndexedDB || window.webkitIndexedDB || window.msIndexedDB) {
 		msg += 'indexedDB: да<br>';
 	} else {

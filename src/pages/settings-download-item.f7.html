@@ -98,7 +98,7 @@
 		},
 		methods: {
 			async download() {
-				if (!app.online) {
+				if (!navigator.onLine) {
 					app.methods.showMessage(`
 						Скачивание невозможно.<br>
 						Вы не подключениы к сети Интернет.
