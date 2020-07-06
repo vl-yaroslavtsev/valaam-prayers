@@ -136,9 +136,9 @@
 					await Promise.all(
 						this.all.map(item => item.statePromise)
 					);
-					await Promise.all(
-						this.all.map(item => item.refresh())
-					);
+					// await Promise.all(
+					// 	this.all.map(item => item.refresh())
+					// );
 				} catch (err) {
 					//app.methods.showLoadError();
 				} finally {

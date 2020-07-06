@@ -53,6 +53,9 @@
 					{{#js_if "this.status === 'processing'"}}
 						<span>Обработка...</span>
 					{{/js_if}}
+					{{#js_if "this.status === 'size-counting'"}}
+						<span>Подсчёт размера...</span>
+					{{/js_if}}
 					{{#js_if "this.status === 'error'"}}
 						<span class="text-color-red">{{message}}</span>
 					{{/js_if}}
@@ -95,20 +98,19 @@
 		},
 		methods: {
 			async download() {
-				let downloadItem = this.downloadItem;
-				let loading = await downloadManager.getLoading();
-
-				if (loading) {
-					app.methods.showMessage(`
-						Пожалуйста, дождитесь окончания текущей загрузки.
-					`);
-					return false;
-				}
-
 				if (!app.online) {
 					app.methods.showMessage(`
 						Скачивание невозможно.<br>
 						Вы не подключениы к сети Интернет.
+					`);
+					return false;
+				}
+
+				let downloadItem = this.downloadItem;
+				let loading = await downloadManager.getLoading();
+				if (loading) {
+					app.methods.showMessage(`
+						Пожалуйста, дождитесь окончания текущей загрузки.
 					`);
 					return false;
 				}
@@ -122,6 +124,7 @@
 					return false;
 				}
 
+				await downloadItem.refresh();
 				downloadItem.download();
 			},
 			cancel() {

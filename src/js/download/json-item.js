@@ -79,6 +79,10 @@ class JsonDownloadItem extends DownloadItem {
 			from_ts: loadedTs
 		};
 
+    await this.setState({
+      status: 'size-counting',
+    });
+
 		try {
 			for (let i = 0, length = sources.length; i < length; i++) {
 				let count = 0;
@@ -86,7 +90,7 @@ class JsonDownloadItem extends DownloadItem {
 				params = Object.assign({}, defParams, params);
 
 				if (params.page_size) {
-					({count} = await fetchJson(
+          ({count} = await fetchJson(
 						urlCount,
 						{params}
 					));

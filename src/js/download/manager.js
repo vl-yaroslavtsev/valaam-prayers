@@ -11,17 +11,19 @@ import {
 
 import { bytesToSize } from '../utils/utils.js';
 
+import StateStore from '../state-store.js';
 import db from '../data/db.js';
 import downloadItemsList from './items.js';
 
 const BASE_URL = 'https://valaam.ru';
 const API_URL = 'https://valaam.ru/phonegap/';
 
+let manager;
 
 /**
- * Период автообновления данных
+ * Период обновления данных
  */
-const RELOAD_PERIOD = 24 * 3600 * 1000;
+const REFRESH_PERIOD = 24 * 3600 * 1000;
 
 /**
  * Минимально доступное пространство для загрузки данных
@@ -33,11 +35,14 @@ let downloadItems = {};
 
 function init(appInstance) {
 	app = appInstance;
-	
-	window.db = db;
+
+	//window.db = db;
+
+	manager = new StateStore({id: 'download-manager'});
 
 	registerSources();
 	continueDownload();
+	refreshAll();
 }
 
 async function continueDownload() {
@@ -61,9 +66,19 @@ async function getLoading() {
 }
 
 async function refreshAll() {
+	await manager.statePromise;
+
+	if (new Date() - manager.state.refreshDate < REFRESH_PERIOD) {
+		return;
+	}
+
 	await Promise.all(
 		Object.values(downloadItems).map(item => item.refresh())
 	);
+
+	manager.setState({
+		'refreshDate': new Date()
+	});
 }
 
 /**
@@ -103,6 +118,7 @@ async function getQuota() {
 }
 
 function registerSources() {
+	console.log('[download.manager]: registerSources');
 	downloadItemsList().forEach(item => {
 			downloadItems[item.id] = item;
 	});
@@ -126,6 +142,8 @@ async function testFitures() {
 	} else {
 		msg += 'navigator.onLine: нет<br>';
 	}
+
+	msg += 'app.online: ' + app.online + '<br>';
 
 	if (window.indexedDB || window.mozIndexedDB || window.webkitIndexedDB || window.msIndexedDB) {
 		msg += 'indexedDB: да<br>';
