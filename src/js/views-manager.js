@@ -15,12 +15,12 @@ function init(appInstance) {
 	app = appInstance;
 	initViewTabs();
 
-	let view = app.views.get(menuView);
-	view.on('pageBeforeOut', (page) => {
-		if (page.router.history.length <= 1) {
-			app.panel.get('.panel-left').close();
-		}
-	});
+	// let view = app.views.get(menuView);
+	// view.on('pageBeforeOut', (page) => {
+	// 	if (page.router.history.length <= 1) {
+	// 		app.panel.get('.panel-left').close();
+	// 	}
+	// });
 
 	document.addEventListener("backbutton", (e) => {
 		return handleBackButton(e);
