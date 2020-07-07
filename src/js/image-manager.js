@@ -4,6 +4,9 @@
 import { Dom7 as $$ } from 'framework7';
 import { isMobile as isMobileDevice } from './utils/utils.js';
 import db from './data/db.js';
+
+const SITE_URL = 'https://valaam.ru';
+
 let app;
 let inited = false;
 let isMobile = true;
@@ -42,7 +45,7 @@ async function getUrl({s, m, sOffline, mOffline}) {
 	if (!sOffline) sOffline = s;
 	if (!mOffline) mOffline = m;
 
-	let urlOnline = isMobile ? s : m;
+	let urlOnline = SITE_URL + (isMobile ? s : m);
 
 	if (navigator.onLine) {
 		return urlOnline;

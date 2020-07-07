@@ -10,6 +10,8 @@ import { fetchJson, fetchRaw } from '../utils/utils.js';
 const RETRY_PERIOD = 2 * 1000;
 const MAX_RETRY_COUNT = 43200; // 1 сутки
 
+const SITE_URL = 'https://valaam.ru';
+
 class FetchTask extends StateStore {
 
 	constructor({
@@ -94,7 +96,7 @@ class FetchTask extends StateStore {
 				} else if (this.type === 'raw') {
 					data = await Promise.all(
 						bulkUrls.map(url => fetchRaw(
-							url,
+							SITE_URL + url,
 							{
 								signal,
 								progress: ({chunk}) => {
