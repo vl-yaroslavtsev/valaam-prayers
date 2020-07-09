@@ -42,6 +42,10 @@ class IconDownloadItem extends DownloadItem {
 
 		this.state.urlSource = {};
 
+		await this.setState({
+      status: 'size-counting',
+    });
+
 		try {
 			for (let source of sources) {
 				let {url, params = {}} = source;
