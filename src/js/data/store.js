@@ -117,7 +117,7 @@ class Store {
 	}
 
 	/**
-	 * Получаем 1-ый элемент из индекса или запросу IDBKeyRange
+	 * Получаем 1-ый элемент из индекса по значению или запросу IDBKeyRange
 	 * @param  {string}  indexName [description]
 	 * @param  {*|IDBKeyRange}  key  Значение индекса или запрос IDBKeyRange
 	 * @return {Promise}
@@ -125,6 +125,27 @@ class Store {
 	async getFromIndex(indexName, key) {
 		return this.idb.getFromIndex(this.name, indexName, key);
 	}
+
+  /**
+   * Получаем элементы из индекса по значению или запросу IDBKeyRange
+   * @param  {string}  indexName [description]
+   * @param  {*|IDBKeyRange}  key  Значение индекса или запрос IDBKeyRange
+   * @return {Promise}
+   */
+  async getAllFromIndex(indexName, key) {
+    return this.idb.getAllFromIndex(this.name, indexName, key);
+  }
+
+	/**
+   * Получаем ключи из индекса по значению или запросу IDBKeyRange
+   * @param  {string}  indexName [description]
+   * @param  {*|IDBKeyRange}  key  Значение индекса или запрос IDBKeyRange
+   * @return {Promise}
+   */
+  async getAllKeysFromIndex(indexName, key) {
+    return this.idb.getAllKeysFromIndex(this.name, indexName, key);
+  }
+
 
 	/**
 	 * Удаляем элементы по значению индекса или запросу IDBKeyRange

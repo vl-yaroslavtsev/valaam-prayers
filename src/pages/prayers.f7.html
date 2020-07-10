@@ -14,8 +14,21 @@
 				{{/if}}
 				<div class="title">{{name}}</div> <!-- Валаам -->
 				<div class="title-large">
-	        <div class="title-large-text">{{name}}</div>
-	      </div>
+	        <div class="title-large-text">{{name}}
+						{{#if lastReading}}
+						<div class="title-large-subtext">
+							<div class="title-large-info">
+								{{lastReading.path}}<br>
+								Страница: {{lastReading.page}} из {{lastReading.pages}}
+							</div>
+							<div class="title-large-button">
+								<a class="button button-round button-outline button-raised"
+									 @click="readMore()">Читать</a>
+							</div>
+						</div>
+						{{/if}}
+					</div>
+				</div>
 				<div class="right">
 					{{> "navbar-right"}}
 				</div>
@@ -69,12 +82,32 @@
     background: url(images/bg.jpg) 0 0/100% auto no-repeat;
     background-position: 0 calc(0px	- var(--f7-navbar-height) - var(--f7-safe-area-top));
 	}
+
+	.title-large-subtext {
+		display:flex;
+		flex-direction: row;
+		justify-content: space-between;
+
+		margin-top: var(--f7-block-margin-vertical);
+
+		color: var(--f7-navbar-link-color);
+		font-size: var(--f7-navbar-font-size);
+		line-height: 1.5;
+	}
+
+	.title-large-info {
+	}
+	.title-large-button {
+		--f7-button-text-color: var(--f7-navbar-link-color);
+		--f7-button-outline-border-color: var(--f7-navbar-link-color);
+	}
 </style>
 <!--suppress JSAnnotator -->
 <script>
 	import {sortBy} from 'lodash-es';
 	import {Dom7 as $$} from 'framework7';
 	import dataManager from '../js/data/manager.js';
+	import db from '../js/data/db.js';
 	import { isMobile } from '../js/utils/utils.js';
 	import navbarLargeMixin from './navbar-large-mixin.js';
 
@@ -93,6 +126,11 @@
 				showSearchbar: false,
 				loadPromise: loadData.call(this)
 			};
+		},
+		methods: {
+			readMore() {
+				this.$router.navigate(`/prayers/text/${this.lastReading.id}`);
+			}
 		},
 		mixins: [navbarLargeMixin],
 		on: {
@@ -143,25 +181,21 @@
 				this.virtualList.replaceAllItems(items);
 
 				state.showSearchbar = (items.length > 30);
-				this.$setState(state);
+				this.$setState(state, () => {
+					this.$el.trigger('navbar-render');
+				});
 				if (state.showSearchbar) {
 					this.$el.addClass('page-with-subnavbar');
 				}
-
-				// let title = page.$el.find('.title-large-text');
-				// setTimeout(() => {
-				// 	page.el.style.setProperty(
-				// 		'--f7-navbar-large-title-height',
-				// 		`${title.height() + 8}px`
-				// 	);
-				// }, 0);
 			},
-			pageBeforeIn(e, page) {
+			async pageBeforeIn(e, page) {
 				if (page.router.history.length > 1) {
-					this.$setState({
-						canGoBack: true
-					});
+					this.canGoBack = true;
 				}
+				await updateLastReading(this);
+				this.$update(() => {
+					this.$el.trigger('navbar-render');
+				});
 			},
 			pageBeforeRemove(e, page) {
 				this.virtualList.destroy();
@@ -172,7 +206,7 @@
 	async function loadData() {
 		try {
 			let prayers = await dataManager.get('prayers');
-			let data = handleData.call(this, prayers);
+			let data = await handleData.call(this, prayers);
 			app.emit('mainPageLoaded', 'prayers', this);
 
 			return data;
@@ -182,7 +216,26 @@
 		}
 	}
 
-	function handleData(prayers) {
+	async function updateLastReading(state) {
+		if (!state.bookRoot) return;
+
+		let readings = await db.read_history.getAllFromIndex('by-book-id', state.id);
+		if (!readings.length) return;
+
+		let lastReading = sortBy(readings, ['date']).pop();
+		let path = lastReading.path.concat(lastReading.name);
+		path.shift();
+		Object.assign(state, {
+			lastReading: {
+				id: lastReading.id,
+				path: path.join(' • '),
+				page: lastReading.page,
+				pages: lastReading.pages,
+			}
+		});
+	}
+
+	async function handleData(prayers) {
 		let sectionId = this.$route.params.sectionId || "0";
 		let state = {};
 		let items = [];
@@ -206,10 +259,13 @@
 				Object.assign(state, {
 					id: data.id ,
 					name: data.name,
+					bookRoot: data.book_root,
 					description: data.description
 				});
 			}
 		});
+
+		await updateLastReading(state);
 
 		prayers.e
 			.filter(({parent}) => parent === sectionId)

@@ -16,7 +16,8 @@ const stores = [
 	'prayers',
 	'saints',
 	'state',
-	'downloads'
+	'downloads',
+	'read_history'
 ];
 
 /**
@@ -36,20 +37,27 @@ function registerStores(idb) {
 db.open = async function() {
 	if (idb) return idb;
 
-	idb = await openDB('phonegap', 1, {
+	idb = await openDB('phonegap', 3, {
 		upgrade(db, oldVersion, newVersion, transaction) {
 			switch(oldVersion) { // существующая (старая) версия базы данных
 		    case 0:
 				db.createObjectStore('collections');
 				db.createObjectStore('days', {keyPath: 'code'});
-				const prayersStore = db.createObjectStore('prayers', {keyPath: 'id'});
+				db.createObjectStore('prayers', {keyPath: 'id'});
 				db.createObjectStore('saints', {keyPath: 'id'});
 				db.createObjectStore('state', {keyPath: 'id'});
 				db.createObjectStore('downloads', {keyPath: 'id'});
-				const imagesStore = db.createObjectStore('images', {keyPath: 'url'});
+				db.createObjectStore('images', {keyPath: 'url'});
 
-				prayersStore.createIndex('by-root-id', 'root_id');
-				imagesStore.createIndex('by-source-id', 'source_id');
+				transaction.objectStore('prayers').createIndex('by-root-id', 'root_id');
+				transaction.objectStore('images').createIndex('by-source-id', 'source_id');
+
+				case 1:
+				db.createObjectStore('read_history', {keyPath: 'id'});
+				transaction.objectStore('read_history').createIndex('by-date', 'date');
+
+				case 2:
+				transaction.objectStore('read_history').createIndex('by-book-id', 'book_id');
 
 			}
 		},

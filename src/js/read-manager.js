@@ -4,6 +4,10 @@
 import { Dom7 as $$ } from 'framework7';
 import StateStore from './state-store.js';
 import settingsManager from './settings-manager.js';
+import db from './data/db.js';
+import { prayersBookId, prayersPath } from './data/utils.js';
+
+const READ_HISTORY_MAX_SIZE = 500;
 
 let inited = false;
 let app;
@@ -14,6 +18,8 @@ let app;
 async function init (appInstance) {
 	if (inited) return;
 	app = appInstance;
+
+	window['db'] = db;
 
 	app.on('pageInit', (page) => {
 		if (!page.el.f7Component) return;
@@ -29,7 +35,7 @@ async function init (appInstance) {
 }
 
 function attach(context) {
-	console.log('read-manager', 'attach', context);
+	// console.log('read-manager', 'attach', context);
 	if (!context.$el.hasClass('read-mode')) return;
 
 	context.readMode = new ReadMode(context);
@@ -42,7 +48,7 @@ function detach({readMode}) {
 		app.phonegap.statusbar.show();
 	}
 
-	console.log('read-manager', 'detach');
+	// console.log('read-manager', 'detach');
 	readMode.destroy();
 }
 
@@ -50,7 +56,7 @@ export {init, attach, detach}
 
 class ReadMode {
 	constructor(context) {
-		console.log('read-manager', 'attach', context);
+		// console.log('read-manager', 'attach', context);
 
 		this.context = context;
 
@@ -73,13 +79,14 @@ class ReadMode {
 		});
 	}
 
-	init() {
+	async init() {
 		let $page = this.$page;
 		let $content = this.$content;
 		let $navbar = this.$navbar;
 		let $toolbar = this.$toolbar;
 		let $progressbar = this.$progressbar;
 
+		await this.historyInit();
 		this.countPages();
 
 		this.range = app.range.create({
@@ -117,6 +124,63 @@ class ReadMode {
 		this.context.$update();
 	}
 
+	async historyInit() {
+		let $content = this.$content;
+		let historyRecord = await db.read_history.get(this.context.id);
+
+		if (!historyRecord) {
+			historyRecord = {
+				id: this.context.id,
+				name: this.context.name,
+				parent_name: this.context.parentName,
+				date: new Date(),
+				book_id: prayersBookId(this.context.id),
+				path: prayersPath(this.context.id),
+				scroll: $content.scrollTop() / $content[0].scrollHeight,
+				page: this.page,
+				pages: this.pages
+			};
+			await db.read_history.put(historyRecord);
+
+			this.historyLimit();
+
+		} else {
+			$content.scrollTop(Math.round(historyRecord.scroll * $content[0].scrollHeight));
+		}
+
+		this.history = historyRecord;
+	}
+
+	async historyUpdate() {
+		let $content = this.$content;
+
+		Object.assign(this.history, {
+			scroll: $content.scrollTop() / $content[0].scrollHeight,
+			date: new Date(),
+			page: this.page,
+			pages: this.pages
+		});
+		await db.read_history.put(this.history);
+	}
+
+
+	/**
+	 * Ограничиваем размер истории до READ_HISTORY_MAX_SIZE элементов
+	 * @return {Promise}
+	 */
+	async historyLimit() {
+		let count = await db.read_history.count();
+		if (count <= READ_HISTORY_MAX_SIZE) {
+			return;
+		}
+		let keys = await db.read_history.getAllKeysFromIndex('by-date');
+		let keysToDelete = keys.slice(0, count - READ_HISTORY_MAX_SIZE);
+
+		await Promise.all(
+			keysToDelete.map((key) => db.read_history.delete(key))
+		);
+	}
+
 	update() {
 		this.countPages();
 
@@ -140,10 +204,12 @@ class ReadMode {
 		let newPage = Math.floor(this.$content.scrollTop() / (app.height - lineHeight)) + 1;
 
 		if (this.page === newPage) {
+			this.historyUpdate();
 			return;
 		}
 
 		this.page = newPage;
+		this.historyUpdate();
 		if (this.range) {
 			this.range.setValue(this.page);
 		}
@@ -160,6 +226,7 @@ class ReadMode {
 
 		this.pages = Math.ceil($content[0].scrollHeight / (app.height - lineHeight)) - 1;
 		this.page = Math.floor($content.scrollTop() / (app.height - lineHeight)) + 1;
+		this.historyUpdate();
 	}
 
 	/**
