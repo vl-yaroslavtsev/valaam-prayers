@@ -47,7 +47,7 @@
 					{{> "navbar-right"}}
 				</div>
 				<div class="navbar-extra">
-					<div class="navbar-extra-subtitle">{{parentName}}</div>
+					<div class="navbar-extra-subtitle">{{parentPath}}</div>
 		      <div class="navbar-extra-title">{{name}}</div>
 				</div>
 			</div>
@@ -123,6 +123,8 @@
 	import favoriteManager from '../js/favorite-manager.js';
 	import dataManager from '../js/data/manager.js';
 
+	import { prayersBookId, prayersPath } from '../js/data/utils.js';
+
 	let app;
 
 	export default {
@@ -184,12 +186,16 @@
 	};
 
 	function handleData(data, prayers, prayer) {
-		let parentSection = prayers.s.find(({id}) => id === prayer.parent);
-
+		//let parentSection = prayers.s.find(({id}) => id === prayer.parent);
 		data.id = prayer.id;
 		data.name = prayer.name;
-		if (parentSection) {
-				data.parentName = parentSection.name;
+
+		let path = prayersPath(prayer.id);
+		console.log('[prayers-text]', path);
+		if (prayersBookId(prayer.id)) {
+			data.parentPath = path.join(' • ');
+		} else {
+			data.parentPath = path.pop();
 		}
 
 		data.text = /*marked*/(prayer.text)
