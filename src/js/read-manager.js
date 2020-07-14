@@ -132,7 +132,6 @@ class ReadMode {
 			historyRecord = {
 				id: this.context.id,
 				name: this.context.name,
-				parent_name: this.context.parentName,
 				date: new Date(),
 				book_id: prayersBookId(this.context.id),
 				path: prayersPath(this.context.id),
@@ -151,6 +150,12 @@ class ReadMode {
 		this.history = historyRecord;
 	}
 
+
+	/**
+	 * async historyUpdate - description
+	 *
+	 * @return {type}  description
+	 */
 	async historyUpdate() {
 		let $content = this.$content;
 
@@ -190,9 +195,11 @@ class ReadMode {
 		this.context.$update();
 	}
 
+
 	/**
 	 * Обработчик скролла
 	 * @this {F7Component}
+	 * @param  {Event} e
 	 */
 	scrollHandler(e) {
 		let $content = this.$content;

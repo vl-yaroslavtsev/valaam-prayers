@@ -15,6 +15,7 @@
 					{{> "navbar-right"}}
 				</div>
 				<div class="navbar-extra">
+					<div class="navbar-extra-subtitle">{{subtitle}}</div>
 		      <div class="navbar-extra-title">{{title}}</div>
 				</div>
 			</div>
@@ -59,6 +60,7 @@
 				newstyleDate = parse(dayData.code),
 				dayOfWeek = upperFirst(format(newstyleDate, 'EEEE'));
 
+			data.id = 'bu-' + dayCode;
 			data.title = 'Богослужебные указания';
 			data.subtitle = format(oldstyleDate, 'd MMMM / ') +
 											format(newstyleDate, `d MMMM yyyy г. ${dayOfWeek}.`);
