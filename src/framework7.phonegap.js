@@ -1,5 +1,5 @@
 /**
- * Framework7 Plugin PhoneGap 0.9.0
+ * Framework7 Plugin PhoneGap 0.9.2
  * PhoneGap plugin extends Framework7 for ios native
  *
  * Copyright 2020 Ивайло Тилев
@@ -20,20 +20,14 @@ const Framework7PhoneGap = {
 
 			appInit() {
 				this.exec(arguments.callee.name, null);
+			},
 
-				if(app.data.debug)
-				{
-					app.phonegap.downloadData('calendars-2021D-1245.image', (count, total) => {
-						console.log(count, total);
-					})
-						.then(() => {
-							console.log('done');
-						})
-						.catch(() => {
-							console.log('error');
-						})
-					;
-				}
+			applicationContext(data) {
+				this.exec(arguments.callee.name, data);
+			},
+
+			getUserSettings() {
+				return this.exec(arguments.callee.name, null, 'once', {simulator: true});
 			},
 
 			hideSplash() {
@@ -48,115 +42,132 @@ const Framework7PhoneGap = {
 				this.exec(alert ? 'playAlertSound' : 'playSystemSound', code);
 			},
 
+			terminate() {
+				this.exec(arguments.callee.name, null);
+			},
+
 			// ...
 
 			canApplePay() {
 				return this.exec(arguments.callee.name, null, 'once', false);
 			},
 
-			canEvaluatePolicy() {
-				return this.exec(arguments.callee.name, null, 'once', false);
-			},
+			// ...
 
-			evaluatePolicy(title) {
-				return this.exec(arguments.callee.name, title, 'once', false);
-			},
+			// downloadData(filename, progress) {
+			// 	app.off('phonegap_DownloadProgress_' + filename)
+			// 	if(typeof progress === 'function')
+			// 		// noinspection JSValidateTypes
+			// 		app.on('phonegap_DownloadProgress_' + filename, progress)
+			//
+			// 	return this.exec(arguments.callee.name, filename, 'once', false, 'DownloadData_' + filename);
+			// },
 
 			// ...
 
-			downloadData(filename, progress) {
-				app.off('phonegap_DownloadProgress_' + filename)
-				if(typeof progress === 'function')
-					// noinspection JSValidateTypes
-					app.on('phonegap_DownloadProgress_' + filename, progress)
-
-				return this.exec(arguments.callee.name, filename, 'once', false, 'DownloadData_' + filename);
-			},
-
-			// ...
-
-			notification: {
-				add(schedule) {
-					app.phonegap.exec('notificationAdd', schedule);
-				},
-
-				update(schedule) {
-					schedule['id'] && app.phonegap.exec('notificationRemove', schedule['id']);
-					app.phonegap.exec('notificationAdd', schedule);
-				},
-
-				remove(items) {
-					if(typeof items === 'string' || typeof items === 'number')
-						items = [items];
-
-					app.phonegap.exec('notificationRemove', items);
-				},
-
-				clear() {
-					app.phonegap.exec('notificationRemoveAll', null);
-				},
-
-				list() {
-					return app.phonegap.exec('notificationList', null, 'once', []);
-				},
-			},
+			// notification: {
+			// 	add(schedule) {
+			// 		app.phonegap.exec('notificationAdd', schedule);
+			// 	},
+			//
+			// 	update(schedule) {
+			// 		schedule['id'] && app.phonegap.exec('notificationRemove', schedule['id']);
+			// 		app.phonegap.exec('notificationAdd', schedule);
+			// 	},
+			//
+			// 	remove(items) {
+			// 		if(typeof items === 'string' || typeof items === 'number')
+			// 			items = [items];
+			//
+			// 		app.phonegap.exec('notificationRemove', items);
+			// 	},
+			//
+			// 	clear() {
+			// 		app.phonegap.exec('notificationRemoveAll', null);
+			// 	},
+			//
+			// 	list() {
+			// 		return app.phonegap.exec('notificationList', null, 'once', []);
+			// 	},
+			// },
 
 			// ...
 
 			/** @var StatusBar */
 
 			statusbar: {
+
+				isVisible: true,
+
 				overlaysWebView(doOverlay) {
-					window['StatusBar'] && StatusBar.overlaysWebView(doOverlay);
+					app.phonegap.exec('statusBarOverlaysWebView', doOverlay);
 				},
 
 				styleDefault() {
-					window['StatusBar'] && StatusBar.styleDefault();
+					app.phonegap.exec('statusBarStyleDefault', null);
+          console.log('[phonegap]: app.statusbar.styleDefault');
 				},
 
 				styleLightContent() {
-					window['StatusBar'] && StatusBar.styleLightContent();
+					app.phonegap.exec('statusBarStyleLightContent', null);
+          console.log('[phonegap]: app.statusbar.styleLightContent');
 				},
 
 				styleBlackTranslucent() {
-					window['StatusBar'] && StatusBar.styleBlackTranslucent();
+					app.phonegap.exec('statusBarStyleBlackTranslucent', null);
 				},
 
 				styleBlackOpaque() {
-					window['StatusBar'] && StatusBar.styleBlackOpaque();
+					app.phonegap.exec('statusBarStyleBlackOpaque', null);
 				},
 
-				backgroundColorByName(colorname) {
-					return window['StatusBar'] && StatusBar.backgroundColorByName(colorname);
-				},
+				backgroundColorByHexString: function(hexString) {
+					if(hexString === false)
+						hexString = '00000000';
 
-				backgroundColorByHexString(hexString) {
-					window['StatusBar'] && StatusBar.backgroundColorByHexString(hexString);
+					if(hexString.charAt(0) === "#")
+						hexString = hexString.substr(1);
+
+					if(hexString.length === 3) {
+						const split = hexString.split("");
+						hexString = split[0] + split[0] + split[1] + split[1] + split[2] + split[2];
+					}
+
+					if(hexString.length === 4) {
+						const split = hexString.split("");
+						hexString = split[0] + split[0] + split[1] + split[1] + split[2] + split[2] + split[3] + split[3];
+					}
+
+					if(hexString.length === 6)
+						hexString = "ff" + hexString;
+
+					app.phonegap.exec('statusBarBackgroundColorByHexString', hexString);
 				},
 
 				hide() {
 					if(app.device.android)
 						app.$('html').removeClass('android-statusbar');
-					else if(app.device.ios && parseInt(app.device.osVersion) === 10)
+
+					if(app.device.ios && parseInt(app.device.osVersion) === 10)
 						app.$('html').removeClass('ios-statusbar');
 
-					window['StatusBar'] && StatusBar.hide();
+					app.phonegap.exec('statusBarHide', null);
+					this.isVisible = false;
 				},
 
 				show() {
-					window['StatusBar'] && StatusBar.hide();
-					window['StatusBar'] && StatusBar.show();
-
-					if(app.device.android) {
-						window['StatusBar'] && StatusBar.overlaysWebView(true);
-						window['StatusBar'] && StatusBar.styleLightContent();
+					if(app.device.android)
 						app.$('html').addClass('android-statusbar');
-					} else if(app.device.ios && parseInt(app.device.osVersion) === 10)
+
+					if(app.device.ios && parseInt(app.device.osVersion) === 10)
 						app.$('html').addClass('ios-statusbar');
+
+					app.phonegap.exec('statusBarShow', null);
+					this.isVisible = true;
 				},
 
 				visible() {
-					return window['StatusBar'] && StatusBar.isVisible;
+					return this.isVisible;
 				}
 			},
 
@@ -171,37 +182,18 @@ const Framework7PhoneGap = {
 			exec(fn, params, event, def, eventname) {
 
 				function android() {
-					/** @var cordova */
-					if(app.device.android)
-						switch(fn) {
-							case 'hideSplash':
-								navigator['splashscreen'].hide();
-								return true;
+					if(app.device.android && window['AndroidJS']) {
+						/** @namespace AndroidJS */
+						AndroidJS.postMessage(JSON.stringify({name: fn, params: params}))
 
-							case 'notificationAdd':
-								if(params['trigger']['every'])
-									params['trigger']['count'] = 0;
-								cordova.plugins.notification.local['schedule'](params);
-								return true;
-							case 'notificationList':
-								cordova.plugins.notification.local['getIds']((res) => {
-									app.emit(`phonegap_${fn}`, res);
-								});
-								return true;
-							case 'notificationRemove':
-								cordova.plugins.notification.local['cancel'](params);
-								return true;
-							case 'notificationRemoveAll':
-								cordova.plugins.notification.local['cancelAll']();
 								return true;
 						}
 					return false;
 				}
 
 				function ios() {
-					/** @var webkit */
-					/** @var webkit.messageHandlers*/
 					if(app.device.webview && webkit.messageHandlers[fn]) {
+						/** @namespace webkit.messageHandlers */
 						webkit.messageHandlers[fn].postMessage(params);
 						return true;
 					}
@@ -211,8 +203,7 @@ const Framework7PhoneGap = {
 
 				if(typeof event === 'string') {
 					return new Promise((resolve, reject) => {
-
-						app[event]('phonegap_' + (eventname || fn), (result, error) => {
+						app[event](`phonegap_${fn}`, (result, error) => {
 							result !== undefined ? resolve(result) : reject(error);
 						});
 

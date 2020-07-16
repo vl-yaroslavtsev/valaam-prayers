@@ -37,6 +37,8 @@ module.exports = (env = {}) => {
 				},
 				/*'src/manifest.webmanifest',*/
 				'src/cordova.js',
+				'src/cordova-android.js',
+				'src/cordova-ios.js',
 				'src/framework7.phonegap.js',
 	    ]),
 			new OfflinePlugin({

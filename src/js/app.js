@@ -167,8 +167,14 @@ const app = new Framework7({
 				this.data.canApplePay = result;
 			});
 
-			this.phonegap.statusbar.show();
+			if(this.device.android)
+				this.$('html').addClass('android-statusbar');
+
+			if(this.device.ios && parseInt(this.device.osVersion) === 10)
+				this.$('html').addClass('ios-statusbar');
+
 			this.phonegap.hideSplash();
+			this.phonegap.statusbar.styleLightContent();
 			this.phonegap.networkIndicator(false);
 			this.phonegap.appInit();
 		}

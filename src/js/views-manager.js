@@ -22,9 +22,13 @@ function init(appInstance) {
 	// 	}
 	// });
 
-	document.addEventListener("backbutton", (e) => {
-		return handleBackButton(e);
-	}, false);
+	// document.addEventListener("backbutton", (e) => {
+	// 	return handleBackButton(e);
+	// }, false);
+
+	app.on('onBackPressed', () => {
+		return handleBackButton();
+	});
 }
 
 /**
@@ -80,10 +84,13 @@ function initViewTabs() {
 	app.on('pageBeforeIn', (page) => {
 		let isWhite = page.$el.hasClass('page-white');
 		let isDarkMode = $$('html').hasClass('theme-dark');
+		console.log('pageBeforeIn: isWhite', isWhite, ', isDarkMode: ', isDarkMode);
 		if (isWhite && !isDarkMode) {
 			app.phonegap.statusbar.styleDefault();
+			console.log('app.phonegap.statusbar.styleDefault()');
 		} else {
 			app.phonegap.statusbar.styleLightContent();
+			console.log('app.phonegap.statusbar.styleLightContent()');
 		}
 	});
 
@@ -189,25 +196,25 @@ function createView(id) {
 /**
  * Обработка системной кнопки назад
  */
-function handleBackButton(e) {
+function handleBackButton() {
 	if ($$('.actions-modal.modal-in').length) {
 		app.actions.close('.actions-modal.modal-in');
-		e.preventDefault();
+		//e.preventDefault();
 		return false;
 	}
 	if ($$('.dialog.modal-in').length) {
 		app.dialog.close('.dialog.modal-in');
-		e.preventDefault();
+		//e.preventDefault();
 		return false;
 	}
 	if ($$('.sheet-modal.modal-in').length) {
 		app.sheet.close('.sheet-modal.modal-in');
-		e.preventDefault();
+		//e.preventDefault();
 		return false;
 	}
 	if ($$('.popover.modal-in').length) {
 		app.popover.close('.popover.modal-in');
-		e.preventDefault();
+		//e.preventDefault();
 		return false;
 	}
 	if ($$('.popup.modal-in').length) {
@@ -215,38 +222,38 @@ function handleBackButton(e) {
 			const currentView = app.views.get('.popup.modal-in>.view');
 			if (currentView && currentView.router && currentView.router.history.length > 1) {
 				currentView.router.back();
-				e.preventDefault();
+				//e.preventDefault();
 				return false;
 			}
 		}
 
 		app.popup.close('.popup.modal-in');
-		e.preventDefault();
+		//e.preventDefault();
 		return false;
 	}
 
 	if ($$('.login-screen.modal-in').length) {
 		app.loginScreen.close('.login-screen.modal-in');
-		e.preventDefault();
+		//e.preventDefault();
 		return false;
 	}
 
 	if ($$('.searchbar-enabled').length) {
 		app.searchbar.disable();
-		e.preventDefault();
+		//e.preventDefault();
 		return false;
 	}
 
 	const currentView = app.views.current;
 	if (currentView && currentView.router && currentView.router.history.length > 1) {
 		currentView.router.back();
-		e.preventDefault();
+		//e.preventDefault();
 		return false;
 	}
 
 	if (currentView.$el.hasClass('tab')) {
 		app.panel.get('.panel-left').open();
-		e.preventDefault();
+		//e.preventDefault();
 		return false;
 	}
 
@@ -268,7 +275,8 @@ function handleBackButton(e) {
 			}
 		});
 	} else if (backButtonAttempts >= 1) {
-		navigator.app.exitApp();
+		//navigator.app.exitApp();
+		app.phonegap.terminate();
 	}
 
 	backButtonAttempts++;
