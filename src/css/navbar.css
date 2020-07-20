@@ -126,7 +126,7 @@
 
 .read-mode {
 	--f7-navbar-extra-height: 52px;
-	--f7-toolbar-height: 60px;
+	--f7-toolbar-height: 48px;
 }
 
 .read-mode .navbar-bg {

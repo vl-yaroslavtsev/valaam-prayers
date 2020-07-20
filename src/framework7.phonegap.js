@@ -105,12 +105,10 @@ const Framework7PhoneGap = {
 
 				styleDefault() {
 					app.phonegap.exec('statusBarStyleDefault', null);
-          console.log('[phonegap]: app.statusbar.styleDefault');
 				},
 
 				styleLightContent() {
 					app.phonegap.exec('statusBarStyleLightContent', null);
-          console.log('[phonegap]: app.statusbar.styleLightContent');
 				},
 
 				styleBlackTranslucent() {

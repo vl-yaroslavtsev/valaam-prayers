@@ -102,7 +102,6 @@ import settingsManager from './settings-manager.js';
 
 import viewsManager   from './views-manager.js';
 import * as imageManager from './image-manager.js';
-import * as readManager from './read-manager.js';
 import {init as dateUtilsInit} from './utils/date-utils.js';
 import {init as utilsInit} from './utils/utils.js';
 import { isPrayerInSection } from './data/utils.js';
@@ -156,7 +155,6 @@ const app = new Framework7({
 			downloadManager.init(this);
 			favoriteManager.init(this);
 			imageManager.init(this);
-			readManager.init(this);
 			settingsManager.init(this);
 			dateUtilsInit(this);
 

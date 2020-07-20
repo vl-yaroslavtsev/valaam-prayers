@@ -2,89 +2,45 @@
  * Управляем режимом чтения
  */
 import { Dom7 as $$ } from 'framework7';
-import StateStore from './state-store.js';
-import settingsManager from './settings-manager.js';
-import db from './data/db.js';
-import { prayersBookId, prayersPath } from './data/utils.js';
+import StateStore from '../js/state-store.js';
+import settingsManager from '../js/settings-manager.js';
+import db from '../js/data/db.js';
+import { prayersBookId, prayersPath } from '../js/data/utils.js';
 
 const READ_HISTORY_MAX_SIZE = 500;
 
-let inited = false;
 let app;
-/**
- * Инициализация
- * @param  {Framework7} appInstance
- */
-async function init (appInstance) {
-	if (inited) return;
-	app = appInstance;
-
-	window['db'] = db;
-
-	app.on('pageInit', (page) => {
-		if (!page.el.f7Component) return;
-		attach(page.el.f7Component);
-	});
-
-	app.on('pageBeforeRemove', (page) => {
-		if (!page.el.f7Component) return;
-		detach(page.el.f7Component);
-	});
-
-	inited = true;
-}
-
-function attach(context) {
-	// console.log('read-manager', 'attach', context);
-	if (!context.$el.hasClass('read-mode')) return;
-
-	context.readMode = new ReadMode(context);
-}
-
-function detach({readMode}) {
-	if (!readMode) return;
-
-	if (!app.phonegap.statusbar.visible()) {
-		app.phonegap.statusbar.show();
-	}
-
-	// console.log('read-manager', 'detach');
-	readMode.destroy();
-}
-
-export {init, attach, detach}
 
 class ReadMode {
 	constructor(context) {
-		// console.log('read-manager', 'attach', context);
-
 		this.context = context;
+		this.historyPromise = db.read_history.get(this.context.id);
+	}
 
-		this.$page = context.$el;
-		this.$content = this.$page.find('.page-content');
-		this.$navbar = this.$page.find('.navbar');
-		this.$toolbar = app.root.find('.views > .toolbar');
-		this.$progressbar = this.$page.find('.read-mode-toolbar');
+	async init() {
+		let $page = this.$page = this.context.$el;
+		let $content = this.$content = $page.find('.page-content');
+		let $navbar = this.$navbar = $page.find('.navbar');
+		let $toolbar = this.$toolbar = app.root.find('.views > .toolbar');
+		let $progressbar = this.$progressbar = $page.find('.read-mode-toolbar');
 
 		this.handler = {
 			scroll: this.scrollHandler.bind(this),
 			click: this.clickHandler.bind(this)
 		};
 
-		this.$content.on('scroll', this.handler.scroll);
-		this.$content.on('click', this.handler.click);
+		// if (settingsManager.get('hideStatusbar') &&
+		// 		app.phonegap.statusbar.visible()) {
+		// 	app.phonegap.statusbar.hide();
+		// }
 
-		context.$update(() => {
-			this.init();
-		});
-	}
+		app.navbar.hide($navbar, false, settingsManager.get('hideStatusbar'));
+		app.toolbar.hide($toolbar);
+		app.toolbar.hide($progressbar, false);
+		//app.toolbar.show($progressbar, false);
 
-	async init() {
-		let $page = this.$page;
-		let $content = this.$content;
-		let $navbar = this.$navbar;
-		let $toolbar = this.$toolbar;
-		let $progressbar = this.$progressbar;
+		$content.on('scroll', this.handler.scroll);
+		$content.on('click', this.handler.click);
 
 		await this.historyInit();
 		this.countPages();
@@ -107,15 +63,6 @@ class ReadMode {
 			}
 		});
 
-		app.navbar.hide($navbar, true, settingsManager.get('hideStatusbar'));
-		app.toolbar.hide($progressbar);
-		app.toolbar.hide($toolbar);
-
-		if (settingsManager.get('hideStatusbar') &&
-	 			app.phonegap.statusbar.visible()) {
-			app.phonegap.statusbar.hide();
-		}
-
 		$page[0].style.setProperty(
 			'--f7-navbar-extra-height',
 			`${$navbar.find('.navbar-extra')[0].offsetHeight}px`
@@ -126,10 +73,10 @@ class ReadMode {
 
 	async historyInit() {
 		let $content = this.$content;
-		let historyRecord = await db.read_history.get(this.context.id);
+		this.history = await this.historyPromise;
 
-		if (!historyRecord) {
-			historyRecord = {
+		if (!this.history) {
+			this.history = {
 				id: this.context.id,
 				name: this.context.name,
 				date: new Date(),
@@ -139,17 +86,12 @@ class ReadMode {
 				page: this.page,
 				pages: this.pages
 			};
-			await db.read_history.put(historyRecord);
-
+			await db.read_history.put(this.history);
 			this.historyLimit();
-
 		} else {
-			$content.scrollTop(Math.round(historyRecord.scroll * $content[0].scrollHeight));
+			$content.scrollTop(Math.round(this.history.scroll * $content[0].scrollHeight));
 		}
-
-		this.history = historyRecord;
 	}
-
 
 	/**
 	 * async historyUpdate - description
@@ -317,5 +259,34 @@ class ReadMode {
 		this.$toolbar = null;
 		this.$progressbar = null;
 		this.context = null;
+	}
+}
+
+export default {
+	data()  {
+		this.readMode = new ReadMode(this);
+	},
+	on: {
+		pageInit(e, page) {
+			if (!app) {
+				app = page.app;
+			}
+
+			this.readMode.init();
+		},
+
+		pageAfterIn(e, page) {
+			app.toolbar.hide(this.readMode.$toolbar,false);
+		},
+
+		pageBeforeOut(e, page) {
+			// if (!app.phonegap.statusbar.visible()) {
+			// 	app.phonegap.statusbar.show();
+			// }
+		},
+
+		pageBeforeRemove(e, page) {
+			this.readMode.destroy();
+		}
 	}
 }

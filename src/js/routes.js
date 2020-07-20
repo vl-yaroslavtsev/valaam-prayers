@@ -197,12 +197,15 @@ export default [
 
 			try {
 				let prayer = await app.methods.load('prayer', id);
-				resolve({component: PrayersText}, {context: {prayer}});
+				resolve({component: PrayersText}, {context: {id, prayer}});
 			} catch (ex) {
 				reject();
 			}
 		},
-		beforeEnter: requireData('prayers')
+		beforeEnter: requireData('prayers'),
+		options: {
+			transition: 'f7-push',
+	 	}
 	},
 	{
 		path: '/search',
