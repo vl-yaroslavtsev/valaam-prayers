@@ -45,6 +45,12 @@ function apply(state) {
 
 	applyTheme(settings);
 	applyStyles(settings);
+
+  if (settings['hideStatusbar']) {
+    app.phonegap.statusbar.hide();
+  } else {
+    app.phonegap.statusbar.show();
+  }
 }
 
 function applyTheme({themeDark}) {
@@ -87,7 +93,7 @@ function applyStyles({
 	if (style.length) {
 		style.remove();
 	}
-	
+
 	let styleHTML = `
 	<style id="app-settings-style">
 		.md .view:not(#view-valaam) .text-content {

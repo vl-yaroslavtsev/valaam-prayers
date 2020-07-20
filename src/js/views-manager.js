@@ -87,10 +87,8 @@ function initViewTabs() {
 		console.log('pageBeforeIn: isWhite', isWhite, ', isDarkMode: ', isDarkMode);
 		if (isWhite && !isDarkMode) {
 			app.phonegap.statusbar.styleDefault();
-			console.log('app.phonegap.statusbar.styleDefault()');
 		} else {
 			app.phonegap.statusbar.styleLightContent();
-			console.log('app.phonegap.statusbar.styleLightContent()');
 		}
 	});
 

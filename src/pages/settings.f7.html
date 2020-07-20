@@ -117,7 +117,7 @@
 									</label>
 								</div>
 							</div>
-							<div class="item-text">Скрывать строку состояния в режиме чтения</div>
+							<div class="item-text">Скрывать строку состояния</div>
 						</div>
 					</div>
 				</li>
@@ -246,7 +246,7 @@
 				let toggle = event.target.querySelector('input');
 				this.hideStatusbar = toggle.checked;
 
-				settingsManager.save({
+				settingsManager.apply({
 					hideStatusbar: this.hideStatusbar
 				});
 			},
