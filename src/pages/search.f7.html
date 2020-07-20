@@ -132,13 +132,13 @@
 			},
 			popupOpened(p) {
 				if (isMobile() && !app.$('html').hasClass('theme-dark')) {
-					app.statusbar.setTextColor('black');
+		      app.phonegap.statusbar.styleLightContent();
 				}
 
 			},
 			popupClose() {
 				if (isMobile()) {
-					app.statusbar.setTextColor('white');
+					app.phonegap.statusbar.styleDefault();
 				}
 			}
 		},

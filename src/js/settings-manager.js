@@ -14,17 +14,17 @@ function init(appInstance) {
 
 function setDefault() {
 	let settings = app.methods.storageGet('settings') || {};
-	
+
 	if (!('hideStatusbar' in settings)) {
-		settings.hideStatusbar = true;
+		settings.hideStatusbar = false;
 	}
-	
+
 	save(settings);
 }
 
 function get(key) {
 	let settings = app.methods.storageGet('settings') || {};
-	
+
 	return settings[key];
 }
 
@@ -56,23 +56,24 @@ function apply(state) {
 function applyTheme({themeDark}) {
 	let currentView = app.views.current,
 		$page, isWhitePage;
-	
+
 	if (currentView) {
 		$page = $$(currentView.router.currentPageEl);
 		isWhitePage = $page.hasClass('page-white');
 	}
-	
+
 	if (themeDark) {
 		$$('html').addClass('theme-dark');
 		//document.querySelector('meta[name="theme-color"]').content = '#202020';
 		//document.querySelector('meta[name="apple-mobile-web-app-status-bar-style"]').content = 'black';
-		app.statusbar.setTextColor('white');
-
+    app.phonegap.statusbar.styleLightContent();
 	} else {
 		$$('html').removeClass('theme-dark');
 		//document.querySelector('meta[name="theme-color"]').content = '#3878a8';
 		//document.querySelector('meta[name="apple-mobile-web-app-status-bar-style"]').content = 'default';
-		app.statusbar.setTextColor(isWhitePage ? 'black' : 'white');
+    isWhitePage ?
+      app.phonegap.statusbar.styleDefault() :
+      app.phonegap.statusbar.styleLightContent();
 	}
 }
 
