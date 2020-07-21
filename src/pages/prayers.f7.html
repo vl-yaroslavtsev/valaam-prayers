@@ -189,10 +189,10 @@
 				}
 			},
 			async pageBeforeIn(e, page) {
+				await updateLastReading(this);
 				if (page.router.history.length > 1) {
 					this.canGoBack = true;
 				}
-				await updateLastReading(this);
 				this.$update(() => {
 					this.$el.trigger('navbar-render');
 				});

@@ -160,6 +160,10 @@ body,
 	align-items: center;
 }
 
+.theme-dark .media-obj {
+	background-color: #1c1c1d;
+}
+
 .media-obj.no-bg {
 	background-color: transparent;
 }
@@ -175,8 +179,8 @@ body,
 	object-fit: cover;
 
 	-webkit-filter: blur(30px);
-	filter: blur(30px);
-	opacity: .8;
+	filter: blur(30px) saturate(200%);
+	opacity: .9;
 }
 
 .media-obj-img {
