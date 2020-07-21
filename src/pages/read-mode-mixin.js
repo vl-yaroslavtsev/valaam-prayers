@@ -34,10 +34,10 @@ class ReadMode {
 		// 	app.phonegap.statusbar.hide();
 		// }
 
-		app.navbar.hide($navbar, false, settingsManager.get('hideStatusbar'));
+		//app.navbar.hide($navbar, false, settingsManager.get('hideStatusbar'));
+		////app.toolbar.hide($progressbar, false);
 		app.toolbar.hide($toolbar);
-		app.toolbar.hide($progressbar, false);
-		//app.toolbar.show($progressbar, false);
+		app.toolbar.show($progressbar, false);
 
 		$content.on('scroll', this.handler.scroll);
 		$content.on('click', this.handler.click);
@@ -55,10 +55,13 @@ class ReadMode {
 					if (this.page === value) {
 						return;
 					}
-
+					this.rangeChanging = true;
 					$content.scrollTop(
 						(value - 1) * app.height
 					);
+				},
+				changed: () => {
+					this.rangeChanging = false;
 				}
 			}
 		});
@@ -89,7 +92,10 @@ class ReadMode {
 			await db.read_history.put(this.history);
 			this.historyLimit();
 		} else {
-			$content.scrollTop(Math.round(this.history.scroll * $content[0].scrollHeight));
+			this.initScroll = true;
+			$content.scrollTop(
+				Math.round(this.history.scroll * $content[0].scrollHeight)
+			);
 		}
 	}
 
@@ -146,11 +152,13 @@ class ReadMode {
 	scrollHandler(e) {
 		let $content = this.$content;
 		let $navbar = this.$navbar;
-		let $toolbar = this.$toolbar;
+		let $progressbar = this.$progressbar;
 
 		let lineHeight = this.getLineHeight();
+		let scrollTop = $content.scrollTop();
+		let newPage = Math.floor(scrollTop / (app.height - lineHeight)) + 1;
 
-		let newPage = Math.floor(this.$content.scrollTop() / (app.height - lineHeight)) + 1;
+		this.toggleBars(scrollTop);
 
 		if (this.page === newPage) {
 			this.historyUpdate();
@@ -164,7 +172,29 @@ class ReadMode {
 		}
 
 		this.context.$update();
-		app.navbar.hide($navbar);
+	}
+
+	/**
+	 * Показываем или скрываем верхнее и нижнее меню
+	 * @param  {integer} scrollTop  Прокрутка страницы
+	 */
+	toggleBars(scrollTop) {
+		if (this.initScroll) {
+			this.initScroll = false;
+			return;
+		}
+
+		app.navbar.hide(this.$navbar);
+
+		if (scrollTop > this.prevScrollTop &&
+			  this.$content[0].scrollHeight - (scrollTop + app.height) < 50) {
+			app.toolbar.show(this.$progressbar);
+			
+		} else if (!this.rangeChanging) {
+			app.toolbar.hide(this.$progressbar);
+		}
+
+		this.prevScrollTop = scrollTop;
 	}
 
 	countPages() {

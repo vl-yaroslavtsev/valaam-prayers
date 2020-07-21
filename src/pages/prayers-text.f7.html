@@ -13,19 +13,6 @@
 				</div>
 				<div class="title"></div>
 				<div class="right">
-					{{#unless searchMode}}
-					<!--<a class="link popup-close">Закрыть</a>-->
-					<a href="/prayers/text/{{prevId}}"
-						 data-reload-current="true"
-						 class="link {{#unless prevId}}disabled{{/unless}}">
-						<i class="icon icon-back"></i>
-					</a>
-					<a href="/prayers/text/{{nextId}}"
-						 data-reload-current="true"
-						 class="link {{#unless nextId}}disabled{{/unless}}">
-						<i class="icon icon-forward"></i>
-					</a>
-					{{/unless}}
 					{{#if twoText}}
 					<a class="link smart-select smart-select-init"
 						 data-open-in="popover"
@@ -208,8 +195,12 @@
 
 		let list = prayers.e.filter(({parent}) => parent === prayer.parent);
 		let index = list.findIndex(({id}) => id === prayer.id);
-		data.prevId = index > 0 ? list[index - 1].id : null;
-		data.nextId = index < list.length - 1 ? list[index + 1].id : null;
+		let prevId = index > 0 ? list[index - 1].id : null;
+		data.prevUrl = `/prayers/text/${prevId}`;
+		data.prevUrlActive = !!prevId;
+		let nextId = index < list.length - 1 ? list[index + 1].id : null;
+		data.nextUrl = `/prayers/text/${nextId}`;
+		data.nextUrlActive = !!nextId;
 
 		data.isFavorite = favoriteManager.has(data.id);
 	}
