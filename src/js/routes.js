@@ -147,7 +147,7 @@ export default [
 
 			try {
 				let saint = await app.methods.load('saint', id);
-				resolve({component: Saints}, {context: {saint}});
+				resolve({component: Saints}, {context: {id, saint}});
 			} catch (ex) {
 				reject();
 			}

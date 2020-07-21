@@ -77,6 +77,7 @@
 <script>
 	import { getUrl } from '../js/image-manager.js';
 	import dataManager from '../js/data/manager.js';
+	import readModeMixin from './read-mode-mixin.js';
 
 	export default {
 		async data() {
@@ -107,6 +108,7 @@
 			saintData.searchMode = this.$route.query.mode === 'search';
 
 			return saintData;
-		}
+		},
+		mixins: [readModeMixin]
 	};
 </script>

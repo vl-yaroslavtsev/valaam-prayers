@@ -183,6 +183,10 @@
 	padding: 0;
 }
 
+.read-mode-toolbar .toolbar-inner-padding {
+	padding: 	0 var(--f7-block-padding-horizontal);
+}
+
 .read-mode-row {
 	flex-grow: 1;
   display: flex;

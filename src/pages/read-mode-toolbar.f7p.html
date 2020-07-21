@@ -1,6 +1,6 @@
 <template>
 	<div class="toolbar toolbar-bottom toolbar-hidden read-mode-toolbar">
-		<div class="toolbar-inner">
+		<div class="toolbar-inner {{#unless prevUrl}}toolbar-inner-padding{{/unless}}">
 			{{#if prevUrl}}
 			<a href="{{prevUrl}}"
 				 data-reload-current="true"
