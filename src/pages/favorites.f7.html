@@ -1,20 +1,24 @@
 <template>
 <div class="page page-white page-favorites">
-	<div class="navbar">
+	<div class="navbar navbar-large navbar-transparent">
 		<div class="navbar-bg"></div>
 		<div class="navbar-inner sliding">
+			{{#if canGoBack}}
 			<div class="left">
 				<a href="#" class="link back">
 					<i class="icon icon-back"></i>
 					<span class="">Назад</span>
 				</a>
 			</div>
-			<div class="title">Избранное</div>
+			{{/if}}
+			<div class="title">Избранное</div> <!-- Валаам -->
+			<div class="title-large">
+				<div class="title-large-text">Избранное</div>
+			</div>
 		</div>
 	</div>
 	<!--suppress HtmlUnknownAttribute -->
 	<div class="page-content">
-		<h2 class="block">Избранное</h2>
 		<div class="block">
 			<p>Здесь хранятся отобранные молитвы, каноны, акафисты, святые и еще кое-что другое.
 			Редактируйте и составьте свое личное молитвенное правило</p>
@@ -64,6 +68,7 @@
 <!--suppress JSAnnotator -->
 <script>
 	import favoriteManager from '../js/favorite-manager.js';
+	import navbarLargeMixin from './navbar-large-mixin.js';
 
 	let app, $el;
 
@@ -99,9 +104,16 @@
 				app.tab.show(id);
 			}
 	 	},
+		mixins: [navbarLargeMixin],
 		on: {
 			pageInit(page) {
 				$el = this.$el;
+			},
+			pageBeforeIn(e, page) {
+				if (page.router.history.length > 1) {
+					this.canGoBack = true;
+				}
+				this.$update();
 			},
 			pageBeforeRemove() {
 				//console.log('popupBeforeRemove', arguments);

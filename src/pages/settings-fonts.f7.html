@@ -2,7 +2,7 @@
 
 <div class="page page-white">
 
-	<div class="navbar">
+	<div class="navbar navbar-large navbar-transparent">
 		<div class="navbar-bg"></div>
 		<div class="navbar-inner sliding">
 			<div class="left">
@@ -11,12 +11,14 @@
 					<span class="">Назад</span>
 				</a>
 			</div>
-			<div class="title"></div>
+			<div class="title">Настроить шрифты</div>
+			<div class="title-large">
+				<div class="title-large-text">Настроить шрифты</div>
+			</div>
 		</div>
 	</div>
 
 	<div class="page-content">
-		<h2 class="block">Настроить шрифты</h2>
 		<div class="block">
 			<p>Шрифты применяются для чтений в молитвослове и календаре
 				(молитвы, каноны, акафисты, тропари, кондаки,
@@ -267,6 +269,7 @@
 <!--suppress JSAnnotator -->
 <script>
 	import settingsManager from '../js/settings-manager.js';
+	import navbarLargeMixin from './navbar-large-mixin.js';
 
 	const SLAVONIC_FONTS = [
 		'Circe',
@@ -366,6 +369,7 @@
 				settingsManager.save(newState);
 			}
 	 	},
+		mixins: [navbarLargeMixin],
 		on: {
 			pageInit(e, page) {
 				$el = this.$el;
