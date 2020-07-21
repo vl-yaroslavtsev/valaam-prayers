@@ -150,6 +150,10 @@
 	export default {
 		methods: {
 			showTab(viewId) {
+				let view = app.views.get(viewId);
+				if (view) {
+					view.router.navigate(view.router.history[0], {reloadAll: true});
+				}				
 				app.tab.show(viewId, false);
 			}
 		},

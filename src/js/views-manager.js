@@ -84,7 +84,6 @@ function initViewTabs() {
 	app.on('pageBeforeIn', (page) => {
 		let isWhite = page.$el.hasClass('page-white');
 		let isDarkMode = $$('html').hasClass('theme-dark');
-		console.log('pageBeforeIn: isWhite', isWhite, ', isDarkMode: ', isDarkMode);
 		if (isWhite && !isDarkMode) {
 			app.phonegap.statusbar.styleDefault();
 		} else {
@@ -114,7 +113,7 @@ function initViewTabs() {
 		let $el = popup.$el;
 		let isTablet = !isMobile();
 		let isDarkMode = $$('html').hasClass('theme-dark') ||
-						 $el.find('.photo-browser-dark').length;
+						 				 $el.find('.photo-browser-dark').length;
 
 		if (isTablet && !$el.hasClass('popup-tablet-fullscreen')) {
 			return;
