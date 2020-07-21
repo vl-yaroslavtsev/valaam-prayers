@@ -227,7 +227,6 @@
 
 			let style = getBgStyle();
 
-			//console.log(style);
 			return {
 				themeDark: document.querySelector('html').classList.contains('theme-dark'),
 				hideStatusbar: settingsManager.get('hideStatusbar'),
@@ -262,8 +261,6 @@
 					bgImage: value.includes('url') ? value : ''
 				};
 
-				//console.log('onBgChange', this);
-
 				settingsManager.save(state);
 			},
 			testFitures() {
@@ -297,8 +294,6 @@
 				.replace(/["']/g,'')
 				.replace(location.origin,'')
 				.replace(location.pathname,'./');
-
-		//console.log('getBgStyle', data);
 		return data;
 	}
 

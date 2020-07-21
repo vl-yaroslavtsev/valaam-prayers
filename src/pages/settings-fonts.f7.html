@@ -313,10 +313,8 @@
 		},
 		methods: {
 			onFontChange(event, value) {
-				//.log('onFontChange', event, value);
 				let newState = {};
 				let target = event.target;
-				//console.log(event, value);
 				switch (target.id) {
 					case 'stepper-font-size-cs':
 						newState.csFontSize = (+value).toFixed(1);
@@ -361,7 +359,6 @@
 							break;
 				}
 
-				//console.log(newState);
 				this.$setState(newState);
 				fontPreview.open(target);
 
@@ -405,7 +402,6 @@
 				lineHeightSl.params.formatValue = (value) => (+value).toFixed(2);
 			},
 			pageBeforeRemove() {
-				//console.log('page before remove');
 				if (fontPreview.timerId) {
 					clearTimeout(fontPreview.timerId);
 					fontPreview.timerId = null;

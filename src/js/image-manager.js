@@ -85,7 +85,6 @@ function revoke($el) {
 function revokeUrl(url) {
 	if (!url || !url.startsWith('blob:')) return;
 	URL.revokeObjectURL(url);
-	//console.log('[image-manager]: revoke ' + url);
 }
 
 /**

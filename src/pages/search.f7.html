@@ -99,10 +99,8 @@
 	 	},
 		on: {
 			popupInit(event, query, popup) {
-				//console.log('popupInit', arguments);
 				app = popup.app;
 				$el = popup.$el;
-				//debugger;
 				searchbar = app.searchbar.create({
 					el: $el.find('form.searchbar'),
 					searchContainer: '.search-list',
@@ -124,7 +122,6 @@
 				});
 			},
 			popupBeforeRemove() {
-				//console.log('popupBeforeRemove', arguments);
 				if (searchbar) {
 					searchbar.destroy();
 					searchbar = null;

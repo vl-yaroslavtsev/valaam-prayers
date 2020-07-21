@@ -120,7 +120,6 @@ class DownloadItem extends StateStore {
 		});
 
 		this.on('download:progress', ({downloaded}) => {
-			//console.log(`Прогресс загрузки ${progress}% ${bytesToSize(downloaded)}`);
 			if ((downloaded - this.state.downloaded) / this.state.size < 0.001) {
 				return;
 			}

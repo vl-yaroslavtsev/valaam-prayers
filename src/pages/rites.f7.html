@@ -435,7 +435,6 @@
 				;
 			},
 			onPaymentChanged({target}) {
-				console.log('onPaymentChanged', target);
 				let selectedPayment = this.payments.find(({code}) => code === target.value);
 				let phoneHidden = selectedPayment.code !== 'mobile_balance';
 
@@ -467,9 +466,6 @@
 			},
 			async pageAfterIn(e, page) {
 				await this.loadingPromise;
-
-				console.log('pageInit rites 111', $el.find('input'));
-
 
 				this.$tick(() => {
 					let	$namesValue = $el.find('#formRites-names'),

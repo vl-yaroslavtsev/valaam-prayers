@@ -142,8 +142,6 @@
 					items: [1,2,3,4,5,6],
 					// Custom search function for searchbar
 					searchAll(query, items) {
-						//console.log('searchAll', query, items);
-						//debugger;
 						var found = [];
 						for (var i = 0; i < items.length; i++) {
 							if (items[i].name.toLowerCase().indexOf(query.toLowerCase()) >= 0 ||

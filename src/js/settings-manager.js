@@ -36,7 +36,6 @@ function save(item = {}) {
 }
 
 function apply(state) {
-	//console.log('[settingsManager]: apply');
 	if (state) {
 		save(state);
 	}

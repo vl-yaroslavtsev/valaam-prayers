@@ -118,7 +118,6 @@ async function getQuota() {
 }
 
 function registerSources() {
-	console.log('[download.manager]: registerSources');
 	downloadItemsList().forEach(item => {
 			downloadItems[item.id] = item;
 	});
