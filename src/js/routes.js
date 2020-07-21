@@ -235,10 +235,10 @@ export default [
 		component: MainMenu
 	},
 	// Default route (404 page). MUST BE THE LAST
-	{
-		path: '(.*)',
-		component: NotFound
-	}
+	// {
+	// 	path: '(.*)',
+	// 	component: NotFound
+	// }
 ];
 
 /**

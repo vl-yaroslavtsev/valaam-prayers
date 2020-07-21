@@ -7,24 +7,19 @@ import { isMobile } from './utils/utils.js';
 
 let app;
 const menuView = '#view-menu';
-const viewsIds = ['#view-books', '#view-prayers', '#view-calendar', '#view-rites'];
+const viewsIds = [
+	'#view-main',
+  '#view-books',
+	'#view-prayers',
+	'#view-calendar',
+	'#view-rites'
+];
 // Количественно последовательных нажатий кнопки Назад
 let backButtonAttempts = 0;
 
 function init(appInstance) {
 	app = appInstance;
 	initViewTabs();
-
-	// let view = app.views.get(menuView);
-	// view.on('pageBeforeOut', (page) => {
-	// 	if (page.router.history.length <= 1) {
-	// 		app.panel.get('.panel-left').close();
-	// 	}
-	// });
-
-	// document.addEventListener("backbutton", (e) => {
-	// 	return handleBackButton(e);
-	// }, false);
 
 	app.on('onBackPressed', () => {
 		return handleBackButton();
@@ -44,15 +39,6 @@ function parseHash() {
 
 	if (!view) {
 		view = createView(viewId);
-	}
-
-	if (viewId === menuView) {
-		if (panel) {
-			panel.open(false);
-		}
-		view.router.navigate(url);
-		document.location.hash = '';
-		return;
 	}
 
 	if (!viewsIds.includes(viewId)) return;
@@ -91,25 +77,7 @@ function initViewTabs() {
 		}
 	});
 
-	app.on('navbarShow', (navbarEl) => {
-		//let $el = app.$(navbarEl);
-		//$el.transitionEnd(() => {
-			// if (settingsManager.get('hideStatusbar')) {
-			// 	app.phonegap.statusbar.show();
-			// }
-		//});
-	});
-
-	app.on('navbarHide', (navbarEl) => {
-		// if (settingsManager.get('hideStatusbar')) {
-		// 	let $el = app.$(navbarEl);
-		// 	$el.addClass('navbar-hidden-statusbar');
-		// 	app.phonegap.statusbar.hide();
-    // }
-	});
-
 	app.on('popupOpened', (popup) => {
-		//console.log('popupOpen', popup);
 		let $el = popup.$el;
 		let isTablet = !isMobile();
 		let isDarkMode = $$('html').hasClass('theme-dark') ||
@@ -154,6 +122,25 @@ function createView(id) {
 	}
 
 	switch (id) {
+		case '#view-main':
+			view = app.views.create('#view-main', {
+				url: '/root',
+				routesAdd: [
+					{
+						path: '/root',
+						content: `<div class='page'></div>`,
+					}
+				],
+				on: {
+					routeChange(newRoute, previousRoute) {
+						if (newRoute.path === '/root' && previousRoute.path) {
+							app.panel.open('.panel-left');
+						}
+					}
+				}
+			});
+			break;
+
 		case '#view-prayers':
 			view = app.views.create('#view-prayers', {
 				name: 'Полный молитвослов',

@@ -15,8 +15,9 @@
 			<div class="list ucase-list">
 				<ul>
 					<li>
-						<a href="/prayers/1736"
-						   class="item-link item-content">
+						<a href="#"
+						   class="item-link item-content panel-close"
+							 @click="showTab('#view-main','/prayers/1736')">
 							<div class="item-inner">
 								<div class="item-title">
 									<i class="icon material-icons">info</i>
@@ -74,7 +75,9 @@
 						</a>
 					</li>
 					<li>
-						<a href="/favorites" class="item-link item-content">
+						<a href="#"
+							 class="item-link item-content panel-close"
+					 		 @click="showTab('#view-main','/favorites')">
 							<div class="item-inner">
 								<div class="item-title">
 									<i class="icon material-icons">star</i>
@@ -84,7 +87,9 @@
 						</a>
 					</li>
 					<li>
-						<a href="/settings" class="item-link item-content">
+						<a href="#"
+							 class="item-link item-content panel-close"
+							 @click="showTab('#view-main', '/settings')">
 							<div class="item-inner">
 								<div class="item-title">
 									<i class="icon material-icons">settings</i>
@@ -94,7 +99,8 @@
 						</a>
 					</li>
 					<li>
-						<a href="/search" class="item-link item-content panel-close">
+						<a href="/search"
+							 class="item-link item-content panel-close">
 							<div class="item-inner">
 								<div class="item-title">
 									<i class="icon material-icons">search</i>
@@ -145,22 +151,21 @@
 	}
 </style>
 <script>
+	import {Dom7 as $$} from 'framework7';
 	let app;
 
 	export default {
 		methods: {
-			showTab(viewId) {
+			showTab(viewId, url) {
 				let view = app.views.get(viewId);
-<<<<<<< HEAD
 				if (view) { // Перезгружаем историю меню
-					view.router.navigate(view.router.history[0], {reloadAll: true});
+				 	view.router.navigate(view.router.history[0], {reloadAll: true});
 				}
-=======
-				if (view) {
-					view.router.navigate(view.router.history[0], {reloadAll: true});
-				}				
->>>>>>> 38f6e24406dd4b1f4c260aede209475a087b0154
 				app.tab.show(viewId, false);
+				if (url) {
+					view = app.views.get(viewId);
+					view.router.navigate(url);
+				}
 			}
 		},
 		data() {
@@ -169,7 +174,6 @@
 		},
 		on: {
 			pageInit(e, page) {
-				console.log('page init');
 				app.panel.get('.panel-left').open(false);
 			},
 		}
