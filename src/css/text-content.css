@@ -113,6 +113,10 @@
 	color: rgba(0,0,0,.9);
 	margin-top: 1em;
 }
+
+.theme-dark .text-content:not(.slavonic) h2 {
+	color: var(--f7-block-strong-text-color);
+}
 /* endregion */
 
 @media (min-width: 768px) {
