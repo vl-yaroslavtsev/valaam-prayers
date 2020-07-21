@@ -3,7 +3,7 @@
 	<div class="page" data-name="calendar">
 
 		<!-- Top Navbar -->
-		<div class="navbar">
+		<div class="navbar navbar-large navbar-transparent">
 			<div class="navbar-bg"></div>
 			<div class="navbar-inner sliding">
 				<div class="left">
@@ -13,6 +13,9 @@
 					</a>
 				</div>
 				<div class="title">{{title}} в {{year}} году</div>
+				<div class="title-large">
+					<div class="title-large-text">{{title}} в {{year}} году</div>
+				</div>
 				<div class="right">
 				{{> "navbar-right"}}
 				</div>
@@ -21,7 +24,6 @@
 
 		<!-- Scrollable page content-->
 		<div class="page-content">
-			<h2 class="block">{{title}} в {{year}} году</h2>
 			{{#if description}}
 			<div class="block text-white">
 				{{description}}
@@ -44,8 +46,10 @@
 		getEaster,
 		isLeapYear
 	} from '../js/utils/date-utils.js';
+	import navbarLargeMixin from './navbar-large-mixin.js';
 
 	export default {
+		mixins:[navbarLargeMixin],
 		on: {
 			pageAfterIn: function(e, page) {
 				// if(this.$root.debug)
