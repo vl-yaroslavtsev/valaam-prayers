@@ -151,9 +151,15 @@
 		methods: {
 			showTab(viewId) {
 				let view = app.views.get(viewId);
+<<<<<<< HEAD
 				if (view) { // Перезгружаем историю меню
 					view.router.navigate(view.router.history[0], {reloadAll: true});
 				}
+=======
+				if (view) {
+					view.router.navigate(view.router.history[0], {reloadAll: true});
+				}				
+>>>>>>> 38f6e24406dd4b1f4c260aede209475a087b0154
 				app.tab.show(viewId, false);
 			}
 		},
