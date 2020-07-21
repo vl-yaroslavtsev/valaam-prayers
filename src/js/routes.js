@@ -119,6 +119,7 @@ export default [
 					component: to
 				}, {
 					context: {
+						id: 'bu-' + daysCode,
 						day,
 						action: routeTo.query.action,
 						actionId: routeTo.query.actionId

@@ -49,6 +49,7 @@
 <script>
 	import {format, parse, subDays} from '../js/utils/date-utils.js';
 	import {upperFirst} from 'lodash-es';
+	import readModeMixin from './read-mode-mixin.js';
 
 	export default {
 		data() {
@@ -70,6 +71,7 @@
 			;
 
 			return data;
-		}
+		},
+		mixins: [readModeMixin]
 	};
 </script>
