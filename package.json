@@ -1,6 +1,6 @@
 {
   "name": "ru.valaam.prayers",
-  "version": "1.8.1",
+  "version": "1.8.2",
   "description": "Молитвослов и календарь от Валаамского монастыря",
   "private": true,
   "scripts": {
