@@ -34,10 +34,10 @@ class ReadMode {
 		// 	app.phonegap.statusbar.hide();
 		// }
 
-		//app.navbar.hide($navbar, false, settingsManager.get('hideStatusbar'));
-		////app.toolbar.hide($progressbar, false);
+		app.navbar.hide($navbar, false, settingsManager.get('hideStatusbar'));
+		app.toolbar.hide($progressbar, false);
 		app.toolbar.hide($toolbar);
-		app.toolbar.show($progressbar, false);
+		//app.toolbar.show($progressbar, false);
 
 		$content.on('scroll', this.handler.scroll);
 		$content.on('click', this.handler.click);
