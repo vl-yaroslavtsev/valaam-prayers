@@ -57,7 +57,7 @@ class ReadMode {
 					}
 					this.rangeChanging = true;
 					$content.scrollTop(
-						(value - 1) * app.height
+						(value - 1) * (app.height - this.lineHeight)
 					);
 				},
 				changed: () => {
@@ -156,7 +156,8 @@ class ReadMode {
 
 		let lineHeight = this.getLineHeight();
 		let scrollTop = $content.scrollTop();
-		let newPage = Math.floor(scrollTop / (app.height - lineHeight)) + 1;
+		//let newPage = Math.floor(scrollTop / (app.height - lineHeight)) + 1;
+		let newPage = Math.round(scrollTop / (app.height - lineHeight)) + 1;
 
 		this.toggleBars(scrollTop);
 
@@ -189,7 +190,7 @@ class ReadMode {
 		if (scrollTop > this.prevScrollTop &&
 			  this.$content[0].scrollHeight - (scrollTop + app.height) < 50) {
 			app.toolbar.show(this.$progressbar);
-			
+
 		} else if (!this.rangeChanging) {
 			app.toolbar.hide(this.$progressbar);
 		}
@@ -202,9 +203,29 @@ class ReadMode {
 
 		delete this.lineHeight;
 		let lineHeight = this.getLineHeight();
+		let padding = 0;
 
-		this.pages = Math.ceil($content[0].scrollHeight / (app.height - lineHeight)) - 1;
-		this.page = Math.floor($content.scrollTop() / (app.height - lineHeight)) + 1;
+		$content[0].style.setProperty(
+			'--read-mode-padding-bottom',
+			`0px`
+		);
+
+		//this.pages = Math.ceil($content[0].scrollHeight / (app.height - lineHeight)) - 1;
+		//this.page = Math.floor($content.scrollTop() / (app.height - lineHeight)) + 1;
+		if ($content[0].scrollHeight == app.height) {
+			this.pages = 1;
+			this.page = 1;
+		} else {
+			this.pages = Math.ceil($content[0].scrollHeight / (app.height - lineHeight));
+			this.page = Math.round($content.scrollTop() / (app.height - lineHeight)) + 1;
+
+			let padding = this.pages * (app.height - lineHeight) - $content[0].scrollHeight;
+			$content[0].style.setProperty(
+				'--read-mode-padding-bottom',
+				`${padding}px`
+			);
+		}
+
 		this.historyUpdate();
 	}
 
@@ -243,6 +264,7 @@ class ReadMode {
 		}
 
 		let lineHeight = this.getLineHeight();
+		console.log('lineHeight', lineHeight);
 		//if (e.clientX < app.width / 2 ) {
 		if (e.clientY < app.height / 2 ) {
 			$content.scrollTop(
