@@ -156,6 +156,14 @@
 							<a href="{{href}}" class="item-link item-content">
 								<div class="item-inner">
 									<div class="item-title">{{name}}</div>
+									<div class="item-after">
+										{{#if this.lang_cs}}
+										<span class="badge color-transparent">ЦС</span>
+										{{/if}}
+										{{#if this.lang_sl}}
+										<span class="badge color-transparent">РУ</span>
+										{{/if}}
+									</div>
 								</div>
 							</a>
 						</li>
@@ -171,7 +179,7 @@
 						{{/if}}
 					`,
 					// Item height
-					height: isMobile() ? 52 : 83
+					height: isMobile() ? 79 : 110 // 52 : 83
 				});
 
 				let {items, state} = await this.loadPromise;
