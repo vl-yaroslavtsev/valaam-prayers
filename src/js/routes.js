@@ -210,9 +210,7 @@ export default [
 	},
 	{
 		path: '/search',
-		popup: {
-			component: Search
-		}
+		component: Search
 	},
 	{
 		path: '/favorites',
