@@ -17,7 +17,7 @@ class ReadMode {
 		this.historyPromise = db.read_history.get(this.context.id);
 	}
 
-	async init() {
+	init() {
 		let $page = this.$page = this.context.$el;
 		let $content = this.$content = $page.find('.page-content');
 		let $navbar = this.$navbar = $page.find('.navbar');
@@ -42,14 +42,17 @@ class ReadMode {
 		$content.on('scroll', this.handler.scroll);
 		$content.on('click', this.handler.click);
 
-		await this.historyInit();
-		this.countPages();
+		console.log('[read-mode-mixin] init before historyInit: $content.scrollHeight', this.$content[0].scrollHeight);
+
+		this.historyInit();
+
+		console.log('[read-mode-mixin] init after historyInit: $content.scrollHeight', this.$content[0].scrollHeight);
 
 		this.range = app.range.create({
 			el: $page.find('.read-mode-range')[0],
 			min: 1,
-			max: this.pages,
-			value: this.page,
+			// max: this.pages,
+			// value: this.page,
 			on: {
 				change: (range, value) => {
 					if (this.page === value) {
@@ -71,7 +74,7 @@ class ReadMode {
 			`${$navbar.find('.navbar-extra')[0].offsetHeight}px`
 		);
 
-		this.context.$update();
+		// this.context.$update();
 	}
 
 	async historyInit() {
@@ -82,21 +85,24 @@ class ReadMode {
 			this.history = {
 				id: this.context.id,
 				name: this.context.name,
+				parent_id: this.context.parent,
 				date: new Date(),
 				book_id: prayersBookId(this.context.id),
 				path: prayersPath(this.context.id),
-				scroll: $content.scrollTop() / $content[0].scrollHeight,
-				page: this.page,
-				pages: this.pages
+				// scroll: $content.scrollTop() / $content[0].scrollHeight,
+				// page: this.page,
+				// pages: this.pages
 			};
 			await db.read_history.put(this.history);
-			this.historyLimit();
-		} else {
-			this.initScroll = true;
-			$content.scrollTop(
-				Math.round(this.history.scroll * $content[0].scrollHeight)
-			);
+			await this.historyLimit();
 		}
+
+		// else {
+		// 	this.initScroll = true;
+		// 	$content.scrollTop(
+		// 		Math.round(this.history.scroll * $content[0].scrollHeight)
+		// 	);
+		// }
 	}
 
 	/**
@@ -106,12 +112,17 @@ class ReadMode {
 	 */
 	async historyUpdate() {
 		let $content = this.$content;
+		await this.historyPromise;
+		if (!this.history) {
+			return;
+		}
 
 		Object.assign(this.history, {
 			scroll: $content.scrollTop() / $content[0].scrollHeight,
 			date: new Date(),
+			parent_id: this.context.parent,
 			page: this.page,
-			pages: this.pages
+			pages: this.pages,
 		});
 		await db.read_history.put(this.history);
 	}
@@ -134,8 +145,19 @@ class ReadMode {
 		);
 	}
 
-	update() {
+	async update() {
+		let $content = this.$content
 		this.countPages();
+
+		await this.historyPromise;
+		if (this.history.scroll) {
+			this.initScroll = true;
+			$content.scrollTop(
+				Math.round(this.history.scroll * $content[0].scrollHeight)
+			);
+		}
+
+		this.historyUpdate();
 
 		this.range.max = this.pages;
 		this.range.setValue(this.page);
@@ -225,8 +247,6 @@ class ReadMode {
 				`${padding}px`
 			);
 		}
-
-		this.historyUpdate();
 	}
 
 	/**
@@ -325,9 +345,20 @@ export default {
 			}
 
 			this.readMode.init();
+			console.log('[read-mode-mixin] pageInit: $content.scrollHeight', this.readMode.$content[0].scrollHeight);
+			console.log('[read-mode-mixin] pageInit: .navbar-extra.offsetHeight', this.readMode.$navbar.find('.navbar-extra')[0].offsetHeight);
+		},
+
+		pageBeforeIn(e, page) {
+			this.readMode.update();
+			console.log('[read-mode-mixin] pageBeforeIn: $content.scrollHeight', this.readMode.$content[0].scrollHeight);
+			console.log('[read-mode-mixin] pageBeforeIn: .navbar-extra.offsetHeight', this.readMode.$navbar.find('.navbar-extra')[0].offsetHeight);
+
 		},
 
 		pageAfterIn(e, page) {
+			console.log('[read-mode-mixin] pageAfterIn: $content.scrollHeight', this.readMode.$content[0].scrollHeight);
+			console.log('[read-mode-mixin] pageAfterIn: .navbar-extra.offsetHeight', this.readMode.$navbar.find('.navbar-extra')[0].offsetHeight);
 			app.toolbar.hide(this.readMode.$toolbar,false);
 		},
 
