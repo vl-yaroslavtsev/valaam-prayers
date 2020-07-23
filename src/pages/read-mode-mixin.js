@@ -29,11 +29,6 @@ class ReadMode {
 			click: this.clickHandler.bind(this)
 		};
 
-		// if (settingsManager.get('hideStatusbar') &&
-		// 		app.phonegap.statusbar.visible()) {
-		// 	app.phonegap.statusbar.hide();
-		// }
-
 		app.navbar.hide($navbar, false, settingsManager.get('hideStatusbar'));
 		app.toolbar.hide($progressbar, false);
 		app.toolbar.hide($toolbar);
@@ -42,11 +37,7 @@ class ReadMode {
 		$content.on('scroll', this.handler.scroll);
 		$content.on('click', this.handler.click);
 
-		console.log('[read-mode-mixin] init before historyInit: $content.scrollHeight', this.$content[0].scrollHeight);
-
 		this.historyInit();
-
-		console.log('[read-mode-mixin] init after historyInit: $content.scrollHeight', this.$content[0].scrollHeight);
 
 		this.range = app.range.create({
 			el: $page.find('.read-mode-range')[0],
@@ -288,7 +279,6 @@ class ReadMode {
 		}
 
 		let lineHeight = this.getLineHeight();
-		console.log('lineHeight', lineHeight);
 		//if (e.clientX < app.width / 2 ) {
 		if (e.clientY < app.height / 2 ) {
 			$content.scrollTop(
@@ -349,20 +339,13 @@ export default {
 			}
 
 			this.readMode.init();
-			console.log('[read-mode-mixin] pageInit: $content.scrollHeight', this.readMode.$content[0].scrollHeight);
-			console.log('[read-mode-mixin] pageInit: .navbar-extra.offsetHeight', this.readMode.$navbar.find('.navbar-extra')[0].offsetHeight);
 		},
 
 		pageBeforeIn(e, page) {
 			this.readMode.update();
-			console.log('[read-mode-mixin] pageBeforeIn: $content.scrollHeight', this.readMode.$content[0].scrollHeight);
-			console.log('[read-mode-mixin] pageBeforeIn: .navbar-extra.offsetHeight', this.readMode.$navbar.find('.navbar-extra')[0].offsetHeight);
-
 		},
 
 		pageAfterIn(e, page) {
-			console.log('[read-mode-mixin] pageAfterIn: $content.scrollHeight', this.readMode.$content[0].scrollHeight);
-			console.log('[read-mode-mixin] pageAfterIn: .navbar-extra.offsetHeight', this.readMode.$navbar.find('.navbar-extra')[0].offsetHeight);
 			app.toolbar.hide(this.readMode.$toolbar,false);
 		},
 
