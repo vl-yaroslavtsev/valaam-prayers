@@ -184,6 +184,7 @@
 			data.parentPath = path.pop();
 		}
 
+		data.parent = prayer.parent;
 		data.text = /*marked*/(prayer.text)
 			.replace(/href="(https?|mailto|tel):/g, 'class="external" href="$1:')
 		;

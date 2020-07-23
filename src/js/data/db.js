@@ -37,7 +37,7 @@ function registerStores(idb) {
 db.open = async function() {
 	if (idb) return idb;
 
-	idb = await openDB('phonegap', 3, {
+	idb = await openDB('phonegap', 4, {
 		upgrade(db, oldVersion, newVersion, transaction) {
 			switch(oldVersion) { // существующая (старая) версия базы данных
 		    case 0:
@@ -58,6 +58,9 @@ db.open = async function() {
 
 				case 2:
 				transaction.objectStore('read_history').createIndex('by-book-id', 'book_id');
+
+				case 3:
+				transaction.objectStore('read_history').createIndex('by-parent-id', 'parent_id');
 
 			}
 		},

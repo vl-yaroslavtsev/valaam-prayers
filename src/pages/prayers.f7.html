@@ -155,7 +155,12 @@
 						<li key="{{this.id}}">
 							<a href="{{href}}" class="item-link item-content">
 								<div class="item-inner">
-									<div class="item-title">{{name}}</div>
+									<div class="item-title">
+										<div class="item-title-inner">{{name}}</div>
+										{{#if read_progress}}
+										<div class="item-footer">{{read_progress}}%</div>
+										{{/if}}
+									</div>
 									<div class="item-after">
 										{{#if this.lang_cs}}
 										<span class="badge color-transparent">ЦС</span>
@@ -179,7 +184,13 @@
 						{{/if}}
 					`,
 					// Item height
-					height: isMobile() ? 79 : 110 // 52 : 83
+					height(item) {
+						if (isMobile()) {
+							return (item.read_progress) ? 79 : 62;
+						} else {
+							return (item.read_progress) ? 118 : 94;
+						}
+					}
 				});
 
 				let {items, state} = await this.loadPromise;
@@ -195,10 +206,11 @@
 				}
 			},
 			async pageBeforeIn(e, page) {
-				await updateLastReading(this);
 				if (page.router.history.length > 1) {
 					this.canGoBack = true;
 				}
+				updateVirtualList.call(this);
+				await updateLastReading.call(this);
 				this.$update(() => {
 					this.$el.trigger('navbar-render');
 				});
@@ -211,8 +223,13 @@
 
 	async function loadData() {
 		try {
-			let prayers = await dataManager.get('prayers');
-			let data = await handleData.call(this, prayers);
+			let sectionId = this.$route.params.sectionId || "0";
+			let [history, prayers] = await Promise.all([
+				db.read_history.getAllFromIndex('by-parent-id', sectionId),
+				dataManager.get('prayers')
+			]);
+
+			let data = await handleData.call(this, prayers, history);
 			app.emit('mainPageLoaded', 'prayers', this);
 
 			return data;
@@ -222,16 +239,20 @@
 		}
 	}
 
-	async function updateLastReading(state) {
-		if (!state.bookRoot) return;
+	/**
+	 * Получаем информацию о последнем чтении элемента данного раздела
+	 * @this {F7Component}
+	 */
+	async function updateLastReading() {
+		if (!this.bookRoot) return;
 
-		let readings = await db.read_history.getAllFromIndex('by-book-id', state.id);
+		let readings = await db.read_history.getAllFromIndex('by-book-id', this.id);
 		if (!readings.length) return;
 
 		let lastReading = sortBy(readings, ['date']).pop();
 		let path = lastReading.path.concat(lastReading.name);
 		path.shift();
-		Object.assign(state, {
+		Object.assign(this, {
 			lastReading: {
 				id: lastReading.id,
 				path: path.join(' • '),
@@ -241,7 +262,24 @@
 		});
 	}
 
-	async function handleData(prayers) {
+	/**
+	 * Обновляем значения VirtualList
+	 * @this {F7Component}
+	 */
+	async function updateVirtualList() {
+		let history = await db.read_history.getAllFromIndex('by-parent-id', this.id);
+
+		this.virtualList.items.forEach((item, index) => {
+			let record = history.find(({id}) => id === item.id);
+			if (!record) {
+				return;
+			}
+			item.read_progress = record.progress;
+			this.virtualList.replaceItem(index, item);
+		});
+	}
+
+	async function handleData(prayers, history) {
 		let sectionId = this.$route.params.sectionId || "0";
 		let state = {};
 		let items = [];
@@ -271,12 +309,17 @@
 			}
 		});
 
-		await updateLastReading(state);
+		await updateLastReading.call(state);
 
 		prayers.e
 			.filter(({parent}) => parent === sectionId)
 			.forEach((data) => {
-				items.push(Object.assign(data, {href: '/prayers/text/' + data.id}));
+				let record = history.find(({id}) => id === data.id);
+
+				items.push(Object.assign(data, {
+					href: '/prayers/text/' + data.id,
+					read_progress: record ? record.progress : null
+				}));
 			});
 
 		state.loading = false;

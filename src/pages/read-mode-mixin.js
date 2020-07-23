@@ -113,12 +113,16 @@ class ReadMode {
 	async historyUpdate() {
 		let $content = this.$content;
 		await this.historyPromise;
+
 		if (!this.history) {
 			return;
 		}
 
+		let scroll = $content.scrollTop() / $content[0].scrollHeight;
+
 		Object.assign(this.history, {
-			scroll: $content.scrollTop() / $content[0].scrollHeight,
+			scroll,
+			progress: (this.page == this.pages) ? '100' : Math.round(scroll * 100).toString(),
 			date: new Date(),
 			parent_id: this.context.parent,
 			page: this.page,
