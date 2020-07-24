@@ -29,6 +29,8 @@ import SettingsDownloadItem from '../pages/settings-download-item.f7.html';
 import Prayers from '../pages/prayers.f7.html';
 import PrayersText from '../pages/prayers-text.f7.html';
 
+import ReadModeTutorial from '../pages/read-mode-tutorial.f7.html';
+
 import Rites from '../pages/rites.f7.html';
 import RitesName from '../pages/rites-name.f7.html';
 import RitesStatus from '../pages/rites-status.f7.html';
@@ -40,6 +42,7 @@ import NotFound from '../pages/404.f7.html';
 import dataManager from './data/manager.js';
 
 Framework7.registerComponent('download-list-item', SettingsDownloadItem);
+Framework7.registerComponent('read-mode-tutorial', ReadModeTutorial);
 
 export default [
 	{

@@ -1,0 +1,317 @@
+<template>
+	<div id="{{$props.id}}"
+			 class="read-mode-tutorial">
+		<div class="tutorial-bg">
+		  <canvas class="tutorial tutorial-stage-1"></canvas>
+		  <div class="tutorial-text tutorial-text-stage-1">
+				Коснитесь сверху, чтобы прокрутить страницу вверх
+			</div>
+		  <canvas class="tutorial tutorial-stage-2"></canvas>
+		  <div class="tutorial-text tutorial-text-stage-2">
+				Коснитесь снизу, чтобы прокрутить страницу вниз
+			</div>
+		  <canvas class="tutorial tutorial-stage-3"></canvas>
+		  <div class="tutorial-text tutorial-text-stage-3">
+				Коснитесь в центре, чтобы показать меню
+			</div>
+		  <div class="tutorial tutorial-bookmark">
+		    <div class="tutorial-circle-bg"></div>
+		    <div class="tutorial-circle-main"></div>
+		    <div class="tutorial-text tutorial-text-bookmark">
+					Коснитесь правого верхнего угла, чтобы добавить закладку
+				</div>
+		  </div>
+		</div>
+	</div>
+</template>
+<style scoped>
+	.tutorial-bg {
+	  position: fixed;
+	  left: 0;
+	  top: 0;
+	  width: 100%;
+	  height: 100%;
+	  z-index: 900;
+	  backdrop-filter: blur(5px) saturate(200%);
+	  transition: all ease .7s;
+	  opacity: 0;
+	  display: none;
+	}
+	.tutorial {
+	  position: absolute;
+	  left: 0;
+	  top: 0;
+	  pointer-events: none;
+	  opacity: 0;
+	  transition: all ease 1s;
+	}
+
+	.tutorial-bookmark {
+	  width: 100%;
+	  height: 100%;
+	}
+
+	.tutorial-circle-main {
+	  background-color: #90cdf5;
+	  position: absolute;
+	  left: 82vw;
+	  top: -10vw;
+	  width: 26vw;
+	  height: 26vw;
+	  border-radius: 50%;
+	  transition: ease 1s;
+	}
+
+	.tutorial-circle-bg {
+	  background-color: rgb(3, 92, 117, .9);
+	  border: 4px solid #035c75;
+	  position: absolute;
+	  left: 82vw;
+	  top: -10vw;
+	  width: 26vw;
+	  height: 26vw;
+	  border-radius: 50%;
+	  transition: ease 1s;
+	}
+
+	.tutorial-circle-bg-large {
+	  width: 220vw;
+	  height: 220vw;
+	  left: -10vw;
+	  top: -120vw;
+	}
+
+	.tutorial-text {
+	  position: absolute;
+	  color: white;
+	  font-size: 20px;
+	  font-family: sans-serif;
+	  transition: ease 1s;
+	  opacity: 0;
+	}
+
+	.tutorial-text-stage-1 {
+	  top: 10vh;
+	  left: 5vw;
+	  width: 90vw;
+	  text-align: center;
+	}
+
+	.tutorial-text-stage-2 {
+	  bottom: 10vh;
+	  left: 5vw;
+	  width: 90vw;
+	  text-align: center;
+	}
+
+	.tutorial-text-stage-3 {
+	  top: 50vh;
+	  left: 35vw;
+	  margin-top: -50px;
+	  width: 30vw;
+	  text-align: center;
+	}
+
+	.tutorial-text-bookmark {
+	  width: 70vw;
+	  top: 20vh;
+	  right: 5vw;
+	}
+</style>
+<script>
+	//import downloadManager from '../js/download/manager.js';
+	import { Dom7 as $$ } from 'framework7';
+
+	const lineWidth = 4;
+  const stepDuration = 2000;
+
+	let app;
+
+	export default {
+		data() {
+			app = this.$app;
+		},
+		methods: {
+			async full() {
+				await start.call(this);
+
+				await step1.call(this);
+		    await step2.call(this);
+		    await step3.call(this);
+		    //await step4.call(this);
+
+				await finish.call(this);
+		  },
+		  async bookmark() {
+		    await start.call(this);
+				await step4.call(this);
+		    await finish.call(this);
+		  }
+	 	},
+		// hooks
+    beforeCreate () {
+    },
+    mounted () {
+			this.$bg = this.$el.find('.tutorial-bg');
+    },
+    beforeDestroy () {
+			this.$bg = null;
+    },
+	};
+
+	/**
+	 * Начинаем туториал
+	 * @return {[type]} [description]
+	 */
+	async function start() {
+		let $bg = this.$bg;
+		$bg.show();
+		await new Promise((resolve) => setTimeout(() => resolve(), 0));
+
+		$bg.css({opacity:1});
+		await new Promise((resolve) => $bg.transitionEnd(() => resolve()));
+	}
+
+	/**
+	 * Завершаем туторила и чистим все
+	 * @return {Promise}
+	 */
+	async function finish() {
+		let $bg = this.$bg;
+
+		$bg.css({opacity: 0})
+			 .transitionEnd(() => {
+				 $bg.hide();
+				 this.$el.find('.tutorial').css({opacity:0});
+		 		 this.$el.find('.tutorial-text').css({opacity:0});
+				 this.$el.find('.tutorial-circle-bg').removeClass('tutorial-circle-bg-large');
+			 });
+	}
+
+	function getContext($canvas) {
+    $canvas.attr('width', app.width);
+    $canvas.attr('height', app.height);
+    let c = $canvas[0].getContext('2d');
+
+    c.lineWidth = lineWidth;
+    c.lineCap = 'round';
+    c.lineJoin = 'round';
+
+    return c;
+  }
+
+  async function step1() {
+    return new Promise((resolve) => {
+      let $canvas = this.$el.find('.tutorial-stage-1');
+      let c = getContext($canvas);
+      c.clearRect(0, 0, app.width, app.height);
+
+      c.fillStyle = 'rgba(50, 106, 189, .7)';
+      c.beginPath();
+      c.moveTo(lineWidth * 0.5,  lineWidth * 0.5);
+      c.lineTo(lineWidth * 0.5,  app.height * 0.5);
+      c.lineTo(app.width * 0.25, app.height * 0.5);
+      c.lineTo(app.width * 0.25, app.height * 0.25);
+      c.lineTo(app.width * 0.75, app.height * 0.25);
+      c.lineTo(app.width * 0.75, app.height * 0.5);
+      c.lineTo(app.width - lineWidth * 0.5, app.height * 0.5);
+      c.lineTo(app.width - lineWidth * 0.5, lineWidth* 0.5);
+      c.closePath();
+      c.fill();
+
+      c.strokeStyle = 'rgba(50, 106, 189, .95)';
+      c.stroke();
+
+      let $text = this.$el.find('.tutorial-text-stage-1');
+      $text.css({opacity: 1});
+      $canvas.css({opacity: 1});
+      $canvas.transitionEnd(() => {
+        setTimeout(() => {
+          //$canvas.css({opacity: .8});
+          //$text.css({opacity: .8});
+          resolve();
+        }, stepDuration);
+      });
+    });
+  }
+
+  async function step2() {
+    return new Promise((resolve) => {
+      let $canvas = this.$el.find('.tutorial-stage-2');
+      let c = getContext($canvas);
+      c.clearRect(0, 0, app.width, app.height);
+      c.fillStyle = 'rgba(38, 115, 41, .7)';
+      c.beginPath();
+      c.moveTo(lineWidth * 0.5,  app.height * 0.5);
+      c.lineTo(app.width * 0.25, app.height * 0.5);
+      c.lineTo(app.width * 0.25, app.height * 0.75);
+      c.lineTo(app.width * 0.75, app.height * 0.75);
+      c.lineTo(app.width * 0.75, app.height * 0.5);
+      c.lineTo(app.width - lineWidth * 0.5, app.height * 0.5);
+      c.lineTo(app.width - lineWidth * 0.5, app.height - lineWidth * 0.5);
+      c.lineTo(lineWidth * 0.5, app.height - lineWidth* 0.5);
+      c.closePath();
+      c.fill();
+
+      c.strokeStyle = 'rgba(38, 115, 41, .95)';
+      c.stroke();
+
+      let $text = this.$el.find('.tutorial-text-stage-2');
+      $text.css({opacity: 1});
+      $canvas.css({opacity: 1});
+      $canvas.transitionEnd(() => {
+        setTimeout(() => {
+          //$canvas.css({opacity: .8});
+          //$text.css({opacity: .8});
+          resolve();
+        }, stepDuration);
+      });
+    });
+  }
+
+  async function step3() {
+    return new Promise((resolve) => {
+      let $canvas = this.$el.find('.tutorial-stage-3');
+      let c = getContext($canvas);
+      c.clearRect(0, 0, app.width, app.height);
+
+      c.fillStyle = 'rgba(171, 46, 46, .7)';
+      c.fillRect(app.width  * 0.25,
+                 app.height * 0.25,
+                 app.width  * 0.5,
+                 app.height * 0.5);
+
+      c.strokeStyle = 'rgba(171, 46, 46, .95)';
+      c.strokeRect(app.width  * 0.25,
+                   app.height * 0.25,
+                   app.width  * 0.5,
+                   app.height * 0.5);
+
+      let $text = this.$el.find('.tutorial-text-stage-3');
+      $text.css({opacity: 1});
+      $canvas.css({opacity: 1});
+      $canvas.transitionEnd(() => {
+        setTimeout(() => {
+          //$canvas.css({opacity: .8});
+          //$text.css({opacity: .8});
+          resolve();
+        }, stepDuration);
+      });
+    });
+  }
+
+  async function step4() {
+    return new Promise((resolve) => {
+      let $bookmark = this.$el.find('.tutorial-bookmark');
+      $bookmark.css({opacity: 1});
+
+      this.$el.find('.tutorial-circle-bg').addClass('tutorial-circle-bg-large');
+      this.$el.find('.tutorial-circle-bg').transitionEnd(() => {
+        this.$el.find('.tutorial-text-bookmark').css({opacity: 1});
+        setTimeout(() => {
+          resolve();
+        }, 2 * stepDuration)
+      });
+    });
+  }
+</script>

@@ -7,12 +7,17 @@ import settingsManager from '../js/settings-manager.js';
 import db from '../js/data/db.js';
 import { prayersBookId, prayersPath } from '../js/data/utils.js';
 
-const READ_HISTORY_MAX_SIZE = 500;
+const READ_HISTORY_MAX_SIZE = 1000;
 
 let app;
 
-class ReadMode {
+class ReadMode extends StateStore {
 	constructor(context) {
+		super({
+			id: 'read-mode',
+			tutorialShown: false
+		});
+
 		this.context = context;
 		this.historyPromise = db.read_history.get(this.context.id);
 	}
@@ -265,10 +270,10 @@ class ReadMode {
 			return;
 		}
 
-		if (e.clientX > app.width / 3 &&
-				e.clientX < app.width * 2 / 3 &&
-				e.clientY > app.height / 4 &&
-				e.clientY < app.height * 3 / 4 ) {
+		if (e.clientX > app.width * 0.25 &&
+				e.clientX < app.width * 0.75 &&
+				e.clientY > app.height * 0.25 &&
+				e.clientY < app.height * 0.75 ) {
 			clickCenter = true;
 		}
 
@@ -279,8 +284,8 @@ class ReadMode {
 		}
 
 		let lineHeight = this.getLineHeight();
-		//if (e.clientX < app.width / 2 ) {
-		if (e.clientY < app.height / 2 ) {
+		//if (e.clientX < app.width * 0.5 ) {
+		if (e.clientY < app.height * 0.5) {
 			$content.scrollTop(
 				Math.round(Math.max($content.scrollTop() - app.height + lineHeight, 0)),
 				200
@@ -332,6 +337,18 @@ export default {
 	data()  {
 		this.readMode = new ReadMode(this);
 	},
+	methods: {
+		tutorial() {
+			let tutorial = this.$el.find('.read-mode-tutorial')[0].f7Component;
+			if (!tutorial) {
+				return;
+			}
+			app.navbar.hide(this.readMode.$navbar);
+			app.toolbar.hide(this.readMode.$progressbar);
+
+			tutorial.full();
+		}
+	},
 	on: {
 		pageInit(e, page) {
 			if (!app) {
@@ -345,8 +362,16 @@ export default {
 			this.readMode.update();
 		},
 
-		pageAfterIn(e, page) {
-			app.toolbar.hide(this.readMode.$toolbar,false);
+		async pageAfterIn(e, page) {
+			console.log(this);
+			let readMode = this.readMode;
+			app.toolbar.hide(readMode.$toolbar, false);
+
+			await readMode.statePromise;
+			if (!readMode.state.tutorialShown) {
+				this.tutorial();
+				readMode.setState({tutorialShown: true});
+			}
 		},
 
 		pageBeforeOut(e, page) {
