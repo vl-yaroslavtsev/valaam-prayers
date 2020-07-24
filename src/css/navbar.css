@@ -125,11 +125,17 @@
 	color: #000;
 }
 
+/** region read-mode */
 .read-mode {
+	--read-mode-range-font-size: 14px;
+
 	--f7-navbar-extra-height: 52px;
-	--f7-toolbar-height: 42px; /*48px;*/
-	--read-mode-range-font-size: 12px;
-	--f7-range-size: 24px;
+	--f7-range-size: 30px;
+
+	--f7-toolbar-height: 75px; /*48px;*/
+	--f7-toolbar-link-height: 42px;
+	--f7-toolbar-inner-padding-right: var(--f7-block-padding-horizontal);
+	--f7-toolbar-inner-padding-left: var(--f7-block-padding-horizontal);
 }
 
 .read-mode .navbar-bg {
@@ -160,6 +166,7 @@
 
 .read-mode .navbar-extra {
 	display: block;
+	margin-top: -5px;
 }
 
 .navbar-extra-title {
@@ -180,42 +187,49 @@
 }
 
 .read-mode-toolbar .toolbar-inner {
-	flex-direction: row;
-	justify-content: space-between;
+	flex-direction: column;
+	justify-content: flex-end;
 	align-items: stretch;
-	padding: 0;
-}
-
-.read-mode-toolbar .toolbar-inner-padding {
-	padding: 	0 var(--f7-block-padding-horizontal);
 }
 
 .read-mode-row {
-	flex-grow: 1;
-  display: flex;
-  flex-direction: column;
-  justify-content: flex-end;
-  padding: 0 5px 0;
+	display: flex;
+	flex-direction: row;
+	justify-content: space-between;
+	align-items: center;
+	margin-bottom: -5px;
 }
 
 .read-mode .toolbar a.link {
-  color: var(--f7-roolbar-link-color);
-  padding: 0;
-	min-width: var(--f7-toolbar-height);
+	color: var(--f7-roolbar-link-color);
+	padding: 0;
+	min-width: var(--f7-toolbar-link-height);
+}
+
+.read-mode .toolbar a.link:first-child {
+	margin-left: calc(0px - var(--f7-toolbar-link-height) / 3);
+}
+
+.read-mode .toolbar a.link:last-child {
+	margin-right: calc(0px - var(--f7-toolbar-link-height) / 3);
+}
+
+.read-mode-range {
+	margin-bottom: 5px;
 }
 
 .read-mode-range-text {
 	white-space: nowrap;
   font-size: var(--read-mode-range-font-size);
   text-align: center;
-  line-height: 1;
-  margin-bottom: -3px;
 }
 
 .navbar-extra-subtitle {
   color: var(--f7-navbar-link-color);
 	padding-bottom: 2px;
 }
+
+/** end region read-mode */
 
 @media (min-width: 768px) {
 	:root {
@@ -279,9 +293,10 @@
 	}
 
 	.read-mode {
-		--f7-toolbar-height: 52px;
-		--read-mode-range-font-size: 16px;
-		--f7-range-size: 30px;
+		--f7-toolbar-height: 100px;
+		--read-mode-range-font-size: 20px;
+		--f7-range-size: 40px;
+		--f7-toolbar-link-height: 52px;
 	}
 }
 /* endregion */
