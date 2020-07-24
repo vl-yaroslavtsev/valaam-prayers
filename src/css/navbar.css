@@ -87,7 +87,7 @@
 }
 
 .md .navbar a.link:last-child {
-	padding-right: 16px;
+	padding-right: var(--f7-block-padding-horizontal);
 }
 
 @media (max-width: 325px) {
@@ -241,7 +241,7 @@
 	}
 
 	.md .navbar a.link {
-	   padding: 0 var(--f7-block-padding-horizontal);
+	   padding: 0 calc(var(--f7-block-padding-horizontal) / 2);
 	}
 
 	.navbar a.link.back {

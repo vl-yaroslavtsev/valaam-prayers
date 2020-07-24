@@ -442,7 +442,7 @@ function offlinePluginInstall() {
 
 				let div2 = document.createElement('div');
 				div2.innerHTML = 'Тест для шрифта';
-				div2.style.fontFamily = 'Ponomar';
+				div2.style.fontFamily = 'Triodion Unicode';
 				app.root[0].append(div2);
 
 				setTimeout(() => {
