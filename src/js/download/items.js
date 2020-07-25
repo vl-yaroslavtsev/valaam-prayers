@@ -31,7 +31,7 @@ export default function getList() {
 		new JsonDownloadItem({
 			id: 'calendar', // Календарь: святые + дни календаря
 			title: 'Православный календарь ' + format(new Date, 'yyyy'),
-			row_size: 55.1 * 1024,
+			row_size: 59.6 * 1024,
 			sources: [
 				new Calendar(),
 				new Prayers(),
@@ -44,7 +44,7 @@ export default function getList() {
 		new JsonDownloadItem({
 			id: 'calendar_next', // Календарь на следующий год
 			title: 'Православный календарь ' + format(addYears(new Date, 1), 'yyyy'),
-			row_size: 55.1 * 1024,
+			row_size: 59.6 * 1024,
 			sources: [
 				new Calendar(),
 				new DaysList({
@@ -56,7 +56,7 @@ export default function getList() {
 		new JsonDownloadItem({
 			id: 'saints', // Святые
 			title: 'Святые',
-			row_size: 14.3 * 1024,
+			row_size: 14.33 * 1024,
 			sources: [
 				new Calendar(),
 				new SaintsList()
@@ -65,7 +65,7 @@ export default function getList() {
 		new JsonDownloadItem({
 			id: 'liturgical_books',// Богослужебные книги
 			title: 'Богослужебные книги',
-			row_size: 43.18 * 1024,
+			row_size: 63.5 * 1024,
 			sources: [
 				new Prayers(),
 				new PrayersList({
@@ -76,7 +76,7 @@ export default function getList() {
 		new JsonDownloadItem({
 			id: 'spiritual_books', // Духовная литература
 			title: 'Духовная литература',
-			row_size: 33.08 * 1024,
+			row_size: 35.4 * 1024,
 			sources: [
 				new Prayers(),
 				new PrayersList({
@@ -87,7 +87,7 @@ export default function getList() {
 		new JsonDownloadItem({
 			id: 'prayers', // Молитвослов и Библия
 			title: 'Молитвослов',
-			row_size: 16.22 * 1024,
+			row_size: 17.64 * 1024,
 			sources: [
 				new Prayers(),
 				new PrayersList({
