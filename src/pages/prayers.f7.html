@@ -134,6 +134,7 @@
 		mixins: [navbarLargeMixin],
 		on: {
 			async pageInit(e, page) {
+				console.log('pageInit');
 				this.virtualList = app.virtualList.create({
 					// List Element
 					el: page.$el.find('.virtual-list'),
@@ -208,8 +209,10 @@
 				if (page.router.history.length > 1) {
 					this.canGoBack = true;
 				}
-				updateVirtualList.call(this);
-				await updateLastReading.call(this);
+				if (page.from === 'previous') {
+					updateVirtualList.call(this);
+					await updateLastReading.call(this);
+				}
 				this.$update(() => {
 					this.$el.trigger('navbar-render');
 				});
