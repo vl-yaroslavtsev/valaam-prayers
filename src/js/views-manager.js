@@ -67,17 +67,15 @@ function initViewTabs() {
 		createView('#' + id);
 	});
 
-	app.on('pageBeforeIn', (page) => {
-		let isWhite = page.$el.hasClass('page-white');
-		let isDarkMode = $$('html').hasClass('theme-dark');
-		if (isWhite && !isDarkMode) {
-			app.phonegap.statusbar.styleDefault();
-		} else {
-			app.phonegap.statusbar.styleLightContent();
-		}
+	app.on('pageBeforeIn', (page) => updateStatusbar(page.$el));
+	app.on('pageTabShow', (page) => updateStatusbar($$(page)));
+
+	app.on('panelOpened', (panel) => {
+		app.phonegap.statusbar.styleLightContent();
 	});
 
 	app.on('popupOpened', (popup) => {
+		console.log('popupOpened');
 		let $el = popup.$el;
 		let isTablet = !isMobile();
 		let isDarkMode = $$('html').hasClass('theme-dark') ||
@@ -265,6 +263,21 @@ function handleBackButton() {
 
 	backButtonAttempts++;
 	return true;
+}
+
+/**
+ * Обновляем статусбар страницы (темный или светлый)
+ * @param  {Dom7} $page
+ */
+function updateStatusbar($page) {
+	let isWhite = $page.hasClass('page-white') ||
+							  $page.hasClass('smart-select-page');
+	let isDarkMode = $$('html').hasClass('theme-dark');
+	if (isWhite && !isDarkMode) {
+		app.phonegap.statusbar.styleDefault();
+	} else {
+		app.phonegap.statusbar.styleLightContent();
+	}
 }
 
 export default {init};
