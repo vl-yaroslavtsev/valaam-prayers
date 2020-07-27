@@ -55,17 +55,14 @@ h3.block {
 	margin: var(--f7-block-margin-vertical) var(--f7-block-inset-side-margin);
 	overflow: hidden;
 }
-
-.theme-dark .tile {
-	--f7-block-inset-side-margin: 0;
-}
-
 /* endregion */
 
 .theme-dark .block-strong.inset,
 .theme-dark .tile  {
+	--f7-block-inset-side-margin: 0;
+
 	background-color: var(--f7-page-bg-color);
-	border-radius: 0;
+	border-radius: 0;	
 	/*margin-left: 0;
 	margin-right: 0;*/
 }
