@@ -199,7 +199,7 @@
 
 				state.showSearchbar = (items.length > 30);
 				this.$setState(state, () => {
-					this.$el.trigger('navbar-render');
+					this.$el.trigger('navbar:render');
 				});
 				if (state.showSearchbar) {
 					this.$el.addClass('page-with-subnavbar');
@@ -214,7 +214,7 @@
 					await updateLastReading.call(this);
 				}
 				this.$update(() => {
-					this.$el.trigger('navbar-render');
+					this.$el.trigger('navbar:render');
 				});
 			},
 			pageBeforeRemove(e, page) {

@@ -20,12 +20,14 @@ function updateLargeTitle(page) {
 export default {
 	on: {
 		pageInit(e, page) {
-			page.$el.on('navbar-render', () => {
+			page.$el.on('navbar:render', () => {
 				updateLargeTitle(page);
 			});
-			setTimeout(() => {
-				updateLargeTitle(page);
-			}, 0);
+			updateLargeTitle(page);
+		},
+		pageBeforeIn(e, page) {
+		},
+		pageAfterIn(e, page) {
 		}
 	}
 }
