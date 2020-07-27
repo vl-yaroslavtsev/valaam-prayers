@@ -116,8 +116,8 @@ h3.block {
 
 @media (min-width: 768px) {
 	:root {
-		--f7-block-header-font-size: 18px;
-		--f7-block-footer-font-size: 18px;
+		--f7-block-header-font-size: 20px;
+		--f7-block-footer-font-size: 20px;
 
 		--f7-block-margin-vertical: 35px;
 		--f7-block-padding-horizontal: 35px;
