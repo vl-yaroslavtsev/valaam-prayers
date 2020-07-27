@@ -18,11 +18,11 @@
 }
 
 .views > .tabbar-labels {
-	backdrop-filter: blur(10px) saturate(200%);
+	backdrop-filter: blur(5px) saturate(200%);
 }
 
 .md.theme-dark .views > .tabbar-labels {
-	--f7-toolbar-bg-color: rgba(32, 32, 32, .85);
+	--f7-toolbar-bg-color: rgba(32, 32, 32, .9);
 }
 
 /** region read-mode-toolbar */

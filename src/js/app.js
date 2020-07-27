@@ -305,10 +305,10 @@ const app = new Framework7({
 					msg = `
 						Ошибка загрузки данных.<br>
 						Проверьте подключение к сети Интернет.<br>
-						Или скачайте
-						<a class="panel-open"
-						   href="/settings/download"
-							 data-view="#view-menu">${type} офлайн</a>
+						Для отображения офлайн скачайте
+						<a class="link"
+						 	 data-view="current"
+						   href="/settings/download">${type}</a>.
 					`;
 				}
 				app.methods.showLoadError(msg);
