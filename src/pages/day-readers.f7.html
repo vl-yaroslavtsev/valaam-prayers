@@ -74,13 +74,16 @@
 
 	export default {
 		data() {
-			let dayCode = this.$route.params.id,
+			let app = this.$app,
+			  dayCode = this.$route.params.id,
 				readerId = (this.$route.context && this.$route.context.actionId) || this.$route.params.readerId,
-				readerData = {},
+				readerData = {
+					tabId: 	app.methods.storageGet('ereaders-text-tab') || 'tab-slavonic'
+				},
 				text;
 
-			readerData = Object.assign(
-				{},
+			Object.assign(
+				readerData,
 				this.day.readers.find(({id}) => id === readerId)
 			);
 
@@ -113,13 +116,12 @@
 		},
 		on: {
 			pageInit(e, page) {
-				let tabId = app.methods.storageGet('ereaders-text-tab') ||
-									  'tab-slavonic';
-				app.tab.show(page.$el.find('#' + tabId));
+				app.tab.show(page.$el.find('#' + this.tabId));
 
 				page.$el.find('.tabs').on('tab:show', (event) => {
 					this.tabId = event.target.id;
-					app.methods.storageSet('ereaders-text-tab', event.target.id);
+					this.$update();
+					app.methods.storageSet('ereaders-text-tab', this.tabId);
 				});
 		  }
 		},
