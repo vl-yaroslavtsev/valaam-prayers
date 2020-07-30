@@ -56,7 +56,7 @@ class ReadMode extends StateStore {
 					}
 					this.rangeChanging = true;
 					$content.scrollTop(
-						(value - 1) * (app.height - this.lineHeight)
+						(value - 1) * (app.height - this.textTopOffset)
 					);
 				},
 				changed: () => {
@@ -176,10 +176,10 @@ class ReadMode extends StateStore {
 		let $navbar = this.$navbar;
 		let $progressbar = this.$progressbar;
 
-		let lineHeight = this.getLineHeight();
+		let textTopOffset = this.getTextTopOffset();
 		let scrollTop = $content.scrollTop();
-		//let newPage = Math.floor(scrollTop / (app.height - lineHeight)) + 1;
-		let newPage = Math.round(scrollTop / (app.height - lineHeight)) + 1;
+		//let newPage = Math.floor(scrollTop / (app.height - textTopOffset)) + 1;
+		let newPage = Math.round(scrollTop / (app.height - textTopOffset)) + 1;
 
 		this.toggleBars(scrollTop);
 
@@ -223,8 +223,8 @@ class ReadMode extends StateStore {
 	countPages() {
 		let $content = this.$content;
 
-		delete this.lineHeight;
-		let lineHeight = this.getLineHeight();
+		delete this.textTopOffset;
+		let textTopOffset = this.getTextTopOffset();
 		let padding = 0;
 
 		$content[0].style.setProperty(
@@ -232,16 +232,16 @@ class ReadMode extends StateStore {
 			`0px`
 		);
 
-		//this.pages = Math.ceil($content[0].scrollHeight / (app.height - lineHeight)) - 1;
-		//this.page = Math.floor($content.scrollTop() / (app.height - lineHeight)) + 1;
+		//this.pages = Math.ceil($content[0].scrollHeight / (app.height - textTopOffset)) - 1;
+		//this.page = Math.floor($content.scrollTop() / (app.height - textTopOffset)) + 1;
 		if ($content[0].scrollHeight == app.height) {
 			this.pages = 1;
 			this.page = 1;
 		} else {
-			this.pages = Math.ceil($content[0].scrollHeight / (app.height - lineHeight));
-			this.page = Math.round($content.scrollTop() / (app.height - lineHeight)) + 1;
+			this.pages = Math.ceil($content[0].scrollHeight / (app.height - textTopOffset));
+			this.page = Math.round($content.scrollTop() / (app.height - textTopOffset)) + 1;
 
-			let padding = this.pages * (app.height - lineHeight) - $content[0].scrollHeight;
+			let padding = this.pages * (app.height - textTopOffset) - $content[0].scrollHeight;
 			$content[0].style.setProperty(
 				'--read-mode-padding-bottom',
 				`${padding}px`
@@ -283,17 +283,17 @@ class ReadMode extends StateStore {
 			return;
 		}
 
-		let lineHeight = this.getLineHeight();
+		let textTopOffset = this.getTextTopOffset();
 		//if (e.clientX < app.width * 0.5 ) {
 		if (e.clientY < app.height * 0.5) {
 			$content.scrollTop(
-				Math.round(Math.max($content.scrollTop() - app.height + lineHeight, 0)),
+				Math.round(Math.max($content.scrollTop() - app.height + textTopOffset, 0)),
 				200
 			);
 		} else {
 			$content.scrollTop(
 				Math.round(Math.min(
-					$content.scrollTop() + app.height - lineHeight,
+					$content.scrollTop() + app.height - textTopOffset,
 					$content[0].scrollHeight - app.height
 				)),
 				200
@@ -301,18 +301,26 @@ class ReadMode extends StateStore {
 		}
 	}
 
-	getLineHeight() {
-		if (this.lineHeight) {
-			return this.lineHeight;
+	/**
+	 * Смещение текста относительно верха экрана.
+	 * Включает safe-area-top + выстота строки
+	 */
+	getTextTopOffset() {
+		if (this.textTopOffset) {
+			return this.textTopOffset;
 		}
 
 		let $content = this.$content;
-		let $block = $content.find('.tab-active .block-strong.inset');
+		let $block = $content.find('.tab-active > .block-strong.inset');
 		if (!$block.length) {
 			$block = $content.find('.block-strong.inset');
 		}
-		this.lineHeight = parseFloat(window.getComputedStyle($block[0]).lineHeight);
-		return this.lineHeight;
+		let computedStyle = window.getComputedStyle($block[0]);
+		let lineHeight = parseInt(computedStyle.lineHeight);
+		let safeAreaTop = parseInt(computedStyle.getPropertyValue('--f7-safe-area-top'));
+
+		this.textTopOffset = lineHeight + safeAreaTop;
+		return this.textTopOffset;
 	}
 
 	destroy() {
