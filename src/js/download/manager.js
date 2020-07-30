@@ -127,7 +127,7 @@ function registerSources() {
  * Тестируем фичи клиента.
  */
 async function testFitures() {
-	let msg = ''; // sdfas
+	let msg = 'Версия: ' + app.version + '<br>'; // sdfas
 
 	if (navigator.serviceWorker) {
 		//navigator.serviceWorker.register('./sw-phonegap.js');
@@ -145,7 +145,7 @@ async function testFitures() {
 	if (window.indexedDB || window.mozIndexedDB || window.webkitIndexedDB || window.msIndexedDB) {
 		msg += 'indexedDB: да<br>';
 	} else {
-		msg += 'indexedDB: Нет<br>';
+		msg += 'indexedDB: нет<br>';
 	}
 
 	if ('serviceWorker' in navigator && 'BackgroundFetchManager' in window) {
