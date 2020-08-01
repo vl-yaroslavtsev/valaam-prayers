@@ -227,6 +227,24 @@ function handleBackButton() {
 	}
 
 	const currentView = app.views.current;
+
+	const pageReadMode = currentView.$el.find('.page-current.read-mode');
+	if (pageReadMode.length) {
+		let navbar = pageReadMode.find('.navbar:not(.navbar-hidden)');
+		if (navbar.length) {
+			app.navbar.hide(navbar);
+		}
+
+		let toolbar = pageReadMode.find('.toolbar:not(.toolbar-hidden)');
+		if (toolbar.length) {
+			app.toolbar.hide(toolbar);
+		}
+
+		if (navbar.length || toolbar.length) {
+			return false;
+		}
+	}
+
 	if (currentView && currentView.router && currentView.router.history.length > 1) {
 		currentView.router.back();
 		//e.preventDefault();
