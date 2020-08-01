@@ -1,0 +1,493 @@
+<template>
+<div class="popup"
+		 id="settings-text-popup">
+	<div class="view view-init">
+		<div class="page page-white">
+			<div class="page-content">
+				<div class="block-header">
+					<p>Настройка текста</p>
+				</div>
+				<div class="list no-hairlines-md">
+					<ul>
+						<li>
+							<div class="item-content">
+								<div class="item-media">
+									<i class="icon material-icons md-only disabled">translate</i>
+								</div>
+								<div class="item-inner">
+									<div class="item-title">
+										<div class="item-header">Язык</div>
+										<span class="item-title-inner">{{language.name}}</span>
+									</div>
+								</div>
+							</div>
+					  </li>
+						{{#js_if "this.language.id == 'churchslavonic'"}}
+						<li>
+							<a class="item-link smart-select smart-select-init"
+								 id="smart-select-font-family-cs"
+								 data-open-in="popover"
+								 data-close-on-select="true"
+								 data-popup-close-link-text="<i class='icon material-icons md-only'>close</i>"
+								 data-value-el="#smart-select-font-family-cs .item-title-inner">
+								<select id="select-font-family-cs"
+												@change="onFontChange">
+									{{#each csFonts}}
+										<option value="{{this}}"
+														{{#js_if "this == @root.csFontFamily"}}selected{{/js_if}}>
+							 				{{this}}
+										</option>
+									{{/each}}
+								</select>
+								<div class="item-content">
+									<div class="item-media">
+										<i class="icon material-icons md-only disabled">text_format</i>
+									</div>
+									<div class="item-inner">
+										<div class="item-title">
+											<div class="item-header">Шрифт</div>
+											<span class="item-title-inner"></span>
+										</div>
+									</div>
+								</div>
+							</a>
+						</li>
+						<li>
+							<div class="item-content">
+								<div class="item-media">
+									<i class="icon material-icons md-only disabled">format_size</i>
+								</div>
+								<div class="item-inner">
+									<div class="item-title">
+										<div class="item-header">Размер шрифта</div>
+										<div class="stepper stepper-small stepper-init"
+												 id="stepper-font-size-cs"
+												 data-autorepeat="true"
+												 data-autorepeat-dynamic="true"
+												 data-min="15"
+												 data-max="60"
+												 data-step="0.5"
+												 data-decimal-point="1"
+												 data-value="{{csFontSize}}"
+												 @stepper:change="onFontChange">
+											<div class="stepper-button-minus"></div>
+											<div class="stepper-value"></div>
+											<div class="stepper-button-plus"></div>
+										</div>
+									</div>
+								</div>
+							</div>
+						</li>
+						<li>
+							<div class="item-content">
+								<div class="item-media">
+									<i class="icon material-icons md-only disabled">format_line_spacing</i>
+								</div>
+								<div class="item-inner">
+									<div class="item-title">
+										<div class="item-header">Высота строки</div>
+										<div class="stepper stepper-small stepper-init"
+												 id="stepper-line-height-cs"
+												 data-autorepeat="true"
+												 data-autorepeat-dynamic="true"
+												 data-min="0.7"
+												 data-max="2"
+												 data-step="0.05"
+												 data-value="{{csLineHeight}}"
+												 @stepper:change="onFontChange"
+												 >
+											<div class="stepper-button-minus"></div>
+											<div class="stepper-value"></div>
+											<div class="stepper-button-plus"></div>
+										</div>
+									</div>
+								</div>
+							</div>
+						</li>
+						<li>
+							<div class="item-content">
+								<div class="item-media">
+									<i class="icon material-icons md-only disabled">format_bold</i>
+								</div>
+								<div class="item-inner">
+									<div class="item-title">
+										Жирный
+									</div>
+									<div class="item-after">
+										<label class="toggle toggle-init"
+													 id="toggle-font-weight-cs"
+													 @toggle:change="onFontChange">
+											<input type="checkbox" {{#js_if "this.csFontWeight >= 700"}}checked{{/js_if}}>
+											<span class="toggle-icon"></span>
+										</label>
+									</div>
+								</div>
+							</div>
+						</li>
+						{{/js_if}}
+						{{#js_if "this.language.id == 'slavonic'"}}
+						<li>
+							<a class="item-link smart-select smart-select-init"
+								 id="smart-select-font-family-sl"
+								 data-open-in="popover"
+								 data-close-on-select="true"
+								 data-popup-close-link-text="<i class='icon material-icons'>close</i>"
+								 data-value-el="#smart-select-font-family-sl .item-title-inner">
+								<select id="select-font-family-sl"
+												@change="onFontChange">
+										{{#each slFonts}}
+											<option value="{{this}}"
+														  {{#js_if "this == @root.slFontFamily"}}selected{{/js_if}}>
+												{{this}}
+											</option>
+										{{/each}}
+								</select>
+								<div class="item-content">
+									<div class="item-media">
+										<i class="icon material-icons md-only disabled">text_format</i>
+									</div>
+									<div class="item-inner">
+										<div class="item-title">
+											<div class="item-header">Шрифт</div>
+											<span class="item-title-inner"></span>
+										</div>
+									</div>
+								</div>
+							</a>
+						</li>
+						<li>
+							<div class="item-content">
+								<div class="item-media">
+									<i class="icon material-icons md-only disabled">format_size</i>
+								</div>
+								<div class="item-inner">
+									<div class="item-title">
+										<div class="item-header">Размер шрифта</div>
+										<div class="stepper stepper-small stepper-init"
+												 id="stepper-font-size-sl"
+												 data-autorepeat="true"
+												 data-autorepeat-dynamic="true"
+												 data-min="10"
+												 data-max="60"
+												 data-step="0.5"
+												 data-value="{{slFontSize}}"
+												 @stepper:change="onFontChange">
+											<div class="stepper-button-minus"></div>
+											<div class="stepper-value"></div>
+											<div class="stepper-button-plus"></div>
+										</div>
+									</div>
+								</div>
+							</div>
+						</li>
+						<li>
+							<div class="item-content">
+								<div class="item-media">
+									<i class="icon material-icons md-only disabled">format_line_spacing</i>
+								</div>
+								<div class="item-inner">
+									<div class="item-title">
+										<div class="item-header">Высота строки</div>
+										<div class="stepper stepper-small stepper-init"
+												 id="stepper-line-height-sl"
+												 data-autorepeat="true"
+												 data-autorepeat-dynamic="true"
+												 data-min="0.7"
+												 data-max="2"
+												 data-step="0.05"
+												 data-value="{{slLineHeight}}"
+												 @stepper:change="onFontChange"
+												 >
+											<div class="stepper-button-minus"></div>
+											<div class="stepper-value"></div>
+											<div class="stepper-button-plus"></div>
+										</div>
+									</div>
+								</div>
+							</div>
+						</li>
+						<li>
+							<div class="item-content">
+								<div class="item-media">
+									<i class="icon material-icons md-only disabled">format_bold</i>
+								</div>
+								<div class="item-inner">
+									<div class="item-title">
+										Жирный
+									</div>
+									<div class="item-after">
+										<label class="toggle toggle-init"
+													 id="toggle-font-weight-sl"
+													 @toggle:change="onFontChange">
+											<input type="checkbox"
+														 {{#js_if "this.slFontWeight >= 700"}}checked{{/js_if}}>
+											<span class="toggle-icon"></span>
+										</label>
+									</div>
+								</div>
+							</div>
+						</li>
+						{{/js_if}}
+						<li>
+							<a class="item-link smart-select smart-select-init"
+								 id="smart-select-text-align"
+								 data-open-in="popover"
+								 data-close-on-select="true"
+								 data-popup-close-link-text="<i class='icon material-icons'>close</i>"
+								 data-value-el="#smart-select-text-align .item-title-inner">
+								<select id="select-text-align"
+												@change="onFontChange">
+										{{#each textAligns}}
+											<option value="{{id}}"
+															{{#js_if "this.id ===  @root.textAlign"}}selected{{/js_if}}>
+												{{name}}
+											</option>
+										{{/each}}
+								</select>
+								<div class="item-content">
+									<div class="item-media">
+										<i class="icon material-icons md-only disabled">format_align_left</i>
+									</div>
+									<div class="item-inner">
+										<div class="item-title">
+											<div class="item-header">Выравнивать текст по</div>
+											<span class="item-title-inner"></span>
+										</div>
+									</div>
+								</div>
+							</a>
+						</li>
+						<li>
+							<div class="item-content">
+								<div class="item-media">
+									<i class="icon material-icons md-only disabled">format_indent_increase</i>
+								</div>
+								<div class="item-inner">
+									<div class="item-title">
+										Поля страниц
+									</div>
+									<div class="item-after">
+										<label class="toggle toggle-init"
+													 id="toggle-text-padding"
+													 @toggle:change="onFontChange">
+											<input type="checkbox"
+														 {{#js_if "!this.noPadding"}}checked{{/js_if}}>
+											<span class="toggle-icon"></span>
+										</label>
+									</div>
+								</div>
+							</div>
+						</li>
+					 </ul>
+				</div>
+			</div>
+		</div>
+	</div>
+</div>
+</template>
+<style scoped>
+	{{this}} {
+		width: 68%;
+		height: auto;
+		max-width: 300px;
+		max-height: calc(100vh - 5px - var(--f7-navbar-height) - var(--f7-safe-area-top));
+		left: auto;
+		right: 5px;
+		top: calc(var(--f7-navbar-height) + var(--f7-safe-area-top));
+	}
+
+	.page {
+		overflow: auto;
+	}
+
+	.page-content {
+		height: auto;
+	}
+
+	.list .item-media {
+		min-width: auto;
+	}
+
+	.block-title {
+		margin-top: 2em;
+		/* font: 18px/24px Geometria; */
+		text-transform: none;
+		/* font-weight: 500; */
+	}
+</style>
+<!--suppress JSAnnotator -->
+<script>
+	import settingsManager from '../js/settings-manager.js';
+	import navbarLargeMixin from './navbar-large-mixin.js';
+
+	const SLAVONIC_FONTS = [
+		'Circe',
+		'Roboto',
+		'PT Sans',
+		'Arial',
+		'PT Serif',
+		'Noto Serif',
+		'Times New Roman'
+	];
+
+	const CHURCHSLAVONIC_FONTS = [
+		'Triodion',
+		'Orthodox',
+		'Hirmos',
+		'Irmologion'
+	];
+
+	const TEXT_ALIGN_OPTIONS = [
+		{
+			id: 'justify',
+			name: 'Ширине',
+		},
+		{
+			id: 'left',
+			name: 'Левому краю'
+		},
+		{
+			id: 'right',
+			name: 'Правому краю'
+		},
+		{
+			id: 'center',
+			name: 'Центру'
+		}
+	];
+
+	let app;
+	export default {
+		data() {
+			app = this.$app;
+
+			let data = getTextStyle();
+
+			data.textAligns = TEXT_ALIGN_OPTIONS;
+			data.slFonts    = SLAVONIC_FONTS;
+			data.csFonts    = CHURCHSLAVONIC_FONTS;
+
+			return data;
+		},
+		methods: {
+			onFontChange(event, value) {
+				// console.log('onFontChange', arguments);
+				let newState = {};
+				let target = event.target;
+				switch (target.id) {
+					case 'stepper-font-size-cs':
+						newState.csFontSize = (+value).toFixed(1);
+						break;
+
+					case 'stepper-font-size-sl':
+						newState.slFontSize = (+value).toFixed(1);
+						break;
+
+					case 'stepper-line-height-cs':
+						newState.csLineHeight = (+value).toFixed(2);
+						break;
+
+					case 'stepper-line-height-sl':
+						newState.slLineHeight = (+value).toFixed(2);
+						break;
+
+					case 'select-font-family-cs':
+						newState.csFontFamily = target.value;
+						break;
+
+					case 'select-font-family-sl':
+						newState.slFontFamily = target.value;
+						break;
+
+					case 'toggle-font-weight-sl':
+						newState.slFontWeight = target.querySelector('input').checked ? "700" : "400";
+						break;
+
+					case 'toggle-font-weight-cs':
+						newState.csFontWeight = target.querySelector('input').checked ? "700" : "400";
+						break;
+
+					case 'select-text-align':
+						newState.textAlign = target.value;
+						break;
+
+					case 'toggle-text-padding':
+						newState.noPadding = !target.querySelector('input').checked;
+						break;
+				}
+
+				this.$setState(newState);
+				settingsManager.apply(newState);
+			}
+	 	},
+		on: {
+		  popupInit: function (event, route, popup) {
+				// console.log('popup init', arguments);
+		  },
+			popupOpen: function (event) {
+				// console.log('popup open', arguments);
+				let $el = this.$el;
+				$el.css({
+					height: $el.find('.page-content').height() + 'px'
+				});
+		  },
+			popupOpened: function (event) {
+		    // console.log('popup opened', arguments);
+				updateLineHeightStepper(this.$el, this.language);
+		  },
+			popupClose: function (event) {
+				// console.log('popup close', arguments);
+			},
+			popupClosed: function (event) {
+				// console.log('popup closed', arguments);
+			},
+		  popupBeforeRemove: function (event, route, popup) {
+		    // console.log('popup before remove', arguments);
+				settingsManager.apply();
+		  },
+		}
+	};
+
+	function getTextStyle() {
+		let $page = app.root.find('.view.tab-active').find('.page-current');
+		let $block = $page.find('.tab-active > .block-strong.inset');
+		let language = $page[0].f7Component.language;
+
+		if (!$block.length) {
+			$block = $page.find('.block-strong.inset');
+		}
+
+		let blockStyle = window.getComputedStyle($block[0]);
+		let style = {
+			language,
+			textAlign: blockStyle.textAlign,
+			noPadding: parseInt(blockStyle.getPropertyValue('--f7-block-padding-horizontal')) <= 5
+		};
+
+		if (language.id === 'slavonic') {
+			Object.assign(style, {
+				slFontFamily: blockStyle.fontFamily.split(',')[0].replace(/["']/g, ''),
+				slFontSize: parseFloat(blockStyle.fontSize).toFixed(1),
+				slLineHeight: (parseFloat(blockStyle.lineHeight) / parseFloat(blockStyle.fontSize)).toFixed(2),
+				slFontWeight: blockStyle.fontWeight
+			});
+
+		} else if (language.id === 'churchslavonic') {
+			Object.assign(style, {
+				csFontFamily: blockStyle.fontFamily.split(',')[0].replace(/["']/g, ''),
+				csFontSize: parseFloat(blockStyle.fontSize).toFixed(1),
+				csLineHeight: (parseFloat(blockStyle.lineHeight) / parseFloat(blockStyle.fontSize)).toFixed(2),
+				csFontWeight: blockStyle.fontWeight
+			});
+		}
+
+		console.log('style', style);
+
+		return style;
+	}
+
+	function updateLineHeightStepper($el, language) {
+		let stepper = app.stepper.get($el.find(`#stepper-line-height-${language.code}`)[0]);
+		stepper.params.formatValue = (value) => (+value).toFixed(2);
+	}
+</script>

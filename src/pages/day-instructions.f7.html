@@ -49,13 +49,17 @@
 	import {format, parse, subDays} from '../js/utils/date-utils.js';
 	import {upperFirst} from 'lodash-es';
 	import readModeMixin from './read-mode-mixin.js';
+	import { languages, langById } from '../js/data/languages.js';
 
 	export default {
 		data() {
 			let app = this.$app,
 				dayCode = this.$route.params.id,
 				dayData = this.day,
-				data = {},
+				data = {
+					language: langById('slavonic'),
+					textSettings: true
+				},
 				oldstyleDate = subDays(parse(dayData.code), 13),
 				newstyleDate = parse(dayData.code),
 				dayOfWeek = upperFirst(format(newstyleDate, 'EEEE'));

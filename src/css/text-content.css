@@ -3,15 +3,16 @@
 	/* font-family: Arial, 'Helvetica Neue', sans-serif; */
 	font-size: 17px;
 	overflow: hidden;
+	text-align: justify;
 }
 
 .device-ios .text-content {
 	/* font-size: 21px; */
 }
 
-.text-content p {
+/* .text-content p {
 	text-align: justify;
-}
+} */
 
 .text-content img:first-child + p {
     margin-top: 0;

@@ -18,15 +18,13 @@
 						 data-open-in="popover"
 						 data-close-on-select="true">
 						<select id="select-language"
-										@change="selectLenguage">
-							<option value="tab-churchslavonic"
-											{{#js_if "this.tabId == 'tab-churchslavonic'"}}selected{{/js_if}}>
-									Церковнославянский
+										@change="selectLanguage">
+							{{#each languages}}
+								<option value="{{id}}"
+											  {{#js_if "this.id == @root.language.id"}}selected{{/js_if}}>
+									{{name}}
 							</option>
-							<option value="tab-slavonic"
-										  {{#js_if "this.tabId == 'tab-slavonic'"}}selected{{/js_if}}>
-									Русский
-							</option>
+							{{/each}}
 						</select>
 						<i class="icon material-icons md-only">translate</i>
 					</a>
@@ -111,8 +109,8 @@
 	import favoriteManager from '../js/favorite-manager.js';
 	import dataManager from '../js/data/manager.js';
 	import readModeMixin from './read-mode-mixin.js';
-
 	import { prayersBookId, prayersPath } from '../js/data/utils.js';
+  import { languages, langById } from '../js/data/languages.js';
 
 	let app;
 
@@ -124,6 +122,8 @@
 				data = {
 					id: prayer.id,
 					name: prayer.name,
+					languages,
+					textSettings: true,
 					searchMode: this.$route.query.mode === 'search'
 				};
 			this.title = data.searchMode ? 'Поиск' : this.$router.view.name;
@@ -146,8 +146,9 @@
 
 				return false;
 			},
-			selectLenguage({target}) {
-				app.tab.show(this.$el.find('#' + target.value));
+			selectLanguage({target}) {
+				this.language = langById(target.value);
+				app.tab.show(this.$el.find('#tab-' + this.language.id));
 			}
 		},
 		mixins: [readModeMixin],
@@ -155,17 +156,14 @@
 			pageInit(e, page) {
 				//await this.dataPromise;
 				//if (this.loading)
-				let tabId = app.methods.storageGet('prayers-text-tab') ||
-									  'tab-slavonic';
 				if (this.twoText) {
-					app.tab.show(page.$el.find('#' + tabId));
-					this.tabId = tabId;
+					app.tab.show(page.$el.find('#tab-' + this.language.id));
 					this.$update();
 				}
 
 				page.$el.find('.tabs').on('tab:show', (event) => {
-					app.methods.storageSet('prayers-text-tab', event.target.id);
-					this.tabId = event.target.id;
+					this.language = langById(event.target.id.replace('tab-', ''));
+					app.methods.storageSet('prayers-text-language', this.language.id);
 					if (this.readMode) {
 						this.readMode.update();
 					} else {
@@ -205,5 +203,15 @@
 		data.nextUrlActive = !!nextId;
 
 		data.isFavorite = favoriteManager.has(data.id);
+
+		let langId;
+		if (data.twoText) {
+			langId = app.methods.storageGet('prayers-text-language') || 'slavonic';
+		} else if (data.churchslavonicText) {
+			langId = 'churchslavonic';
+		} else {
+			langId = 'slavonic';
+		}
+		data.language = langById(langId);
 	}
 </script>

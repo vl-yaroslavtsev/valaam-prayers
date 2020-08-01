@@ -27,17 +27,18 @@
 	color: var(--kinovar-color);
 	font-weight: inherit; /*bold;*/
 	font-size: 1.1em;
+	text-align: center;
 }
 
 .churchslavonic {
 	font-family: Triodion, serif;
 	font-size: 1.5em;
 	line-height: 1.25;
+	text-align: justify;
 }
 
 .churchslavonic p {
 	margin: 1ex 0;
-	text-align: justify;
 }
 
 .churchslavonic p:first-child {

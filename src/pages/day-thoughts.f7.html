@@ -54,11 +54,15 @@
 <script>
 	import { getUrl } from '../js/image-manager.js';
 	import navbarLargeMixin from './navbar-large-mixin.js';
+	import { languages, langById } from '../js/data/languages.js';
 
 	export default {
 		async data() {
 			let dayCode = this.$route.params.id,
-					dayData = {},
+					dayData = {
+						language: langById('slavonic'),
+						textSettings: true
+					},
 					prayers = this.day.prayers;
 
 			dayData.thoughts = Object.assign({}, prayers);

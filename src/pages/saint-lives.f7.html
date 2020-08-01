@@ -79,12 +79,16 @@
 	import { getUrl } from '../js/image-manager.js';
 	import dataManager from '../js/data/manager.js';
 	import readModeMixin from './read-mode-mixin.js';
+	import { languages, langById } from '../js/data/languages.js';
 
 	export default {
 		async data() {
 
 			let app = this.$app,
-					saintData = Object.assign({}, this.saint),
+					saintData = Object.assign({
+						language: langById('slavonic'),
+						textSettings: true
+					}, this.saint),
 					prayers = dataManager.cache.prayers;
 
 			if (saintData.picture) {

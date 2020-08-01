@@ -75,7 +75,7 @@ function initViewTabs() {
 	});
 
 	app.on('popupOpened', (popup) => {
-		console.log('popupOpened');
+		//console.log('popupOpened');
 		let $el = popup.$el;
 		let isTablet = !isMobile();
 		let isDarkMode = $$('html').hasClass('theme-dark') ||

@@ -22,9 +22,9 @@ import SaintLives from '../pages/saint-lives.f7.html';
 import Search from '../pages/search.f7.html';
 
 import Settings from '../pages/settings.f7.html';
-import SettingsFonts from '../pages/settings-fonts.f7.html';
 import SettingsDownload from '../pages/settings-download.f7.html';
 import SettingsDownloadItem from '../pages/settings-download-item.f7.html';
+import SettingsText from '../pages/settings-text.f7.html';
 
 import Prayers from '../pages/prayers.f7.html';
 import PrayersText from '../pages/prayers-text.f7.html';
@@ -68,34 +68,49 @@ export default [
 				//component: DayInstructions,
 				async(routeTo, routeFrom, resolve, reject) {
 					resolve({component: DayInstructions}, {context: routeFrom.context});
-				}
+				},
+				options: {
+					transition: 'f7-push',
+			 	}
 			},
 			{
 				path: 'thoughts',
 				//component: DayThoughts,
 				async(routeTo, routeFrom, resolve, reject) {
 					resolve({component: DayThoughts}, {context: routeFrom.context});
-				}
+				},
+				options: {
+					transition: 'f7-push',
+			 	}
 			},
 			{
 				path: 'parabel',
 				async(routeTo, routeFrom, resolve, reject) {
 					resolve({component: DayParabel}, {context: routeFrom.context});
-				}
+				},
+				options: {
+					transition: 'f7-push',
+			 	}
 			},
 			{
 				path: 'readers/:readerId',
 				//component: DayReaders,
 				async(routeTo, routeFrom, resolve, reject) {
 					resolve({component: DayReaders}, {context: routeFrom.context});
-				}
+				},
+				options: {
+					transition: 'f7-push',
+			 	}
 			},
 			{
 				path: 'prayers/:prayerId',
 				//component: DayPrayers
 				async(routeTo, routeFrom, resolve, reject) {
 					resolve({component: DayPrayers}, {context: routeFrom.context});
-				}
+				},
+				options: {
+					transition: 'f7-push',
+			 	}
 			}
 		],
 		async async(routeTo, routeFrom, resolve, reject) {
@@ -142,7 +157,10 @@ export default [
 				//component: SaintLives,
 				async(routeTo, routeFrom, resolve, reject) {
 					resolve({component: SaintLives}, {context: routeFrom.context});
-				}
+				},
+				options: {
+					transition: 'f7-push',
+			 	}
 			},
 		],
 		async async(routeTo, routeFrom, resolve, reject) {
@@ -225,12 +243,14 @@ export default [
 		component: Settings
 	},
 	{
-		path: '/settings/fonts',
-		component: SettingsFonts
-	},
-	{
 		path: '/settings/download',
 		component: SettingsDownload
+	},
+	{
+		path: '/settings/text',
+		popup: {
+			component: SettingsText
+		}
 	},
 	{
 		path: '/menu',

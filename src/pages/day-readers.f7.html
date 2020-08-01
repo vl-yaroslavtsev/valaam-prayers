@@ -19,16 +19,14 @@
 						 data-open-in="popover"
 						 data-close-on-select="true">
 						<select id="select-language"
-										@change="selectLenguage">
-							<option value="tab-churchslavonic"
-											{{#js_if "this.tabId == 'tab-churchslavonic'"}}selected{{/js_if}}>
-									Церковнославянский
-							</option>
-							<option value="tab-slavonic"
-										  {{#js_if "this.tabId == 'tab-slavonic'"}}selected{{/js_if}}>
-									Русский
-							</option>
-						</select>
+ 										@change="selectLanguage">
+ 							{{#each languages}}
+ 								<option value="{{id}}"
+ 											  {{#js_if "this.id == @root.language.id"}}selected{{/js_if}}>
+ 									{{name}}
+ 							</option>
+ 							{{/each}}
+ 						</select>
 						<i class="icon material-icons md-only">translate</i>
 					</a>
 					{{#if searchMode}}
@@ -71,6 +69,7 @@
 <!--suppress JSAnnotator -->
 <script>
 	import navbarLargeMixin from './navbar-large-mixin.js';
+	import { languages, langById } from '../js/data/languages.js';
 
 	export default {
 		data() {
@@ -78,7 +77,10 @@
 			  dayCode = this.$route.params.id,
 				readerId = (this.$route.context && this.$route.context.actionId) || this.$route.params.readerId,
 				readerData = {
-					tabId: 	app.methods.storageGet('ereaders-text-tab') || 'tab-slavonic'
+					textSettings: true,
+					languages,
+					language:	langById(app.methods.storageGet('ereaders-text-language') ||
+														 'slavonic')
 				},
 				text;
 
@@ -110,18 +112,19 @@
 			return readerData;
 		},
 		methods: {
-			selectLenguage({target}) {
-				app.tab.show(this.$el.find('#' + target.value));
+			selectLanguage({target}) {
+				this.language = langById(target.value);
+				app.tab.show(this.$el.find('#tab-' + this.language.id));
 			}
 		},
 		on: {
 			pageInit(e, page) {
-				app.tab.show(page.$el.find('#' + this.tabId));
+				app.tab.show(page.$el.find('#tab-' + this.language.id));
 
 				page.$el.find('.tabs').on('tab:show', (event) => {
-					this.tabId = event.target.id;
+					this.language = langById(event.target.id.replace('tab-', ''));
+					app.methods.storageSet('ereaders-text-language', this.language.id);
 					this.$update();
-					app.methods.storageSet('ereaders-text-tab', this.tabId);
 				});
 		  }
 		},

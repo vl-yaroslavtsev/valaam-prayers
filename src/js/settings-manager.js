@@ -86,7 +86,9 @@ function applyStyles({
 	csLineHeight,
 	csFontWeight,
 	bgImage,
-	bgColor
+	bgColor,
+  textAlign,
+  noPadding
 }) {
 	let isThemeDark = $$('html').hasClass('theme-dark');
 	let style = $$('#app-settings-style');
@@ -103,12 +105,12 @@ function applyStyles({
 			${slFontWeight ? 'font-weight: ' + slFontWeight + ' !important;' : ''}
 			${!isThemeDark && bgImage ? 'background-image: ' + bgImage + ' !important;' : ''}
 			${!isThemeDark && bgColor ? 'background-color: ' + bgColor + ' !important;' : ''}
+      ${textAlign ? 'text-align: ' + textAlign + ' !important;' : ''}
+      ${noPadding ? '--f7-block-padding-horizontal:5px;': ''}
 		}
-
 		.md .churchslavonic {
 			${csFontFamily ? 'font-family: "' + csFontFamily + '" !important;' : ''}
 		}
-
 		.md .churchslavonic,
 		.md .churchslavonic-ereader {
 			${csFontSize ? 'font-size: ' + csFontSize + 'px !important;' : ''}
@@ -116,6 +118,8 @@ function applyStyles({
 			${csFontWeight ? 'font-weight: ' + csFontWeight + ' !important;' : ''}
 			${!isThemeDark && bgImage ? 'background-image: ' + bgImage + ' !important;' : ''}
 			${!isThemeDark && bgColor ? 'background-color: ' + bgColor + ' !important;' : ''}
+      ${textAlign ? 'text-align: ' + textAlign + ' !important;' : ''}
+      ${noPadding ? '--f7-block-padding-horizontal:5px;': ''}
 		}
 	</style>
 	`;

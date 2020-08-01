@@ -134,7 +134,6 @@
 		mixins: [navbarLargeMixin],
 		on: {
 			async pageInit(e, page) {
-				console.log('pageInit');
 				this.virtualList = app.virtualList.create({
 					// List Element
 					el: page.$el.find('.virtual-list'),

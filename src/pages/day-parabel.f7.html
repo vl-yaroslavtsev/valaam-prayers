@@ -35,11 +35,15 @@
 <!--suppress JSAnnotator -->
 <script>
 	import navbarLargeMixin from './navbar-large-mixin.js';
+	import { languages, langById } from '../js/data/languages.js';
 
 	export default {
 		data() {
 			let dayCode = this.$route.params.id,
-				dayData = {};
+				dayData = {
+					language: langById('slavonic'),
+					textSettings: true
+				};
 
 			dayData.parabel = this.day.parabel;
 

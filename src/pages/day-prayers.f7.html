@@ -10,16 +10,12 @@
 						<span class="">Назад</span>
 					</a>
 				</div>
-				<div class="title">{{#if searchMode}}Поиск{{else}}{{title}}{{/if}}</div>
+				<div class="title">{{name}}</div>
 				<div class="title-large">
 	        <div class="title-large-text">{{name}}</div>
 	      </div>
 				<div class="right">
-					{{#if searchMode}}
-					<!--<a class="link popup-close">Закрыть</a>-->
-					{{else}}
-						{{> "navbar-right"}}
-					{{/if}}
+					{{> "navbar-right"}}
 				</div>
 			</div>
 		</div>
@@ -43,20 +39,20 @@
 </style>
 <script>
 	import navbarLargeMixin from './navbar-large-mixin.js';
+	import { languages, langById } from '../js/data/languages.js';
 
 	export default {
 		data() {
 			let dayCode = this.$route.params.id,
-				prayerId = (this.$route.context && this.$route.context.actionId) || this.$route.params.prayerId,
-				prayerData = {};
-
-			prayerData = Object.assign(
-				{},
+					prayerId = (this.$route.context && this.$route.context.actionId) || this.$route.params.prayerId,
+					prayerData = {
+						language: langById('slavonic'),
+						textSettings: true
+					};
+			Object.assign(
+				prayerData,
 				this.day.prayers.items.find(({id}) => id === prayerId)
 			);
-
-			//prayerData.text[0] = prayerData.text[0].substr(1);
-			//prayerData.title = prayerData.name.split(' ')[0];
 			prayerData.searchMode = this.$route.query.mode === 'search';
 
 			return prayerData;
