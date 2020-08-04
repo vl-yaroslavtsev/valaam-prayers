@@ -70,13 +70,15 @@ body,
 	box-shadow: var(--scrollbar-thumb-hover-color) 0 0 0 var(--scrollbar-width) inset;
 }
 
-.page-white {
+.page-white,
+.smart-select-page {
 	--scrollbar-thumb-color: rgba(0, 0, 0, 0.2);
 	--scrollbar-thumb-hover-color: rgba(0, 0, 0, 0.4);
 }
 
 .theme-dark,
-.theme-dark .page-white {
+.theme-dark .page-white,
+.theme-dark .smart-select-page  {
 	--scrollbar-thumb-color: rgba(255, 255, 255, 0.2);
 	--scrollbar-thumb-hover-color: rgba(255, 255, 255, 0.4);
 }

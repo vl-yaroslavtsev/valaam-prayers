@@ -296,14 +296,6 @@
 		top: calc(var(--f7-navbar-height) + var(--f7-safe-area-top));
 	}
 
-	.page {
-		overflow: auto;
-	}
-
-	.page-content {
-		height: auto;
-	}
-
 	.list .item-media {
 		min-width: auto;
 	}
@@ -421,27 +413,27 @@
 			}
 	 	},
 		on: {
-		  popupInit: function (event, route, popup) {
+		  popupInit(event, route, popup) {
 				// console.log('popup init', arguments);
 		  },
-			popupOpen: function (event) {
+			popupOpen(event) {
 				// console.log('popup open', arguments);
 				let $el = this.$el;
 				$el.css({
-					height: $el.find('.page-content').height() + 'px'
+					height: $el.find('.page-content')[0].scrollHeight + 10 + 'px'
 				});
 		  },
-			popupOpened: function (event) {
-		    // console.log('popup opened', arguments);
+			popupOpened(event) {
+				// console.log('popup opened', arguments);
 				updateLineHeightStepper(this.$el, this.language);
 		  },
-			popupClose: function (event) {
+			popupClose(event) {
 				// console.log('popup close', arguments);
 			},
-			popupClosed: function (event) {
+			popupClosed(event) {
 				// console.log('popup closed', arguments);
 			},
-		  popupBeforeRemove: function (event, route, popup) {
+		  popupBeforeRemove(event, route, popup) {
 		    // console.log('popup before remove', arguments);
 				settingsManager.apply();
 		  },
