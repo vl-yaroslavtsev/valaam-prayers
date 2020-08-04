@@ -43,52 +43,55 @@ body,
 	overflow-x: hidden;
 }
 
+:root {
+	--scrollbar-width: 10px;
+	--scrollbar-thumb-width: 4px;
+	--scrollbar-thumb-color: rgba(255, 255, 255, 0.3);
+	--scrollbar-thumb-hover-color: rgba(255, 255, 255, 0.5);
+}
+
 .page-content::-webkit-scrollbar {
   -webkit-appearance: none;
-  width: var(--scrollbar-width);
+	width: var(--scrollbar-width);
 }
 
 .page-content::-webkit-scrollbar-thumb {
-  border-radius: var(--scrollbar-width);
-  background-color: rgba(255, 255, 255, .4);
+	min-height: 25px;
+  background-clip: content-box;
+  box-shadow: var(--scrollbar-thumb-color) 0 0 0 var(--scrollbar-width) inset;
+  border-style: solid;
+  border-color: transparent;
+  border-width: 1px calc((var(--scrollbar-width) - var(--scrollbar-thumb-width)) / 2);
+  border-radius: calc(var(--scrollbar-width) / 2 - 1px);
 }
 
-.read-mode  {
-	--scrollbar-width: 6px;
+.page-content::-webkit-scrollbar-thumb:hover,
+.page-content::-webkit-scrollbar-thumb:active {
+	box-shadow: var(--scrollbar-thumb-hover-color) 0 0 0 var(--scrollbar-width) inset;
 }
 
-.read-mode .page-content::-webkit-scrollbar-thumb {
-	border: 2px solid white;
-  background-color: rgba(0, 0, 0, .3);
+.page-white {
+	--scrollbar-thumb-color: rgba(0, 0, 0, 0.2);
+	--scrollbar-thumb-hover-color: rgba(0, 0, 0, 0.4);
 }
 
-.read-mode .page-content::-webkit-scrollbar-track {
-  background-color: white;
+.theme-dark,
+.theme-dark .page-white {
+	--scrollbar-thumb-color: rgba(255, 255, 255, 0.2);
+	--scrollbar-thumb-hover-color: rgba(255, 255, 255, 0.4);
 }
 
-.theme-dark .read-mode .page-content::-webkit-scrollbar-track {
-  background-color: var(--f7-page-bg-color);
+.read-mode {
+	--scrollbar-width: 4px;
+	--scrollbar-thumb-width: 2px;
+	--scrollbar-thumb-color: rgba(0, 0, 0, 0.2);
+	--scrollbar-thumb-hover-color: rgba(0, 0, 0, 0.4);
 }
 
-.theme-dark .read-mode .page-content::-webkit-scrollbar-thumb {
-	border: 2px solid var(--f7-page-bg-color);
-  background-color: rgba(255, 255, 255, .2);
+.theme-dark .read-mode {
+	--scrollbar-thumb-color: rgba(255, 255, 255, 0.2);
+	--scrollbar-thumb-hover-color: rgba(255, 255, 255, 0.4);
 }
-
-.theme-dark .page-content::-webkit-scrollbar-thumb {
-  background-color: rgba(255, 255, 255, .2);
-}
-
-/* hack for Chrome 49 =( */
-/* .page-content {
-	padding-top: calc(var(--f7-navbar-height) +
-				var(--f7-safe-area-top) +
-				var(--f7-page-toolbar-top-offset, 0px) +
-				var(--f7-page-subnavbar-offset, 0px) +
-				var(--f7-page-searchbar-offset, 0px) +
-				var(--f7-page-content-extra-padding-top, 0px));
-
-} */
 
 .preloader.color-white {
   --f7-theme-color: rgb(255,128,32);
