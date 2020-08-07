@@ -52,24 +52,35 @@ function apply(state) {
   }
 }
 
-function applyTheme({themeDark}) {
+function applyTheme({colorTheme}) {
 	let currentView = app.views.current,
-		$page, isWhitePage;
+		$page,
+    isWhitePage,
+    $html = $$('html');
+
+  if (!colorTheme) {
+    return;
+  }
 
 	if (currentView) {
 		$page = $$(currentView.router.currentPageEl);
 		isWhitePage = $page.hasClass('page-white');
 	}
 
-	if (themeDark) {
-		$$('html').addClass('theme-dark');
+  for (let className of $$('html')[0].classList.values()) {
+    if (/^text-theme-/i.test(className)) {
+      $html.removeClass(className);
+    }
+  }
+  $html.addClass(`text-theme-${colorTheme}`);
+
+	if (colorTheme == 'dark') {
+		$html.addClass('theme-dark');
 		//document.querySelector('meta[name="theme-color"]').content = '#202020';
 		//document.querySelector('meta[name="apple-mobile-web-app-status-bar-style"]').content = 'black';
     app.phonegap.statusbar.styleLightContent();
 	} else {
-		$$('html').removeClass('theme-dark');
-		//document.querySelector('meta[name="theme-color"]').content = '#3878a8';
-		//document.querySelector('meta[name="apple-mobile-web-app-status-bar-style"]').content = 'default';
+		$html.removeClass('theme-dark');
     isWhitePage ?
       app.phonegap.statusbar.styleDefault() :
       app.phonegap.statusbar.styleLightContent();
@@ -85,8 +96,6 @@ function applyStyles({
 	csFontSize,
 	csLineHeight,
 	csFontWeight,
-	bgImage,
-	bgColor,
   textAlign,
   noPadding
 }) {
@@ -103,9 +112,7 @@ function applyStyles({
 			${slFontSize ? 'font-size: ' + slFontSize + 'px !important;' : ''}
 			${slLineHeight ? 'line-height: ' + slLineHeight + ' !important;' : ''}
 			${slFontWeight ? 'font-weight: ' + slFontWeight + ' !important;' : ''}
-			${!isThemeDark && bgImage ? 'background-image: ' + bgImage + ' !important;' : ''}
-			${!isThemeDark && bgColor ? 'background-color: ' + bgColor + ' !important;' : ''}
-      ${textAlign ? 'text-align: ' + textAlign + ' !important;' : ''}
+			${textAlign ? 'text-align: ' + textAlign + ' !important;' : ''}
       ${noPadding ? '--f7-block-padding-horizontal:5px;': ''}
 		}
 		.md .churchslavonic {
@@ -116,9 +123,7 @@ function applyStyles({
 			${csFontSize ? 'font-size: ' + csFontSize + 'px !important;' : ''}
 			${csLineHeight ? 'line-height: ' + csLineHeight + ' !important;' : ''}
 			${csFontWeight ? 'font-weight: ' + csFontWeight + ' !important;' : ''}
-			${!isThemeDark && bgImage ? 'background-image: ' + bgImage + ' !important;' : ''}
-			${!isThemeDark && bgColor ? 'background-color: ' + bgColor + ' !important;' : ''}
-      ${textAlign ? 'text-align: ' + textAlign + ' !important;' : ''}
+			${textAlign ? 'text-align: ' + textAlign + ' !important;' : ''}
       ${noPadding ? '--f7-block-padding-horizontal:5px;': ''}
 		}
 	</style>

@@ -392,4 +392,17 @@ export default {
 			this.readMode.destroy();
 		}
 	}
+
+	/**
+	 Разбиваем на слова на сервере:
+	 str.split(/(?=<.+?>)|(?<=<.+?>)/i).map(el => !el.startsWith('<') && !el.endsWith('>') ? '<span class="word">' + el.split(/(?=\s+\S)/i).join(`</span><span class="word">`) + '</span>' : el).join('');
+	 При прокручивании вниз проверяем, есть ли внизу экрана слово:
+	 let el = document.elementFromPoint(50, Math.round(app.height - lineHeight * 0.8));
+	 if ($$(el).is('span.word')) {
+		 прокручиваем к этому слову
+		 $pageContent.scrollTop($pageContent.scrollTop() + el.getBoundingClientRect().top
+	 } else {
+		 прокручиваем на высоту экрана
+	 }
+	 */
 }

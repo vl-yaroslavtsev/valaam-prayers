@@ -88,11 +88,46 @@ body,
 	--scrollbar-thumb-width: 2px;
 	--scrollbar-thumb-color: rgba(0, 0, 0, 0.2);
 	--scrollbar-thumb-hover-color: rgba(0, 0, 0, 0.4);
+
+	background: var(--read-text-background);
 }
 
 .theme-dark .read-mode {
 	--scrollbar-thumb-color: rgba(255, 255, 255, 0.2);
 	--scrollbar-thumb-hover-color: rgba(255, 255, 255, 0.4);
+}
+
+:root {
+	--read-text-background: var(--f7-block-strong-bg-color);
+	--read-text-color: var(--f7-block-strong-text-color);
+}
+
+.text-theme-grey {
+	--read-text-background: rgb(225, 225, 225);
+	--read-text-color: rgb(0, 0, 0);
+	--kinovar-color: rgb(187, 0, 0);
+}
+
+.text-theme-sepia {
+	--read-text-background: rgb(240, 222, 199);
+	--read-text-color: rgb(100, 77, 50);
+	--kinovar-color: rgb(122, 28, 28); /*rgb(194, 27, 25);*/
+}
+
+.text-theme-sepia-contrast {
+	--read-text-background: rgb(240, 222, 199);
+	--read-text-color: rgb(0, 0, 0);
+	--kinovar-color: rgb(187, 0, 0);
+}
+
+.text-theme-cream {
+	--read-text-background: url('../images/bg-cream.jpg');
+	--read-text-color: rgb(34, 34, 34);/*rgb(91, 65, 36);*/
+	--kinovar-color: rgb(141, 29, 33);
+}
+
+.text-theme-yellow {
+	--read-text-background: rgb(255,245,209);
 }
 
 .preloader.color-white {

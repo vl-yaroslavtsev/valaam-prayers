@@ -76,6 +76,26 @@
 .smart-select-icon-round .icon-yellow {
 	background-color: rgb(255,245,209);
 }
+
+.smart-select-icon-round .icon-light {
+	background-color: rgb(255,255,255);
+}
+
+.smart-select-icon-round .icon-dark {
+	background-color: rgb(18, 18, 18);
+}
+
+.smart-select-icon-round .icon-grey {
+	background-color: rgb(225, 225, 225);
+}
+
+.smart-select-icon-round .icon-sepia {
+	background-color: rgb(240, 222, 199);
+}
+
+.smart-select-icon-round .icon-sepia-contrast {
+	background-color: rgb(240, 222, 199);
+}
 /** endregion */
 
 /** region smart-select-icon-round */

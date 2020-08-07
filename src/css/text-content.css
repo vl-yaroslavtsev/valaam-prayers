@@ -6,6 +6,11 @@
 	text-align: justify;
 }
 
+.md .view:not(#view-valaam) .text-content {
+	color: var(--read-text-color);
+	background: var(--read-text-background);
+}
+
 .device-ios .text-content {
 	/* font-size: 21px; */
 }

@@ -11,6 +11,8 @@
 .churchslavonic-ereader {
 	font-family: 'Triodion Unicode', serif;
 	font-size: 1.5em;
+	color: var(--read-text-color);
+	background: var(--read-text-background);
 }
 
 .churchslavonic-ereader .text-color-red {
@@ -35,6 +37,8 @@
 	font-size: 1.5em;
 	line-height: 1.25;
 	text-align: justify;
+	color: var(--read-text-color);
+	background: var(--read-text-background);
 }
 
 .churchslavonic p {
