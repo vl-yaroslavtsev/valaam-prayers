@@ -71,27 +71,6 @@
 				<li>
 					<div class="item-content">
 						<div class="item-media">
-							<i class="icon material-icons  disabled">brightness_3</i>
-						</div>
-						<div class="item-inner">
-							<div class="item-title-row">
-								<div class="item-title">
-									Ночной режим
-								</div>
-								<div class="item-after">
-									<label class="toggle toggle-init"
-											 @toggle:change="onThemeChange">
-										<input type="checkbox" {{#if themeDark}}checked{{/if}}>
-										<span class="toggle-icon"></span>
-									</label>
-								</div>
-							</div>
-						</div>
-					</div>
-				</li>
-				<li>
-					<div class="item-content">
-						<div class="item-media">
 							<i class="icon material-icons  disabled">fullscreen</i>
 						</div>
 						<div class="item-inner">
@@ -110,36 +89,6 @@
 							<div class="item-text">Скрывать строку состояния</div>
 						</div>
 					</div>
-				</li>
-				<li>
-					<a class="item-link smart-select smart-select-init"
-						 data-open-in="popover"
-						 data-close-on-select="true"
-						 data-css-class="smart-select-icon-round"
-						 data-popup-close-link-text="<i class='icon material-icons'>close</i>">
-						<select id="select-bg"
-										@change="onBgChange">
-							{{#each bgItems}}
-							<!--suppress HtmlUnknownAttribute -->
-								<option value="{{value}}" {{selected}}
-												data-option-image="{{image}}"
-												data-option-icon="{{icon}}">
-									{{name}}
-							</option>
-							{{/each}}
-						</select>
-						<div class="item-content">
-							<div class="item-media">
-							 	<i class="icon material-icons disabled">colorize</i>
-						 	</div>
-							<div class="item-inner">
-								<div class="item-title-row">
-									<div class="item-title">Фон</div>
-								</div>
-								<div class="item-text">Для чтений молитвослова и календаря</div>
-							</div>
-						</div>
-					</a>
 				</li>
 				<li>
 					<a class="item-link item-content"  @click="testFitures">
@@ -183,55 +132,15 @@
 	import downloadManager from '../js/download/manager.js';
 	import navbarLargeMixin from './navbar-large-mixin.js';
 
-	const BACKGROUND_ITEMS = [
-		{
-			name: 'Белый',
-			icon: 'icon-white',
-			value: 'rgb(255,255,255)'
-		},
-		{
-			name: 'Светло-жёлтый',
-			icon: 'icon-yellow',
-			value: 'rgb(255,245,209)'
-		},
-		{
-			name: 'Кремовый',
-			image: './images/bg-cream.jpg',
-			value: 'url(./images/bg-cream.jpg)'
-		},
-		{
-			name: 'Старая бумага',
-			image: './images/bg-papirus.jpg',
-			value: 'url(./images/bg-papirus.jpg)'
-		}
-	];
-
 	let app, $el;
 	export default {
 		data() {
 			app = this.$app;
-
-			let style = getBgStyle();
-
 			return {
-				themeDark: document.querySelector('html').classList.contains('theme-dark'),
-				hideStatusbar: settingsManager.get('hideStatusbar'),
-				bgItems: BACKGROUND_ITEMS.map((item) => {
-					item.selected = (item.value === style.bgColor ||
-												   item.value === style.bgImage) ? 'selected' : '';
-					return item;
-				})
+				hideStatusbar: settingsManager.get('hideStatusbar')
 			};
 		},
 		methods: {
-			onThemeChange(event) {
-				let toggle = event.target.querySelector('input');
-				this.themeDark = toggle.checked;
-
-				settingsManager.apply({
-					themeDark: this.themeDark
-				});
-			},
 			onStatusbarChange(event) {
 				let toggle = event.target.querySelector('input');
 				this.hideStatusbar = toggle.checked;
@@ -239,15 +148,6 @@
 				settingsManager.apply({
 					hideStatusbar: this.hideStatusbar
 				});
-			},
-			onBgChange(event) {
-				let value = event.target.value;
-				let state = {
-					bgColor: value.includes('rgb') ? value : '',
-					bgImage: value.includes('url') ? value : ''
-				};
-
-				settingsManager.save(state);
 			},
 			testFitures() {
 				downloadManager.testFitures();
@@ -269,18 +169,4 @@
 			}
 		}
 	};
-
-	function getBgStyle() {
-		let style = window.getComputedStyle(app.root.find('#test-slavonic')[0]);
-		let data = {};
-
-		data.bgColor = style.backgroundColor
-				.replace(/\s/g, '');
-		data.bgImage = style.backgroundImage
-				.replace(/["']/g,'')
-				.replace(location.origin,'')
-				.replace(location.pathname,'./');
-		return data;
-	}
-
 </script>
