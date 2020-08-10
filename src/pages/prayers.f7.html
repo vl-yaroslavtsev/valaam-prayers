@@ -299,8 +299,7 @@
 				}));
 			}
 
-			if (data.id === sectionId && data.parent !== "0") {
-				// prayerData.name = data.name;
+			if (data.id === sectionId /*&& data.parent !== "0"*/) {
 				Object.assign(state, {
 					id: data.id ,
 					name: data.name,
