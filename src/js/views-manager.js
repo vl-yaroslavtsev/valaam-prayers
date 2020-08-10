@@ -6,7 +6,6 @@ import settingsManager from './settings-manager.js';
 import { isMobile } from './utils/utils.js';
 
 let app;
-const menuView = '#view-menu';
 const viewsIds = [
 	'#view-main',
   '#view-books',
@@ -34,7 +33,6 @@ function parseHash() {
 	let [viewId, url] = document.location.hash.split(':');
 	if (!viewId || !url) return;
 
-	let panel = app.panel.get('.panel-left');
 	let view = app.views.get(viewId);
 
 	if (!view) {
@@ -42,14 +40,6 @@ function parseHash() {
 	}
 
 	if (!viewsIds.includes(viewId)) return;
-
-	if (panel) {
-		panel.close(false);
-	} else {
-		app.once('panelOpen', (panel) => {
-			panel.close(false);
-		});
-	}
 
 	app.tab.show(viewId);
 	view.router.navigate(url);
@@ -74,28 +64,37 @@ function initViewTabs() {
 		app.phonegap.statusbar.styleLightContent();
 	});
 
-	app.on('popupOpened', (popup) => {
-		//console.log('popupOpened');
-		let $el = popup.$el;
-		let isTablet = !isMobile();
-		let isDarkMode = $$('html').hasClass('theme-dark') ||
-						 				 $el.find('.photo-browser-dark').length;
 
-		if (isTablet && !$el.hasClass('popup-tablet-fullscreen')) {
-			return;
+	app.root.on('click', 'a.tab-link[href="#view-main"]', function(event) {
+		let view = app.views.get('#view-main');
+		if (view) { // Перезгружаем историю меню
+			view.router.navigate(view.router.history[0], {reloadAll: true});
 		}
-
-		if (isDarkMode) {
-			app.phonegap.statusbar.styleLightContent();
-		} else {
-			app.phonegap.statusbar.styleDefault();
-		}
-
 	});
 
-	app.on('popupClose', (popup) => {
-		app.phonegap.statusbar.styleLightContent();
-	});
+
+	// app.on('popupOpened', (popup) => {
+	// 	let $el = popup.$el;
+	// 	let isTablet = !isMobile();
+	// 	let isDarkMode = $$('html').hasClass('theme-dark') ||
+	// 					 				 $el.find('.photo-browser-dark').length;
+	//
+	// 	if (isTablet && !$el.hasClass('popup-tablet-fullscreen')) {
+	// 		return;
+	// 	}
+	//
+	// 	if (isDarkMode) {
+	// 		app.phonegap.statusbar.styleLightContent();
+	// 	} else {
+	// 		app.phonegap.statusbar.styleDefault();
+	// 	}
+	// });
+	//
+	// app.on('popupClose', (popup) => {
+	// 	app.phonegap.statusbar.styleLightContent();
+	// });
+
+	app.tab.show('#view-main');
 
 	parseHash();
 	$$(window).on('hashchange', parseHash);
@@ -122,20 +121,7 @@ function createView(id) {
 	switch (id) {
 		case '#view-main':
 			view = app.views.create('#view-main', {
-				url: '/root',
-				routesAdd: [
-					{
-						path: '/root',
-						content: `<div class='page'></div>`,
-					}
-				],
-				on: {
-					routeChange(newRoute, previousRoute) {
-						if (newRoute.path === '/root' && previousRoute.path) {
-							app.panel.open('.panel-left');
-						}
-					}
-				}
+				url: '/menu'
 			});
 			break;
 
@@ -251,9 +237,10 @@ function handleBackButton() {
 		return false;
 	}
 
-	if (currentView.$el.hasClass('tab')) {
-		app.panel.get('.panel-left').open();
-		//e.preventDefault();
+	if (currentView.$el.hasClass('tab') &&
+			currentView.$el.attr('id') != 'view-main') {
+		app.tabs.show('#view-main');
+		e.preventDefault();
 		return false;
 	}
 
