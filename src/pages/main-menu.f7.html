@@ -15,9 +15,10 @@
 			<div class="list ucase-list">
 				<ul>
 					<li>
-						<a href="#"
-						   class="item-link item-content panel-close"
-							 @click="showTab('#view-main','/prayers/1736')">
+						<a href="/prayers/1736"
+						   class="item-link item-content "
+							 data-view="#view-main"
+							 data-view-tab="true">
 							<div class="item-inner">
 								<div class="item-title">
 									<i class="icon material-icons">info</i>
@@ -27,9 +28,11 @@
 						</a>
 					</li>
 					<li>
-						<a href="#"
-						   class="item-link item-content panel-close"
-							 @click="showTab('#view-prayers')">
+						<a href="/prayers/842"
+						   class="item-link item-content "
+							 data-view="#view-prayers"
+							 data-view-tab="true"
+							 data-reload-all="true">
 							<div class="item-inner">
 								<div class="item-title">
 									<i class="icon material-icons">menu_book</i>
@@ -39,9 +42,11 @@
 						</a>
 					</li>
 					<li>
-						<a href="#"
-						   class="item-link item-content panel-close"
-						   @click="showTab('#view-calendar')">
+						<a href="/calendar"
+						   class="item-link item-content "
+							 data-view="#view-calendar"
+							 data-view-tab="true"
+							 data-reload-all="true">
 							<div class="item-inner">
 								<div class="item-title">
 									<i class="icon material-icons">date_range</i>
@@ -51,9 +56,11 @@
 						</a>
 					</li>
 					<li>
-						<a href="#"
-						   class="item-link item-content panel-close"
-						   @click="showTab('#view-books')">
+						<a href="/prayers/976"
+						   class="item-link item-content "
+							 data-view="#view-books"
+							 data-view-tab="true"
+							 data-reload-all="true">
 							<div class="item-inner">
 								<div class="item-title">
 									<i class="icon material-icons">book</i>
@@ -63,9 +70,11 @@
 						</a>
 					</li>
 					<li>
-						<a href="#"
-						   class="item-link item-content panel-close"
-							 @click="showTab('#view-rites')">
+						<a href="/rites"
+						   class="item-link item-content "
+							 data-view="#view-rites"
+							 data-view-tab="true"
+							 data-reload-all="true">
 							<div class="item-inner">
 								<div class="item-title">
 									<i class="icon material-icons">whatshot</i>
@@ -75,9 +84,10 @@
 						</a>
 					</li>
 					<li>
-						<a href="#"
-							 class="item-link item-content panel-close"
-					 		 @click="showTab('#view-main','/favorites')">
+						<a href="/favorites"
+							 class="item-link item-content "
+							 data-view="#view-main"
+							 data-view-tab="true">
 							<div class="item-inner">
 								<div class="item-title">
 									<i class="icon material-icons">star</i>
@@ -87,9 +97,10 @@
 						</a>
 					</li>
 					<li>
-						<a href="#"
-							 class="item-link item-content panel-close"
-							 @click="showTab('#view-main', '/settings')">
+						<a href="/settings"
+							 class="item-link item-content "
+							 data-view="#view-main"
+							 data-view-tab="true">
 							<div class="item-inner">
 								<div class="item-title">
 									<i class="icon material-icons">settings</i>
@@ -99,9 +110,10 @@
 						</a>
 					</li>
 					<li>
-						<a href="#"
-							 class="item-link item-content panel-close"
-							 @click="showTab('#view-main', '/search')">
+						<a href="/search"
+							 class="item-link item-content "
+							 data-view="#view-main"
+							 data-view-tab="true">
 							<div class="item-inner">
 								<div class="item-title">
 									<i class="icon material-icons">search</i>
@@ -157,17 +169,6 @@
 
 	export default {
 		methods: {
-			showTab(viewId, url) {
-				let view = app.views.get(viewId);
-				if (view) { // Перезгружаем историю меню
-				 	view.router.navigate(view.router.history[0], {reloadAll: true});
-				}
-				app.tab.show(viewId, false);
-				if (url) {
-					view = app.views.get(viewId);
-					view.router.navigate(url);
-				}
-			}
 		},
 		data() {
 			app = this.$app;
@@ -175,7 +176,6 @@
 		},
 		on: {
 			pageInit(e, page) {
-			//app.panel.get('.panel-left').open(false);
 			},
 		}
 	};

@@ -60,8 +60,9 @@ function initViewTabs() {
 	app.on('pageBeforeIn', (page) => updateStatusbar(page.$el));
 	app.on('pageTabShow', (page) => updateStatusbar($$(page)));
 
-	app.on('panelOpened', (panel) => {
-		app.phonegap.statusbar.styleLightContent();
+	app.root.on('mouseup', 'a[data-view-tab]', function(event) {
+		let $target = $$(this);
+		app.tab.show($target.data('view'));
 	});
 
 

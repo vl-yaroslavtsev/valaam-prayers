@@ -4,10 +4,10 @@
 			<div class="navbar-bg"></div>
 			<div class="navbar-inner">
 				<div class="left">
-					<a href="#" class="link back">
+					<!-- <a href="#" class="link back">
 						<i class="icon icon-back"></i>
 						<span class="">Назад</span>
-					</a>
+					</a> -->
 				</div>
 				<div class="title">Поиск</div>
 				<div class="right">
@@ -56,7 +56,8 @@
 		<li>
 			<a href="{{href}}"
 			   class="item-link item-content"
-				 data-view="{{targetView}}">
+				 data-view="{{targetView}}"
+				 data-view-tab="true">
 				<div class="item-inner">
 					<div class="item-title-row">
 						<div class="item-title">{{name}}</div>
@@ -114,11 +115,6 @@
 					}
 				});
 				$el.find('.infinite-scroll-content').on('infinite', loadItems);
-
-				$el.find('#searchbarResult').on('mouseup', 'a.item-link', function(event) {
-					let target = this;
-					app.tab.show(target.dataset.view);
-				});
 			},
 			pageBeforeRemove() {
 				if (searchbar) {
