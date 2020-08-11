@@ -53,6 +53,10 @@
 	letter-spacing: 0;
 }
 
+.popup-backdrop-transparent {
+	background: transparent;
+	transition-duration:0s;
+}
 
 @media (min-width: 768px) {
 	.page-popup {

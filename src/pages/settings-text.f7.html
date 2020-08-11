@@ -1,5 +1,5 @@
 <template>
-<div class="popup"
+<div class="popup elevation-6"
 		 id="settings-text-popup">
 	<div class="view view-init">
 		<div class="page page-white">
@@ -347,6 +347,7 @@
 		left: auto;
 		right: 5px;
 		top: calc(var(--f7-navbar-height) + var(--f7-safe-area-top));
+		border-radius: var(--f7-popover-border-radius);
 	}
 
 	.list .item-media {
@@ -511,7 +512,11 @@
 	 	},
 		on: {
 		  popupInit(event, route, popup) {
-				// console.log('popup init', arguments);
+				// console.log('popup init', this, arguments);
+				popup.$backdropEl.addClass('popup-backdrop-transparent');
+
+				app.on('popoverOpen', popoverOpen);
+				app.on('popoverClosed', popoverClosed);
 		  },
 			popupOpen(event) {
 				// console.log('popup open', arguments);
@@ -533,6 +538,9 @@
 		  popupBeforeRemove(event, route, popup) {
 		    // console.log('popup before remove', arguments);
 				settingsManager.apply();
+				popup.$backdropEl.removeClass('popup-backdrop-transparent');
+				app.off('popoverOpen', popoverOpen);
+				app.off('popoverClosed', popoverClosed);
 		  },
 		}
 	};
@@ -588,5 +596,15 @@
 	function updateLineHeightStepper($el, language) {
 		let stepper = app.stepper.get($el.find(`#stepper-line-height-${language.code}`)[0]);
 		stepper.params.formatValue = (value) => (+value).toFixed(2);
+	}
+
+	function popoverOpen(popover) {
+		// console.log('popoverOpen', arguments);
+		popover.$backdropEl.addClass('popover-backdrop-transparent');
+	}
+
+	function popoverClosed(popover) {
+		// console.log('popoverClosed', arguments);
+		popover.$backdropEl.removeClass('popover-backdrop-transparent');
 	}
 </script>
