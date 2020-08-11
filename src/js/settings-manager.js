@@ -81,9 +81,9 @@ function applyTheme({colorTheme}) {
     app.phonegap.statusbar.styleLightContent();
 	} else {
 		$html.removeClass('theme-dark');
-    isWhitePage ?
-      app.phonegap.statusbar.styleDefault() :
-      app.phonegap.statusbar.styleLightContent();
+    // isWhitePage ?
+    //   app.phonegap.statusbar.styleDefault() :
+    app.phonegap.statusbar.styleLightContent();
 	}
 }
 
@@ -107,7 +107,7 @@ function applyStyles({
 
 	let styleHTML = `
 	<style id="app-settings-style">
-		.md .view:not(#view-valaam) .text-content {
+		.md .view:not(#view-main) .text-content {
 			${slFontFamily ? 'font-family: "' + slFontFamily + '" !important;' : ''}
 			${slFontSize ? 'font-size: ' + slFontSize + 'px !important;' : ''}
 			${slLineHeight ? 'line-height: ' + slLineHeight + ' !important;' : ''}
