@@ -232,7 +232,8 @@ function handleBackButton() {
 		}
 	}
 
-	if (currentView && currentView.router && currentView.router.history.length > 1) {
+	if (currentView.router &&
+		  currentView.router.history.length > 1) {
 		currentView.router.back();
 		//e.preventDefault();
 		return false;
@@ -240,16 +241,16 @@ function handleBackButton() {
 
 	if (currentView.$el.hasClass('tab') &&
 			currentView.$el.attr('id') != 'view-main') {
-		app.tabs.show('#view-main');
-		e.preventDefault();
+		app.tab.show('#view-main');
+		// e.preventDefault();
 		return false;
 	}
 
-	// if ($$$('.panel.panel-in').length) {
-		// app.panel.close('.panel.panel-in');
+	if ($$('.panel.panel-in').length) {
+		app.panel.close('.panel.panel-in');
 		// e.preventDefault();
-		// return false;
-	// }
+		return false;
+	}
 
 	if (!backButtonAttempts) {
 		let toast = app.toast.show({
