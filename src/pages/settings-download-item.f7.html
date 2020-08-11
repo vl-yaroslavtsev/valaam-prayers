@@ -126,9 +126,15 @@
 				downloadItem.download();
 			},
 			cancel() {
-				app.dialog.confirm(
+				this.cancelDialog = app.dialog.confirm(
 					'Отменить загрузку данных?',
-					() => this.downloadItem.cancel()
+					() => {
+						this.downloadItem.cancel();
+						delete this.cancelDialog;
+					},
+					() => {
+						delete this.cancelDialog;
+					}
 				);
 			},
 			delete() {
@@ -143,6 +149,13 @@
 				);
 			},
 			onDownloadItemChanged({changed, state}) {
+
+				if (this.cancelDialog &&
+						state.status !== 'loading') {
+					this.cancelDialog.close();
+					delete this.cancelDialog;
+				}
+
 				this.$setState({
 					status: state.status,
 					progress: state.progress,
