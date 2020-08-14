@@ -182,12 +182,20 @@
 						</li>
 						{{/if}}
 					`,
+					dynamicHeightBufferSize: 1.2,
 					// Item height
 					height(item) {
+						let twoStrings;
 						if (isMobile()) {
-							return (item.read_progress) ? 79 : 62;
+							twoStrings = item.name && item.name.length > 18;
+							return (item.read_progress) ?
+								(twoStrings ? 79 : 61) :
+								(twoStrings ? 62 : 52);
 						} else {
-							return (item.read_progress) ? 118 : 94;
+							twoStrings = item.name && item.name.length > 33;
+							return (item.read_progress) ?
+								(twoStrings ? 118 : 92) :
+								(twoStrings ? 94 : 82);
 						}
 					}
 				});
