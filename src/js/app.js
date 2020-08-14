@@ -113,7 +113,7 @@ const app = new Framework7({
 	name: 'Валаамский молитвослов',
 	theme: navigator.userAgent.match(/Debug/) !== null ? 'auto' : 'md',
 	disabled: false,
-	version: "1.11.9",
+	version: "1.11.10",
 	// theme: 'ios',
 
 	statusbar: {
@@ -166,11 +166,12 @@ const app = new Framework7({
 				this.data.canApplePay = result;
 			});
 
-			if(this.device.android)
-				this.$('html').addClass('android-statusbar');
+			this.data.settings = await this.phonegap.getSettings();
 
 			if(this.device.ios && parseInt(this.device.osVersion) === 10)
 				this.$('html').addClass('ios-statusbar');
+
+			this.emit('onWindowInsets', this.data.settings['windowInsets']);
 
 			this.phonegap.hideSplash();
 			this.phonegap.statusbar.styleLightContent();

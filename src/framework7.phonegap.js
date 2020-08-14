@@ -1,11 +1,10 @@
 /**
- * Framework7 Plugin PhoneGap 0.9.2
- * PhoneGap plugin extends Framework7 for ios native
+ * Framework7 Plugin PhoneGap 0.9.4
+ * PhoneGap plugin extends Framework7 for ios & android native
  *
  * Copyright 2020 Ивайло Тилев
  */
 
-// noinspection JSUnusedGlobalSymbols
 const Framework7PhoneGap = {
 
 	name: 'phonegap',
@@ -26,8 +25,8 @@ const Framework7PhoneGap = {
 				this.exec(arguments.callee.name, data);
 			},
 
-			getUserSettings() {
-				return this.exec(arguments.callee.name, null, 'once', {simulator: true});
+			getSettings() {
+				return this.exec(arguments.callee.name, null, 'once', {});
 			},
 
 			hideSplash() {
@@ -93,8 +92,6 @@ const Framework7PhoneGap = {
 
 			// ...
 
-			/** @var StatusBar */
-
 			statusbar: {
 
 				isVisible: true,
@@ -142,9 +139,11 @@ const Framework7PhoneGap = {
 					app.phonegap.exec('statusBarBackgroundColorByHexString', hexString);
 				},
 
-				hide() {
-					if(app.device.android)
-						app.$('html').removeClass('android-statusbar');
+				hide(setInsets = true) {
+					const insets = app.data['settings'] && app.data['settings']['windowInsets'];
+
+					if(app.device.android && setInsets && insets)
+						app.$(':root')[0].style.setProperty('--f7-safe-area-top', '0px');
 
 					if(app.device.ios && parseInt(app.device.osVersion) === 10)
 						app.$('html').removeClass('ios-statusbar');
@@ -153,9 +152,11 @@ const Framework7PhoneGap = {
 					this.isVisible = false;
 				},
 
-				show() {
-					if(app.device.android)
-						app.$('html').addClass('android-statusbar');
+				show(setInsets = true) {
+					const insets = app.data.settings['windowInsets'];
+
+					if(app.device.android && setInsets && insets)
+						app.$(':root')[0].style.setProperty('--f7-safe-area-top', insets.top + 'px');
 
 					if(app.device.ios && parseInt(app.device.osVersion) === 10)
 						app.$('html').addClass('ios-statusbar');
@@ -171,29 +172,30 @@ const Framework7PhoneGap = {
 
 			// ...
 
-			appDebug(params) {
+			debug(params) {
 				return this.exec(arguments.callee.name, params, 'once');
 			},
 
 			// ...
 
-			exec(fn, params, event, def, eventname) {
+			exec(fn, params, event, def) {
 
-				function android() {
-					if(app.device.android && window['AndroidJS']) {
+				function call() {
+					if(app.device.android) {
 						/** @namespace AndroidJS */
-						AndroidJS.postMessage(JSON.stringify({name: fn, params: params}))
+						if(window['AndroidJS'] && typeof AndroidJS[fn] === 'function') {
+							if(params !== null)
+								AndroidJS[fn](JSON.stringify(params))
+							else AndroidJS[fn]()
 
 								return true;
 						}
-					return false;
-				}
-
-				function ios() {
-					if(app.device.webview && webkit.messageHandlers[fn]) {
+					} else if(app.device.ios) {
 						/** @namespace webkit.messageHandlers */
+						if(window['webkit'] && typeof webkit.messageHandlers[fn] === 'object') {
 						webkit.messageHandlers[fn].postMessage(params);
 						return true;
+					}
 					}
 
 					return false;
@@ -205,9 +207,9 @@ const Framework7PhoneGap = {
 							result !== undefined ? resolve(result) : reject(error);
 						});
 
-						android() || ios() || resolve(def);
+						call() || resolve(def);
 					});
-				} else android() || ios();
+				} else call();
 			}
 		}
 	},
@@ -215,6 +217,30 @@ const Framework7PhoneGap = {
 	on: {
 		init() {
 			// this.phonegap.rest = this.params.phonegap.rest;
+		},
+
+		onWindowInsets(insets) {
+			try {
+				const root = this.$(':root')[0];
+				root.style.setProperty('--f7-safe-area-top', insets.top + 'px');
+				root.style.setProperty('--f7-safe-area-inset-top', insets.top + 'px');
+				root.style.setProperty('--f7-safe-area-bottom', insets.bottom + 'px');
+				root.style.setProperty('--f7-safe-area-inset-bottom', insets.bottom + 'px');
+				root.style.setProperty('--f7-safe-area-left', insets.left + 'px');
+				root.style.setProperty('--f7-safe-area-inset-left', insets.left + 'px');
+				root.style.setProperty('--f7-safe-area-outer-left', insets.left + 'px');
+				root.style.setProperty('--f7-safe-area-right', insets.right + 'px');
+				root.style.setProperty('--f7-safe-area-inset-right', insets.right + 'px');
+				root.style.setProperty('--f7-safe-area-outer-right', insets.right + 'px');
+
+				this.$('.safe-areas').forEach((e) => {
+					e.style.setProperty('--f7-safe-area-left', insets.left + 'px');
+					e.style.setProperty('--f7-safe-area-outer-left', insets.left + 'px');
+					e.style.setProperty('--f7-safe-area-right', insets.right + 'px');
+					e.style.setProperty('--f7-safe-area-outer-right', insets.right + 'px');
+				});
+			} catch (e) {
+			}
 		}
 	}
 
