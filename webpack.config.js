@@ -9,6 +9,7 @@ const OfflinePlugin = require('offline-plugin');
 
 module.exports = (env = {}) => {
 	const devMode = !env.production;
+	const useHash = env.hash;
 	return {
 		mode: devMode ? 'development' : 'production',
 		entry: {
@@ -25,10 +26,10 @@ module.exports = (env = {}) => {
 			new MiniCssExtractPlugin({
 				// Options similar to the same options in webpackOptions.output
 				// all options are optional
-				//filename: devMode ? '[name].css' : '[name].[contenthash].css',
-				filename: '[name].css',
-				//chunkFilename: devMode ? '[name].css' : '[name].[contenthash].css',
-				chunkFilename: '[name].css',
+				filename: useHash ? '[name].[contenthash].css' : '[name].css',
+				//filename: '[name].css',
+				chunkFilename: useHash ? '[name].[contenthash].css' : '[name].css',
+				//chunkFilename: '[name].css',
 			}),
 			new CopyPlugin([
 	      {
@@ -112,8 +113,8 @@ module.exports = (env = {}) => {
 					loader: 'file-loader',
 	        options: {
 						outputPath: 'images',
-	          //name: devMode ? '[name].[ext]' : '[name].[contenthash].[ext]'
-						name: '[name].[ext]'
+	          name: useHash ? '[name].[contenthash].[ext]' : '[name].[ext]'
+						//name: '[name].[ext]'
 					}
 				},
 				{
@@ -121,8 +122,8 @@ module.exports = (env = {}) => {
 					loader: 'file-loader',
 					options: {
 						outputPath: 'fonts',
-						//name: devMode ? '[name].[ext]' : '[name].[contenthash].[ext]'
-						name: '[name].[ext]'
+						name: useHash ? '[name].[contenthash].[ext]' : '[name].[ext]'
+						//name: '[name].[ext]'
 					}
 				},
 				{
@@ -132,9 +133,9 @@ module.exports = (env = {}) => {
 						{
 							loader: 'worker-loader',
 							options: {
-								// name: devMode ? '[name].js' :
-								// 								'[name].[contenthash].js'
-								name: '[name].js'
+								name: useHash ? '[name].[contenthash].js' :
+								 								'[name].js'
+								//name: '[name].js'
 							}
 						},
 						'babel-loader',
@@ -144,10 +145,10 @@ module.exports = (env = {}) => {
 		},
 		devtool: devMode ? 'source-map' : false,
 		output: {
-			//filename: devMode ? '[name].js' : '[name].[contenthash].js',
-			filename: '[name].js',
-			//chunkFilename: devMode ? '[name].js': '[name].[contenthash].js',
-			chunkFilename: '[name].js',
+			filename: useHash ? '[name].[contenthash].js' : '[name].js',
+			//filename: '[name].js',
+			chunkFilename: useHash ? '[name].[contenthash].js' : '[name].js',
+			//chunkFilename: '[name].js',
 			path: path.resolve(__dirname, devMode ? 'dev' : 'dist')//,
 			//publicPath: path.resolve('/test/prayers.f7/',  devMode ? 'dev' : 'dist')
 		},
