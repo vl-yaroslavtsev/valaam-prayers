@@ -141,10 +141,14 @@
 					items: [1,2,3,4,5,6],
 					// Custom search function for searchbar
 					searchAll(query, items) {
-						var found = [];
-						for (var i = 0; i < items.length; i++) {
-							if (items[i].name.toLowerCase().indexOf(query.toLowerCase()) >= 0 ||
-									query.trim() === '') found.push(i);
+						let found = [];
+						query = prepareSearch(query);
+
+						for (let i = 0; i < items.length; i++) {
+							let name = prepareSearch(items[i].name);
+							if (name.indexOf(query) >= 0 || !query.length) {
+								found.push(i);
+							}
 						}
 						return found; //return array with mathced indexes
 					},
@@ -337,5 +341,9 @@
 			items,
 			state
 		};
+	}
+
+	function prepareSearch(str) {
+		return str.toLowerCase().replace(/\u0301/ig, '').trim();
 	}
 </script>
