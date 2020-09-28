@@ -153,7 +153,7 @@ const Framework7PhoneGap = {
 				},
 
 				show(setInsets = true) {
-					const insets = app.data.settings['windowInsets'];
+					const insets = app.data['settings'] && app.data['settings']['windowInsets'];
 
 					if(app.device.android && setInsets && insets)
 						app.$(':root')[0].style.setProperty('--f7-safe-area-top', insets.top + 'px');

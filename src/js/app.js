@@ -113,7 +113,7 @@ const app = new Framework7({
 	name: 'Валаамский молитвослов',
 	theme: navigator.userAgent.match(/Debug/) !== null ? 'auto' : 'md',
 	disabled: false,
-	version: "1.12.1",
+	version: "1.12.2",
 	// theme: 'ios',
 
 	statusbar: {
@@ -174,7 +174,11 @@ const app = new Framework7({
 			this.emit('onWindowInsets', this.data.settings['windowInsets']);
 
 			this.phonegap.hideSplash();
-			this.phonegap.statusbar.styleLightContent();
+			if (settingsManager.get('hideStatusbar')) {
+				this.phonegap.statusbar.hide();
+			} else {
+				this.phonegap.statusbar.styleLightContent();
+			}
 			this.phonegap.networkIndicator(false);
 			this.phonegap.appInit();
 		}
