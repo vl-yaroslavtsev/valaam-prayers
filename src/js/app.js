@@ -116,7 +116,7 @@ const app = new Framework7({
 	name: 'Валаамский молитвослов',
 	theme: navigator.userAgent.match(/Debug/) !== null ? 'auto' : 'md',
 	disabled: false,
-	version: "1.14.5",
+	version: "1.14.6",
 	// theme: 'ios',
 
 	statusbar: {
@@ -125,16 +125,23 @@ const app = new Framework7({
 	},
 
 	navbar: {
-		showOnPageScrollTop: false
+		showOnPageScrollTop: false,
+		//snapPageScrollToLargeTitle: false,
+		//snapPageScrollToTransparentNavbar: false
 	},
 
 	toolbar: {
+		showOnPageScrollEnd: false,
 		showOnPageScrollTop: false
 	},
 
+	view: {
+    iosDynamicNavbar: false,
+  },
+
 	panel: {
-		swipe: 'left',
-		swipeOnlyClose: false
+		//swipe: 'left',
+		//swipeOnlyClose: false
 	},
 
 	on: {
@@ -280,8 +287,16 @@ const app = new Framework7({
 		 */
 		async load(source, ...args) {
 			let app = this;
+			let opts = {preloader: true};
+			if (typeof source === 'object') {
+				opts = source;
+				source = source.src;
+			}
 
-			app.preloader.show();
+			if (opts.preloader) {
+				app.preloader.show();
+			}
+
 			try {
 				return await dataManager.get(source, ...args);
 			} catch (err) {
@@ -323,7 +338,9 @@ const app = new Framework7({
 				app.methods.showLoadError(msg);
 				throw err;
 			} finally {
-				app.preloader.hide();
+				if (opts.preloader) {
+					app.preloader.hide();
+				}
 			}
 		},
 		scrollToEl($el, $page) {
