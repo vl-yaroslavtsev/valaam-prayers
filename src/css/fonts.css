@@ -18,9 +18,33 @@
 }
 
 @font-face {
-	font-family: Irmologion;
-	src: local('Irmologion'), local('Irmologion Ucs'),
-		   url('../fonts/IrmUcs.woff2') format('woff2');
+	font-family: StaroUspenskaya;
+	src: local('StaroUspenskaya'), local('StaroUspenskaya Ucs'),
+		   url('../fonts/StusUcs.woff2') format('woff2');
+	font-style: normal;
+	font-weight: normal;
+}
+
+@font-face {
+	font-family: Pochaevsk;
+	src: local('Pochaevsk'), local('Pochaevsk Ucs'),
+		   url('../fonts/PochUcs.woff2') format('woff2');
+	font-style: normal;
+	font-weight: normal;
+}
+
+@font-face {
+	font-family: Ostrog;
+	src: local('Ostrog'), local('Ostrog Ucs'),
+		   url('../fonts/OstgUcs.woff2') format('woff2');
+	font-style: normal;
+	font-weight: normal;
+}
+
+@font-face {
+	font-family: Akathistos;
+	src: local('Akathistos'), local('Akathistos Ucs'),
+		   url('../fonts/AkathUcs8.woff2') format('woff2');
 	font-style: normal;
 	font-weight: normal;
 }
