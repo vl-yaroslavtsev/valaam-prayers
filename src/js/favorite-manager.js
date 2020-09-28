@@ -14,7 +14,7 @@ function add(id, type) {
 	if (has(id)) return;
 
 	let favorites = app.methods.storageGet('favorites') || [];
-	favorites.push({
+	favorites.unshift({
 		id,
 		type
 	});
@@ -38,6 +38,13 @@ function list() {
 	return favorites.map(item => formatItem(item));
 }
 
+function reorder({from, to} = {}) {
+	let favorites = app.methods.storageGet('favorites') || [];
+	let [item] = favorites.splice(from, 1);
+	favorites.splice(to, 0, item);
+	app.methods.storageSet('favorites', favorites);
+}
+
 function formatItem(item) {
 	if (item.type === 'prayer-e') {
 		let prayers = dataManager.cache.prayers;
@@ -51,7 +58,7 @@ function formatItem(item) {
 			id: item.id,
 			name: prayer.name,
 			url: `/prayers/text/${item.id}`,
-			parents: (parentSection2 && (parentSection2.name + ' / ') || '') +
+			parents: (parentSection2 && (parentSection2.name + ' • ') || '') +
 							 parentSection.name,
 			type: item.type
 		};
@@ -64,4 +71,4 @@ function formatItem(item) {
 	}
 }
 
-export default {init, add, has, remove, list};
+export default {init, add, has, remove, list, reorder};

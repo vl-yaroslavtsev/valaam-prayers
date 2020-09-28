@@ -6,6 +6,7 @@ import 'framework7/components/popover.css';
 import 'framework7/components/toast.css';
 import 'framework7/components/preloader.css';
 import 'framework7/components/progressbar.css';
+import 'framework7/components/sortable.css';
 import 'framework7/components/virtual-list.css';
 import 'framework7/components/tabs.css';
 import 'framework7/components/panel.css';
@@ -52,6 +53,7 @@ import InfiniteScroll from 'framework7/components/infinite-scroll/infinite-scrol
 import Lazy         from 'framework7/components/lazy/lazy.js';
 import Searchbar    from 'framework7/components/searchbar/searchbar.js';
 import Swiper	    from 'framework7/components/swiper/swiper.js';
+import Sortable     from 'framework7/components/sortable/sortable.js';
 import PhotoBrowser from 'framework7/components/photo-browser/photo-browser.js';
 import Autocomplete from 'framework7/components/autocomplete/autocomplete.js';
 import Skeleton 	from 'framework7/components/skeleton/skeleton.js';
@@ -76,6 +78,7 @@ Framework7.use([
 	Popup,
 	Preloader,
 	Progressbar,
+	Sortable,
 	Radio,
 	Range,
 	Searchbar,
@@ -113,7 +116,7 @@ const app = new Framework7({
 	name: 'Валаамский молитвослов',
 	theme: navigator.userAgent.match(/Debug/) !== null ? 'auto' : 'md',
 	disabled: false,
-	version: "1.12.3",
+	version: "1.13.0",
 	// theme: 'ios',
 
 	statusbar: {
@@ -338,6 +341,10 @@ const app = new Framework7({
 	dialog: {
 		buttonOk: 'Да',
 		buttonCancel: 'Отмена'
+	},
+
+	touch: {
+		tapHold: true
 	},
 
 	// App routes

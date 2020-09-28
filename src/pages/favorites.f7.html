@@ -15,40 +15,50 @@
 			<div class="title-large">
 				<div class="title-large-text">Избранное</div>
 			</div>
+			<div class="right">
+				<a class="link sortable-toggle {{#if sorting}}active{{/if}}" 
+				   data-sortable=".page-favorites .sortable">
+					<span class="material-icons">sort</span>
+				</a>
+			</div>
 		</div>
 	</div>
 	<!--suppress HtmlUnknownAttribute -->
 	<div class="page-content">
 		<div class="block">
-			<p>Здесь хранятся отобранные молитвы, каноны, акафисты, святые и еще кое-что другое.
-			Редактируйте и составьте свое личное молитвенное правило</p>
+			<p>Здесь хранятся отобранные молитвы, каноны, акафисты и т.д.
+			Редактируйте и составляйте свое личное молитвенное правило.</p>
 		</div>
 		{{#js_if "!this.items.length"}}
 			<div class="block">
 				<p>Пока Вы ничего не добавили.</p>
 			</div>
 		{{/js_if}}
-		<div class="list media-list no-hairlines-md no-margin">
-			<ul id="favoriteResult">
+		<div class="list media-list no-hairlines-md no-margin sortable sortable-tap-hold">
+			<ul class="favorite-result">
 				{{#each items}}
-					<li>
+					<li id="favorite-item-{{id}}"
+						style="margin-bottom: {{margin}}px;"
+						class="{{state}}">
 						<div class="item-content">
 							<div class="item-media align-self-center"
-									 @click="toggleFavorite('{{id}}')">
-						<i class="icon material-icons md-only">
-									{{#if isFavorite}}star{{else}}star_border{{/if}}
+								 @click="deleteFavorite('{{id}}')">
+								<i class="icon material-icons md-only">
+									{{#js_if "this.state == 'deleting'"}}star_border{{else}}star{{/js_if}}
 								</i>
-					</div>
+							</div>
+							<!-- data-view="{{targetView}}"
+								 @mouseup="showView('{{targetView}}')" -->
 							<a href="{{url}}"
 							   class="item-link item-inner panel-close"
-								 data-view="{{targetView}}"
-								 @mouseup="showView('{{targetView}}')">
+							   data-view="current">
 								<div class="item-title-row">
 									<div class="item-title">{{name}}</div>
 								</div>
 								<div class="item-subtitle">{{parents}}</div>
 							</a>
 						</div>
+						<div class="sortable-handler"></div>
 					</li>
 				{{/each}}
 			</ul>
@@ -64,41 +74,95 @@
 		cursor: pointer;
 		color: rgb(255, 198, 32);
 	}
+	
+	.sortable-toggle.active {
+		color: var(--f7-theme-color);
+	}
+	
+	.list li {
+		opacity: 1;		
+	}
+	
+	.list li.deleting {
+		opacity: 0;
+		transition-duration: .7s;
+	}
+	
+	.list li.adding {
+		opacity: 1;
+		transition-duration: .7s;
+	}
+	
+	.list .item-title {
+		display: -webkit-box;
+		-webkit-box-orient: vertical;
+		-webkit-line-clamp: 2;
+		white-space: normal;
+		max-height: calc(2 * var(--f7-list-item-title-line-height) - 2px);
+	}
 </style>
 <!--suppress JSAnnotator -->
 <script>
 	import favoriteManager from '../js/favorite-manager.js';
 	import navbarLargeMixin from './navbar-large-mixin.js';
 
-	let app, $el;
-
+	let app, $el, toast;
+	
+	
 	export default {
 		data() {
 			app = this.$app;
-			let items = favoriteManager
-				.list()
-				.map((item) => {
-					item.isFavorite = true;
-					item.targetView = item.url.startsWith('/prayers/text/') ? '#view-prayers' : '';
-					return item;
-				});
 			return {
-				items
+				items: [],
+				sorting: false
 			};
 		},
 		methods: {
-			toggleFavorite(id) {
+			deleteFavorite(id) {
 				let item = this.items.find((item) => item.id === id);
 				if (!item) return;
 
-				item.isFavorite = !item.isFavorite;
+				if (item.state == 'deleting') return;
+				
+				item.state = 'deleting';
 
-				if (item.isFavorite) {
-					favoriteManager.add(id, item.type);
-				} else {
-					favoriteManager.remove(id);
-				}
-				this.$setState({items: this.items});
+				favoriteManager.remove(id);
+				toast = app.toast.show({
+					text: 'Удалено из Избранного',
+					closeTimeout: 5000,
+					closeButton: true,
+					closeButtonText: 'Отмена',
+					on: {
+						closeButtonClick:() => {
+							favoriteManager.add(item.id, item.type);
+							this.items.unshift(item);
+							this.$update(() => {
+								let $li = $el.find(`#favorite-item-${id}`);
+								item.state = 'adding';
+								item.margin = 0;
+								$li.transitionEnd(() => {
+									item.state = '';
+									this.$update();
+								});
+								this.$update();
+							});
+						},
+						closed() {
+							toast = null;
+						}
+					}
+				});
+				
+				let $li = $el.find(`#favorite-item-${id}`);
+				
+				item.margin = '-' + $li.height();
+				$li.transitionEnd(() => {
+					let index = this.items.indexOf(item);
+					this.items.splice(index, 1);
+					this.$update();
+				});
+				
+				this.$update();
 			},
 			showView(id) {
 				app.tab.show(id);
@@ -108,15 +172,47 @@
 		on: {
 			pageInit(page) {
 				$el = this.$el;
+				
+				$el.on('sortable:sort', (event, indexes) => {
+					favoriteManager.reorder(indexes);
+				});
+				
+				$el.on('sortable:enable', () => {
+					this.sorting = true;
+					this.$update();
+				});
+				
+				$el.on('sortable:disable', () => {
+					this.sorting = false;
+					this.$update();
+				});
 			},
 			pageBeforeIn(e, page) {
 				if (page.router.history.length > 1) {
 					this.canGoBack = true;
 				}
+				this.items = getItems();
 				this.$update();
 			},
+			pageBeforeOut() {
+			},
 			pageBeforeRemove() {
+				$el.off('sortable:sort');
+				$el.off('sortable:enable');
+				$el.off('sortable:disable');
+				if (toast) toast.close();
 			}
 		},
 	};
+	
+	function getItems() {
+		return favoriteManager
+				.list()
+				.map((item) => {
+					item.state = '';
+					item.margin = 0;
+					//item.targetView = item.url.startsWith('/prayers/text/') ? '#view-prayers' : '';
+					return item;
+				});
+	}
 </script>
