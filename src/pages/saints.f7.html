@@ -1,9 +1,9 @@
 <template>
-	<div class="page">
+	<div class="page" data-name="saint-{{id}}">
 
 		<div class="navbar navbar-large navbar-transparent">
 			<div class="navbar-bg"></div>
-			<div class="navbar-inner sliding">
+			<div class="navbar-inner">
 				<div class="left">
 					<a href="#" class="link back">
 						<i class="icon icon-back"></i>
@@ -11,9 +11,6 @@
 					</a>
 				</div>
 				<div class="title">{{name}}</div>
-				<div class="title-large">
-	        <div class="title-large-text">{{name}}</div>
-	      </div>
 				<div class="right">
 					{{#if searchMode}}
 					<!--<a class="link popup-close">Закрыть</a>-->
@@ -21,9 +18,12 @@
 					{{> "navbar-right"}}
 					{{/if}}
 				</div>
+				<div class="title-large">
+	        <div class="title-large-text">{{name}}</div>
+	      </div>
 			</div>
 		</div>
-
+		
 		<div class="page-content">
 			<div class="tile">
 				{{#if picture}}
@@ -259,8 +259,8 @@
 				let dt = parse(format(new Date(), 'yyyy') + section.code, 'yyyyMMdd');
 
 				element.header = format(dt, 'd MMMM') +
-						   ' / ' +
-						   format(addDays(dt, 13), 'd MMMM');
+							 ' / ' +
+							 format(addDays(dt, 13), 'd MMMM');
 				return element;
 			});
 
@@ -278,13 +278,6 @@
 		mixins: [navbarLargeMixin],
 		on: {
 			pageInit(e, page) {
-				let title = page.$el.find('.title-large-text');
-				setTimeout(() => {
-					page.el.style.setProperty(
-						'--f7-navbar-large-title-height',
-						`${title.height() + 8}px`
-					);
-				}, 0);
 			}
 		}
 	};
