@@ -316,6 +316,22 @@
 				<div class="list no-margin">
 					<ul>
 						<li>
+							<a href="#"
+								 class="item-link item-content popup-close"
+								  @click="tutorial">
+								<div class="item-media">
+									<i class="icon material-icons">help_outline</i>
+								</div>
+								<div class="item-inner">
+									<div class="item-title">Режим обучения</div>
+								</div>
+							</a>
+						</li>
+					</ul>
+				</div>
+				<div class="list no-margin">
+					<ul>
+						<li>
 							<!--
 							data-view="#view-main"
 							data-view-tab="true"
@@ -381,7 +397,10 @@
 		'Triodion',
 		'Orthodox',
 		'Hirmos',
-		'Irmologion'
+		'Akathistos',
+		'Pochaevsk',
+		'StaroUspenskaya',
+		'Ostrog'
 	];
 
 	const TEXT_ALIGN_OPTIONS = [
@@ -456,6 +475,10 @@
 			return data;
 		},
 		methods: {
+			tutorial() {
+				let $page = app.root.find('.view.tab-active').find('.page-current');
+				$page[0].f7Component.tutorial();
+			},
 			onStyleChange(event, value) {
 				// console.log('onStyleChange', arguments);
 				let newState = {};

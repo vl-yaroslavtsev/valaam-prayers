@@ -378,14 +378,7 @@ export default {
 	},
 	methods: {
 		tutorial() {
-			let tutorial = this.$el.find('.read-mode-tutorial')[0].f7Component;
-			if (!tutorial) {
-				return;
-			}
-			app.navbar.hide(this.readMode.$navbar);
-			app.toolbar.hide(this.readMode.$progressbar);
-
-			tutorial.full();
+			this.readMode.showTutorial();
 		}
 	},
 	on: {
