@@ -78,8 +78,8 @@
 </template>
 <style scoped>
 	.navbar-large-collapsed .subnavbar:not([style^="transform:"]) {
-    background: url(images/bg.jpg) 0 0/100% auto no-repeat;
-    background-position: 0 calc(0px	- var(--f7-navbar-height) - var(--f7-safe-area-top));
+		background: url(images/bg.jpg) 0 0/100% auto no-repeat;
+		background-position: 0 calc(0px	- var(--f7-navbar-height) - var(--f7-safe-area-top));
 	}
 
 	.title-large-subtext {
@@ -219,14 +219,17 @@
 			async pageBeforeIn(e, page) {
 				if (page.router.history.length > 1) {
 					this.canGoBack = true;
+					this.$update();
 				}
+			},
+			async pageAfterIn(e, page) {
 				if (page.from === 'previous') {
-					updateVirtualList.call(this);
+					updateReadProgress.call(this, page);
 					await updateLastReading.call(this);
+					this.$update(() => {
+						this.$el.trigger('navbar:render');
+					});
 				}
-				this.$update(() => {
-					this.$el.trigger('navbar:render');
-				});
 			},
 			pageBeforeRemove(e, page) {
 				this.virtualList.destroy();
@@ -274,22 +277,24 @@
 			}
 		});
 	}
-
+	
 	/**
 	 * Обновляем значения VirtualList
 	 * @this {F7Component}
 	 */
-	async function updateVirtualList() {
-		let history = await db.read_history.getAllFromIndex('by-parent-id', this.id);
-
-		this.virtualList.items.forEach((item, index) => {
-			let record = history.find(({id}) => id === item.id);
-			if (!record) {
-				return;
-			}
-			item.read_progress = record.progress;
-			this.virtualList.replaceItem(index, item);
-		});
+	async function updateReadProgress(page) {
+		let prevRoute = page.router.previousRoute;
+		if (prevRoute.route.path != "/prayers/text/:id") return;
+		
+		let prayerId = prevRoute.params.id;		
+		let item = this.virtualList.items.find(({id}) => id === prayerId);
+		if (!item) return;
+		
+		let record = await db.read_history.get(prayerId);
+		if (!record) return;
+		
+		item.read_progress = record.progress;
+		this.virtualList.replaceItem(this.virtualList.items.indexOf(item), item);
 	}
 
 	async function handleData(prayers, history) {
