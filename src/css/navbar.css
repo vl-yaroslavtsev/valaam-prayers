@@ -39,6 +39,19 @@
 	background-size: 100% auto;
 }
 
+/* Ужасный хак. Но без него плохо работает скролл для navbar-transparent  */
+.navbar-transparent:after {
+	content: '';
+	position: fixed;
+	left: 0;
+	top: 0;
+	width: 100%;
+	height: 100%;
+	z-index: 100;
+	opacity: 0;
+	pointer-events: none;
+}
+
 .navbar .title-large {
 	font-family: 'Noto Sans', Arial;
 }
