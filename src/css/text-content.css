@@ -6,7 +6,8 @@
 	text-align: justify;
 }
 
-.md .view:not(#view-main) .text-content {
+/*.md .view:not(#view-main) .text-content { */
+.md .view .text-content {
 	color: var(--read-text-color);
 	background: var(--read-text-background);
 }

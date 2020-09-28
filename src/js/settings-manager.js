@@ -78,12 +78,12 @@ function applyTheme({colorTheme}) {
 		$html.addClass('theme-dark');
 		//document.querySelector('meta[name="theme-color"]').content = '#202020';
 		//document.querySelector('meta[name="apple-mobile-web-app-status-bar-style"]').content = 'black';
-    app.phonegap.statusbar.styleLightContent();
+		app.phonegap.statusbar.styleLightContent();
 	} else {
 		$html.removeClass('theme-dark');
     // isWhitePage ?
     //   app.phonegap.statusbar.styleDefault() :
-    app.phonegap.statusbar.styleLightContent();
+		app.phonegap.statusbar.styleLightContent();
 	}
 }
 
@@ -107,7 +107,7 @@ function applyStyles({
 
 	let styleHTML = `
 	<style id="app-settings-style">
-		.md .view:not(#view-main) .text-content {
+		.md .text-content {
 			${slFontFamily ? 'font-family: "' + slFontFamily + '" !important;' : ''}
 			${slFontSize ? 'font-size: ' + slFontSize + 'px !important;' : ''}
 			${slLineHeight ? 'line-height: ' + slLineHeight + ' !important;' : ''}
