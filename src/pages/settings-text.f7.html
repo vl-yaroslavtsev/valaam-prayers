@@ -508,6 +508,14 @@
 
 				this.$setState(newState);
 				settingsManager.apply(newState);
+
+				if (['select-font-family-cs', 'select-font-family-sl'].includes(target.id)) {
+					document.fonts.load(`20px ${target.value}`).then(() => {
+						app.emit('settingsTextChanged');
+					});
+				} else {
+					app.emit('settingsTextChanged');
+				}
 			}
 	 	},
 		on: {

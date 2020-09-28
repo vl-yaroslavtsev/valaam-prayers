@@ -21,7 +21,7 @@ class ReadMode extends StateStore {
 		this.context = context;
 		this.historyPromise = db.read_history.get(this.context.id);
 	}
-
+	
 	init() {
 		let $page = this.$page = this.context.$el;
 		let $content = this.$content = $page.find('.page-content');
@@ -31,19 +31,20 @@ class ReadMode extends StateStore {
 
 		this.handler = {
 			scroll: this.scrollHandler.bind(this),
-			click: this.clickHandler.bind(this)
+			click: this.clickHandler.bind(this),
+			settingsChanged: this.settingsChangedHandler.bind(this),
+			pageLoaded: this.pageLoadedHandler.bind(this)
 		};
 
 		app.navbar.hide($navbar, false, settingsManager.get('hideStatusbar'));
 		app.toolbar.hide($progressbar, false);
-		app.toolbar.hide($toolbar);
-		//app.toolbar.show($progressbar, false);
-
+		app.toolbar.hide($toolbar, false);
+		
 		$content.on('scroll', this.handler.scroll);
 		$content.on('click', this.handler.click);
-
-		this.historyInit();
-
+		app.on('settingsTextChanged', this.handler.settingsChanged);
+		app.on('pageLoaded', this.handler.pageLoaded);
+		
 		this.range = app.range.create({
 			el: $page.find('.read-mode-range')[0],
 			min: 1,
@@ -63,20 +64,30 @@ class ReadMode extends StateStore {
 					this.rangeChanging = false;
 				}
 			}
-		});
+		});		
+	}
+
+	/**
+	 * После получения данных подготавливаем отображение
+	*/
+	prepare() {
+		let $page = this.$page;
+		let $navbar = this.$navbar;
 
 		$page[0].style.setProperty(
 			'--f7-navbar-extra-height',
 			`${$navbar.find('.navbar-extra')[0].offsetHeight}px`
 		);
-
-		// this.context.$update();
+		
+		this.historyInit();
+		
+		this.update();
 	}
 
 	async historyInit() {
 		let $content = this.$content;
 		this.history = await this.historyPromise;
-
+		
 		if (!this.history) {
 			this.history = {
 				id: this.context.id,
@@ -92,13 +103,6 @@ class ReadMode extends StateStore {
 			await db.read_history.put(this.history);
 			await this.historyLimit();
 		}
-
-		// else {
-		// 	this.initScroll = true;
-		// 	$content.scrollTop(
-		// 		Math.round(this.history.scroll * $content[0].scrollHeight)
-		// 	);
-		// }
 	}
 
 	/**
@@ -300,6 +304,20 @@ class ReadMode extends StateStore {
 			);
 		}
 	}
+	
+	settingsChangedHandler() {
+		this.update();
+	}
+	
+	async pageLoadedHandler() {
+		this.prepare();
+		
+		await this.statePromise;
+		if (!this.state.tutorialShown) {
+			this.showTutorial();
+			this.setState({tutorialShown: true});
+		}
+	}
 
 	/**
 	 * Смещение текста относительно верха экрана.
@@ -322,10 +340,23 @@ class ReadMode extends StateStore {
 		this.textTopOffset = lineHeight + safeAreaTop;
 		return this.textTopOffset;
 	}
+	
+	showTutorial() {
+		let tutorial = this.$page.find('.read-mode-tutorial')[0].f7Component;
+		if (!tutorial) {
+			return;
+		}
+		app.navbar.hide(this.$navbar);
+		app.toolbar.hide(this.$progressbar);
+
+		tutorial.full();
+	}
 
 	destroy() {
 		this.$content.off('scroll', this.handler.scroll);
 		this.$content.off('click', this.handler.click);
+		app.off('settingsTextChanged', this.handler.settingsChanged);
+		app.off('pageLoaded', this.handler.pageLoaded);
 
 		if (this.range) {
 			this.range.destroy();
@@ -362,30 +393,17 @@ export default {
 			if (!app) {
 				app = page.app;
 			}
-
+			
 			this.readMode.init();
 		},
 
 		pageBeforeIn(e, page) {
-			this.readMode.update();
 		},
 
-		async pageAfterIn(e, page) {
-			console.log(this);
-			let readMode = this.readMode;
-			app.toolbar.hide(readMode.$toolbar, false);
-
-			await readMode.statePromise;
-			if (!readMode.state.tutorialShown) {
-				this.tutorial();
-				readMode.setState({tutorialShown: true});
-			}
+		pageAfterIn(e, page) {
 		},
 
 		pageBeforeOut(e, page) {
-			// if (!app.phonegap.statusbar.visible()) {
-			// 	app.phonegap.statusbar.show();
-			// }
 		},
 
 		pageBeforeRemove(e, page) {

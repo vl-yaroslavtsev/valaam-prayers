@@ -65,9 +65,9 @@ export default [
 		routes: [
 			{
 				path: 'instructions',
-				//component: DayInstructions,
 				async(routeTo, routeFrom, resolve, reject) {
-					resolve({component: DayInstructions}, {context: routeFrom.context});
+					let context = Object.assign({}, routeFrom.context, {id: 'bu-' + routeFrom.context.id});
+					resolve({component: DayInstructions}, {context});
 				},
 				options: {
 					transition: 'f7-push',
@@ -137,7 +137,7 @@ export default [
 					component: to
 				}, {
 					context: {
-						id: 'bu-' + daysCode,
+						id: daysCode,
 						day,
 						action: routeTo.query.action,
 						actionId: routeTo.query.actionId
@@ -150,7 +150,7 @@ export default [
 		beforeEnter: requireData('prayers')
 	},
 	{
-		path: '/saints/:saintId',
+		path: '/saints/:id',
 		routes: [
 			{
 				path: 'lives',
@@ -165,7 +165,7 @@ export default [
 		],
 		async async(routeTo, routeFrom, resolve, reject) {
 			let app = this.app;
-			let id = routeTo.params.saintId;
+			let id = routeTo.params.id;
 
 			try {
 				let saint = await app.methods.load('saint', id);
@@ -212,21 +212,14 @@ export default [
 		//beforeEnter: requireData('prayers')
 	},
 	{
-		path: '/prayers/text/:prayerId',
-		async async(routeTo, routeFrom, resolve, reject) {
-			let app = this.app;
-			let id = routeTo.params.prayerId;
-
-			try {
-				let prayer = await app.methods.load('prayer', id);
-				resolve({component: PrayersText}, {context: {id, prayer}});
-			} catch (ex) {
-				reject();
-			}
+		path: '/prayers/text/:id',
+		//component: PrayersText,
+		async(routeTo, routeFrom, resolve, reject) {
+			let id = routeTo.params.id;
+			resolve({component: PrayersText}, {context: {id}});
 		},
-		beforeEnter: requireData('prayers'),
 		options: {
-			transition: 'f7-push',
+			//transition: 'f7-push',
 	 	}
 	},
 	{

@@ -1,5 +1,5 @@
 <template>
-	<div class="page read-mode">
+	<div class="page read-mode no-toolbar">
 		<div class="navbar">
 			<div class="navbar-bg"></div>
 			<div class="navbar-inner sliding">
@@ -57,6 +57,7 @@
 				dayCode = this.$route.params.id,
 				dayData = this.day,
 				data = {
+					id: this.id,
 					language: langById('slavonic'),
 					textSettings: true
 				},
@@ -64,7 +65,6 @@
 				newstyleDate = parse(dayData.code),
 				dayOfWeek = upperFirst(format(newstyleDate, 'EEEE'));
 
-			data.id = 'bu-' + dayCode;
 			data.title = 'Богослужебные указания';
 			data.subtitle = format(oldstyleDate, 'd MMMM / ') +
 											format(newstyleDate, `d MMMM yyyy г. ${dayOfWeek}.`);
@@ -75,6 +75,11 @@
 
 			return data;
 		},
-		mixins: [readModeMixin]
+		mixins: [readModeMixin],
+		on: {
+			pageInit() {
+				app.emit('pageLoaded', this);
+			}
+		}
 	};
 </script>

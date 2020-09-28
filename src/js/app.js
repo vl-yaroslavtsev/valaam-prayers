@@ -116,7 +116,7 @@ const app = new Framework7({
 	name: 'Валаамский молитвослов',
 	theme: navigator.userAgent.match(/Debug/) !== null ? 'auto' : 'md',
 	disabled: false,
-	version: "1.13.0",
+	version: "1.14.0",
 	// theme: 'ios',
 
 	statusbar: {

@@ -46,6 +46,26 @@ h3.block {
 	margin: 16px 0;
 }
 
+h1.title {
+	font: 500 29px/32px 'Noto Sans';
+	margin: 5px 0 19px 0; /* 16px 0 16px 0 */
+	text-align: center;
+}
+
+h1.subtitle {
+	font: 500 16px/17px 'Noto Sans';
+	padding-top: 10px;
+	margin: 0;
+	text-align: center;
+}
+
+.slavonic h1.title,
+.churchslavonic h1.title,
+.slavonic h1.subtitle,
+.churchslavonic h1.subtitle {
+	color: var(--kinovar-color);
+}
+
 /* region .tile */
 .tile {
 	--f7-block-margin-vertical: 25px;
@@ -73,7 +93,7 @@ h3.block {
 
 /* region .block-strong.inset */
 .read-mode  {
-  --f7-block-inset-side-margin: 0;
+	--f7-block-inset-side-margin: 0;
 	--f7-block-inset-border-radius: 0;
 }
 
@@ -84,10 +104,10 @@ h3.block {
 	left: 0;
 	right: 0;
 	margin: 0;
-  padding-bottom: calc(var(--read-mode-padding-bottom, 0px) +
-											 var(--f7-block-padding-vertical) +
-											 var(--f7-page-toolbar-bottom-offset, 0px) +
-											 var(--f7-safe-area-bottom)); /*90vh;*/
+	padding-bottom: calc(var(--read-mode-padding-bottom, 0px) +
+	                var(--f7-block-padding-vertical) +
+	                var(--f7-page-toolbar-bottom-offset, 0px) +
+	                var(--f7-safe-area-bottom)); /*90vh;*/
 	min-height: 100vh;
 	z-index: 100;
 }

@@ -1,5 +1,5 @@
 <template>
-	<div class="page page-with-tabs-subnavbar read-mode"
+	<div class="page page-with-tabs-subnavbar no-toolbar read-mode"
 			 data-name="prayers-text-{{id}}">
 
 		<div class="navbar">
@@ -59,36 +59,72 @@
 					</div>
 				</div>
 			</div>
-			{{/if}}
+			{{/if}}  
 			-->
 
-			{{#js_if "this.text || this.picture" }}
-			<div class="block block-strong inset text-content">
-				{{#if picture}}
-				<p>
-					<img class="lazy"
-							 data-src="https://valaam.ru{{picture}}"
-							 data-src-db="{{picture}}"
-							 data-src-full="https://valaam.ru{{picture_3x}}"
-					>
-				</p>
-				{{/if}}
-				{{text}}
-			</div>
-			{{/js_if}}
+			{{#if loading}}
+				<div class="block block-strong inset text-content">
+					<h1 class="subtitle">
+						<span class="skeleton-block display-inline-block" style="width:40%;"></span>
+					</h1>
+					<h1 class="title">
+						<span class="skeleton-block display-inline-block" style="width:60%;"></span>
+					</h1>
+					<p>
+						<span class="skeleton-block display-inline-block"></span>
+						<span class="skeleton-block display-inline-block"></span>
+						<span class="skeleton-block display-inline-block"></span>
+						<span class="skeleton-block display-inline-block"></span>
+						<span class="skeleton-block display-inline-block"></span>
+						<span class="skeleton-block display-inline-block"></span>
+						<span class="skeleton-block display-inline-block" style="width:30%"></span>
+					</p>
+				</div>
+			{{else}}
+				{{#js_if "this.text || this.picture" }}
+				<div class="block block-strong inset text-content">
+					{{#if parentPath}}
+					<h1 class="subtitle">{{parentPath}}</h1>
+					{{/if}}
+					<h1 class="title">{{name}}</h1>
+					{{#if picture}}
+					<p>
+						<img class="lazy"
+								 data-src="https://valaam.ru{{picture}}"
+								 data-src-db="{{picture}}"
+								 data-src-full="https://valaam.ru{{picture_3x}}"
+						>
+					</p>
+					{{/if}}
+					{{text}}
+				</div>
+				{{/js_if}}
 
-			<div class="tabs">
-				{{#if churchslavonicText}}
-				<div class="tab {{#unless twoText}}tab-active{{/unless}}" id="tab-churchslavonic">
-					<div class="block block-strong inset churchslavonic">{{churchslavonicText}}</div>
+				<div class="tabs">
+					{{#if churchslavonicText}}
+					<div class="tab {{#unless twoText}}tab-active{{/unless}}" id="tab-churchslavonic">
+						<div class="block block-strong inset churchslavonic">
+						{{#if parentPath}}
+						<h1 class="subtitle">{{parentPath}}</h1>
+						{{/if}}
+						<h1 class="title">{{name}}</h1>
+						{{churchslavonicText}}
+						</div>
+					</div>
+					{{/if}}
+					{{#if slavonicText}}
+					<div class="tab {{#unless twoText}}tab-active{{/unless}}" id="tab-slavonic">
+						<div class="block block-strong inset slavonic text-content">
+						{{#if parentPath}}
+						<h1 class="subtitle">{{parentPath}}</h1>
+						{{/if}}
+						<h1 class="title">{{name}}</h1>
+						{{slavonicText}}
+						</div>
+					</div>
+					{{/if}}
 				</div>
-				{{/if}}
-				{{#if slavonicText}}
-				<div class="tab {{#unless twoText}}tab-active{{/unless}}" id="tab-slavonic">
-					<div class="block block-strong inset slavonic text-content">{{slavonicText}}</div>
-				</div>
-				{{/if}}
-			</div>
+			{{/if}}
 		</div>
 		<read-mode-tutorial id="read-mode-tutorial-{{id}}"></read-mode-tutorial>
 	</div>
@@ -108,28 +144,26 @@
 <script>
 	import favoriteManager from '../js/favorite-manager.js';
 	import dataManager from '../js/data/manager.js';
+	import settingsManager from '../js/settings-manager.js';
 	import readModeMixin from './read-mode-mixin.js';
 	import { prayersBookId, prayersPath } from '../js/data/utils.js';
-  import { languages, langById } from '../js/data/languages.js';
+	import { languages, langById } from '../js/data/languages.js';
 
 	let app;
 
 	export default {
 		data() {
 			app = this.$app;
-			let prayers = dataManager.cache.prayers,
-				prayer = this.prayer,
-				data = {
-					id: prayer.id,
-					name: prayer.name,
-					languages,
-					textSettings: true,
-					searchMode: this.$route.query.mode === 'search'
-				};
+			let data = {
+				id: this.$route.params.id,
+				languages,
+				textSettings: true,
+				loading: true,
+				dataPromise: loadData.call(this),
+				searchMode: this.$route.query.mode === 'search'
+			};
+			//console.log('prayers-text data() id', this.$route.params.id);
 			this.title = data.searchMode ? 'Поиск' : this.$router.view.name;
-
-			handleData(data, prayers, prayer);
-
 			return data;
 		},
 		methods: {
@@ -153,13 +187,23 @@
 		},
 		mixins: [readModeMixin],
 		on: {
-			pageInit(e, page) {
-				//await this.dataPromise;
-				//if (this.loading)
+			async pageInit(e, page) {
+				let data = await this.dataPromise;
+				
+				if (data.error) {
+					return;
+				}
+				
+				this.$setState(data);
+				await this.$tick();
+				
 				if (this.twoText) {
 					app.tab.show(page.$el.find('#tab-' + this.language.id));
 					this.$update();
 				}
+				app.lazy.create(page.el);
+				
+				app.emit('pageLoaded', this);
 
 				page.$el.find('.tabs').on('tab:show', (event) => {
 					this.language = langById(event.target.id.replace('tab-', ''));
@@ -170,19 +214,53 @@
 						this.$update();
 					}
 				});
-
-		  }
+			},
+			
+			async pageAfterIn(e, page) {
+				let data = await this.dataPromise;
+				if (data.error) {
+					this.$router.back();
+					return;
+				}
+			}
 		}
 	};
+	
+	async function loadData() {
+		let id = this.$route.params.id;
+		try {
+			
+			// TODO: сделать шрифты и другие настройки через css переменные
+			// Убрать хардкод шрифтов по умолчанию
+			let slFont = settingsManager.get('slFontFamily') || 'Circe',
+				csFont = settingsManager.get('csFontFamily') || 'Triodion';
+			let [prayer, prayers] = await Promise.all([
+				app.methods.load({src: 'prayer', preloader: false}, id),
+				dataManager.get('prayers'),
+				document.fonts.load(`17px ${slFont}`),
+				document.fonts.load(`23px ${csFont}`)
+			]);
+			
+			//console.log('loadData: prayer, prayers: ', prayer, prayers);
+			return handleData.call(this, prayers, prayer);
+		} catch (err) {
+		console.log('loadData: err: ', err);
+			return {
+				error: err			
+			}
+		}		
+	}
 
-	function handleData(data, prayers, prayer) {
+	function handleData(prayers, prayer) {
+		let data = {};
 		let path = prayersPath(prayer.id);
 		if (prayersBookId(prayer.id)) {
 			data.parentPath = path.join(' • ');
 		} else {
 			data.parentPath = path.pop();
 		}
-
+		
+		data.name = prayer.name;
 		data.parent = prayer.parent;
 		data.text = /*marked*/(prayer.text)
 			.replace(/href="(https?|mailto|tel):/g, 'class="external" href="$1:')
@@ -191,7 +269,7 @@
 		data.picture_3x = prayer.picture_3x;
 		data.churchslavonicText = prayer.churchslavonic_text;
 		data.slavonicText = prayer.slavonic_text;
-		data.twoText = data.churchslavonicText && data.slavonicText;
+		data.twoText = !!(data.churchslavonicText && data.slavonicText);
 
 		let list = prayers.e.filter(({parent}) => parent === prayer.parent);
 		let index = list.findIndex(({id}) => id === prayer.id);
@@ -202,7 +280,7 @@
 		data.nextUrl = `/prayers/text/${nextId}`;
 		data.nextUrlActive = !!nextId;
 
-		data.isFavorite = favoriteManager.has(data.id);
+		data.isFavorite = favoriteManager.has(prayer.id);
 
 		let langId;
 		if (data.twoText) {
@@ -213,5 +291,10 @@
 			langId = 'slavonic';
 		}
 		data.language = langById(langId);
+		
+		data.loading = false;
+		return data;
 	}
+	
+	
 </script>
