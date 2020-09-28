@@ -98,8 +98,8 @@ body,
 }
 
 :root {
-	--read-text-background: var(--f7-block-strong-bg-color);
-	--read-text-color: var(--f7-block-strong-text-color);
+	--read-text-background: var(--f7-page-bg-color);
+	--read-text-color: var(--f7-text-color);
 }
 
 .text-theme-grey {

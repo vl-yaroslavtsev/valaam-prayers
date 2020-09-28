@@ -34,8 +34,6 @@
 
 	--f7-radio-active-color: rgb(17, 184, 18);
 
-	--f7-skeleton-color: rgba(204, 204, 204, 0.5);
-
 	--f7-theme-color: rgb(255, 128, 32); /* #ed883e;#ef883d;*/
 	--f7-theme-color-rgb: 255, 128, 32;
 	--f7-theme-color-gradient: rgb(255, 198, 32);
@@ -46,7 +44,9 @@
 	--f7-calendar-prev-next-text-color: rgba(0,0,0,.18);
 	--f7-calendar-week-header-text-color: rgba(0,0,0,.35);
 
-	--f7-page-bg-color: #1b1b35;
+	/*--f7-page-bg-color: #1b1b35;*/
+
+	--f7-skeleton-color: rgba(204, 204, 204, 0.5);
 
 	--f7-theme-color-shade: rgb(225, 128, 32);
 	--f7-text-color: rgba(0,0,0,.8);
