@@ -54,10 +54,11 @@
 <template-partial id="result">
 	{{#each items}}
 		<li>
+			<!-- data-view="{{targetView}}"
+				 data-view-tab="true" -->
 			<a href="{{href}}"
 			   class="item-link item-content"
-				 data-view="{{targetView}}"
-				 data-view-tab="true">
+				 data-view="current">
 				<div class="item-inner">
 					<div class="item-title-row">
 						<div class="item-title">{{name}}</div>
