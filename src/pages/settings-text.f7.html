@@ -355,11 +355,11 @@
 </div>
 </template>
 <style scoped>
-	{{this}} {
+ 	#settings-text-popup{{this}} {
 		width: 68%;
 		height: auto;
 		max-width: 300px;
-		max-height: calc(100vh - 5px - var(--f7-navbar-height) - var(--f7-safe-area-top));
+		/* max-height: calc(100vh - 5px - var(--f7-navbar-height) - var(--f7-safe-area-top)); */
 		left: auto;
 		right: 5px;
 		top: calc(var(--f7-navbar-height) + var(--f7-safe-area-top));
@@ -375,6 +375,12 @@
 		/* font: 18px/24px Geometria; */
 		text-transform: none;
 		/* font-weight: 500; */
+	}
+
+	@media (min-height: 630px) and (min-width: 630px) {
+		#settings-text-popup{{this}} {
+			max-width: 400px;
+		}
 	}
 </style>
 <!--suppress JSAnnotator -->
@@ -552,9 +558,19 @@
 			popupOpen(event) {
 				// console.log('popup open', arguments);
 				let $el = this.$el;
-				$el.css({
-					height: $el.find('.page-content')[0].scrollHeight + 10 + 'px'
-				});
+				setTimeout(() => {
+					let style = window.getComputedStyle($el[0]);
+					let height = $el.find('.page-content')[0].scrollHeight + 10;
+
+					let maxHeight = window.innerHeight
+											 - 5
+											 - parseInt(style.getPropertyValue('--f7-navbar-height'))
+											 - parseInt(style.getPropertyValue('--f7-safe-area-top'));
+
+					$el.css({
+						height: (height > maxHeight ? maxHeight : height) + 'px'
+					});
+				}, 0);
 		  },
 			popupOpened(event) {
 				// console.log('popup opened', arguments);
