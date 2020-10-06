@@ -2,9 +2,9 @@ import dataManager from './manager.js';
 
 /**
  * Проверяем, принадлежит указанная молитва к разделу (одному или нескольким)
- * @param  {string} prayerId Id разделов
+ * @param  {string} prayerId Id молитвы
  * @param  {Array.<string>} parents  Id разделов
- * @return {boolean}
+ * @return {number} уровень вложенности. 0 - если молитвы нет в разделе
  */
 function isPrayerInSection(prayerId, parents) {
 	let prayers = dataManager.cache.prayers.e;
@@ -13,50 +13,57 @@ function isPrayerInSection(prayerId, parents) {
 
 	let prayer = prayers.find(({id}) => id === prayerId);
 	if (!prayer)
-		return false;
+		return 0;
 
-	return prayersParents(prayer.parent, parents);
+	return prayersParents(prayer.parent, parents, 1);
 }
 
-function prayersParents(sectionId, parents) {
+/**
+ * Проверяем, принадлежит указанный раздел к разделу (одному или нескольким)
+ * @param  {string} sectionId Id раздела
+ * @param  {Array.<string>} parents  Id разделов
+ * @param  {number} depth  уровень вложенности
+ * @return {number} depth
+ */
+function prayersParents(sectionId, parents, depth) {
 	if (parents.includes(sectionId)) {
-		return true;
+		return depth;
 	}
 
 	let sections = dataManager.cache.prayers.s;
 	let section = sections.find(({id}) => id === sectionId);
 
 	if (!section) {
-		return false;
+		return 0;
 	}
 
 	if (section.parent === "0") {
-		return false;
+		return 0;
 	}
 
-	if (parents.includes(section.parent)) {
-		return true;
-	}
-
-	return prayersParents(section.parent, parents);
+	return prayersParents(section.parent, parents, ++depth);
 }
 
 /**
- * Если элемент находится в книге, возвращаем ее ID, если нет  - false
- * @param  {string} prayerId Id разделов
+ * Если элемент или раздел находится в книге, возвращаем его ID, если нет  - false
+ * @param  {string} prayerId Id элемента
+ * @param  {string} sectionId Id раздела
  * @return {string || boolean}
  */
-function prayersBookId(prayerId) {
-	let prayers = dataManager.cache.prayers.e;
-	let sections = dataManager.cache.prayers.s;
-	let prayer = prayers.find(({id}) => id === prayerId);
-	if (!prayer) {
-		return false;
+function prayersBookId({prayerId, sectionId}) {
+	let currSectionId = sectionId;
+	if (prayerId) {
+		let prayers = dataManager.cache.prayers.e;
+		let prayer = prayers.find(({id}) => id === prayerId);
+		if (!prayer) {
+			return false;
+		}
+		currSectionId = prayer.parent;
 	}
 
-	let sectionId = prayer.parent;
+	let sections = dataManager.cache.prayers.s;
 	while (true) {
-		let section = sections.find(({id}) => id === sectionId);
+		let section = sections.find(({id}) => id === currSectionId);
 
 		if (!section) {
 			return false;
@@ -70,7 +77,7 @@ function prayersBookId(prayerId) {
 			return false;
 		}
 
-		sectionId = section.parent;
+		currSectionId = section.parent;
 	}
 }
 

@@ -59,7 +59,7 @@
 					</div>
 				</div>
 			</div>
-			{{/if}}  
+			{{/if}}
 			-->
 
 			{{#if loading}}
@@ -189,20 +189,20 @@
 		on: {
 			async pageInit(e, page) {
 				let data = await this.dataPromise;
-				
+
 				if (data.error) {
 					return;
 				}
-				
+
 				this.$setState(data);
 				await this.$tick();
-				
+
 				if (this.twoText) {
 					app.tab.show(page.$el.find('#tab-' + this.language.id));
 					this.$update();
 				}
 				app.lazy.create(page.el);
-				
+
 				app.emit('pageLoaded', this);
 
 				page.$el.find('.tabs').on('tab:show', (event) => {
@@ -215,7 +215,7 @@
 					}
 				});
 			},
-			
+
 			async pageAfterIn(e, page) {
 				let data = await this.dataPromise;
 				if (data.error) {
@@ -225,11 +225,11 @@
 			}
 		}
 	};
-	
+
 	async function loadData() {
 		let id = this.$route.params.id;
 		try {
-			
+
 			// TODO: сделать шрифты и другие настройки через css переменные
 			// Убрать хардкод шрифтов по умолчанию
 			let slFont = settingsManager.get('slFontFamily') || 'Circe',
@@ -240,26 +240,26 @@
 				document.fonts.load(`17px ${slFont}`),
 				document.fonts.load(`23px ${csFont}`)
 			]);
-			
+
 			//console.log('loadData: prayer, prayers: ', prayer, prayers);
 			return handleData.call(this, prayers, prayer);
 		} catch (err) {
 		console.log('loadData: err: ', err);
 			return {
-				error: err			
+				error: err
 			}
-		}		
+		}
 	}
 
 	function handleData(prayers, prayer) {
 		let data = {};
 		let path = prayersPath(prayer.id);
-		if (prayersBookId(prayer.id)) {
+		if (prayersBookId({prayerId: prayer.id})) {
 			data.parentPath = path.join(' • ');
 		} else {
 			data.parentPath = path.pop();
 		}
-		
+
 		data.name = prayer.name;
 		data.parent = prayer.parent;
 		data.text = /*marked*/(prayer.text)
@@ -291,10 +291,10 @@
 			langId = 'slavonic';
 		}
 		data.language = langById(langId);
-		
+
 		data.loading = false;
 		return data;
 	}
-	
-	
+
+
 </script>

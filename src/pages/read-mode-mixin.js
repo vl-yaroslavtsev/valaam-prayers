@@ -21,7 +21,7 @@ class ReadMode extends StateStore {
 		this.context = context;
 		this.historyPromise = db.read_history.get(this.context.id);
 	}
-	
+
 	init() {
 		let $page = this.$page = this.context.$el;
 		let $content = this.$content = $page.find('.page-content');
@@ -39,12 +39,12 @@ class ReadMode extends StateStore {
 		app.navbar.hide($navbar, false, settingsManager.get('hideStatusbar'));
 		app.toolbar.hide($progressbar, false);
 		app.toolbar.hide($toolbar, false);
-		
+
 		$content.on('scroll', this.handler.scroll);
 		$content.on('click', this.handler.click);
 		app.on('settingsTextChanged', this.handler.settingsChanged);
 		app.on('pageLoaded', this.handler.pageLoaded);
-		
+
 		this.range = app.range.create({
 			el: $page.find('.read-mode-range')[0],
 			min: 1,
@@ -64,7 +64,7 @@ class ReadMode extends StateStore {
 					this.rangeChanging = false;
 				}
 			}
-		});		
+		});
 	}
 
 	/**
@@ -78,23 +78,23 @@ class ReadMode extends StateStore {
 			'--f7-navbar-extra-height',
 			`${$navbar.find('.navbar-extra')[0].offsetHeight}px`
 		);
-		
+
 		this.historyInit();
-		
+
 		this.update();
 	}
 
 	async historyInit() {
 		let $content = this.$content;
 		this.history = await this.historyPromise;
-		
+
 		if (!this.history) {
 			this.history = {
 				id: this.context.id,
 				name: this.context.name,
 				parent_id: this.context.parent,
 				date: new Date(),
-				book_id: prayersBookId(this.context.id),
+				book_id: prayersBookId({prayerId: this.context.id}),
 				path: prayersPath(this.context.id),
 				// scroll: $content.scrollTop() / $content[0].scrollHeight,
 				// page: this.page,
@@ -304,14 +304,14 @@ class ReadMode extends StateStore {
 			);
 		}
 	}
-	
+
 	settingsChangedHandler() {
 		this.update();
 	}
-	
+
 	async pageLoadedHandler() {
 		this.prepare();
-		
+
 		await this.statePromise;
 		if (!this.state.tutorialShown) {
 			this.showTutorial();
@@ -340,7 +340,7 @@ class ReadMode extends StateStore {
 		this.textTopOffset = lineHeight + safeAreaTop;
 		return this.textTopOffset;
 	}
-	
+
 	showTutorial() {
 		let tutorial = this.$page.find('.read-mode-tutorial')[0].f7Component;
 		if (!tutorial) {
@@ -386,7 +386,7 @@ export default {
 			if (!app) {
 				app = page.app;
 			}
-			
+
 			this.readMode.init();
 		},
 

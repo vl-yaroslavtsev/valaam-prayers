@@ -108,6 +108,7 @@
 	import dataManager from '../js/data/manager.js';
 	import db from '../js/data/db.js';
 	import { isMobile } from '../js/utils/utils.js';
+	import { prayersBookId, isPrayerInSection } from '../js/data/utils.js';
 	import navbarLargeMixin from './navbar-large-mixin.js';
 
 	const PRAYERS_SID = "842"; // Полный молитвослов
@@ -260,14 +261,28 @@
 	 * @this {F7Component}
 	 */
 	async function updateLastReading() {
-		if (!this.bookRoot) return;
+		let lastReading,
+		    readingDepth;
+		let bookId = prayersBookId({sectionId: this.id});
+		if (!bookId) return;
 
-		let readings = await db.read_history.getAllFromIndex('by-book-id', this.id);
+		let readings = await db.read_history.getAllFromIndex('by-book-id', bookId);
 		if (!readings.length) return;
 
-		let lastReading = sortBy(readings, ['date']).pop();
-		let path = lastReading.path.concat(lastReading.name);
-		path.shift();
+		readings = sortBy(readings, ['date']);
+		for (let i = readings.length - 1; i >= 0; i--) {
+			if (readingDepth = isPrayerInSection(readings[i].id, [this.id])) {
+				 lastReading = readings[i];
+				 break;
+			}
+		}
+		if (!lastReading) {
+			 return;
+		}
+		let path = lastReading.path;
+		path = path.slice(path.length - readingDepth + 1);
+		path = path.concat(lastReading.name);
+
 		Object.assign(this, {
 			lastReading: {
 				id: lastReading.id,
@@ -277,7 +292,7 @@
 			}
 		});
 	}
-	
+
 	/**
 	 * Обновляем значения VirtualList
 	 * @this {F7Component}
@@ -285,14 +300,14 @@
 	async function updateReadProgress(page) {
 		let prevRoute = page.router.previousRoute;
 		if (prevRoute.route.path != "/prayers/text/:id") return;
-		
-		let prayerId = prevRoute.params.id;		
+
+		let prayerId = prevRoute.params.id;
 		let item = this.virtualList.items.find(({id}) => id === prayerId);
 		if (!item) return;
-		
+
 		let record = await db.read_history.get(prayerId);
 		if (!record) return;
-		
+
 		item.read_progress = record.progress;
 		this.virtualList.replaceItem(this.virtualList.items.indexOf(item), item);
 	}
