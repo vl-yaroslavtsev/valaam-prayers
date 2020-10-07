@@ -44,8 +44,8 @@ body,
 }
 
 :root {
-	--scrollbar-width: 10px;
-	--scrollbar-thumb-width: 4px;
+	--scrollbar-width: 8px;
+	--scrollbar-thumb-width: 2px;
 	--scrollbar-thumb-color: rgba(255, 255, 255, 0.3);
 	--scrollbar-thumb-hover-color: rgba(255, 255, 255, 0.5);
 }
@@ -53,6 +53,10 @@ body,
 .page-content::-webkit-scrollbar {
   -webkit-appearance: none;
 	width: var(--scrollbar-width);
+}
+
+.page.scrollbar-hidden .page-content::-webkit-scrollbar {
+  display: none;
 }
 
 .page-content::-webkit-scrollbar-thumb {

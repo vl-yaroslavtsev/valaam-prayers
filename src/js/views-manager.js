@@ -23,6 +23,10 @@ function init(appInstance) {
 	app.on('onBackPressed', () => {
 		return handleBackButton();
 	});
+
+	app.on('pageInit', (page) => {
+		handleScrollbar(page.$el);
+	});
 }
 
 /**
@@ -160,6 +164,31 @@ function createView(id) {
 
 	app.emit('viewShown', view);
 	return view;
+}
+
+/**
+ * Показываем/скрываем скроллбар
+ * @param  {Dom7} $page страница
+ */
+function handleScrollbar($page) {
+	let timer;
+	if ($page.hasClass('read-mode')) {
+		return;
+	}
+	let $content = $page.find('.page-content');
+
+	$page.addClass('scrollbar-hidden');
+	$content.on('scroll', () => {
+		if (timer) {
+			clearTimeout(timer);
+		} else {
+			$page.removeClass('scrollbar-hidden');
+		}
+		timer = setTimeout(() => {
+			$page.addClass('scrollbar-hidden');
+			timer = null;
+		}, 800);
+	});
 }
 
 /**
