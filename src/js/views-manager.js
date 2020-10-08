@@ -177,17 +177,16 @@ function handleScrollbar($page) {
 	}
 	let $content = $page.find('.page-content');
 
-	$page.addClass('scrollbar-hidden');
 	$content.on('scroll', () => {
 		if (timer) {
 			clearTimeout(timer);
 		} else {
-			$page.removeClass('scrollbar-hidden');
+			$page.addClass('scrollbar-visible');
 		}
 		timer = setTimeout(() => {
-			$page.addClass('scrollbar-hidden');
+			$page.removeClass('scrollbar-visible');
 			timer = null;
-		}, 800);
+		}, 500);
 	});
 }
 
