@@ -147,7 +147,7 @@
 	import settingsManager from '../js/settings-manager.js';
 	import readModeMixin from './read-mode-mixin.js';
 	import { prayersBookId, prayersPath } from '../js/data/utils.js';
-	import { languages, langById } from '../js/data/languages.js';
+	import { languages, langById, langByCode } from '../js/data/languages.js';
 
 	let app;
 
@@ -283,10 +283,17 @@
 		data.isFavorite = favoriteManager.has(prayer.id);
 
 		let langId;
-		if (data.twoText) {
+
+		if (this.$route.query.lang) {
+			langId = langByCode(this.$route.query.lang).id;
+			app.methods.storageSet('prayers-text-language', langId);
+
+		} else if (data.twoText) {
 			langId = app.methods.storageGet('prayers-text-language') || 'slavonic';
+
 		} else if (data.churchslavonicText) {
 			langId = 'churchslavonic';
+
 		} else {
 			langId = 'slavonic';
 		}

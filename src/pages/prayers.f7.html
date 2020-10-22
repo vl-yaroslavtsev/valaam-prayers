@@ -70,7 +70,9 @@
 				</ul>
 			</div>
 
-			<div key="virtual-list" class="list ucase-list virtual-list searchbar-found">
+			<div key="virtual-list"
+					 class="list ucase-list virtual-list searchbar-found"
+					 @click="clickList">
 			  <!-- keep it empty -->
 			</div>
 		</div>
@@ -130,6 +132,16 @@
 		methods: {
 			readMore() {
 				this.$router.navigate(`/prayers/text/${this.lastReading.id}`);
+			},
+			clickList(e) {
+				const $target = $$(e.target);
+				const $link = $target.closest('a');
+				if (!$link.length) {
+					return;
+				}
+				const href = $target.data('href') || $link.attr('href');
+
+				this.$router.navigate(href);
 			}
 		},
 		mixins: [navbarLargeMixin],
@@ -157,7 +169,8 @@
 					itemTemplate: `
 						{{#if this.id}}
 						<li key="{{this.id}}">
-							<a href="{{href}}" class="item-link item-content">
+							<a href="{{href}}"
+							 	 class="item-link item-content prevent-router">
 								<div class="item-inner">
 									<div class="item-title">
 										<div class="item-title-inner">{{name}}</div>
@@ -167,10 +180,10 @@
 									</div>
 									<div class="item-after">
 										{{#if this.lang_cs}}
-										<span class="badge color-transparent">ЦС</span>
+										<span class="badge color-transparent" data-href="{{href}}?lang=cs">ЦС</span>
 										{{/if}}
 										{{#if this.lang_sl}}
-										<span class="badge color-transparent">РУ</span>
+										<span class="badge color-transparent" data-href="{{href}}?lang=sl">РУ</span>
 										{{/if}}
 									</div>
 								</div>
