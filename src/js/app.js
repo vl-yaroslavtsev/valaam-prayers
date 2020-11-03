@@ -109,6 +109,8 @@ import {init as dateUtilsInit} from './utils/date-utils.js';
 import {init as utilsInit} from './utils/utils.js';
 import { isPrayerInSection } from './data/utils.js';
 
+import store from './store/index';
+
 // Framework7 App main instance
 const app = new Framework7({
 	root: '#root',
@@ -116,7 +118,7 @@ const app = new Framework7({
 	name: 'Валаамский молитвослов',
 	theme: navigator.userAgent.match(/Debug/) !== null ? 'auto' : 'md',
 	disabled: false,
-	version: "1.14.11",
+	version: "1.15.0",
 	// theme: 'ios',
 
 	statusbar: {
@@ -163,6 +165,8 @@ const app = new Framework7({
 				`, 30000);
 			}
 
+			app.store = store;
+
 			downloadManager.init(this);
 			favoriteManager.init(this);
 			imageManager.init(this);
@@ -170,7 +174,6 @@ const app = new Framework7({
 			dateUtilsInit(this);
 
 			viewsManager.init(this);
-
 
 			this.phonegap.canApplePay().then((result) => {
 				this.data.canApplePay = result;
@@ -313,17 +316,16 @@ const app = new Framework7({
 						case 'saint':
 							type = 'Святые';
 							break;
-						case 'prayer':
-							let prayerId = args[0];
-							if (isPrayerInSection(prayerId, ['1736', '842'])) {
-								type = 'Молитвослов';
+						case 'paryer':
+							if (isPrayerInSection(id, ['1736', '842'])) {
+				        type = 'Молитвослов';
 
-							} else if (isPrayerInSection(prayerId, ['976'])) {
-								type = 'Духовная литература';
+				      } else if (isPrayerInSection(id, ['976'])) {
+				        type = 'Духовная литература';
 
-							} else if (isPrayerInSection(prayerId, ['937']) ) {
-								type = 'Богослужебные книги';
-							}
+				      } else if (isPrayerInSection(id, ['937']) ) {
+				        type = 'Богослужебные книги';
+				      }
 							break;
 					}
 					msg = `

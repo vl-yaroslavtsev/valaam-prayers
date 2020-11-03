@@ -148,6 +148,7 @@
 	import readModeMixin from './read-mode-mixin.js';
 	import { prayersBookId, prayersPath } from '../js/data/utils.js';
 	import { languages, langById, langByCode } from '../js/data/languages.js';
+	import { mapState, mapActions, mapGetters } from '../js/store/store.js';
 
 	let app;
 
@@ -166,6 +167,13 @@
 			this.title = data.searchMode ? 'Поиск' : this.$router.view.name;
 			return data;
 		},
+		beforeCreate() {
+			this.$store = this.$app.store;
+			mapState(this, {
+				prayers: (state) => state.prayers.list,
+				prayer: (state) => state.prayers.item[this.id]
+			});
+		},
 		methods: {
 			toggleFavorite() {
 				let isFavorite = !this.isFavorite;
@@ -183,7 +191,11 @@
 			selectLanguage({target}) {
 				this.language = langById(target.value);
 				app.tab.show(this.$el.find('#tab-' + this.language.id));
-			}
+			},
+			...mapActions({
+				getPrayers: 'prayers/getList',
+				getPrayer: 'prayers/getItem'
+			})
 		},
 		mixins: [readModeMixin],
 		on: {
@@ -234,15 +246,15 @@
 			// Убрать хардкод шрифтов по умолчанию
 			let slFont = settingsManager.get('slFontFamily') || 'Circe',
 				csFont = settingsManager.get('csFontFamily') || 'Triodion';
-			let [prayer, prayers] = await Promise.all([
-				app.methods.load({src: 'prayer', preloader: false}, id),
-				dataManager.get('prayers'),
+			await Promise.all([
+				this.getPrayer(id),
+				this.getPrayers(),
 				document.fonts.load(`17px ${slFont}`),
 				document.fonts.load(`23px ${csFont}`)
 			]);
 
 			//console.log('loadData: prayer, prayers: ', prayer, prayers);
-			return handleData.call(this, prayers, prayer);
+			return handleData.call(this);
 		} catch (err) {
 		console.log('loadData: err: ', err);
 			return {
@@ -251,7 +263,9 @@
 		}
 	}
 
-	function handleData(prayers, prayer) {
+	function handleData() {
+		let prayers = this.prayers;
+		let prayer = this.prayer;
 		let data = {};
 		let path = prayersPath(prayer.id);
 		if (prayersBookId({prayerId: prayer.id})) {

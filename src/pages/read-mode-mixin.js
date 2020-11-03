@@ -6,10 +6,11 @@ import StateStore from '../js/state-store.js';
 import settingsManager from '../js/settings-manager.js';
 import db from '../js/data/db.js';
 import { prayersBookId, prayersPath } from '../js/data/utils.js';
+import { mapState, mapActions, mapGetters } from '../js/store/store.js';
 
-const READ_HISTORY_MAX_SIZE = 1000;
 
 let app;
+let store;
 
 class ReadMode extends StateStore {
 	constructor(context) {
@@ -17,9 +18,13 @@ class ReadMode extends StateStore {
 			id: 'read-mode',
 			tutorialShown: false
 		});
+		app = context.$app;
+		store = app.store;
 
 		this.context = context;
-		this.historyPromise = db.read_history.get(this.context.id);
+
+		console.log('ReadMode() this.context.id', this.context.id);
+		this.history = store.getters['readHistory/item'](this.context.id);
 	}
 
 	init() {
@@ -84,9 +89,12 @@ class ReadMode extends StateStore {
 		this.update();
 	}
 
+	async setHistory() {
+		await store.dispatch('readHistory/setItem', this.history);
+	}
+
 	async historyInit() {
 		let $content = this.$content;
-		this.history = await this.historyPromise;
 
 		if (!this.history) {
 			this.history = {
@@ -100,8 +108,7 @@ class ReadMode extends StateStore {
 				// page: this.page,
 				// pages: this.pages
 			};
-			await db.read_history.put(this.history);
-			await this.historyLimit();
+			this.setHistory();
 		}
 	}
 
@@ -110,50 +117,38 @@ class ReadMode extends StateStore {
 	 *
 	 * @return {type}  description
 	 */
-	async historyUpdate() {
+	historyUpdate() {
 		let $content = this.$content;
-		await this.historyPromise;
 
 		if (!this.history) {
 			return;
 		}
 
-		let scroll = $content.scrollTop() / $content[0].scrollHeight;
-
-		Object.assign(this.history, {
-			scroll,
-			progress: (this.page == this.pages) ? '100' : Math.round(scroll * 100).toString(),
-			date: new Date(),
-			parent_id: this.context.parent,
-			page: this.page,
-			pages: this.pages,
-		});
-		await db.read_history.put(this.history);
-	}
-
-
-	/**
-	 * Ограничиваем размер истории до READ_HISTORY_MAX_SIZE элементов
-	 * @return {Promise}
-	 */
-	async historyLimit() {
-		let count = await db.read_history.count();
-		if (count <= READ_HISTORY_MAX_SIZE) {
-			return;
+		if (this.historyUpdateTimer) {
+			clearTimeout(this.historyUpdateTimer);
+			this.historyUpdateTimer = null;
 		}
-		let keys = await db.read_history.getAllKeysFromIndex('by-date');
-		let keysToDelete = keys.slice(0, count - READ_HISTORY_MAX_SIZE);
 
-		await Promise.all(
-			keysToDelete.map((key) => db.read_history.delete(key))
-		);
+		this.historyUpdateTimer = setTimeout(() => {
+			let scroll = $content.scrollTop() / $content[0].scrollHeight;
+
+			Object.assign(this.history, {
+				scroll,
+				progress: (this.page == this.pages) ? '100' : Math.round(scroll * 100).toString(),
+				date: new Date(),
+				parent_id: this.context.parent,
+				page: this.page,
+				pages: this.pages,
+			});
+
+			this.setHistory();
+		}, 300);
 	}
 
 	async update() {
 		let $content = this.$content
 		this.countPages();
 
-		await this.historyPromise;
 		if (this.history.scroll) {
 			this.initScroll = true;
 			$content.scrollTop(
