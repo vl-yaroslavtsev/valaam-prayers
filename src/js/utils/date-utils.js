@@ -6,20 +6,31 @@ import {
 	getUnixTime
 } from 'date-fns';
 import { ru } from 'date-fns/locale';
-import dataManager from '../data/manager.js';
 
 let app, monthNames;
+
+const EASTER = {
+	'2018': '0408',
+	'2019': '0428',
+	'2020': '0419',
+	'2021': '0502',
+	'2022': '0424',
+	'2023': '0416',
+	'2024': '0505',
+	'2025': '0420',
+	'2026': '0412',
+	'2027': '0502',
+	'2028': '0416',
+	'2029': '0408',
+	'2030': '0428',
+};
 
 function init(appInstance) {
 	app = appInstance;
 }
 
 function getEaster(year) {
-	let [date] = Object
-		.entries(dataManager.cache.calendar)
-		.find(([date, desc]) => date.startsWith(year) && desc === "e") || [];
-
-	return parse(date);
+	return parse(year + EASTER[year]);
 }
 
 function parse(str, format = 'yyyyMMdd') {
