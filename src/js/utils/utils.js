@@ -220,6 +220,49 @@ function jsonSize(json) {
   return str.length + (m ? m.length : 0);
 }
 
+/**
+ * Анимация
+ * @param  {Object} params
+ * @param  {String|Function(Number)} [timing='swing'] Функция состояния (0-1) от времени (0-1).
+ * @param  {Function} draw           Отрисовка состояния
+ * @param  {Number} [duration=300]   Продолжительность анимации
+ * @param  {Function} [end=]         Коллбэк окончания
+ * @return {Function}                Отмена анимации
+ */
+function animate({timing = 'swing', draw, duration = 300, end = () => {}}) {
+  let start = performance.now();
+  let requestId;
+
+	if (timing == 'swing') {
+		timing = (progress) => {
+			return 0.5 - (Math.cos(progress * Math.PI) / 2);
+		}
+	} else if (timing == 'linear') {
+		timing = (progress) => {
+			return progress;
+		}
+	}
+
+  requestId = requestAnimationFrame(function animate(time) {
+    // timeFraction изменяется от 0 до 1
+    let timeFraction = (time - start) / duration;
+    if (timeFraction > 1) timeFraction = 1;
+
+    // вычисление текущего состояния анимации
+    let progress = timing(timeFraction);
+
+    draw(progress); // отрисовать её
+
+    if (timeFraction < 1) {
+      requestId = requestAnimationFrame(animate);
+    } else {
+			end();
+		}
+  });
+
+	return () => cancelAnimationFrame(requestId);
+}
+
 export {
 	init,
 	isMobile,
@@ -228,5 +271,6 @@ export {
 	fetchBlob,
 	fetchRaw,
 	formatUrl,
-	jsonSize
+	jsonSize,
+	animate
 };

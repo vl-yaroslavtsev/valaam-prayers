@@ -43,11 +43,12 @@ body,
 	overflow-x: hidden;
 }
 
-:root {
+.page {
 	--scrollbar-width: 8px;
 	--scrollbar-thumb-width: 2px;
-	--scrollbar-thumb-color: rgba(255, 255, 255, 0.3);
-	--scrollbar-thumb-hidden-color: rgba(255, 255, 255, 0);
+	--scrollbar-thumb-alpha: 0;
+	--scrollbar-thumb-color: rgba(255, 255, 255, var(--scrollbar-thumb-alpha));
+	--scrollbar-thumb-shown-alpha: 0.3;
 	--scrollbar-thumb-hover-color: rgba(255, 255, 255, 0.5);
 }
 
@@ -56,22 +57,10 @@ body,
 	width: var(--scrollbar-width);
 }
 
-.page-content {
-	background-color: var(--scrollbar-thumb-hidden-color);
-	-webkit-background-clip: text;
-	transition: background-color .8s;
-}
-
-.page.scrollbar-visible .page-content {
-  background-color: var(--scrollbar-thumb-color);
-	transition: background-color 0s;
-}
-
 .page-content::-webkit-scrollbar-thumb {
 	min-height: 25px;
   background-clip: content-box;
-  /* box-shadow: var(--scrollbar-thumb-color) 0 0 0 var(--scrollbar-width) inset; */
-	background-color: inherit;
+  box-shadow: var(--scrollbar-thumb-color) 0 0 0 var(--scrollbar-width) inset;
 	border-style: solid;
   border-color: transparent;
   border-width: 1px calc((var(--scrollbar-width) - var(--scrollbar-thumb-width)) / 2);
@@ -80,8 +69,7 @@ body,
 
 .page-content::-webkit-scrollbar-thumb:hover,
 .page-content::-webkit-scrollbar-thumb:active {
-	/* box-shadow: var(--scrollbar-thumb-hover-color) 0 0 0 var(--scrollbar-width) inset; */
-	background-color: var(--scrollbar-thumb-hover-color);
+	--scrollbar-thumb-color: var(--scrollbar-thumb-hover-color);
 }
 
 .page-white,
@@ -104,10 +92,6 @@ body,
 	--scrollbar-thumb-hover-color: rgba(0, 0, 0, 0.4);
 
 	background: var(--read-text-background);
-}
-
-.read-mode .page-content {
-	background-color: var(--scrollbar-thumb-color);
 }
 
 .theme-dark .read-mode {
