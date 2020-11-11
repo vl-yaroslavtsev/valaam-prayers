@@ -1,6 +1,6 @@
 <template>
 <div class="page page-white page-favorites">
-	<div class="navbar navbar-large navbar-transparent">
+	<div class="navbar navbar-collapse">
 		<div class="navbar-bg"></div>
 		<div class="navbar-inner sliding">
 			{{#if canGoBack}}
@@ -12,11 +12,8 @@
 			</div>
 			{{/if}}
 			<div class="title">Избранное</div> <!-- Валаам -->
-			<div class="title-large">
-				<div class="title-large-text">Избранное</div>
-			</div>
 			<div class="right">
-				<a class="link sortable-toggle {{#if sorting}}active{{/if}}" 
+				<a class="link sortable-toggle {{#if sorting}}active{{/if}}"
 				   data-sortable=".page-favorites .sortable">
 					<span class="material-icons">sort</span>
 				</a>
@@ -25,6 +22,9 @@
 	</div>
 	<!--suppress HtmlUnknownAttribute -->
 	<div class="page-content">
+		<div class="page-title">
+			Избранное
+		</div>
 		<div class="block">
 			<p>Здесь хранятся отобранные молитвы, каноны, акафисты и т.д.
 			Редактируйте и составляйте свое личное молитвенное правило.</p>
@@ -74,25 +74,25 @@
 		cursor: pointer;
 		color: rgb(255, 198, 32);
 	}
-	
+
 	.sortable-toggle.active {
 		color: var(--f7-theme-color);
 	}
-	
+
 	.list li {
-		opacity: 1;		
+		opacity: 1;
 	}
-	
+
 	.list li.deleting {
 		opacity: 0;
 		transition-duration: .7s;
 	}
-	
+
 	.list li.adding {
 		opacity: 1;
 		transition-duration: .7s;
 	}
-	
+
 	.list .item-title {
 		display: -webkit-box;
 		-webkit-box-orient: vertical;
@@ -104,11 +104,10 @@
 <!--suppress JSAnnotator -->
 <script>
 	import favoriteManager from '../js/favorite-manager.js';
-	import navbarLargeMixin from './navbar-large-mixin.js';
 
 	let app, $el, toast;
-	
-	
+
+
 	export default {
 		data() {
 			app = this.$app;
@@ -123,7 +122,7 @@
 				if (!item) return;
 
 				if (item.state == 'deleting') return;
-				
+
 				item.state = 'deleting';
 
 				favoriteManager.remove(id);
@@ -152,36 +151,35 @@
 						}
 					}
 				});
-				
+
 				let $li = $el.find(`#favorite-item-${id}`);
-				
+
 				item.margin = '-' + $li.height();
 				$li.transitionEnd(() => {
 					let index = this.items.indexOf(item);
 					this.items.splice(index, 1);
 					this.$update();
 				});
-				
+
 				this.$update();
 			},
 			showView(id) {
 				app.tab.show(id);
 			}
 	 	},
-		mixins: [navbarLargeMixin],
 		on: {
 			pageInit(page) {
 				$el = this.$el;
-				
+
 				$el.on('sortable:sort', (event, indexes) => {
 					favoriteManager.reorder(indexes);
 				});
-				
+
 				$el.on('sortable:enable', () => {
 					this.sorting = true;
 					this.$update();
 				});
-				
+
 				$el.on('sortable:disable', () => {
 					this.sorting = false;
 					this.$update();
@@ -204,7 +202,7 @@
 			}
 		},
 	};
-	
+
 	function getItems() {
 		return favoriteManager
 				.list()

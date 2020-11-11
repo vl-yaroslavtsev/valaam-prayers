@@ -1,7 +1,6 @@
 <template>
 	<div class="page" data-name="prayers-{{id}}">
-
-		<div class="navbar navbar-large navbar-transparent">
+		<div class="navbar navbar-collapse">
 			<div class="navbar-bg"></div>
 			<div class="navbar-inner sliding">
 				{{#if canGoBack}}
@@ -13,22 +12,6 @@
 				</div>
 				{{/if}}
 				<div class="title">{{name}}</div> <!-- Валаам -->
-				<div class="title-large">
-	        <div class="title-large-text">{{name}}
-						{{#if lastReading}}
-						<div class="title-large-subtext">
-							<div class="title-large-info">
-								{{lastReading.path}}<br>
-								Страница: {{lastReading.page}} из {{lastReading.pages}}
-							</div>
-							<div class="title-large-button">
-								<a class="button button-round button-outline button-raised"
-									 @click="readMore()">Читать</a>
-							</div>
-						</div>
-						{{/if}}
-					</div>
-				</div>
 				<div class="right">
 					{{> "navbar-right"}}
 				</div>
@@ -37,7 +20,8 @@
 					<form class="searchbar searchbar-init searchbar-transparent"
 								data-search-container=".page[data-name='prayers-{{id}}'] .virtual-list"
 								data-search-item="li"
-								data-search-in=".item-title">
+								data-search-in=".item-title"
+								data-backdrop="false">
 						<div class="searchbar-inner">
 							<div class="searchbar-input-wrap">
 								<input type="search" placeholder="Поиск в разделе"/>
@@ -52,13 +36,28 @@
 		</div>
 
 		<div class="page-content">
-			<!--
-			{{#if name}}
-			<h2 class="block">{{name}}</h2>
-			{{else}}
-			<h2 class="block">{{title}}</h2>
-			{{/if}}
-			-->
+
+			<div class="page-title">
+				{{#if loading}}
+					<div class="skeleton-block"
+						 	 style='width:{{js "15 + Math.round(Math.random() * 15)"}}ch;'></div>
+				{{else}}
+					{{name}}
+				{{/if}}
+				{{#if lastReading}}
+				<div class="page-subtitle">
+					<div class="page-title-info">
+						{{lastReading.path}}<br>
+						Страница: {{lastReading.page}} из {{lastReading.pages}}
+					</div>
+					<div class="page-title-button">
+						<a class="button button-round button-outline button-raised"
+							 @click="readMore()">Читать</a>
+					</div>
+				</div>
+				{{/if}}
+			</div>
+
 
 			{{#if description}}
 			<div class="block text-white">{{description}}</div>
@@ -79,12 +78,14 @@
 	</div>
 </template>
 <style scoped>
-	.navbar-large-collapsed .subnavbar:not([style^="transform:"]) {
+	.subnavbar {
 		background: url(images/bg.jpg) 0 0/100% auto no-repeat;
 		background-position: 0 calc(0px	- var(--f7-navbar-height) - var(--f7-safe-area-top));
 	}
 
-	.title-large-subtext {
+	.page-subtitle {
+		color: var(--f7-navbar-link-color);
+		font-size: var(--f7-navbar-font-size);
 		display:flex;
 		flex-direction: row;
 		justify-content: space-between;
@@ -96,9 +97,7 @@
 		line-height: 1.5;
 	}
 
-	.title-large-info {
-	}
-	.title-large-button {
+	.page-title-button {
 		--f7-button-text-color: var(--f7-navbar-link-color);
 		--f7-button-outline-border-color: var(--f7-navbar-link-color);
 	}
@@ -110,7 +109,6 @@
 	import db from '../js/data/db.js';
 	import { isMobile } from '../js/utils/utils.js';
 	import { prayersBookId, isPrayerInSection } from '../js/data/utils.js';
-	import navbarLargeMixin from './navbar-large-mixin.js';
 	import {
 		mapState,
 		mapActions,
@@ -185,10 +183,8 @@
 				getHistory: 'readHistory/getList'
 			})
 		},
-		mixins: [navbarLargeMixin],
 		on: {
-			pageMounted() {
-				console.log('Page mounted');
+			pageMounted(e, page) {
 			},
 			async pageInit(e, page) {
 				this.virtualList = app.virtualList.create({
@@ -259,7 +255,8 @@
 								(twoStrings ? 118 : 92) :
 								(twoStrings ? 94 : 82);
 						}
-					}
+					},
+					//updatableScroll: false
 				});
 
 				let {items, state} = await this.loadPromise;

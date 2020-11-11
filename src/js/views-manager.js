@@ -26,6 +26,7 @@ function init(appInstance) {
 
 	app.on('pageInit', (page) => {
 		handleScrollbar(page.$el);
+		handleNavbarCollapse(page.$el);
 	});
 }
 
@@ -212,6 +213,42 @@ function handleScrollbar($page) {
 			timer = null;
 		}, 800);
 	});
+}
+
+
+/**
+ * Показываем/скрываем navbar c классом navbar-collapse
+ * @param  {Dom7} $page страница
+ */
+function handleNavbarCollapse($page) {
+	const $navbar = $page.find('.navbar');
+
+	if (!$navbar.hasClass('navbar-collapse')) {
+		return;
+	}
+
+	const height = getTitleHeight();
+	const $content = $page.find('.page-content');
+	let prevOpacity = 0;
+
+	$content.on('scroll', (e) => {
+		requestAnimationFrame((time) => {
+			let opacity = $content[0].scrollTop / height;
+			if (opacity > 1) {
+				opacity = 1;
+			}
+			if (opacity === prevOpacity) {
+				return;
+			}
+
+			$navbar[0].style.setProperty('--navbar-opacity', opacity.toFixed(3));
+			prevOpacity = opacity;
+		});
+	});
+
+	function getTitleHeight() {
+		return isMobile() ? 55 : 78;
+	}
 }
 
 /**

@@ -1,7 +1,7 @@
 <template>
 	<div class="page page-with-tabs-subnavbar" data-name="day-ereaders-{{id}}">
 
-		<div class="navbar navbar-large navbar-transparent">
+		<div class="navbar navbar-collapse">
 			<div class="navbar-bg"></div>
 			<div class="navbar-inner sliding">
 				<div class="left">
@@ -11,9 +11,6 @@
 					</a>
 				</div>
 				<div class="title">{{name}}</div>
-				<div class="title-large">
-	        <div class="title-large-text">{{name}}</div>
-	      </div>
 				<div class="right">
 					<a class="link smart-select smart-select-init"
 						 data-open-in="popover"
@@ -39,6 +36,9 @@
 		</div>
 
 		<div class="page-content">
+			<div class="page-title">
+				{{name}}
+			</div>
 			<div class="subnavbar tabs-subnavbar">
 				<div class="subnavbar-inner">
 					<div class="segmented segmented-raised">
@@ -68,7 +68,6 @@
 </style>
 <!--suppress JSAnnotator -->
 <script>
-	import navbarLargeMixin from './navbar-large-mixin.js';
 	import { languages, langById } from '../js/data/languages.js';
 
 	export default {
@@ -128,6 +127,5 @@
 				});
 		  }
 		},
-		mixins: [navbarLargeMixin]
 	};
 </script>

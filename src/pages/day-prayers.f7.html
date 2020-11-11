@@ -1,7 +1,7 @@
 <template>
 	<div class="page">
 
-		<div class="navbar navbar-large navbar-transparent">
+		<div class="navbar navbar-collapse">
 			<div class="navbar-bg"></div>
 			<div class="navbar-inner sliding">
 				<div class="left">
@@ -11,9 +11,6 @@
 					</a>
 				</div>
 				<div class="title">{{name}}</div>
-				<div class="title-large">
-	        <div class="title-large-text">{{name}}</div>
-	      </div>
 				<div class="right">
 					{{> "navbar-right"}}
 				</div>
@@ -21,6 +18,9 @@
 		</div>
 
 		<div class="page-content">
+			<div class="page-title">
+				{{name}}
+			</div>
 			<div class="block block-strong inset prayer slavonic text-content">
 				{{text}}
 			</div>
@@ -38,7 +38,6 @@
 	}
 </style>
 <script>
-	import navbarLargeMixin from './navbar-large-mixin.js';
 	import { languages, langById } from '../js/data/languages.js';
 
 	export default {
@@ -57,6 +56,5 @@
 
 			return prayerData;
 		},
-		mixins: [navbarLargeMixin]
 	};
 </script>

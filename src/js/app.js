@@ -110,7 +110,6 @@ import {init as utilsInit} from './utils/utils.js';
 import { isPrayerInSection } from './data/utils.js';
 
 import store from './store/index';
-
 // Framework7 App main instance
 const app = new Framework7({
 	root: '#root',
@@ -118,7 +117,7 @@ const app = new Framework7({
 	name: 'Валаамский молитвослов',
 	theme: navigator.userAgent.match(/Debug/) !== null ? 'auto' : 'md',
 	disabled: false,
-	version: "1.15.2",
+	version: "1.15.3",
 	// theme: 'ios',
 
 	statusbar: {
@@ -128,8 +127,9 @@ const app = new Framework7({
 
 	navbar: {
 		showOnPageScrollTop: false,
-		//snapPageScrollToLargeTitle: false,
-		//snapPageScrollToTransparentNavbar: false
+		// collapseLargeTitleOnScroll: false,
+		snapPageScrollToLargeTitle: false,
+		snapPageScrollToTransparentNavbar: false
 	},
 
 	toolbar: {
@@ -363,7 +363,7 @@ const app = new Framework7({
 	},
 
 	touch: {
-		tapHold: true
+		// tapHold: true
 	},
 
 	// App routes

@@ -2,7 +2,7 @@
 
 <div class="page page-white">
 
-	<div class="navbar navbar-large navbar-transparent">
+	<div class="navbar navbar-collapse">
 		<div class="navbar-bg"></div>
 		<div class="navbar-inner sliding">
 			{{#if canGoBack}}
@@ -14,13 +14,13 @@
 			</div>
 			{{/if}}
 			<div class="title">Настройки</div>
-			<div class="title-large">
-				<div class="title-large-text">Настройки</div>
-			</div>
 		</div>
 	</div>
 
 	<div class="page-content">
+		<div class="page-title">
+			Настройки
+		</div>
 		<div class="block">
 			<p>Применяются к разделам «Молитвослов», «Календарь»,
 				«Валаам» и «Поминовение».</p>
@@ -130,7 +130,6 @@
 <script>
 	import settingsManager from '../js/settings-manager.js';
 	import downloadManager from '../js/download/manager.js';
-	import navbarLargeMixin from './navbar-large-mixin.js';
 
 	let app, $el;
 	export default {
@@ -153,7 +152,6 @@
 				downloadManager.testFitures();
 			}
 	 	},
-		mixins:[navbarLargeMixin],
 		on: {
 			pageInit(e, page) {
 				$el = this.$el;
