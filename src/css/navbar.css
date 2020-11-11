@@ -92,10 +92,15 @@
 
 .navbar-collapse {
 	--navbar-opacity: 0;
+	background-color: var(--f7-page-bg-color);
+}
+
+.md:not(.theme-dark) .page:not(.page-white) .navbar-collapse {
 	background-image: url(../images/bg.jpg);
 	background-repeat: no-repeat;
 	background-size: 100% auto;
 }
+
 .navbar-collapse .navbar-bg {
 	opacity: var(--navbar-opacity);
 }

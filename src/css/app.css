@@ -46,6 +46,7 @@ body,
 .page {
 	--scrollbar-width: 8px;
 	--scrollbar-thumb-width: 2px;
+	
 	--scrollbar-thumb-alpha: 0;
 	--scrollbar-thumb-color: rgba(255, 255, 255, var(--scrollbar-thumb-alpha));
 	--scrollbar-thumb-shown-alpha: 0.3;
@@ -74,14 +75,16 @@ body,
 
 .page-white,
 .smart-select-page {
-	--scrollbar-thumb-color: rgba(0, 0, 0, 0.2);
+	--scrollbar-thumb-color: rgba(0, 0, 0, var(--scrollbar-thumb-alpha));
+	--scrollbar-thumb-shown-alpha: 0.2;
 	--scrollbar-thumb-hover-color: rgba(0, 0, 0, 0.4);
 }
 
 .theme-dark,
 .theme-dark .page-white,
 .theme-dark .smart-select-page  {
-	--scrollbar-thumb-color: rgba(255, 255, 255, 0.2);
+	--scrollbar-thumb-color: rgba(255, 255, 255, var(--scrollbar-thumb-alpha));
+	--scrollbar-thumb-shown-alpha: 0.2;
 	--scrollbar-thumb-hover-color: rgba(255, 255, 255, 0.4);
 }
 
@@ -193,7 +196,7 @@ body,
 	 background-image: none;
 }
 
-.md:not(.theme-dark) .page-white .navbar {
+.md:not(.theme-dark) .page-white {
    --f7-navbar-link-color: rgba(0,0,0,.25);
    --f7-navbar-text-color: var(--f7-text-color);
    --f7-navbar-border-color: rgba(0, 0, 0, 0.08);
