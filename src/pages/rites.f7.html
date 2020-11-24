@@ -423,7 +423,8 @@
 							).appendTo('body').submit();
 						}
 						else if(result['payment']['payment_method']['type'] !== 'mobile_balance') // noinspection JSUnresolvedletiable
-							document.location = result.payment.confirmation.confirmation_url;
+							//document.location = result.payment.confirmation.confirmation_url;
+							app.phonegap.internalBrowser(result.payment.confirmation.confirmation_url);
 						}
 					} catch (err) {
 						app.methods.showLoadError();

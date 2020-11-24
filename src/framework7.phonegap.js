@@ -1,5 +1,5 @@
 /**
- * Framework7 Plugin PhoneGap 0.9.6
+ * Framework7 Plugin PhoneGap 0.9.7
  * PhoneGap plugin extends Framework7 for ios & android native
  *
  * Copyright 2020 Ивайло Тилев
@@ -46,7 +46,8 @@ const Framework7PhoneGap = {
 			},
 
 			internalBrowser(url) {
-				this.exec(arguments.callee.name, url);
+				if(!this.exec(arguments.callee.name, url))
+					document.location = url;
 			},
 
 			keepScreenOn(state) {
@@ -231,7 +232,7 @@ const Framework7PhoneGap = {
 
 						call() || resolve(def);
 					});
-				} else call();
+				} else return call();
 			}
 		}
 	},
