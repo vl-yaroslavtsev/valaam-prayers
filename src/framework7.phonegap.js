@@ -1,5 +1,5 @@
 /**
- * Framework7 Plugin PhoneGap 0.9.4
+ * Framework7 Plugin PhoneGap 0.9.6
  * PhoneGap plugin extends Framework7 for ios & android native
  *
  * Copyright 2020 Ивайло Тилев
@@ -25,12 +25,32 @@ const Framework7PhoneGap = {
 				this.exec(arguments.callee.name, data);
 			},
 
+			downloadRequest(url) {
+				return this.exec(arguments.callee.name, url, 'once', -1);
+			},
+
+			downloadStatus() {
+				return this.exec(arguments.callee.name, null, 'once', {});
+			},
+
+			downloadRemove(id) {
+				this.exec(arguments.callee.name, id);
+			},
+
 			getSettings() {
 				return this.exec(arguments.callee.name, null, 'once', {});
 			},
 
 			hideSplash() {
 				this.exec(arguments.callee.name, null);
+			},
+
+			internalBrowser(url) {
+				this.exec(arguments.callee.name, url);
+			},
+
+			keepScreenOn(state) {
+				this.exec(arguments.callee.name, state);
 			},
 
 			networkIndicator(visible) {
@@ -184,18 +204,20 @@ const Framework7PhoneGap = {
 					if(app.device.android) {
 						/** @namespace AndroidJS */
 						if(window['AndroidJS'] && typeof AndroidJS[fn] === 'function') {
-							if(params !== null)
+							if(params === null)
+								AndroidJS[fn]()
+							else if(typeof params === 'object')
 								AndroidJS[fn](JSON.stringify(params))
-							else AndroidJS[fn]()
+							else AndroidJS[fn](params)
 
-								return true;
+							return true;
 						}
 					} else if(app.device.ios) {
 						/** @namespace webkit.messageHandlers */
 						if(window['webkit'] && typeof webkit.messageHandlers[fn] === 'object') {
-						webkit.messageHandlers[fn].postMessage(params);
-						return true;
-					}
+							webkit.messageHandlers[fn].postMessage(params);
+							return true;
+						}
 					}
 
 					return false;
