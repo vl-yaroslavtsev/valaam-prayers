@@ -70,6 +70,9 @@ class ReadMode extends StateStore {
 				}
 			}
 		});
+
+		// TODO: ограничить по времени и добавить в настройки
+		app.phonegap.keepScreenOn(true);
 	}
 
 	/**
@@ -356,6 +359,8 @@ class ReadMode extends StateStore {
 		if (this.range) {
 			this.range.destroy();
 		}
+
+		app.phonegap.keepScreenOn(false);
 
 		this.range = null;
 		this.$page = null;
