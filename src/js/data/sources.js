@@ -26,7 +26,7 @@ export default [
 	}),
 	new DataSource({
 		id: 'valaamGid',
-		url: `${API_URL}?referer1=valaam.tour&type=json`,
+		url: `${API_URL}?referer1=valaam.prayers&type=json`,
 		handler: 'cacheThenNetwork'
 	}),
 	new DataSource({
