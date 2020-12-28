@@ -147,6 +147,36 @@
 					</ul>
 				</div>
 
+				<div class="block-title">
+					{{#js_if "this.selectedRite && this.selectedRite.period === 1"}}
+					Дата поминовения
+					{{else}}
+					Период поминовения
+					{{/js_if}}
+				</div>
+				<div class="list form-list no-hairlines-md">
+					<ul>
+						<li class="item-content item-input item-input-outline vm-rites-period">
+							<div class="item-inner">
+								<div class="item-input-wrap">
+				            <input type="text"
+													 placeholder="Выберите дату поминовения"
+													 readonly="readonly"
+													 id="formRites-period-formatted"/>
+										 <input type="hidden"
+										 				name="period"
+														value="{{period}}"
+														id="formRites-period"/>
+										<input type="hidden"
+													 name="date"
+										   		 value="{{activateTs}}"
+													 id="formRites-activate-date"/>
+				        </div>
+				      </div>
+				    </li>
+					</ul>
+				</div>
+
 				<div class="block-title">Напишите имена</div>
 				<div class="list form-list no-hairlines-md vm-rites-names">
 					<ul>
@@ -343,6 +373,14 @@
 <!--suppress JSAnnotator, JSIgnoredPromiseFromCall -->
 <script>
 	import { Request, Dom7 as $$ } from 'framework7';
+	import {
+		set,
+		format,
+		parse,
+		addDays,
+		subDays,
+		getUnixTime
+	} from '../js/utils/date-utils.js';
 	import dataManager from '../js/data/manager.js';
 
 	let app, $el, ritesConfig;
@@ -451,6 +489,7 @@
 					selectedRite
 				});
 
+				setStartDate.call(this);
 				calculateDonation.call(this);
 			}
 		},
@@ -492,6 +531,53 @@
 					// временно
 					$el.find('#formRites-phone').attr('autocomplete', 'home phone');
 					$el.find('#formRites-email').attr('autocomplete', 'home email');
+
+					if (!this.calendarPeriod) {
+						this.calendarPeriod = app.calendar.create({
+							inputEl: $el.find('#formRites-period-formatted')[0],
+							closeOnSelect: true,
+							formatValue: ([date]) => {
+		 						const oneDayRite = (this.selectedRite.period === 1);
+								return [
+									oneDayRite ?
+										`${format(date, 'd MMMM yyyy')} г.` :
+										`c ${format(date, 'd MMMM yyyy')} г. по ${format(addDays(date, this.selectedRite.period), 'd MMMM yyyy')} г.`
+								];
+							},
+							disabled: (date) => {
+								const minDateStart = addDays(new Date(), this.selectedRite.processing);
+								const days = this.selectedRite.days;
+
+								return date < minDateStart ||
+											 (days && !days.includes(format(date, 'i')));
+							},
+							on: {
+								change: (calendar, [date]) => {
+									const oneDayRite = (this.selectedRite.period === 1);
+									const period = oneDayRite ?
+										format(date) :
+										`${format(date)}-${format(addDays(date, this.selectedRite.period))}`
+									;
+									const now = new Date();
+
+									date = set(date, {
+										hours: now.getHours(),
+										minutes: now.getMinutes(),
+										seconds: now.getSeconds()
+									});
+									const activateTs = getUnixTime(subDays(
+										date,
+										this.selectedRite.processing + 1
+									));
+									this.$setState({
+										period,
+										activateTs
+									});
+								}
+							}
+						});
+						setStartDate.call(this);
+					}
 				});
 			},
 			pageBeforeRemove(e, page) {
@@ -506,6 +592,22 @@
 				loading: true
 			};
 		},
+	}
+
+	function setStartDate() {
+		const days = this.selectedRite.days;
+		let date = addDays(new Date(), this.selectedRite.processing + 1);
+
+		while (true) {
+			if (!days || days.includes(format(date, 'i'))) {
+				break;
+			}
+			date = addDays(date, 1);
+		}
+
+		if ( this.calendarPeriod ) {
+			this.calendarPeriod.setValue([date]);
+		}
 	}
 
 	function calculateDonation() {
@@ -596,6 +698,7 @@
 			phone: app.methods.storageGet('rite-phone'),
 			email: app.methods.storageGet('rite-email'),
 			phoneHidden: selectedPayment.code !== 'mobile_balance',
+			period: '',
 
 			loading: false
 		});

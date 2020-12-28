@@ -75,6 +75,7 @@ function unixNow() {
 }
 
 export {
+	set,
 	addDays,
 	subDays,
 	addYears,

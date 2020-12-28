@@ -3,6 +3,7 @@ import 'framework7/css/framework7.css';
 import 'framework7/components/dialog.css';
 import 'framework7/components/popup.css';
 import 'framework7/components/popover.css';
+import 'framework7/components/sheet.css';
 import 'framework7/components/toast.css';
 import 'framework7/components/preloader.css';
 import 'framework7/components/progressbar.css';
@@ -35,30 +36,31 @@ import Framework7, {Dom7 as $$} from 'framework7';
 import Dialog	    from 'framework7/components/dialog/dialog.js';
 import Popup	    from 'framework7/components/popup/popup.js';
 import Popover 		from 'framework7/components/popover/popover';
+import Sheet      from 'framework7/components/sheet/sheet.js';
 import Toast        from 'framework7/components/toast/toast.js';
 import Preloader    from 'framework7/components/preloader/preloader.js';
 import Progressbar  from 'framework7/components/progressbar/progressbar.js';
 import VirtualList  from 'framework7/components/virtual-list/virtual-list.js';
 import Tabs	        from 'framework7/components/tabs/tabs.js';
-import Panel 		from 'framework7/components/panel/panel.js';
+import Panel 	    	from 'framework7/components/panel/panel.js';
 import Form	        from 'framework7/components/form/form.js';
 import Input        from 'framework7/components/input/input.js';
-import Radio		from 'framework7/components/radio/radio.js';
+import Radio    	  from 'framework7/components/radio/radio.js';
 import Toggle       from 'framework7/components/toggle/toggle.js';
-import Range 		from 'framework7/components/range/range.js';
-import Stepper 		from 'framework7/components/stepper/stepper.js';
+import Range 		    from 'framework7/components/range/range.js';
+import Stepper 		  from 'framework7/components/stepper/stepper.js';
 import SmartSelect  from 'framework7/components/smart-select/smart-select.js';
 import Calendar     from 'framework7/components/calendar/calendar.js';
 import InfiniteScroll from 'framework7/components/infinite-scroll/infinite-scroll.js';
 import Lazy         from 'framework7/components/lazy/lazy.js';
 import Searchbar    from 'framework7/components/searchbar/searchbar.js';
-import Swiper	    from 'framework7/components/swiper/swiper.js';
+import Swiper  	    from 'framework7/components/swiper/swiper.js';
 import Sortable     from 'framework7/components/sortable/sortable.js';
 import PhotoBrowser from 'framework7/components/photo-browser/photo-browser.js';
 import Autocomplete from 'framework7/components/autocomplete/autocomplete.js';
-import Skeleton 	from 'framework7/components/skeleton/skeleton.js';
+import Skeleton     from 'framework7/components/skeleton/skeleton.js';
 import Elevation    from 'framework7/components/elevation/elevation.js';
-import Typography	from 'framework7/components/typography/typography.js';
+import Typography  	from 'framework7/components/typography/typography.js';
 
 import 'abortcontroller-polyfill/dist/polyfill-patch-fetch';
 
@@ -67,6 +69,7 @@ Framework7.use([
 	Autocomplete,
 	Calendar,
 	Dialog,
+	Sheet,
 	Elevation,
 	Form,
 	InfiniteScroll,
@@ -117,7 +120,7 @@ const app = new Framework7({
 	name: 'Валаамский молитвослов',
 	theme: navigator.userAgent.match(/Debug/) !== null ? 'auto' : 'md',
 	disabled: false,
-	version: "1.15.9",
+	version: "1.16.1",
 	// theme: 'ios',
 
 	statusbar: {
