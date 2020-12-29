@@ -9,11 +9,11 @@
 	--calendar-desc-week-bg: rgba(240,214,154, .6);
 	--dark-calendar-week-bg: rgb(110, 100, 76); /* rgba(240,214,154, .4) */
 
-	--calendar-valaam-bg:      rgba(186,223,185,0.7);
+	--calendar-valaam-bg:      rgb(206,232,206); /*rgba(186,223,185,0.7);*/
 	--calendar-desc-valaam-bg: rgb(186,223,185);
 	--dark-calendar-valaam-bg: rgba(186,223,185,0.7);
 
-	--calendar-holiday-bg:      rgba(255,161,154, .9); /* rgba(240,161,154, 0.7) */
+	--calendar-holiday-bg:      rgb(255,170,163); /*rgba(255,161,154, .9);*/ /* rgba(240,161,154, 0.7) */
 	--calendar-desc-holiday-bg: rgb(255,161,154);
 	--dark-calendar-holiday-bg: rgba(255,161,154, .9); /* rgba(240,161,154, 0.7) */
 
