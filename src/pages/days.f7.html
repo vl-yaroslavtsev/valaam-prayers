@@ -117,24 +117,17 @@
 				<div class="block-title">Тропари и кондаки</div>
 				<div class="list no-hairlines-md">
 					<ul>
-						{{#if day.prayers.daily_tak}}
-						<li>
-							<a href="/prayers/text/{{day.prayers.daily_tak.id}}" class="item-link item-content">
-								<div class="item-inner">
-									<div class="item-title">{{day.prayers.daily_tak.name}}</div>
-								</div>
-							</a>
-						</li>
+						{{#if day.prayers.taks.length}}
+							{{#each day.prayers.taks}}
+							<li>
+								<a href="/prayers/text/{{id}}" class="item-link item-content">
+									<div class="item-inner">
+										<div class="item-title">{{name}}</div>
+									</div>
+								</a>
+							</li>
+							{{/each}}
 						{{/if}}
-						{{#each day.prayers.items}}
-						<li>
-							<a href="/days/{{@root.dayCode}}/prayers/{{id}}" class="item-link item-content">
-								<div class="item-inner">
-									<div class="item-title">{{name}}</div>
-								</div>
-							</a>
-						</li>
-						{{/each}}
 					</ul>
 				</div>
 			</div>
@@ -300,10 +293,8 @@
 				.slice(0, 300)
 			;
 
-			if (day.prayers.daily_tak) {
-				day.prayers.daily_tak = prayers.e.find(
-					(e) => e.id === day.prayers.daily_tak
-				);
+			if (!day.prayers.taks) {
+				day.prayers.taks = [];
 			}
 
 			if (day.synaxarion) {
