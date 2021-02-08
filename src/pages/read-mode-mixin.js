@@ -38,7 +38,8 @@ class ReadMode extends StateStore {
 			scroll: this.scrollHandler.bind(this),
 			click: this.clickHandler.bind(this),
 			settingsChanged: this.settingsChangedHandler.bind(this),
-			pageLoaded: this.pageLoadedHandler.bind(this)
+			pageLoaded: this.pageLoadedHandler.bind(this),
+			keyDown: this.keyDownHandler.bind(this)
 		};
 
 		app.navbar.hide($navbar, false, settingsManager.get('hideStatusbar'));
@@ -49,6 +50,7 @@ class ReadMode extends StateStore {
 		$content.on('click', this.handler.click);
 		app.on('settingsTextChanged', this.handler.settingsChanged);
 		app.on('pageLoaded', this.handler.pageLoaded);
+		app.on('onKeyDown', this.handler.keyDown);
 
 		this.range = app.range.create({
 			el: $page.find('.read-mode-range')[0],
@@ -73,6 +75,9 @@ class ReadMode extends StateStore {
 
 		// TODO: ограничить по времени и добавить в настройки
 		app.phonegap.keepScreenOn(true);
+
+		// TODO: добавить в настройки
+		app.phonegap.keyInterception(true);
 	}
 
 	/**
@@ -257,7 +262,6 @@ class ReadMode extends StateStore {
 	 */
 	clickHandler(e) {
 		let $navbar = this.$navbar;
-		let $content = this.$content;
 		let $progressbar = this.$progressbar;
 		let clickCenter = false;
 		let barShown = !$progressbar.hasClass('toolbar-hidden');
@@ -285,22 +289,35 @@ class ReadMode extends StateStore {
 			return;
 		}
 
-		let textTopOffset = this.getTextTopOffset();
 		//if (e.clientX < app.width * 0.5 ) {
 		if (e.clientY < app.height * 0.5) {
-			$content.scrollTop(
-				Math.round(Math.max($content.scrollTop() - app.height + textTopOffset, 0)),
-				200
-			);
+			this.scrollPageUp();
 		} else {
-			$content.scrollTop(
-				Math.round(Math.min(
-					$content.scrollTop() + app.height - textTopOffset,
-					$content[0].scrollHeight - app.height
-				)),
-				200
-			);
+			this.scrollPageDown();
 		}
+	}
+
+	scrollPageUp() {
+		let $content = this.$content;
+		let textTopOffset = this.getTextTopOffset();
+
+		$content.scrollTop(
+			Math.round(Math.max($content.scrollTop() - app.height + textTopOffset, 0)),
+			200
+		);
+	}
+
+	scrollPageDown() {
+		let $content = this.$content;
+		let textTopOffset = this.getTextTopOffset();
+
+		$content.scrollTop(
+			Math.round(Math.min(
+				$content.scrollTop() + app.height - textTopOffset,
+				$content[0].scrollHeight - app.height
+			)),
+			200
+		);
 	}
 
 	settingsChangedHandler() {
@@ -314,6 +331,17 @@ class ReadMode extends StateStore {
 		if (!this.state.tutorialShown) {
 			this.showTutorial();
 			this.setState({tutorialShown: true});
+		}
+	}
+
+	keyDownHandler(key) {
+		switch (key) {
+			case 28:
+				this.scrollPageUp();
+				break;
+			case 29:
+				this.scrollPageDown();
+				break;
 		}
 	}
 
@@ -361,6 +389,7 @@ class ReadMode extends StateStore {
 		}
 
 		app.phonegap.keepScreenOn(false);
+		app.phonegap.keyInterception(false);
 
 		this.range = null;
 		this.$page = null;
