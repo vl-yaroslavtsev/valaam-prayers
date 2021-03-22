@@ -85,7 +85,7 @@ module.exports = (env = {}) => {
 				{
 					test: /\.m?js$/,
 					exclude: [
-						/node_modules\/(?!(framework7|template7|dom7|lodash-es|date-fns|idb)\/).*///,
+						/node_modules[\\/](?!(framework7|template7|dom7|lodash-es|date-fns|idb)[\\/]).*/ //,
 						// /\/js\/sw-template\.js$/,
 						// /\/js\/download\/bg-fetch\.wkr\.js$/
 					],
