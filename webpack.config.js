@@ -13,7 +13,7 @@ module.exports = (env = {}) => {
 	return {
 		mode: devMode ? 'development' : 'production',
 		entry: {
-			app: './src/js/app.js'
+			app: path.resolve(__dirname, 'src', 'js', 'app.js')
 		},
 		plugins: [
 			new CleanWebpackPlugin({
@@ -21,7 +21,7 @@ module.exports = (env = {}) => {
 				cleanOnceBeforeBuildPatterns: ['**/*', '!sw.js'],
 			}),
 			new HtmlWebpackPlugin({
-				template: './src/index.html'
+				template: path.resolve(__dirname, 'src', 'index.html')
 			}),
 			new MiniCssExtractPlugin({
 				// Options similar to the same options in webpackOptions.output
@@ -37,26 +37,26 @@ module.exports = (env = {}) => {
 					to: 'images'
 				},
 				/*'src/manifest.webmanifest',*/
-				'src/cordova.js',
-				'src/cordova-android.js',
-				'src/cordova-ios.js',
-				'src/framework7.phonegap.js',
+				path.resolve(__dirname, 'src/cordova.js'),
+				path.resolve(__dirname, 'src/cordova-android.js'),
+				path.resolve(__dirname, 'src/cordova-ios.js'),
+				path.resolve(__dirname, 'src/framework7.phonegap.js'),
 	    ]),
 			new OfflinePlugin({
 				ServiceWorker: null,
 				// {
-	      //   events: true,
+				//   events: true,
 				// 	entry: './src/js/sw-template.js'
-	      // },
-	      AppCache: {
-	        events: true
-	      },
-        externals: [
-					'./src/images/ideograph-1.png',
-          './src/images/ideograph-2.png',
-					'./src/images/ideograph-3.png',
-					'./src/images/ideograph-4.png',
-					'./src/images/ideograph-5.png'
+				// },
+				AppCache: {
+					events: true
+				},
+				externals: [
+					path.resolve(__dirname, 'src/images/ideograph-1.png'),
+					path.resolve(__dirname, 'src/images/ideograph-2.png'),
+					path.resolve(__dirname, 'src/images/ideograph-3.png'),
+					path.resolve(__dirname, 'src/images/ideograph-4.png'),
+					path.resolve(__dirname, 'src/images/ideograph-5.png')
 				],
 				excludes: [
 					'**/.*',
@@ -65,7 +65,7 @@ module.exports = (env = {}) => {
 					'images/[67]*.jpg',
 				]
 			})
-		],
+		],		
 		module: {
 			rules: [
 				{
@@ -101,8 +101,8 @@ module.exports = (env = {}) => {
 						{
 							loader: 'framework7-component-loader',
 							options: {
-							 	helpersPath: './src/template7-helpers-list.js',
-								partialsPath: './src/pages/',
+							 	helpersPath: path.resolve(__dirname, 'src', 'template7-helpers-list.js'),
+								partialsPath: path.resolve(__dirname, 'src', 'pages'),
               	partialsExt: '.f7p.html'
 							},
 						},
@@ -127,23 +127,27 @@ module.exports = (env = {}) => {
 					}
 				},
 				{
-        	test: /\.wkr\.js$/,
-        	use: [
+					test: /\.wkr\.js$/,
+					use: [
 						//'babel-loader',
 						{
 							loader: 'worker-loader',
 							options: {
 								name: useHash ? '[name].[contenthash].js' :
-								 								'[name].js'
+																	'[name].js'
 								//name: '[name].js'
 							}
 						},
 						'babel-loader',
 					]
-      	}
+				}
 			]
 		},
 		devtool: devMode ? 'source-map' : false,
+		devServer: {
+			contentBase:  path.resolve(__dirname, devMode ? 'dev' : 'dist'),
+			port: 3000,
+		},
 		output: {
 			filename: useHash ? '[name].[contenthash].js' : '[name].js',
 			//filename: '[name].js',
