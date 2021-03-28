@@ -1,0 +1,52 @@
+{
+  "name": "ru.valaam.prayers",
+  "version": "1.17.3",
+  "description": "Молитвослов и календарь от Валаамского монастыря",
+  "private": true,
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "watch": "webpack --watch --progress",
+    "web:dev": "webpack",
+    "web:prod": "webpack --env.production",
+    "device:dev": "./scripts/build.dev.sh",
+    "device:prod": "./scripts/build.prod.sh"
+  },
+  "keywords": [],
+  "author": "Ивайло Тилев <ivaylo@tilev.ru>, Валаамский монастырь <webmaster@valaam.ru>",
+  "license": "ISC",
+  "devDependencies": {
+    "@babel/core": "^7.10.5",
+    "@babel/preset-env": "^7.10.4",
+    "babel-loader": "^8.1.0",
+    "clean-webpack-plugin": "^3.0.0",
+    "copy-webpack-plugin": "^5.1.1",
+    "css-loader": "^3.6.0",
+    "file-loader": "^5.1.0",
+    "framework7-component-loader": "^2.0.0",
+    "html-webpack-plugin": "^3.2.0",
+    "mini-css-extract-plugin": "^0.9.0",
+    "offline-plugin": "^5.0.7",
+    "optimize-css-assets-webpack-plugin": "^5.0.3",
+    "regenerator-runtime": "^0.13.5",
+    "style-loader": "^1.2.1",
+    "terser-webpack-plugin": "^2.3.7",
+    "webpack": "^4.43.0",
+    "webpack-cli": "^3.3.12",
+    "worker-loader": "^2.0.0"
+  },
+  "dependencies": {
+    "abortcontroller-polyfill": "^1.4.0",
+    "core-js": "^3.6.5",
+    "date-fns": "2.15.0",
+    "framework7": "^5.7.10",
+    "idb": "^5.0.4",
+    "lodash-es": "^4.17.15"
+  },
+  "browserslist": [
+    "Android >= 49",
+    "ChromeAndroid >= 49",
+    "Chrome >= 49",
+    "Safari >= 10",
+    "iOS >= 10"
+  ]
+}

@@ -1,0 +1,8 @@
+dev/
+dist/
+node_modules/
+.git/
+.ftpconfig
+.ftpignore
+package-lock.json
+sftp.json

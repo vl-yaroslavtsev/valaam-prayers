@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="ru">
+
+<head>
+	<meta charset="utf-8">
+	<meta http-equiv="Content-Security-Policy"
+		    content="default-src * 'self' 'unsafe-inline' 'unsafe-eval' blob: data: gap: content:">
+	<meta name="viewport"
+		  content="width=device-width, initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=no, viewport-fit=cover">
+	<meta name="apple-mobile-web-app-capable" content="yes">
+	<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+	<meta name="theme-color" content="#3878a8">
+	<meta name="format-detection" content="telephone=no">
+	<meta name="msapplication-tap-highlight" content="no">
+
+	<title>Молитвослов</title>
+
+<!--	<link rel="icon" href="./images/favicon.ico" type="image/x-icon" />-->
+
+	<!-- CSS будут вставлены здесь -->
+</head>
+
+<body>
+
+<div id="root">
+	<!-- Views/Tabs container -->
+	<div class="views tabs safe-areas">
+		<!-- Tabbar for switching views-tabs -->
+		<div class="tabbar-labels toolbar toolbar-bottom">
+			<div class="toolbar-inner">
+				<!--data-panel=".panel-left"-->
+				<!-- panel-open-->
+				<a href="#view-main"
+				   class="tab-link">
+					<i class="icon material-icons md-only">menu</i>
+					<span class="tabbar-label">Главная</span>
+				</a>
+				<a href="#view-prayers" class="tab-link">
+					<i class="icon material-icons md-only">menu_book</i>
+					<span class="tabbar-label">Молитвослов</span>
+				</a>
+				<a href="#view-calendar" class="tab-link">
+					<i class="icon material-icons md-only">date_range</i>
+					<span class="tabbar-label">Календарь</span>
+				</a>
+				<a href="#view-books" class="tab-link">
+					<i class="icon material-icons md-only">book</i>
+					<span class="tabbar-label">Книги</span>
+				</a>
+				<a href="#view-rites" class="tab-link">
+					<i class="icon material-icons md-only">whatshot</i>
+					<span class="tabbar-label">Поминовения</span>
+				</a>
+			</div>
+		</div>
+
+		<!-- Прочее -->
+		<div id="view-main" class="view tab"></div>
+
+		<!-- Молитвослов -->
+		<div id="view-prayers" class="view tab"></div>
+
+		<!-- Календарь -->
+		<div id="view-calendar" class="view tab"></div>
+
+		<!-- Книги -->
+		<div id="view-books" class="view tab"></div>
+
+		<!-- Прочее -->
+		<div id="view-rites" class="view tab"></div>
+	</div>
+</div>
+
+<!-- Cordova -->
+<script type="text/javascript" src="cordova.js"></script>
+<script type="text/javascript" src="framework7.phonegap.js"></script>
+
+<!-- JS будут вставлены здесь -->
+</body>
+
+</html>
