@@ -1,0 +1,21 @@
+:root {
+  --f7-tabbar-labels-height: 67px;
+  --f7-tabbar-label-font-size: 12px;
+  --f7-tabbar-link-inactive-color: #000000;
+  --f7-toolbar-bg-color: #daebf7;
+}
+
+.tabbar .tab-link-active,
+.tabbar-labels .tab-link-active {
+  fill: var(--f7-tabbar-link-active-color, var(--f7-theme-color));
+}
+
+.md .tabbar-labels .tab-link,
+.md .tabbar-labels .link {
+  padding-top: 14px;
+}
+
+.tabbar .tabbar-bible-icon {
+  width: 27px;
+  height: 27px;
+}

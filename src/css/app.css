@@ -1,5 +1,10 @@
 /* Your app custom styles here */
 
+@import "fonts.css";
+
+@import "vars.css";
+@import "toolbar.css";
+
 .app {
   font-size: normal;
 

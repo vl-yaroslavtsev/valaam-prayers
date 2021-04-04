@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import Icon from './icon/icon';
 
 import {
   f7,
@@ -57,49 +58,72 @@ const MyApp = () => {
   });
 
   return (
-    <App { ...f7params } >
+    <App {...f7params} >
 
-        {/* Left panel with cover effect*/}
-        <Panel left cover themeDark>
-          <View>
-            <Page>
-              <Navbar title="Left Panel"/>
-              <Block>Left panel content goes here</Block>
-            </Page>
-          </View>
-        </Panel>
-
-
-        {/* Right panel with reveal effect*/}
-        <Panel right reveal themeDark>
-          <View>
-            <Page>
-              <Navbar title="Right Panel"/>
-              <Block>Right panel content goes here</Block>
-            </Page>
-          </View>
-        </Panel>
+      {/* Left panel with cover effect*/}
+      <Panel left cover themeDark>
+        <View>
+          <Page>
+            <Navbar title="Left Panel" />
+            <Block>Left panel content goes here</Block>
+          </Page>
+        </View>
+      </Panel>
 
 
-        {/* Views/Tabs container */}
-        <Views tabs className="safe-areas">
-          {/* Tabbar for switching views-tabs */}
-          <Toolbar tabbar labels bottom>
-            <Link tabLink="#view-home" tabLinkActive iconIos="f7:house_fill" iconAurora="f7:house_fill" iconMd="material:home" text="Меню" />
-            <Link tabLink="#view-catalog" iconIos="f7:square_list_fill" iconAurora="f7:square_list_fill" iconMd="material:view_list" text="Catalog" />
-            <Link tabLink="#view-settings" iconIos="f7:gear" iconAurora="f7:gear" iconMd="material:settings" text="Settings" />
-          </Toolbar>
+      {/* Right panel with reveal effect*/}
+      <Panel right reveal themeDark>
+        <View>
+          <Page>
+            <Navbar title="Right Panel" />
+            <Block>Right panel content goes here</Block>
+          </Page>
+        </View>
+      </Panel>
 
-          {/* Your main view/tab, should have "view-main" class. It also has "tabActive" prop */}
-          <View id="view-home" main tab tabActive url="/" />
 
-          {/* Catalog View */}
-          <View id="view-catalog" name="catalog" tab url="/catalog/" />
+      {/* Views/Tabs container */}
+      <Views tabs className="safe-areas">
+        {/* Tabbar for switching views-tabs */}
+        <Toolbar tabbar labels bottom>
+          <a href="#view-home" className="tab-link tab-link-active">
+            <Icon name="menu" size="s" />
+            <span className="tabbar-label">Меню</span>
+          </a>
+          <a href="#view-catalog" className="tab-link">
+            <Icon name="bible" className="tabbar-bible-icon" size="s" />
+            <span className="tabbar-label">Молитвы</span>
+          </a>
+          <a href="#view-settings" className="tab-link">
+            <Icon name="calendar" size="s" />
+            <span className="tabbar-label">Календарь</span>
+          </a>
+          <a href="#view-settings1" className="tab-link">
+            <Icon name="audio" size="s" />
+            <span className="tabbar-label">Аудио</span>
+          </a>
+          <a href="#view-settings2" className="tab-link">
+            <Icon name="candles" size="s" />
+            <span className="tabbar-label">Записки</span>
+          </a>
+        </Toolbar>
 
-          {/* Settings View */}
-          <View id="view-settings" name="settings" tab url="/settings/" />
+        {/* Your main view/tab, should have "view-main" class. It also has "tabActive" prop */}
+        <View id="view-home" main tab tabActive url="/" />
 
-        </Views>
+        {/* Catalog View */}
+        <View id="view-catalog" name="catalog" tab url="/catalog/" />
+
+        {/* Settings View */}
+        <View id="view-settings" name="settings" tab url="/settings/" />
+
+        {/* Settings View */}
+        <View id="view-settings1" name="settings" tab url="/settings/" />
+
+        {/* Settings View */}
+        <View id="view-settings2" name="settings" tab url="/settings/" />
+
+      </Views>
 
       {/* Popup */}
       <Popup id="my-popup">
