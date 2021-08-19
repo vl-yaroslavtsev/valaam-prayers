@@ -1,7 +1,43 @@
-# valaam-prayers
-Progressive web application for mobile devices.  
-Tested on real Android and iOS devices with   
+# Валаамский молитвослов
+Веб-приложение (SPA) для мобильных устройств.  
+Front часть гибридного мобильного приложения.  
+Содержит православный молитвослов, календарь, духовную литературу и возможность подать записку.   
+Пощупать можно тут: [valaam-prayers](https://valaam.ru/prayers.v2.f7/)
+
+## Функциональность
+
+В приложении реализованы:
++ богатые настройки чтения (изменение размера и гарнитуры шрифта, межстрочного расстояния, цветовой схемы)
++ режим постраничного листания
++ поиск в разделе
++ избранное
++ возможность сортировки перетаскиванием в избранном
+
+
+## Под капотом
+
+Использованы технологии: HTML5, CSS3, Javascript (ES8), Framework7, IndexedDB, Webpack4, Babel  
+Элементы пользовательского интерфейса выполнены с помощью Framework7.  
+Данные молитвослова (в том числе и картинки), сохраняются в IndexedDB.  
+Адаптивная верстка осуществлялась по макетам на zepplin.  
+
+### Сборка
+Сборка проекта осуществляется с помощью Webpack + Babel.  
+
+## Допустимые скрипты
+
+Можно запустить:
+
+### `npm run dev`
+
+Запуск приложения в режиме разработчика.
+[http://localhost:3000](http://localhost:3000)
+
+### `npm run build`
+
+Сборка для боя в папочку `build`.
+Используются минифицированные версии файлов.
+
+-----
+Протестировано на реальных устройствах Android and iOS с помощью   
 <a href="https://www.browserstack.com/" target="_blanck" ><img src="https://raw.githubusercontent.com/vl-yaroslavtsev/valaam-prayers/master/src/images/Browserstack-logo%402x.png" width="150px" alt="Browserstack"></a>
-
-Contains Orthodox prayers, calendar and spiritual literature.
-
