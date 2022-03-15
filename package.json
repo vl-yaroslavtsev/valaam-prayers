@@ -40,7 +40,7 @@
     "date-fns": "2.15.0",
     "framework7": "^5.7.10",
     "idb": "^5.0.4",
-    "lodash-es": "^4.17.15"
+    "lodash-es": "^4.17.21"
   },
   "browserslist": [
     "Android >= 49",
