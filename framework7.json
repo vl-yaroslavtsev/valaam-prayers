@@ -1,0 +1,19 @@
+{
+  "cwd": "C:\\Users\\Владимир\\vscode-workspace\\valaam-prayers",
+  "type": [
+    "web",
+    "pwa"
+  ],
+  "name": "valaam-prayers",
+  "framework": "vue",
+  "template": "tabs",
+  "cssPreProcessor": "scss",
+  "bundler": "vite",
+  "theming": {
+    "customColor": false,
+    "color": "#007aff",
+    "darkMode": false,
+    "iconFonts": true
+  },
+  "customBuild": false
+}

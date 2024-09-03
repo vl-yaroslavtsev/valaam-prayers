@@ -1,86 +1,43 @@
 /* Material Icons Font (for MD theme) */
-/* @font-face {
+@font-face {
   font-family: 'Material Icons';
   font-style: normal;
   font-weight: 400;
-  src: local('Material Icons'),
-       local('MaterialIcons-Regular'),
-       url(../fonts/MaterialIcons-Regular.woff2) format('woff2');
-       url(../fonts/MaterialIcons-Regular.woff) format('woff'),
-      url(../fonts/MaterialIcons-Regular.ttf) format('truetype');
-} */
-
-@font-face {
-  font-family: 'Material Icons Round';
-  font-style: normal;
-  font-weight: 400;
-  src: local('Material Icons Round'),
-       local('MaterialIcons-Round'),
-       url(../fonts/MaterialIcons-Round.woff2) format('woff2');
-       /* url(../fonts/MaterialIcons-Round.woff) format('woff'); */
+  src: local('Material Icons'), local('MaterialIcons-Regular'),
+    url(../fonts/material-icons.woff2) format('woff2'),
+    url(../fonts/material-icons.woff) format('woff');
 }
-
 .material-icons {
-  font-family: 'Material Icons Round'; /* 'Material Icons'; */
+  font-family: 'Material Icons';
   font-weight: normal;
   font-style: normal;
-  font-size: 24px;  /* Preferred icon size */
+  font-size: 24px;
   display: inline-block;
-  height: 1em;
   line-height: 1;
   text-transform: none;
   letter-spacing: normal;
-  width: 1em;
   word-wrap: normal;
   white-space: nowrap;
   direction: ltr;
-
-  /* Support for all WebKit browsers. */
   -webkit-font-smoothing: antialiased;
-  /* Support for Safari and Chrome. */
   text-rendering: optimizeLegibility;
-
-  /* Support for Firefox. */
   -moz-osx-font-smoothing: grayscale;
-
-  -webkit-font-feature-settings: 'liga';
-  /* Support for IE. */
   font-feature-settings: 'liga';
-}
-
-.material-icons.md-14 { font-size: 14px; }
-.material-icons.md-18 { font-size: 18px; }
-.material-icons.md-24 { font-size: 24px; }
-.material-icons.md-36 { font-size: 36px; }
-.material-icons.md-48 { font-size: 48px; }
-
-@media (min-width: 768px) {
-	.material-icons {
-    font-size: 32px;
-	}
-
-	.material-icons.md-18 {
-		font-size: 24px;
-	}
 }
 
 /* Framework7 Icons Font (for iOS theme) */
 @font-face {
-  /* font-family: 'Framework7 Icons';
+  font-family: 'Framework7 Icons';
   font-style: normal;
   font-weight: 400;
-  src: url("../fonts/Framework7Icons-Regular.woff2") format("woff2"); */
-
-	/* src: url("../fonts/Framework7Icons-Regular.eot"); */
-       /* url("../fonts/Framework7Icons-Regular.woff") format("woff"),
-          url("../fonts/Framework7Icons-Regular.ttf") format("truetype"); */
+  src: url('../fonts/Framework7Icons-Regular.woff2') format('woff2'),
+    url('../fonts/Framework7Icons-Regular.woff') format('woff');
 }
-
-/* .f7-icons {
+.f7-icons {
   font-family: 'Framework7 Icons';
   font-weight: normal;
   font-style: normal;
-  font-size: 25px;
+  font-size: 28px;
   line-height: 1;
   letter-spacing: normal;
   text-transform: none;
@@ -91,105 +48,9 @@
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
   -moz-osx-font-smoothing: grayscale;
-  -webkit-font-feature-settings: "liga";
-  -moz-font-feature-settings: "liga=1";
-  -moz-font-feature-settings: "liga";
-  font-feature-settings: "liga";
+  -webkit-font-feature-settings: 'liga';
+  -moz-font-feature-settings: 'liga=1';
+  -moz-font-feature-settings: 'liga';
+  font-feature-settings: 'liga';
   text-align: center;
-} */
-
-/* Font Awesome 5 Font (Brands Icons) */
-@font-face {
-  font-family: 'Font Awesome 5 Brands';
-  font-style: normal;
-  font-weight: normal;
-  font-display: auto;
-  /* src: url("../fonts/fa-brands-400.eot"); */
-  src: url("../fonts/fa-brands-400.woff2") format("woff2");
-			 /* url("../fonts/fa-brands-400.eot?#iefix") format("embedded-opentype"),
-          url("../fonts/fa-brands-400.woff") format("woff"),
-          url("../fonts/fa-brands-400.ttf") format("truetype"),
-          url("../fonts/fa-brands-400.svg#fontawesome") format("svg");  */
 }
-
-.fa-b {
-  font-family: 'Font Awesome 5 Brands';
-  -moz-osx-font-smoothing: grayscale;
-  -webkit-font-smoothing: antialiased;
-  display: inline-block;
-  font-style: normal;
-  font-variant: normal;
-  text-rendering: auto;
-  line-height: 1;
-}
-
-.fa-lg {
-  font-size: 1.33333em;
-  line-height: 0.75em;
-  vertical-align: -.0667em; }
-
-.fa-xs {
-  font-size: .75em; }
-
-.fa-sm {
-  font-size: .875em; }
-
-.fa-1x {
-  font-size: 1em; }
-
-.fa-2x {
-  font-size: 2em; }
-
-.fa-3x {
-  font-size: 3em; }
-
-.fa-4x {
-  font-size: 4em; }
-
-.fa-5x {
-  font-size: 5em; }
-
-.fa-6x {
-  font-size: 6em; }
-
-.fa-7x {
-  font-size: 7em; }
-
-.fa-8x {
-  font-size: 8em; }
-
-.fa-9x {
-  font-size: 9em; }
-
-.fa-10x {
-  font-size: 10em; }
-
-.fa-vk:before {
-  content: "\f189"; }
-
-.fa-instagram:before {
-  content: "\f16d"; }
-
-.fa-facebook:before {
-  content: "\f09a"; }
-
-.fa-facebook-f:before {
-  content: "\f39e"; }
-
-.fa-facebook-messenger:before {
-  content: "\f39f"; }
-
-.fa-facebook-square:before {
-  content: "\f082"; }
-
- .fa-youtube:before {
-  content: "\f167"; }
-
-.fa-youtube-square:before {
-  content: "\f431"; }
-
-.fa-odnoklassniki:before {
-  content: "\f263"; }
-
-.fa-odnoklassniki-square:before {
-  content: "\f264"; }
