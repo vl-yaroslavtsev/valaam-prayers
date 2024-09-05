@@ -19,12 +19,16 @@ const store = createStore({
         title: 'Apple iPhone X',
         description: 'Expedita sequi perferendis quod illum pariatur aliquam, alias laboriosam! Vero blanditiis placeat, mollitia necessitatibus reprehenderit. Labore dolores amet quos, accusamus earum asperiores officiis assumenda optio architecto quia neque, quae eum.'
       },
-    ]
+    ], 
+    version: import.meta.env.VITE_APP_VER
   },
   getters: {
     products({ state }) {
       return state.products;
-    }
+    },
+    version({ state }) {
+      return state.version;
+    },
   },
   actions: {
     addProduct({ state }, product) {
