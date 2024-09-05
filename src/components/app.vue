@@ -93,7 +93,6 @@
   import { ref, onMounted } from 'vue';
   import { f7, f7ready } from 'framework7-vue';
 
-
   import routes from '../js/routes.js';
   import store from '../js/store';
 
@@ -114,9 +113,9 @@
         routes: routes,
 
         // Register service worker (only on production build)
-        serviceWorker: process.env.NODE_ENV ==='production' ? {
-          path: '/service-worker.js',
-        } : {},
+        // serviceWorker: process.env.NODE_ENV ==='production' ? {
+        //   path: '/service-worker.js',
+        // } : {},
       };
       // Login screen data
       const username = ref('');
