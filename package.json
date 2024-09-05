@@ -1,14 +1,15 @@
 {
   "name": "valaam-prayers",
   "private": true,
-  "version": "2.0.0",
+  "version": "2.0.1",
   "description": "valaam-prayers",
   "repository": "",
   "license": "UNLICENSED",
   "scripts": {
     "start": "npm run dev",
     "dev": "cross-env NODE_ENV=development vite",
-    "build": "cross-env NODE_ENV=production vite build && npx workbox generateSW workbox-config.js",
+    "preview": "cross-env NODE_ENV=development vite preview",
+    "build": "cross-env NODE_ENV=production vite build",
     "postinstall": "cpy --flat ./node_modules/framework7-icons/fonts/*.* ./src/fonts/ && cpy --flat ./node_modules/material-icons/iconfont/*.* ./src/fonts/"
   },
   "browserslist": [
@@ -35,6 +36,6 @@
     "postcss-preset-env": "^10.0.2",
     "sass": "^1.77.8",
     "vite": "^5.4.2",
-    "workbox-cli": "^7.1.0"
+    "vite-plugin-pwa": "^0.20.3"
   }
 }
