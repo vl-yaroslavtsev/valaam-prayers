@@ -1,8 +1,8 @@
 {
-  "name": "valaam-prayers",
+  "name": "Валаамский календарь и молитвослов",
   "short_name": "valaam-prayers",
-  "description": "valaam-prayers",
-  "lang": "en-US",
+  "description": "Правосланый календарь, полный молитвослов от Валаамского монастыря",
+  "lang": "ru-RU",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#EE350F",

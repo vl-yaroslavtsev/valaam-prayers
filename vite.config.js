@@ -13,6 +13,13 @@ process.env.VITE_APP_VER = config.version;
 
 export default async () => {
   return  {
+    css: {
+      preprocessorOptions: {
+        less: {
+          math: 'parens-division',
+        }
+      }
+    },
     plugins: [
       vue({ template: { compilerOptions: { isCustomElement: (tag) => tag.includes('swiper-') } } }),
       VitePWA({ 
@@ -40,6 +47,12 @@ export default async () => {
       emptyOutDir: true,
       rollupOptions: {
         treeshake: true,
+        output:{
+          manualChunks: {
+            vue: ['vue'],
+            f7: ['framework7', 'framework7-vue'],
+          }
+        }
       },
     },
     resolve: {

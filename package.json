@@ -1,8 +1,8 @@
 {
   "name": "valaam-prayers",
   "private": true,
-  "version": "2.0.3",
-  "description": "valaam-prayers",
+  "version": "2.0.21",
+  "description": "Валаамский молитвослов и календарь",
   "repository": "",
   "license": "UNLICENSED",
   "scripts": {
@@ -10,7 +10,9 @@
     "dev": "cross-env NODE_ENV=development vite",
     "preview": "cross-env NODE_ENV=development vite preview",
     "build": "cross-env NODE_ENV=production vite build",
-    "postinstall": "cpy --flat ./node_modules/framework7-icons/fonts/*.* ./src/fonts/ && cpy --flat ./node_modules/material-icons/iconfont/*.* ./src/fonts/"
+    "copy:prod": "scripts\\copy.prod.cmd",
+    "prod": "npm run build && npm run copy:prod",
+    "postinstall": "cpy --flat ./node_modules/material-icons/iconfont/*.* ./src/fonts/"
   },
   "browserslist": [
     "IOS >= 15",
@@ -23,6 +25,7 @@
     "framework7": "^8.3.3",
     "framework7-icons": "^5.0.5",
     "framework7-vue": "^8.3.3",
+    "lodash-es": "^4.17.21",
     "material-icons": "^1.13.12",
     "skeleton-elements": "^4.0.1",
     "swiper": "^11.1.12",
@@ -33,8 +36,8 @@
     "@vue/compiler-sfc": "^3.4.38",
     "cpy-cli": "^5.0.0",
     "cross-env": "^7.0.3",
+    "less": "^4.2.0",
     "postcss-preset-env": "^10.0.2",
-    "sass": "^1.77.8",
     "vite": "^5.4.2",
     "vite-plugin-pwa": "^0.20.3"
   }
