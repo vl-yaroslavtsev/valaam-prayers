@@ -65,24 +65,28 @@ if ('androidJsHandler' in window) {
     const newValue = Math.round(value * 255 / 100);
     // 0 <= newBrighness <= 255;
     // set -1 to reset
-    // androidJsHandler.setBrightness(newValue);
-    window.setBrightness(newValue);
-    console.log("window.setBrightness(newValue);", newValue);
+    // alert("androidJsHandler.setBrightness(newValue) " + newValue + ", value = "+ value);
+    androidJsHandler.setBrightness(newValue);
+    // window.setBrightness(newValue);
+    console.log("androidJsHandler.setBrightness(newValue);", newValue);
   };
 
   /**
    * Сбрасываем яркость до значения по умолчанию
    */
-  androidAPI.resetBrightness = () => window.setBrightness(-1);
+  androidAPI.resetBrightness = () => {
+    // alert("androidJsHandler.setBrightness(-1) ");
+    androidJsHandler.setBrightness(-1)
+  };
 
   /**
    * Получаем яркость экрана от 0 до 100
    * @returns {number}
    */
   androidAPI.getBrightness = () => {
-    // const value = androidJsHandler.getCurrentBrightness();
-    const value = window.getCurrentBrightness();
-    console.log("window.getCurrentBrightness()", value);
+    const value = androidJsHandler.getCurrentBrightness();
+    // alert("androidJsHandler.getCurrentBrightness() " + value);
+    console.log("androidJsHandler.getCurrentBrightness()", value);
     return Math.round(value * 100 / 255);
   };
 
@@ -126,17 +130,19 @@ if ('androidJsHandler' in window) {
   androidAPI.onBackKey = (handler) => {
     window.onBackPressed = () => {
       console.log("window.onBackPressed call handler");    
+      alert("window.onBackPressed call handler");
       handler();
     };
     androidJsHandler.onBackPressed =  () => {
       console.log("androidJsHandler.onBackPressed call handler");    
+      alert("androidJsHandler.onBackPressed call handler");
       handler();
     };
     console.log("window.onBackPressed = handler;", handler);    
   };
 
-  androidAPI.KEYCODE_VOLUME_DOWN = 24;
-  androidAPI.KEYCODE_VOLUME_UP = 25;
+  androidAPI.KEYCODE_VOLUME_UP = 24;
+  androidAPI.KEYCODE_VOLUME_DOWN = 25;  
 
   /**
    * Подписываемся на обработку

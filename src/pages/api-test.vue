@@ -172,11 +172,11 @@ watch(isVolumeButtonsScroll, (newVal) => {
     deviceAPI.onVolumeKey((keyCode, event) => {
       switch (keyCode) {
         case deviceAPI.KEYCODE_VOLUME_UP:
-          $сontent.scrollTop($сontent.scrollTop() + 50, 200);
+          $сontent.scrollTop($сontent.scrollTop() - 50, 200);
           break;
 
         case deviceAPI.KEYCODE_VOLUME_DOWN:
-          $сontent.scrollTop($сontent.scrollTop() - 50, 200);
+          $сontent.scrollTop($сontent.scrollTop() + 50, 200);
           break;
       }
     });
