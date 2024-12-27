@@ -21,10 +21,7 @@ function viewsManager() {
 	//f7 = appInstance;
 	//initViewTabs();
 
-	deviceAPI.onBackKey(() => {
-		f7.dialog.alert(`onBackKey`);
-		handleBackKey();
-	});
+	deviceAPI.onBackKey(handleBackKey);
 
   parseHash();
   $$(window).on('hashchange', parseHash);
@@ -356,9 +353,9 @@ function handleBackKey() {
 	}
 
 	if (!backButtonAttempts) {
-		let toast = f7.toast.show({
+		f7.toast.show({
 			text: 'Нажмите ещё раз для выхода',
-			closeTimeout: 2000,
+			closeTimeout: 3000,
 			destroyOnClose: true,
 			on: {
 				closed() {
@@ -367,17 +364,16 @@ function handleBackKey() {
 			}
 		});
     console.log("handleBackKey: f7.tab.show('f7.toast.show');");
+		backButtonAttempts++;
 
     return true;
 	} else if (backButtonAttempts >= 1) {
 		//navigator.app.exitApp();
 		//app.phonegap.terminate();
     console.log("handleBackKey: backButtonAttempts");
-
     return false;
 	}
 
-	backButtonAttempts++;
   console.log("handleBackKey: end of function");
 
 	return false;

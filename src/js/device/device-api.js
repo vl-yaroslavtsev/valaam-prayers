@@ -6,12 +6,12 @@ const deviceAPI = {
   KEYCODE_VOLUME_UP: 0,
 
   setBrightness(value) {},
-  getBrightness() {
+  async getBrightness() {
     return 50;
   },
   resetBrightness(){},
 
-  getTheme() {
+  async getTheme() {
     return 'unknown';
   },
 
@@ -24,11 +24,18 @@ const deviceAPI = {
   onBackKey(handler){},
 
   onVolumeKey(handler) {},
-  offVolumeKey(){}
+  offVolumeKey(){},
+
+  async addNotification(notification){},
+  // requestNotificationPermission(onGranted){}
 };
 
 Object.seal(deviceAPI);
-Object.assign(deviceAPI, androidAPI);
-Object.assign(deviceAPI, iosAPI);
+
+if ('androidJsHandler' in window) {
+  Object.assign(deviceAPI, androidAPI);
+} else if ('webkit' in window && 'messageHandlers' in window.webkit) {
+  Object.assign(deviceAPI, iosAPI);
+}
 
 export default deviceAPI;

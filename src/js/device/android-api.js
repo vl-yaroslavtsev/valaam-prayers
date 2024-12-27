@@ -50,134 +50,215 @@
  *  function onKeyDown(keyCode, event) {
  *     alert('keyCode = ' + keyCode + '   event = ' + event);
  *  }
+ *
+ *  //Добавить событие в календарь
+ *  const CalendarObject = {
+ *       title: "",
+ *       description: "",
+ *       date: "",
+ *       url: "",
+ *   };
+ *
+ *   const calendarObject = Object.create(CalendarObject);
+ *
+ *   calendarObject.title = "заголовок напоминания";
+ *   calendarObject.description = "описание напоминания";
+ *   calendarObject.date = "20241023 11:10:00";
+ *   calendarObject.url = "https://google.com";
+ *
+ *   androidJsHandler.addEventToCalendar(JSON.stringify(calendarObject));
+ *
+ *   //Запрос на проверку прав на уведомления
+ *   //Сначала пишем эту функцию
+ *   function onAreNotificationsEnabledResponse(isEnabled) {
+ *     //затем дергаем androidJsHandler.requestAreNotificationsEnabled();
+ *     //которая в вызывает onAreNotificationsEnabledResponse
+ *
+ *     alert(isEnabled);
+ * }
+ *
+ * androidJsHandler.requestAreNotificationsEnabled();
  * */
 
-const androidAPI = {};
+import { format } from 'date-fns';
 
-if ('androidJsHandler' in window) {
-  const androidJsHandler = window.androidJsHandler;
+const andoroidHandler = window?.androidJsHandler;
+
+const androidAPI = {
+
+  KEYCODE_VOLUME_UP: 24,
+  KEYCODE_VOLUME_DOWN: 25,
 
   /**
    * Устанавливаем яркость от 0 до 100
    * @param {number} value
    */
-  androidAPI.setBrightness = (value) => {
+  setBrightness(value) {
     const newValue = Math.round(value * 255 / 100);
     // 0 <= newBrighness <= 255;
     // set -1 to reset
-    // alert("androidJsHandler.setBrightness(newValue) " + newValue + ", value = "+ value);
-    androidJsHandler.setBrightness(newValue);
+    // alert("handler.setBrightness(newValue) " + newValue + ", value = "+ value);
+    andoroidHandler.setBrightness(newValue);
     // window.setBrightness(newValue);
-    console.log("androidJsHandler.setBrightness(newValue);", newValue);
-  };
+    console.log("handler.setBrightness(newValue);", newValue);
+  },
 
   /**
    * Сбрасываем яркость до значения по умолчанию
    */
-  androidAPI.resetBrightness = () => {
-    // alert("androidJsHandler.setBrightness(-1) ");
-    androidJsHandler.setBrightness(-1)
-  };
+  resetBrightness() {
+    andoroidHandler.setBrightness(-1);
+  },
 
   /**
    * Получаем яркость экрана от 0 до 100
    * @returns {number}
    */
-  androidAPI.getBrightness = () => {
-    const value = androidJsHandler.getCurrentBrightness();
-    // alert("androidJsHandler.getCurrentBrightness() " + value);
-    console.log("androidJsHandler.getCurrentBrightness()", value);
+  async getBrightness() {
+    const value = andoroidHandler.getCurrentBrightness();
+    // alert("handler.getCurrentBrightness() " + value);
+    console.log("handler.getCurrentBrightness()", value);
     return Math.round(value * 100 / 255);
-  };
+  },
 
   /**
    * Theme (day/night/unknown)
    */
-  androidAPI.getTheme = () => androidJsHandler.getTheme();
+  async getTheme() {
+    return andoroidHandler.getTheme();
+  },
 
   /**
    * Show and hide status bars
    * @param {boolean} visibility 
    */
-  androidAPI.showStatusBar = (visibility) => androidJsHandler.setStatusBarVisibility(visibility);
+  showStatusBar(visibility) {
+    return andoroidHandler.setStatusBarVisibility(visibility);
+  },
 
   /**
    * FullScreen mode
    * @param {boolean} mode 
    * @returns 
    */
-  androidAPI.setFullScreen = (mode) => androidJsHandler.setFullScreen(mode);
+  setFullScreen(mode) { 
+    return andoroidHandler.setFullScreen(mode);
+  },
 
   /**
    * Keep Screen On
    * @param {boolean} mode
    * @returns 
    */
-  androidAPI.keepScreenOn = (mode) => androidJsHandler.setKeepScreenOn(mode);
+  keepScreenOn(mode) {
+    return andoroidHandler.setKeepScreenOn(mode);
+  },
 
   /**
    * StatusBarColor
    * @param {string} color Цвет в формате #00ff00
    * @returns 
    */
-  androidAPI.setStatusBarColor = (color) => androidJsHandler.setStatusBarColor(color);
+  setStatusBarColor(color) {
+    return andoroidHandler.setStatusBarColor(color);
+  },
 
   /**
    * Handling Back button
    * Handler must return true, if action handled, false - otherwize
    * @param {() => boolean} handler 
    */
-  androidAPI.onBackKey = (handler) => {
+  onBackKey(handler) {
     window.onBackPressed = () => {
       console.log("window.onBackPressed call handler");    
-      alert("window.onBackPressed call handler");
-      handler();
+      //alert("window.onBackPressed call handler");
+      return handler();
     };
-    androidJsHandler.onBackPressed =  () => {
-      console.log("androidJsHandler.onBackPressed call handler");    
-      alert("androidJsHandler.onBackPressed call handler");
-      handler();
-    };
+    // handler.onBackPressed =  () => {
+    //   console.log("handler.onBackPressed call handler");    
+    //   alert("handler.onBackPressed call handler");
+    //   handler();
+    // };
     console.log("window.onBackPressed = handler;", handler);    
-  };
-
-  androidAPI.KEYCODE_VOLUME_UP = 24;
-  androidAPI.KEYCODE_VOLUME_DOWN = 25;  
+  },
 
   /**
    * Подписываемся на обработку
    * клавиш звука KEYCODE_VOLUME_DOWN и KEYCODE_VOLUME_UP
    * handler в первом параметре получает код клавиши
-   * @param {(keyCode, event) => {}} handler
+   * @param {(keyCode, event) => {}} callback
    */
-  androidAPI.onVolumeKey = (handler) => {
+  onVolumeKey(handler) {
     if (!handler || typeof handler != 'function') {
       return;
     }
     
-    androidJsHandler.subscribeKeyEvent(androidAPI.KEYCODE_VOLUME_UP, true);
-    androidJsHandler.subscribeKeyEvent(androidAPI.KEYCODE_VOLUME_DOWN, true);
+    andoroidHandler.subscribeKeyEvent(androidAPI.KEYCODE_VOLUME_UP, true);
+    andoroidHandler.subscribeKeyEvent(androidAPI.KEYCODE_VOLUME_DOWN, true);
 
     window.onKeyDown = (keyCode, event) => {
       console.log("window.onKeyDown call handler", handler);    
       handler(keyCode, event);
     };
-  };
-  
+  },
+
   /**
    * Отписываемся от обработки
    * клавиш звука KEYCODE_VOLUME_DOWN и KEYCODE_VOLUME_UP
    */
-  androidAPI.offVolumeKey = () => {
-    androidJsHandler.subscribeKeyEvent(KEYCODE_VOLUME_UP, false);
-    console.log("androidJsHandler.subscribeKeyEvent(KEYCODE_VOLUME_UP, false)");
+  offVolumeKey() {
+    andoroidHandler.subscribeKeyEvent(androidAPI.KEYCODE_VOLUME_UP, false);
+    console.log("handler.subscribeKeyEvent(KEYCODE_VOLUME_UP, false)");
 
-    androidJsHandler.subscribeKeyEvent(KEYCODE_VOLUME_DOWN, false);
-    console.log("androidJsHandler.subscribeKeyEvent(KEYCODE_VOLUME_DOWN, false);");
+    andoroidHandler.subscribeKeyEvent(androidAPI.KEYCODE_VOLUME_DOWN, false);
+    console.log("handler.subscribeKeyEvent(KEYCODE_VOLUME_DOWN, false);");
 
     window.onKeyDown = false;
     console.log(" window.onKeyDown = false;");    
-  };
-}
+  },
+
+  /**
+   * Добавляем уведомление установленного образца
+   * @param {Object} param 
+   * @param {Date} param.date Дата
+   */
+  async addNotification(param) {
+    const promise = new Promise((resolve, reject) => {
+      window.onAreNotificationsEnabledResponse = (isEnabled) => {
+        resolve(isEnabled);
+      };
+      andoroidHandler.requestAreNotificationsEnabled();
+    });
+    
+    promise.then((isNotificationEnabled) => {
+      if (isNotificationEnabled) {
+        param.date = param.date || new Date();
+
+        const notification = {
+          id: "123",
+          title: param.title || "",
+          description: param.description || "",
+          date: format((param.date), 'yyyyMMdd HH:mm:ss'),
+          url: param.url || ""
+        };
+
+        return andoroidHandler.addEventToCalendar(JSON.stringify(notification));
+      }
+    });
+
+    return promise;
+  },
+
+  /**
+   * Запрашиваем разрешение на получение уведомлений
+   * @param {function(boolean) {}} onGranted 
+   */
+  // requestNotificationPermission(onGranted) {
+  //   window.onAreNotificationsEnabledResponse = (isEnabled) => {
+  //     onGranted(isEnabled);
+  //   };
+  //   handler.requestAreNotificationsEnabled();
+  // }
+};
 
 export default androidAPI;
