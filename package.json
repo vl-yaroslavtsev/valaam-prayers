@@ -1,11 +1,12 @@
 {
   "name": "valaam-prayers",
   "private": true,
-  "version": "2.0.26",
+  "version": "2.0.44",
   "description": "Валаамский молитвослов и календарь",
   "repository": "",
   "license": "UNLICENSED",
   "scripts": {
+    "nvm": "nvm use 20",
     "start": "npm run dev",
     "dev": "cross-env NODE_ENV=development vite",
     "preview": "cross-env NODE_ENV=development vite preview",
@@ -21,6 +22,7 @@
     "last 5 Firefox versions"
   ],
   "dependencies": {
+    "date-fns": "^4.1.0",
     "dom7": "^4.0.6",
     "framework7": "^8.3.3",
     "framework7-icons": "^5.0.5",
