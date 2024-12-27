@@ -52,7 +52,7 @@
     <f7-view id="view-books" name="books" tab url="/api-test/"></f7-view>
 
     <!-- Settings View -->
-    <f7-view id="view-rites" name="rites" tab url="/settings/"></f7-view>
+    <f7-view id="view-rites" name="rites" tab url="/rites/"></f7-view>
 
   </f7-views>
     <!-- Popup -->

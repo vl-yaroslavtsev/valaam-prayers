@@ -6,7 +6,7 @@ import CatalogPage from '../pages/catalog.vue';
 import CalendarPage from '../pages/calendar.vue';
 import DayPage from '../pages/day.vue';
 import ProductPage from '../pages/product.vue';
-import SettingsPage from '../pages/settings.vue';
+import RitesPage from '../pages/rites.vue';
 import ApiTestPage from '../pages/api-test.vue';
 
 import DynamicRoutePage from '../pages/dynamic-route.vue';
@@ -43,8 +43,8 @@ var routes = [
     component: ProductPage,
   },
   {
-    path: '/settings/',
-    component: SettingsPage,
+    path: '/rites/',
+    component: RitesPage,
   },
   {
     path: '/api-test/',

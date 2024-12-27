@@ -126,9 +126,6 @@ import { Dom7 as $ } from 'framework7';
 import deviceAPI from '../js/device/device-api';
 import testBrowser from '../js/device/browser-test';
 
-
-const isServiceWorker = navigator.serviceWorker;
-
 const currentBrightness = ref(0);
 
 deviceAPI.getBrightness()
