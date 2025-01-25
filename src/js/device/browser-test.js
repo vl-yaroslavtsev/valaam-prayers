@@ -1,23 +1,31 @@
 
 /**
- * Байты в человекочитаемую строку
- * @param  {integer} bytes    Кол-во байт
- * @param  {integer} [decimals] Кол-во точек после запятой
- * @param  {integer} [wrapDigit] Оборачиваем цифры в класс
- * @return {string}
+ * Преобразует байты в человекочитаемую строку
+ * @param {number} bytes Количество байт
+ * @param {Object} options Параметры форматирования
+ * @param {number} [options.decimals=0] Количество знаков после запятой
+ * @param {boolean} [options.wrapDigit=true] Оборачивать ли цифры в HTML-класс
+ * @return {string} Отформатированная строка с размером
  */
-const bytesToSize = (bytes, {decimals = 0, wrapDigit = true} = {}) => {
-	if (bytes == 0) return `${printDigit(0)} Байт`;
-  var k = 1024,
-    dm = decimals <= 0 ? 0 : decimals,
-    sizes = ['Байт', 'КБ', 'МБ', 'ГБ', 'TБ', 'ПБ', 'EB', 'ZB', 'YB'],
-    i = Math.floor(Math.log(bytes) / Math.log(k));
-  return `${printDigit((bytes / Math.pow(k, i)).toFixed(dm))} ${sizes[i]}`;
+const bytesToSize = (bytes, { decimals = 0, wrapDigit = true } = {}) => {
+  const UNITS = ['Байт', 'КБ', 'МБ', 'ГБ', 'TБ', 'ПБ', 'EB', 'ZB', 'YB'];
+  const BYTES_IN_KB = 1024;
 
-	function printDigit(digit) {
-		return `${wrapDigit ? `<span class="digit">${digit}</span>` : digit}`;
-	}
-}
+  const formatDigit = (digit) => {
+    return wrapDigit ? `<span class="digit">${digit}</span>` : digit;
+  };
+
+  if (bytes === 0) {
+    return `${formatDigit(0)} ${UNITS[0]}`;
+  }
+
+  const exponent = Math.floor(Math.log(bytes) / Math.log(BYTES_IN_KB));
+  const value = (bytes / Math.pow(BYTES_IN_KB, exponent)).toFixed(
+    Math.max(0, decimals)
+  );
+
+  return `${formatDigit(value)} ${UNITS[exponent]}`;
+};
 
 /**
  * Получаем количество доступного и использованного пространства для хранения данных

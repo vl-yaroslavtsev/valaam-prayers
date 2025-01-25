@@ -50,7 +50,8 @@ function parseHash() {
 	f7.tab.show(viewId);
   if (url) {
     view.router.navigate(url);
-  }
+  } 
+	
 	document.location.hash = '';
 }
 

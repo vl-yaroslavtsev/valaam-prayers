@@ -113,13 +113,13 @@ const iosAPI = {
    * @param {() => boolean} handler 
    */
   onBackKey(handler) {
-    window.handleSwipeBack = () => {
+    window.handleSwipeBack = function() {
       console.log("window.onBackPressed call handler");
       alert("window.handleSwipeBack: Swipe-back gesture");
       //alert("window.onBackPressed call handler");
       handler();
     };
-    console.log("window.onBackPressed = handler;", handler);    
+    alert("window.handleSwipeBack = handler call");    
   },
 
   /**
@@ -157,9 +157,12 @@ const iosAPI = {
         url: param.url || ""
       };
 
-      // "2024-12-13T15:35"
+      alert("Notification: " + JSON.stringify(notification));
   
-      window.onAddEvent = (status, errorDescription) => {
+      window.onAddEvent = function(status, errorDescription) {
+
+        alert("window.onAddEvent: status: " + status + ", errorDescription: " + errorDescription);
+
         if (status) {
           alert("Event added: " + JSON.stringify(notification));
         }
@@ -169,8 +172,12 @@ const iosAPI = {
         }
         resolve(status);
       };
+
+      alert(" window.onAddEvent call ");
   
       iosHandler.calendarHandler.postMessage(notification);
+
+      alert("iosHandler.calendarHandler.postMessage ");
     });
 
     return promise;

@@ -1,7 +1,7 @@
 {
   "name": "valaam-prayers",
   "private": true,
-  "version": "2.0.45",
+  "version": "2.0.49",
   "description": "Валаамский молитвослов и календарь",
   "repository": "",
   "license": "UNLICENSED",
@@ -11,8 +11,8 @@
     "dev": "cross-env NODE_ENV=development vite",
     "preview": "cross-env NODE_ENV=development vite preview",
     "build": "cross-env NODE_ENV=production vite build",
-    "copy:prod": "scripts\\copy.prod.cmd",
-    "prod": "npm run build && npm run copy:prod",
+    "deploy": "scripts\\deploy.cmd",
+    "prod": "npm run build && npm run deploy",
     "postinstall": "cpy --flat ./node_modules/material-icons/iconfont/*.* ./src/fonts/"
   },
   "browserslist": [
