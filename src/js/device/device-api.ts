@@ -1,38 +1,10 @@
 import androidAPI from "./android-api";
 import iosAPI from "./ios-api";
+import type { Notification, DeviceAPI } from "./types";
 
-interface Notification {
-  title: string;
-  body: string;
-  // Добавьте другие необходимые поля для уведомлений
-}
+let deviceAPI: DeviceAPI;
 
-interface DeviceAPI {
-  KEYCODE_VOLUME_DOWN: number;
-  KEYCODE_VOLUME_UP: number;
-
-  setBrightness(value: number): void;
-  getBrightness(): Promise<number>;
-  resetBrightness(): void;
-
-  getTheme(): Promise<string>;
-
-  showStatusBar(visibility: boolean): void;
-
-  setFullScreen(mode: boolean): void;
-  keepScreenOn(mode: boolean): void;
-  setStatusBarColor(color: string): void;
-
-  onBackKey(handler: () => void): void;
-
-  onVolumeKey(handler: (keyCode: number) => void): void;
-  offVolumeKey(): void;
-
-  addNotification(notification: Notification): Promise<void>;
-  // requestNotificationPermission(onGranted: () => void): void;
-}
-
-const deviceAPI: DeviceAPI = {
+const browserAPI: DeviceAPI = {
   KEYCODE_VOLUME_DOWN: 0,
   KEYCODE_VOLUME_UP: 0,
 
@@ -43,7 +15,7 @@ const deviceAPI: DeviceAPI = {
   resetBrightness() {},
 
   async getTheme() {
-    return 'unknown';
+    return "unknown";
   },
 
   showStatusBar(visibility: boolean) {},
@@ -52,33 +24,25 @@ const deviceAPI: DeviceAPI = {
   keepScreenOn(mode: boolean) {},
   setStatusBarColor(color: string) {},
 
-  onBackKey(handler: () => void) {},
+  onBackKey(handler: () => boolean) {},
 
-  onVolumeKey(handler: (keyCode: number) => void) {},
+  onVolumeKey(handler: (keyCode: number, event: any) => void) {},
   offVolumeKey() {},
 
-  async addNotification(notification: Notification) {},
-  // requestNotificationPermission(onGranted: () => void) {}
+  async addNotification(notification: Partial<Notification>): Promise<boolean> {
+    return false;
+  },
 };
 
-Object.seal(deviceAPI);
-
-declare global {
-  interface Window {
-    androidJsHandler?: unknown;
-    webkit?: {
-      messageHandlers: unknown;
-    };
-  }
-}
-
-const isAndroid = 'androidJsHandler' in window;
-const isIOS = window.webkit && 'messageHandlers' in window.webkit;
+const isAndroid = "androidJsHandler" in window;
+const isIOS = window.webkit && "messageHandlers" in window.webkit;
 
 if (isAndroid) {
-  Object.assign(deviceAPI, androidAPI); 
+  deviceAPI = androidAPI;
 } else if (isIOS) {
-  Object.assign(deviceAPI, iosAPI);
+  deviceAPI = iosAPI;
+} else {
+  deviceAPI = browserAPI;
 }
 
-export default deviceAPI; 
+export default deviceAPI;

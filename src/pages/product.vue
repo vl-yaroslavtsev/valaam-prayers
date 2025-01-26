@@ -1,33 +1,26 @@
 <template>
-  <f7-page name="product">
-    <f7-navbar :title="product.title" back-link="Back"></f7-navbar>
-    <f7-block-title>About {{ product.title }}</f7-block-title>
-    <f7-block>
-      {{ product.description }}
+  <f7-page>
+    <f7-navbar title="Product" back-link="Back"></f7-navbar>
+    <f7-block v-if="product">
+      <h2>{{ product.title }}</h2>
+      <p>{{ product.description }}</p>
     </f7-block>
   </f7-page>
 </template>
-<script>
-import { f7, useStore } from 'framework7-vue';
+<script setup lang="ts">
+import { f7, useStore } from "framework7-vue";
+import { Product } from "../js/store";
 
+const products = useStore("products");
+const props = defineProps({ id: String });
+const productId = props.id;
 
-export default {
-  props: {
-    f7route: Object,
-  },
-  setup(props) {
-    const products = useStore('products');
-    const productId = props.f7route.params.id;
-    let currentProduct;
-    products.value.forEach(function (product) {
-      if (product.id === productId) {
-        currentProduct = product;
-      }
-    });
+console.log("Product props", props);
 
-    return {
-      product: currentProduct,
-    };
-  },
-};
+let product: Product;
+products.value.forEach(function (el: Product) {
+  if (el.id === productId) {
+    product = el;
+  }
+});
 </script>

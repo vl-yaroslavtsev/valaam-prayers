@@ -15,8 +15,15 @@
             <f7-icon ios="f7:sun_min" md="material:brightness_low" />
           </div>
           <div style="width: 100%; margin: 0 16px">
-            <f7-range :min="0" :max="100" :step="1" v-model:value="currentBrightness" :label="true"
-              @range:change="onBrightnessChange" color="orange" />
+            <f7-range
+              :min="0"
+              :max="100"
+              :step="1"
+              v-model:value="currentBrightness"
+              :label="true"
+              @range:change="onBrightnessChange"
+              color="orange"
+            />
           </div>
           <div>
             <f7-icon ios="f7:sun_max_fill" md="material:brightness_high" />
@@ -56,8 +63,12 @@
       </f7-list>
 
       <f7-list strong-ios outline-ios>
-        <f7-list-input label="Цвет статусбара" type="text" placeholder="#000000"
-          v-model:value="statusBarColor"></f7-list-input>
+        <f7-list-input
+          label="Цвет статусбара"
+          type="text"
+          placeholder="#000000"
+          v-model:value="statusBarColor"
+        ></f7-list-input>
         <f7-list-item>
           <f7-button fill @click="setStatusBarColor">Установить</f7-button>
         </f7-list-item>
@@ -104,32 +115,63 @@
 
       <f7-block-title>Checkbox group</f7-block-title>
       <f7-list strong-ios outline-ios dividers-ios>
-        <f7-list-item checkbox name="my-checkbox" value="Books" title="Books"></f7-list-item>
-        <f7-list-item checkbox name="my-checkbox" value="Movies" title="Movies"></f7-list-item>
-        <f7-list-item checkbox name="my-checkbox" value="Food" title="Food"></f7-list-item>
+        <f7-list-item
+          checkbox
+          name="my-checkbox"
+          value="Books"
+          title="Books"
+        ></f7-list-item>
+        <f7-list-item
+          checkbox
+          name="my-checkbox"
+          value="Movies"
+          title="Movies"
+        ></f7-list-item>
+        <f7-list-item
+          checkbox
+          name="my-checkbox"
+          value="Food"
+          title="Food"
+        ></f7-list-item>
       </f7-list>
 
       <f7-block-title>Radio buttons group</f7-block-title>
       <f7-list strong-ios outline-ios dividers-ios>
-        <f7-list-item radio name="radio" value="Books" title="Books"></f7-list-item>
-        <f7-list-item radio name="radio" value="Movies" title="Movies"></f7-list-item>
-        <f7-list-item radio name="radio" value="Food" title="Food"></f7-list-item>
+        <f7-list-item
+          radio
+          name="radio"
+          value="Books"
+          title="Books"
+        ></f7-list-item>
+        <f7-list-item
+          radio
+          name="radio"
+          value="Movies"
+          title="Movies"
+        ></f7-list-item>
+        <f7-list-item
+          radio
+          name="radio"
+          value="Food"
+          title="Food"
+        ></f7-list-item>
       </f7-list>
     </f7-page-content>
   </f7-page>
 </template>
 <script setup>
-import { add } from 'date-fns';
-import { ref, watch, onMounted } from 'vue';
-import { f7, f7ready } from 'framework7-vue';
-import { Dom7 as $ } from 'framework7';
-import deviceAPI from '../js/device/device-api';
-import testBrowser from '../js/device/browser-test';
+import { add } from "date-fns";
+import { ref, watch, onMounted } from "vue";
+import { f7, f7ready } from "framework7-vue";
+import { Dom7 as $ } from "framework7";
+import deviceAPI from "../js/device/device-api";
+import { testBrowser } from "../js/device/browser-test";
 
 const currentBrightness = ref(0);
 
-deviceAPI.getBrightness()
-         .then((brightness) => currentBrightness.value = brightness);
+deviceAPI
+  .getBrightness()
+  .then((brightness) => (currentBrightness.value = brightness));
 
 const onBrightnessChange = (newVal) => {
   console.log("onBrightnessChange = ", newVal);
@@ -203,15 +245,13 @@ const addNotification = () => {
     title: "Завтра праздник",
     description: "Описание праздника",
     date: add(new Date(), { seconds: 30 }),
-    url: "https://molitvoslov.valaam.ru/app/#view-calendar:/days/20241001"
+    url: "https://molitvoslov.valaam.ru/app/#view-calendar:/days/20241001",
   };
-  console.log('notif', notification);
+  console.log("notif", notification);
 
-  deviceAPI
-    .addNotification(notification)
-    .then((isGranted) => {
-      f7.dialog.alert(`Права на уведомления ${isGranted}`);
-    });
+  deviceAPI.addNotification(notification).then((isGranted) => {
+    f7.dialog.alert(`Права на уведомления ${isGranted}`);
+  });
 };
 
 /**

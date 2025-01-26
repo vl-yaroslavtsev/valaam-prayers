@@ -1,5 +1,5 @@
 // @see https://github.com/twbs/bootstrap/blob/main/scss/_functions.scss
-@function material-icons-str-replace($string, $search, $replace: '') {
+@function material-icons-str-replace($string, $search, $replace: "") {
   $index: str-index($string, $search);
   @if $index {
     @return str-slice($string, 1, $index - 1) + $replace +
@@ -27,12 +27,12 @@
   -webkit-font-smoothing: antialiased; // Support for all WebKit browsers
   -moz-osx-font-smoothing: grayscale; // Support for Firefox
   text-rendering: optimizeLegibility; // Support for Safari and Chrome
-  font-feature-settings: 'liga'; // Support for IE
+  font-feature-settings: "liga"; // Support for IE
 }
 
 @mixin material-icons-font($font-family) {
   $class-name: to-lower-case($font-family);
-  $class-name: material-icons-str-replace($class-name, ' ', '-');
+  $class-name: material-icons-str-replace($class-name, " ", "-");
   $font-file: $material-icons-font-path + $class-name;
 
   @font-face {
@@ -40,8 +40,9 @@
     font-style: normal;
     font-weight: 400;
     font-display: $material-icons-font-display;
-    src: url('#{$font-file}.woff2') format('woff2'),
-      url('#{$font-file}.woff') format('woff');
+    src:
+      url("#{$font-file}.woff2") format("woff2"),
+      url("#{$font-file}.woff") format("woff");
   }
 
   .#{$class-name} {
@@ -51,5 +52,5 @@
 
 @mixin material-icons() {
   @warn "material-icons() Sass mixin has been deprecated as of 1.0. Use '@extend .material-icons;' instead of '@include material-icons();'.";
-  @include material-icons-font-class('Material Icons');
+  @include material-icons-font-class("Material Icons");
 }

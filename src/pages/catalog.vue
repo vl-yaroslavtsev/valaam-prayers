@@ -1,7 +1,7 @@
 <template>
-  <f7-page name="catalog">
-    <f7-navbar title="Catalog"></f7-navbar>
-    <f7-list strong dividers-ios outline-ios inset-md>
+  <f7-page>
+    <f7-navbar title="Catalog" back-link="Back"></f7-navbar>
+    <f7-list>
       <f7-list-item
         v-for="product in products"
         :key="product.id"
@@ -14,19 +14,19 @@
     </f7-block>
   </f7-page>
 </template>
-<script setup>
-import { useStore } from 'framework7-vue';
-import store from '../js/store';
 
-const products = useStore('products');
+<script setup lang="ts">
+import { useStore } from "framework7-vue";
+import store, { Product } from "../js/store";
+
+const products = useStore("products") as Product[];
 
 const addProduct = () => {
-  store.dispatch('addProduct', {
-    id: '4',
-    title: 'Apple iPhone 12',
+  store.dispatch("addProduct", {
+    id: "4",
+    title: "Apple iPhone 12",
     description:
-      'Lorem ipsum dolor sit amet, consectetur adipisicing elit. Nisi tempora similique reiciendis, error nesciunt vero, blanditiis pariatur dolor, minima sed sapiente rerum, dolorem corrupti hic modi praesentium unde saepe perspiciatis.',
+      "Lorem ipsum dolor sit amet, consectetur adipisicing elit. Nisi tempora similique reiciendis, error nesciunt vero, blanditiis pariatur dolor, minima sed sapiente rerum, dolorem corrupti hic modi praesentium unde saepe perspiciatis.",
   });
 };
-
 </script>

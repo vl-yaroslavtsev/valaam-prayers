@@ -11,9 +11,16 @@
 
     <!-- Page content-->
     <f7-block>
-      <p>This is an example of tabs-layout application. The main point of such tabbed layout is that each tab contains independent view with its own routing and navigation.</p>
+      <p>
+        This is an example of tabs-layout application. The main point of such
+        tabbed layout is that each tab contains independent view with its own
+        routing and navigation.
+      </p>
 
-      <p>Each tab/view may have different layout, different navbar type (dynamic, fixed or static) or without navbar like this tab.</p>
+      <p>
+        Each tab/view may have different layout, different navbar type (dynamic,
+        fixed or static) or without navbar like this tab.
+      </p>
     </f7-block>
     <f7-block-title>Navigation</f7-block-title>
     <f7-list strong inset dividersIos>
@@ -48,3 +55,17 @@
     </f7-list>
   </f7-page>
 </template>
+
+<script lang="ts">
+import { defineComponent } from "vue";
+import { f7 } from "framework7-vue";
+
+export default defineComponent({
+  name: "HomePage",
+  setup() {
+    return {
+      f7,
+    };
+  },
+});
+</script>

@@ -1,14 +1,16 @@
 /* Material Icons Font (for MD theme) */
 @font-face {
-  font-family: 'Material Icons';
+  font-family: "Material Icons";
   font-style: normal;
   font-weight: 400;
-  src: local('Material Icons'), local('MaterialIcons-Regular'),
-    url(../fonts/material-icons.woff2) format('woff2'),
-    url(../fonts/material-icons.woff) format('woff');
+  src:
+    local("Material Icons"),
+    local("MaterialIcons-Regular"),
+    url(../fonts/material-icons.woff2) format("woff2"),
+    url(../fonts/material-icons.woff) format("woff");
 }
 .material-icons {
-  font-family: 'Material Icons';
+  font-family: "Material Icons";
   font-weight: normal;
   font-style: normal;
   font-size: 24px;
@@ -22,19 +24,20 @@
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
   -moz-osx-font-smoothing: grayscale;
-  font-feature-settings: 'liga';
+  font-feature-settings: "liga";
 }
 
 /* Framework7 Icons Font (for iOS theme) */
 @font-face {
-  font-family: 'Framework7 Icons';
+  font-family: "Framework7 Icons";
   font-style: normal;
   font-weight: 400;
-  src: url('../fonts/Framework7Icons-Regular.woff2') format('woff2'),
-    url('../fonts/Framework7Icons-Regular.woff') format('woff');
+  src:
+    url("../fonts/Framework7Icons-Regular.woff2") format("woff2"),
+    url("../fonts/Framework7Icons-Regular.woff") format("woff");
 }
 .f7-icons {
-  font-family: 'Framework7 Icons';
+  font-family: "Framework7 Icons";
   font-weight: normal;
   font-style: normal;
   font-size: 28px;
@@ -48,9 +51,9 @@
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
   -moz-osx-font-smoothing: grayscale;
-  -webkit-font-feature-settings: 'liga';
-  -moz-font-feature-settings: 'liga=1';
-  -moz-font-feature-settings: 'liga';
-  font-feature-settings: 'liga';
+  -webkit-font-feature-settings: "liga";
+  -moz-font-feature-settings: "liga=1";
+  -moz-font-feature-settings: "liga";
+  font-feature-settings: "liga";
   text-align: center;
 }

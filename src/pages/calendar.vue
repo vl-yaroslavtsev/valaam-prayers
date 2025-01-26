@@ -12,8 +12,8 @@
   </f7-page>
 </template>
 <script setup>
-import { useStore } from 'framework7-vue';
-import store from '../js/store';
+import { useStore } from "framework7-vue";
+import store from "../js/store";
 
-const days = useStore('days');
+const days = useStore("days");
 </script>

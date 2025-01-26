@@ -1,41 +1,35 @@
 import androidAPI from "./android-api";
 import iosAPI from "./ios-api";
-
-const deviceAPI = {
+let deviceAPI;
+const browserAPI = {
   KEYCODE_VOLUME_DOWN: 0,
   KEYCODE_VOLUME_UP: 0,
-
   setBrightness(value) {},
   async getBrightness() {
     return 50;
   },
-  resetBrightness(){},
-
+  resetBrightness() {},
   async getTheme() {
-    return 'unknown';
+    return "unknown";
   },
-
-  showStatusBar(visibility){},
-
-  setFullScreen(mode){},
-  keepScreenOn(mode){},
-  setStatusBarColor(color){},
-
-  onBackKey(handler){},
-
+  showStatusBar(visibility) {},
+  setFullScreen(mode) {},
+  keepScreenOn(mode) {},
+  setStatusBarColor(color) {},
+  onBackKey(handler) {},
   onVolumeKey(handler) {},
-  offVolumeKey(){},
-
-  async addNotification(notification){},
-  // requestNotificationPermission(onGranted){}
+  offVolumeKey() {},
+  async addNotification(notification) {
+    return false;
+  },
 };
-
-Object.seal(deviceAPI);
-
-if ('androidJsHandler' in window) {
-  Object.assign(deviceAPI, androidAPI);
-} else if ('webkit' in window && 'messageHandlers' in window.webkit) {
-  Object.assign(deviceAPI, iosAPI);
+const isAndroid = "androidJsHandler" in window;
+const isIOS = window.webkit && "messageHandlers" in window.webkit;
+if (isAndroid) {
+  deviceAPI = androidAPI;
+} else if (isIOS) {
+  deviceAPI = iosAPI;
+} else {
+  deviceAPI = browserAPI;
 }
-
 export default deviceAPI;

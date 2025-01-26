@@ -310,7 +310,7 @@ strategies.db.staleWhileRevalidate = async function (request, {idbStore, key, de
 		return await _fetchAndSave();
 	}
 
-	async _fetchAndSave() {
+	async function _fetchAndSave() {
 		try {
 			let response = await fetch(request);
 			if (!response.ok) {

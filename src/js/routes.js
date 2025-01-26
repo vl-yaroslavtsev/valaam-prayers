@@ -1,92 +1,85 @@
-
-import HomePage from '../pages/home.vue';
-import AboutPage from '../pages/about.vue';
-import FormPage from '../pages/form.vue';
-import CatalogPage from '../pages/catalog.vue';
-import CalendarPage from '../pages/calendar.vue';
-import DayPage from '../pages/day.vue';
-import ProductPage from '../pages/product.vue';
-import RitesPage from '../pages/rites.vue';
-import ApiTestPage from '../pages/api-test.vue';
-
-import DynamicRoutePage from '../pages/dynamic-route.vue';
-import RequestAndLoad from '../pages/request-and-load.vue';
-import NotFoundPage from '../pages/404.vue';
-
-var routes = [
+import HomePage from "../pages/home.vue";
+import AboutPage from "../pages/about.vue";
+import FormPage from "../pages/form.vue";
+import CatalogPage from "../pages/catalog.vue";
+import CalendarPage from "../pages/calendar.vue";
+import DayPage from "../pages/day.vue";
+import ProductPage from "../pages/product.vue";
+import RitesPage from "../pages/rites.vue";
+import ApiTestPage from "../pages/api-test.vue";
+import DynamicRoutePage from "../pages/dynamic-route.vue";
+import RequestAndLoad from "../pages/request-and-load.vue";
+import NotFoundPage from "../pages/404.vue";
+const routes = [
   {
-    path: '/',
+    path: "/",
     component: HomePage,
   },
   {
-    path: '/about/',
+    path: "/about/",
     component: AboutPage,
   },
   {
-    path: '/form/',
+    path: "/form/",
     component: FormPage,
   },
   {
-    path: '/catalog/',
+    path: "/catalog/",
     component: CatalogPage,
   },
   {
-    path: '/calendar/',
+    path: "/calendar/",
     component: CalendarPage,
   },
   {
-    path: '/days/:id',
+    path: "/days/:id",
     component: DayPage,
   },
   {
-    path: '/product/:id/',
+    path: "/product/:id/",
     component: ProductPage,
   },
   {
-    path: '/rites/',
+    path: "/rites/",
     component: RitesPage,
   },
   {
-    path: '/api-test/',
+    path: "/api-test/",
     component: ApiTestPage,
   },
   {
-    path: '/dynamic-route/blog/:blogId/post/:postId/',
+    path: "/dynamic-route/blog/:blogId/post/:postId/",
     component: DynamicRoutePage,
   },
   {
-    path: '/request-and-load/user/:userId/',
+    path: "/request-and-load/user/:userId/",
     async: function ({ router, to, resolve }) {
       // App instance
-      var app = router.app;
-
+      const app = router.app;
       // Show Preloader
       app.preloader.show();
-
       // User ID from request
-      var userId = to.params.userId;
-
+      const userId = to.params.userId;
       // Simulate Ajax Request
       setTimeout(function () {
         // We got user data from request
         var user = {
-          firstName: 'Vladimir',
-          lastName: 'Kharlampidi',
-          about: 'Hello, i am creator of Framework7! Hope you like it!',
+          firstName: "Vladimir",
+          lastName: "Kharlampidi",
+          about: "Hello, i am creator of Framework7! Hope you like it!",
           links: [
             {
-              title: 'Framework7 Website',
-              url: 'http://framework7.io',
+              title: "Framework7 Website",
+              url: "http://framework7.io",
             },
             {
-              title: 'Framework7 Forum',
-              url: 'http://forum.framework7.io',
+              title: "Framework7 Forum",
+              url: "http://forum.framework7.io",
             },
-          ]
+          ],
         };
         // Hide Preloader
         app.preloader.hide();
-
         // Resolve route to load page
         resolve(
           {
@@ -95,16 +88,15 @@ var routes = [
           {
             props: {
               user: user,
-            }
-          }
+            },
+          },
         );
       }, 1000);
     },
   },
   {
-    path: '(.*)',
+    path: "(.*)",
     component: NotFoundPage,
   },
 ];
-
 export default routes;
