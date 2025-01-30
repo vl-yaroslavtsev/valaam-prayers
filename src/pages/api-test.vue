@@ -242,8 +242,8 @@ watch(isVolumeButtonsScroll, (newVal) => {
 const addNotification = () => {
   const notification = {
     id: "123",
-    title: "Завтра праздник",
-    description: "Описание праздника",
+    title: "Завтра Рождество Пресвятой Богородицы",
+    description: "Не забудьте сходить в храм",
     date: add(new Date(), { seconds: 30 }),
     url: "https://molitvoslov.valaam.ru/app/#view-calendar:/days/20241001",
   };

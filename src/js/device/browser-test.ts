@@ -163,21 +163,43 @@ const getImgFromDb = (
   return promise;
 };
 
+async function testServiceWorker(): Promise<string> {
+  let msg = "не активирован";
+
+  try {
+    const registration = await Promise.race([
+      navigator.serviceWorker.ready,
+      new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('таймаут ожидания')), 1000)
+      )
+    ]);
+    
+    msg = 'активирован' + 
+      ', state: ' + (registration as ServiceWorkerRegistration).active?.state + 
+      ', URL: ' + (registration as ServiceWorkerRegistration).active?.scriptURL;
+  } catch (error: any) {
+    msg = 'ошибка активации: ' + (error.message || error);
+  }
+
+  return msg;
+}
+
 /**
  * Тестируем фичи клиента.
  */
 const testBrowser = async (device: Device): Promise<string> => {
   let msg = "";
 
+  const swStatus = await testServiceWorker();
+
   if (navigator.serviceWorker) {
-    //navigator.serviceWorker.register('./sw-phonegap.js');
-    msg += "ServiceWorker: да<br>";
+    msg += "ServiceWorker: да, " + swStatus + "<br>";
   } else {
     msg += "ServiceWorker: нет<br>";
   }
 
   if ("onLine" in navigator) {
-    msg += "navigator.onLine: да, " + navigator.onLine + "<br>";
+    msg += "navigator.onLine: да, " + (navigator.onLine ? 'онлайн' : 'офлайн') + "<br>";
   } else {
     msg += "navigator.onLine: нет<br>";
   }
@@ -196,23 +218,23 @@ const testBrowser = async (device: Device): Promise<string> => {
 
   msg = msg + "UA: " + navigator.userAgent + "<br>";
   msg = msg + "os: " + device.os + ", osVersion:" + device.osVersion + "<br>";
-  msg =
-    msg +
-    "ios: " +
-    device.ios +
-    ", ipad:" +
-    device.ipad +
-    ", iphone: " +
-    device.iphone +
-    ", ipod: " +
-    device.ipod +
-    ", macos: " +
-    device.macos +
-    ", android: " +
-    device.android +
-    ", androidChrome: " +
-    device.androidChrome +
-    "<br>";
+  // msg =
+  //   msg +
+  //   "ios: " +
+  //   device.ios +
+  //   ", ipad:" +
+  //   device.ipad +
+  //   ", iphone: " +
+  //   device.iphone +
+  //   ", ipod: " +
+  //   device.ipod +
+  //   ", macos: " +
+  //   device.macos +
+  //   ", android: " +
+  //   device.android +
+  //   ", androidChrome: " +
+  //   device.androidChrome +
+  //   "<br>";
 
   let quota = await getQuota();
   msg =

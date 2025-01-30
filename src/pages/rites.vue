@@ -54,6 +54,12 @@ const getUID = () => {
 };
 
 const postJson = async (url, data = {}) => {
+  try {
+    await loadYooKassaScript();
+  } catch (error) {
+    throw 'Ошибка загрузки виджета: ' + error;
+  }
+  
   const res = await fetch(url, {
     method: "POST",
     headers: {
@@ -144,5 +150,24 @@ const donate = async (event) => {
   } finally {
     loading.value = false;
   }
+};
+
+const loadYooKassaScript = () => {
+  return new Promise((resolve, reject) => {
+    // Проверяем, не загружен ли уже скрипт
+    if (window.YooMoneyCheckoutWidget) {
+      resolve(window.YooMoneyCheckoutWidget);
+      return;
+    }
+
+    const script = document.createElement('script');
+    script.src = 'https://static.yoomoney.ru/checkout-client/checkout-widget.js';
+    script.async = true;
+    
+    script.onload = () => resolve(window.YooMoneyCheckoutWidget);
+    script.onerror = (error) => reject(new Error('Не удалось загрузить скрипт YooKassa: ' + error));
+    
+    document.head.appendChild(script);
+  });
 };
 </script>

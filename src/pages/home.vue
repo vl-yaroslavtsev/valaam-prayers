@@ -22,6 +22,13 @@
         fixed or static) or without navbar like this tab.
       </p>
     </f7-block>
+    <f7-list strong-ios dividers-ios outline-ios>
+      <f7-list-item title="Темная тема">
+        <template #after>
+          <f7-toggle v-model:checked="isDarkTheme" />
+        </template>
+      </f7-list-item>
+    </f7-list>
     <f7-block-title>Navigation</f7-block-title>
     <f7-list strong inset dividersIos>
       <f7-list-item link="/about/" title="About"></f7-list-item>
@@ -40,32 +47,33 @@
     </f7-block>
 
     <f7-list strong inset dividersIos>
-      <f7-list-item
-        title="Dynamic (Component) Route"
-        link="/dynamic-route/blog/45/post/125/?foo=bar#about"
-      ></f7-list-item>
-      <f7-list-item
-        title="Default Route (404)"
-        link="/load-something-that-doesnt-exist/"
-      ></f7-list-item>
-      <f7-list-item
-        title="Request Data & Load"
-        link="/request-and-load/user/123456/"
-      ></f7-list-item>
+      <f7-list-item title="Dynamic (Component) Route"
+        link="/dynamic-route/blog/45/post/125/?foo=bar#about"></f7-list-item>
+      <f7-list-item title="Default Route (404)" link="/load-something-that-doesnt-exist/"></f7-list-item>
+      <f7-list-item title="Request Data & Load" link="/request-and-load/user/123456/"></f7-list-item>
     </f7-list>
   </f7-page>
 </template>
 
-<script lang="ts">
-import { defineComponent } from "vue";
-import { f7 } from "framework7-vue";
+<script setup lang="ts">
+import { ref, watch } from "vue";
+import { f7, f7ready } from "framework7-vue";
+import deviceAPI from "@/js/device/device-api";
 
-export default defineComponent({
-  name: "HomePage",
-  setup() {
-    return {
-      f7,
-    };
-  },
+const isDarkTheme = ref(JSON.parse(localStorage.getItem('isDarkTheme') || 'false'));
+
+f7ready(() => {
+  watch(isDarkTheme, (newVal) => {
+    f7.setDarkMode(newVal);
+    localStorage.setItem('isDarkTheme', JSON.stringify(newVal));
+    if (newVal) {
+      deviceAPI.setStatusBarColor('#272931');
+    } else {
+      deviceAPI.setStatusBarColor('#eaeefa');
+    }
+  }, { immediate: true }
+  );
 });
+
+
 </script>
