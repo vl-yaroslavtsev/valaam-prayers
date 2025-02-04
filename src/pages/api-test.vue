@@ -250,7 +250,7 @@ const addNotification = () => {
   console.log("notif", notification);
 
   deviceAPI.addNotification(notification).then((isGranted) => {
-    f7.dialog.alert(`Права на уведомления ${isGranted}`);
+    f7.dialog.alert(isGranted ? "Уведомление отправлено!" : "Нет прав на уведомления");
   });
 };
 

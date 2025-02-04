@@ -102,25 +102,27 @@ const androidAPI: DeviceAPI = {
    * @param param
    */
   async addNotification(param: Partial<Notification>): Promise<boolean> {
-    return new Promise((resolve) => {
+    const isEnabled = await new Promise<boolean>((resolve) => {
       window.onAreNotificationsEnabledResponse = (isEnabled) => {
         resolve(isEnabled);
       };
-      androidHandler?.requestAreNotificationsEnabled();
-    }).then((isEnabled) => {
-      if (isEnabled && androidHandler) {
-        const notification = {
-          id: "123",
-          title: param.title || "",
-          description: param.description || "",
-          date: format(param.date || new Date(), "yyyyMMdd HH:mm:ss"),
-          url: param.url || "",
-        };
-        androidHandler.addEventToCalendar(JSON.stringify(notification));
-        return true;
-      }
-      return false;
+      //androidHandler?.requestAreNotificationsEnabled();
+      androidHandler?.requestNotificationsPermission();
     });
+
+    if (isEnabled && androidHandler) {
+      const notification = {
+        id: "123",
+        title: param.title || "",
+        description: param.description || "",
+        date: format(param.date || new Date(), "yyyyMMdd HH:mm:ss"),
+        url: param.url || "",
+      };
+      androidHandler.addEventToCalendar(JSON.stringify(notification));
+      return true;
+    } 
+
+    return false;
   },
 };
 

@@ -57,6 +57,7 @@ export interface AndroidHandler {
   subscribeKeyEvent(keyCode: number, subscribe: boolean): void;
   requestAreNotificationsEnabled(): void;
   addEventToCalendar(notification: string): void; // в формате JSON.stringify(AndroidNotification)
+  requestNotificationsPermission(): void;
 }
 
 export interface IOSHandler {
