@@ -35,6 +35,13 @@
   </f7-page>
 </template>
 
+<style>
+.checkout-modal__container {
+  margin-top: var(--f7-safe-area-top) !important;
+  margin-bottom: var(--f7-safe-area-bottom) !important;
+}
+</style>
+
 <script setup>
 import { ref, watch, onMounted } from "vue";
 import { f7, f7ready } from "framework7-vue";

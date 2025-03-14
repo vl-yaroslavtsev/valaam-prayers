@@ -32,6 +32,25 @@ const browserAPI: DeviceAPI = {
   async addNotification(notification: Partial<Notification>): Promise<boolean> {
     return false;
   },
+
+  deleteNotification(id: string): void {},
+
+  async isNotificationsEnabled(): Promise<boolean> {
+    return false;
+  },
+
+  setWebViewVisible(visible: boolean) {},
+  
+  setStatusBarTextColor(color: 'light' | 'dark') {},
+
+  setNavigationBarColor(color: string) {},
+
+  getNotificationStatus(id: string): Promise<string> {
+    return Promise.resolve("UNKNOWN");
+  },
+
+  openNotificationsSettings() {},
+
 };
 
 const isAndroid = "androidJsHandler" in window;

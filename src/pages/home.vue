@@ -60,16 +60,21 @@ import { ref, watch } from "vue";
 import { f7, f7ready } from "framework7-vue";
 import deviceAPI from "@/js/device/device-api";
 
-const isDarkTheme = ref(JSON.parse(localStorage.getItem('isDarkTheme') || 'false'));
+const isDarkTheme = ref(!!JSON.parse(localStorage.getItem('isDarkTheme') || 'false'));
 
 f7ready(() => {
   watch(isDarkTheme, (newVal) => {
     f7.setDarkMode(newVal);
     localStorage.setItem('isDarkTheme', JSON.stringify(newVal));
+    deviceAPI.setStatusBarTextColor(newVal ? 'light' : 'dark');
+
     if (newVal) {
       deviceAPI.setStatusBarColor('#272931');
+      deviceAPI.setNavigationBarColor('#272931');
+
     } else {
       deviceAPI.setStatusBarColor('#eaeefa');
+      deviceAPI.setNavigationBarColor('#eaeefa');
     }
   }, { immediate: true }
   );

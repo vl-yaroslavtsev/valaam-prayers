@@ -101,28 +101,109 @@ const androidAPI: DeviceAPI = {
    * Добавляем уведомление установленного образца
    * @param param
    */
-  async addNotification(param: Partial<Notification>): Promise<boolean> {
+  async addNotification(param: Partial<Notification> | Partial<Notification>[]): Promise<boolean> {
     const isEnabled = await new Promise<boolean>((resolve) => {
       window.onAreNotificationsEnabledResponse = (isEnabled) => {
+        console.log("onAreNotificationsEnabledResponse: " + isEnabled);
+        window.onAreNotificationsEnabledResponse = ()=>{};
         resolve(isEnabled);
       };
       //androidHandler?.requestAreNotificationsEnabled();
       androidHandler?.requestNotificationsPermission();
     });
 
-    if (isEnabled && androidHandler) {
-      const notification = {
-        id: "123",
+    if (!isEnabled || !androidHandler) { 
+      return false;
+    }
+
+    const mapParam = (param: Partial<Notification>) => {
+      return {
+        id: param.id || "123",
         title: param.title || "",
         description: param.description || "",
         date: format(param.date || new Date(), "yyyyMMdd HH:mm:ss"),
         url: param.url || "",
       };
+    };
+
+    if (Array.isArray(param)) {
+     
+      const notifications = param.map(mapParam);
+      androidHandler.addSeveralEventsToCalendar(JSON.stringify(notifications));
+      console.log("addSeveralEventsToCalendar", JSON.stringify(notifications));
+      return true;
+    } else {
+
+      const notification = mapParam(param);
       androidHandler.addEventToCalendar(JSON.stringify(notification));
+      console.log("addEventToCalendar", JSON.stringify(notification));
       return true;
     } 
 
     return false;
+  },
+
+  deleteNotification(id: string): void {
+    console.log("cancelNotification with id = " + id);
+    androidHandler?.cancelNotification(id);
+  },
+
+  getNotificationStatus(id: string): Promise<string> {
+    const notificationId = id;
+    return new Promise<string>((resolve) => {
+      window.onNotificationStatus = (id: string, status: string) => {
+        if (id === notificationId) {
+          console.log("onNotificationStatus: status = " + status, "id = " + id);
+          window.onNotificationStatus = ()=>{};
+          resolve(status);
+        }
+      };
+      androidHandler?.requestNotificationStatus(notificationId);
+    });
+  },
+
+  isNotificationsEnabled(): Promise<boolean> {
+    return new Promise<boolean>((resolve) => {
+      window.onAreNotificationsEnabledResponse = (isEnabled) => {
+        console.log("onAreNotificationsEnabledResponse: isEnabled = " + isEnabled);
+        window.onAreNotificationsEnabledResponse = ()=>{};
+        resolve(isEnabled);
+      };
+      androidHandler?.requestAreNotificationsEnabled();
+    });
+  },
+
+  /**
+   * Устанавливаем видимость WebView, скрывая SplashScreen
+   * @param visible
+   */
+  setWebViewVisible(visible: boolean): void {
+    androidHandler?.setWebViewVisible(visible);
+  },
+
+  /**
+   * Устанавливаем цвет текста в статусбаре
+   * @param color 'light' | 'dark'
+   */
+  setStatusBarTextColor(color: 'light' | 'dark'): void {
+    const isLightStatusBars = color === 'dark';
+    androidHandler?.setLightStatusBars(isLightStatusBars);
+  },
+
+  /**
+   * Устанавливаем цвет полоски в статусбаре
+   * @param color Цвет в формате #00ff00
+   */
+  setNavigationBarColor(color: string): void {
+    androidHandler?.setNavigationBarColor(color);
+  },
+
+  /**
+   * Открываем настройки уведомлений
+   * @param type 'notifications' | 'brightness'
+   */
+  openNotificationsSettings(): void {
+    androidHandler?.openSettings('notifications');
   },
 };
 

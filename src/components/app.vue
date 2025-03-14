@@ -84,6 +84,7 @@ import { f7, f7ready } from "framework7-vue";
 import routes from "../js/routes";
 import store from "../js/store";
 import viewsManager from "../js/views-manager";
+import deviceAPI from "../js/device/device-api";
 
 import { registerSW } from "virtual:pwa-register";
 
@@ -116,11 +117,12 @@ const f7params = {
   // } : {},
 } as const;
 
-onMounted(() => {
-  f7ready(() => {
-    viewsManager();
+// onMounted(() => {
+f7ready(() => {
+  viewsManager();
+  deviceAPI.setWebViewVisible(true);
 
-    // Call F7 APIs here
-  });
+  // Call F7 APIs here
 });
+// });
 </script>

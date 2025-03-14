@@ -3,6 +3,37 @@ import { CacheFirst } from "workbox-strategies";
 import { ExpirationPlugin } from "workbox-expiration";
 import { precacheAndRoute } from "workbox-precaching";
 
+const ALLOWED_DOMAIN = 'molitvoslov.valaam.ru';
+
+// Перехватываем все запросы
+self.addEventListener('fetch', (event) => {
+
+  if (event.request.mode === 'navigate') {
+    const url = new URL(event.request.url);
+
+    console.log('fetch navigate', url);
+    
+    // Проверяем, соответствует ли домен разрешенному
+    if (url.hostname !== ALLOWED_DOMAIN) {
+      console.log('fetch navigate', url, 'blocked');
+      // Если домен не разрешен, блокируем запрос
+      event.respondWith(
+        new Response('Доступ к внешним ресурсам заблокирован', {
+          status: 403,
+          statusText: 'Forbidden',
+          headers: {
+            'Content-Type': 'text/plain'
+          }
+        })
+      );
+      return;
+    }
+  }
+  
+  // Для разрешенного домена пропускаем запрос как обычно
+  // Workbox обработает его согласно другим правилам кэширования
+});
+
 precacheAndRoute(self.__WB_MANIFEST);
 
 registerRoute(

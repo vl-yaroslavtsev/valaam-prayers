@@ -73,7 +73,13 @@ const iosAPI: DeviceAPI = {
     // iOS не поддерживает
   },
 
-  async addNotification(param: Partial<Notification>): Promise<boolean> {
+  async addNotification(param: Partial<Notification> | Partial<Notification>[]): Promise<boolean> {
+
+    // TODO: правильно обработать массив уведомлений
+    if (Array.isArray(param)) {
+      param = param[0];
+    }
+
     return new Promise((resolve) => {
       const notification = {
         id: "123",
@@ -89,6 +95,42 @@ const iosAPI: DeviceAPI = {
       window.onAddEvent = (status) => resolve(status);
       iosHandler?.calendarHandler.postMessage(notification);
     });
+  },
+
+  setWebViewVisible(visible: boolean): void {
+    //iosHandler?.hideLaunchScreen(visible);
+    // alert(" window.webkit.messageHandlers.hideLaunchScreen.postMessage(" + visible + ")");
+    iosHandler?.hideLaunchScreen.postMessage(visible);
+  },
+
+  setStatusBarTextColor(color: 'light' | 'dark'): void {
+    // iOS не поддерживает
+    // alert("window.webkit.messageHandlers.statusBarTextColorHandler.postMessage({ color: \"" + (isLightText ? "light" : "dark") + "\" })");
+    iosHandler?.statusBarTextColorHandler.postMessage({
+      color, //или light
+    });
+  },
+  
+  setNavigationBarColor(color: string): void {
+    // iOS не поддерживает
+  },
+
+  deleteNotification(id: string): void {
+    // iOS не поддерживает
+  },
+
+  isNotificationsEnabled(): Promise<boolean> {
+    // iOS не поддерживает
+    return Promise.resolve(false);
+  },
+
+  getNotificationStatus(id: string): Promise<string> {
+    // iOS не поддерживает
+    return Promise.resolve("unknown");
+  },
+
+  openNotificationsSettings(): void {
+    // iOS не поддерживает
   },
 };
 

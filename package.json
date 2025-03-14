@@ -1,10 +1,11 @@
 {
   "name": "valaam-prayers",
   "private": true,
-  "version": "2.1.22",
+  "version": "2.1.83",
   "description": "Валаамский молитвослов и календарь",
   "repository": "",
   "license": "UNLICENSED",
+  "type": "module",
   "scripts": {
     "nvm": "nvm use 20",
     "start": "npm run dev",
@@ -13,7 +14,7 @@
     "build": "cross-env NODE_ENV=production vite build",
     "deploy": "scripts\\deploy.cmd",
     "prod": "npm run build && npm run deploy",
-    "type-check": "vue-tsc",
+    "type-check": "vue-tsc --noEmit",
     "format": "prettier --write src/",
     "postinstall": "cpy --flat ./node_modules/material-icons/iconfont/*.* ./src/fonts/"
   },
@@ -46,7 +47,7 @@
     "postcss-preset-env": "^10.0.2",
     "prettier": "^3.4.2",
     "typescript": "^5.0.0",
-    "vite": "^5.4.2",
+    "vite": "^5.4.14",
     "vite-plugin-pwa": "^0.20.3",
     "vue-tsc": "^2.2.0"
   }
