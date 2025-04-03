@@ -1,6 +1,6 @@
 import androidAPI from "./android-api";
 import iosAPI from "./ios-api";
-import type { Notification, DeviceAPI } from "./types";
+import type { CalendarEvent, CalendarEventResponse, DeviceAPI } from "./types";
 
 let deviceAPI: DeviceAPI;
 
@@ -15,7 +15,7 @@ const browserAPI: DeviceAPI = {
   resetBrightness() {},
 
   async getTheme() {
-    return "unknown";
+    return "light";
   },
 
   showStatusBar(visibility: boolean) {},
@@ -29,13 +29,19 @@ const browserAPI: DeviceAPI = {
   onVolumeKey(handler: (keyCode: number, event: any) => void) {},
   offVolumeKey() {},
 
-  async addNotification(notification: Partial<Notification>): Promise<boolean> {
+  async addCalendarEvent(event: CalendarEvent | CalendarEvent[]): Promise<CalendarEventResponse> {
+    return { isSuccess: false, error: "", id: "", hasPermissions: false};
+  },
+
+  async deleteCalendarEvent(id: string | string[]): Promise<CalendarEventResponse> {
+    return { isSuccess: false, error: "", id: "", hasPermissions: false};
+  },
+
+  async hasCalendarPermissions(): Promise<boolean> {
     return false;
   },
 
-  deleteNotification(id: string): void {},
-
-  async isNotificationsEnabled(): Promise<boolean> {
+  async requestCalendarPermissions(): Promise<boolean> {
     return false;
   },
 
@@ -45,11 +51,9 @@ const browserAPI: DeviceAPI = {
 
   setNavigationBarColor(color: string) {},
 
-  getNotificationStatus(id: string): Promise<string> {
-    return Promise.resolve("UNKNOWN");
-  },
-
   openNotificationsSettings() {},
+
+  openCalendarSettings() {},
 
 };
 

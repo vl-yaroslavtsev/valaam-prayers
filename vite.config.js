@@ -52,6 +52,7 @@ export default async () => {
       outDir: BUILD_DIR,
       assetsInlineLimit: 0,
       emptyOutDir: true,
+      sourcemap: true,
       rollupOptions: {
         treeshake: true,
         output: {

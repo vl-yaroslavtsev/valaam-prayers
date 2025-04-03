@@ -1,25 +1,53 @@
-export interface Notification {
+export interface CalendarEvent {
   id: string;
   title: string;
-  description: string;
+  description?: string;
   date: Date;
-  url: string;
+  url?: string;
+  alarmDates?: Date[];
 }
 
-export interface AndroidNotification {
-  id: string;
-  title: string;
-  description: string;
-  date: string; // yyyyMMdd HH:mm:ss
-  url: string;
+export interface CalendarEventResponse {
+  isSuccess: boolean;
+  error: string;
+  id: string | string[];
+  hasPermissions: boolean;
 }
 
-export interface IOSNotification {
+/**
+ * Тип события для Android
+ * @see https://developer.android.com/reference/android/provider/CalendarContract.Events
+ */
+export interface AndroidCalendarEvent {
+  id: string; //'ваш api id',
+  TITLE: string; //'Рождество Христово',
+  DESCRIPTION?: string; // "Описание праздника",
+  ORGANIZER?: string; //email для контакта, опционально
+  EVENT_LOCATION?: string; //где мероприятие
+  DTSTART: number; //Время начала события в миллисекундах по UTC
+  DTEND?: number; //Время конца события в миллисекундах по UTC
+  EVENT_TIMEZONE: string;
+  EVENT_END_TIMEZONE?: string;
+  DURATION?: string ; //Продолжительность события в формате RFC5545 для повторяющихся событий
+  ALL_DAY?: number;
+  RRULE?: string; // Правило повторения для формата события. Например, "FREQ=WEEKLY;COUNT=10;WKST=SU"
+  RDATE?: string; // для повторяющихся событий
+  AVAILABILITY?: number;
+  GUESTS_CAN_INVITE_OTHERS?: number;
+  HAS_ALARM?: number;
+  CUSTOM_APP_URI?: string; // ссылка на приложение для просмотра события
+  CUSTOM_APP_PACKAGE?: string; // имя пакета приложения для просмотра события
+  reminder_MINUTES?: number; // время напоминания в минутах
+  reminder_METHOD?: number; // метод напоминания
+}
+
+export interface IOSCalendarEvent {
   id: string;
   title: string;
   description: string;
   date: string; // yyyy-MM-ddTHH:mm:ss
   url: string;
+  alarmDates?: string[]; // массив дат в формате yyyy-MM-ddTHH:mm:ss
 }
 
 export interface DeviceAPI {
@@ -30,7 +58,7 @@ export interface DeviceAPI {
   getBrightness(): Promise<number>;
   resetBrightness(): void;
 
-  getTheme(): Promise<string>;
+  getTheme(): Promise<"light" | "dark">;
 
   showStatusBar(visibility: boolean): void;
 
@@ -43,54 +71,56 @@ export interface DeviceAPI {
   onVolumeKey(handler: (keyCode: number, event: any) => void): void;
   offVolumeKey(): void;
 
-  addNotification(notification: Partial<Notification> | Partial<Notification>[]): Promise<boolean>;
-  
-  deleteNotification(id: string): void;
+  addCalendarEvent(event: CalendarEvent | CalendarEvent[]): Promise<CalendarEventResponse>;
 
-  isNotificationsEnabled(): Promise<boolean>;
+  deleteCalendarEvent(id: string | string[]): Promise<CalendarEventResponse>;
 
-  getNotificationStatus(id: string): Promise<string>;
+  hasCalendarPermissions(): Promise<boolean>;
+
+  requestCalendarPermissions(): Promise<boolean>;
 
   setWebViewVisible(visible: boolean): void;
 
-  setStatusBarTextColor(color: 'light' | 'dark'): void;
+  setStatusBarTextColor(color: "light" | "dark"): void;
 
-  setNavigationBarColor(color: string): void; 
+  setNavigationBarColor(color: string): void;
 
   openNotificationsSettings(): void;
+
+  openCalendarSettings(): void;
 }
 
 export interface AndroidHandler {
   setBrightness(value: number): void;
   getCurrentBrightness(): number;
-  
+
   getTheme(): string;
-  
+
   setFullScreen(mode: boolean): void;
   setKeepScreenOn(mode: boolean): void;
-  
+
   setStatusBarVisibility(visibility: boolean): void;
   setStatusBarColor(color: string): void;
   setLightStatusBars(isLightStatusBars: boolean): void; // отвечает за черные/светлые буквы в статусбаре
   setNavigationBarColor(color: string): void; //для задавания цвета самой полоски (светлая/темная) и фона этой полоски – только для Αndroid. #00ff00
-  
+
   subscribeKeyEvent(keyCode: number, subscribe: boolean): void;
 
-  addEventToCalendar(notification: string): void; // в формате JSON.stringify(AndroidNotification)
-  addSeveralEventsToCalendar(notifications: string): void; // в формате JSON.stringify(AndroidNotification[])
-  cancelNotification(id: string): void; // отменяет уведомление по id  
+  addEventToUserCalendar(json: string): void; // в формате JSON.stringify(AndroidCalendarEvent)
+  addEventsListToUserCalendar(json: string): void; // в формате JSON.stringify(AndroidCalendarEvent[])
 
-  requestAreNotificationsEnabled(): void;
-  requestNotificationsPermission(): void;
-  requestNotificationStatus(id: string): Promise<string>;
-  
+  deleteEventFromCalendar(id: string): void;
+
+  requestCalendarPermissions(): void; // запрос на права Календаря (показ диалога с пользователем)
+  requestCalendarPermissionsStatus(): Promise<boolean>; // запрос проверки прав на Календарь
+
   setWebViewVisible(visible: boolean): void;
 
-  openSettings(type: 'notifications' | 'brightness'): void;
+  openSettings(type: "notifications" | "settings"): void;
 }
 
 export interface IOSHandler {
-  hideLaunchScreen:{
+  hideLaunchScreen: {
     postMessage(visible: boolean): void;
   };
   brightnessHandler: {
@@ -109,27 +139,56 @@ export interface IOSHandler {
     postMessage(data: { action: string; color: string }): void;
   };
   statusBarTextColorHandler: {
-    postMessage(data: { color: string } ): void;
+    postMessage(data: { color: "light" | "dark" }): void;
   };
   calendarHandler: {
-    postMessage(notification: IOSNotification): void;
+    postMessage(event: IOSCalendarEvent): void;
+  };
+
+  askForEventPermissionHandler: {
+    postMessage(data: { action: "get" }): void;
+  };
+
+  // deleteEventHandler: {
+  //   postMessage( id: string ): void;
+  // };
+  deleteEventHandler: {
+    postMessage(data: { id: string }): void;
   };
 }
 
 declare global {
   interface Window {
     androidJsHandler?: AndroidHandler;
+
     onBrightnessValue?(value: number): void;
-    onThemeValue?(theme: string): void;
+    onThemeValue?(theme: "light" | "dark"): void;
     onKeyDown?(keyCode: number, event: any): void;
     onBackPressed?(): boolean;
-    onAreNotificationsEnabledResponse?(isEnabled: boolean): void;
     handleSwipeBack?(): void;
-    onNotificationStatus?(id: string, status: string): void;
+
+    onAreCalendarPermissionsGranted?(read: boolean, write: boolean): void; 
+    onCalendarNotFound?(errorDescription: string): void;
+    stacktrace(message: string): void;
+
+    onEventsAdded(eventId: string, param2: string): void;
+    onEventsDeleted(eventId: string, param2: string): void;
 
     webkit?: {
       messageHandlers: IOSHandler;
     };
-    onAddEvent?(status: boolean, errorDescription: string): void;
+    /**
+     * Примеры ошибок:
+     * window.onAddEvent(false, 'Permission not granted for calendar access.')
+     * window.onEvent(false, 'Invalid date format. Should be: yyyy-MM-ddTHH:mm')
+     * window.onAddEvent(false, 'Failed to save event: \(error.localizedDescription)')
+     *
+     * @param status - true, если событие добавлено, false - в противном случае
+     * @param errorDescription - описание ошибки
+     * @param id - id уведомления
+     */
+    onAddEvent?(status: boolean, errorDescription: string, id: string): void;
+    onDeleteEvent?(status: boolean, errorDescription: string, id: string): void;
+    onAskForEventPermission?(granted: boolean, comment: string): void;
   }
 }

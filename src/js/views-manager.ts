@@ -24,7 +24,6 @@ function viewsManager(): void {
 function parseHash(): void {
   const [viewId, url] = document.location.hash.split(":");
   const view = f7.views.get(viewId);
-
   if (!view) {
     // view = createView(viewId);
     return;

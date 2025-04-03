@@ -72,50 +72,74 @@
       </f7-list>
 
       <f7-block strong-ios outline-ios>
-        Уведомления разрешены: {{ isNotificationsEnabled }}
+        События календаря разрешены: {{ isEventsEnabled }}
       </f7-block>
-      
 
-      <f7-block strong-ios outline-ios class="grid grid-cols-2 grid-gap">
-        <f7-button fill @click="addNotification">Добавить уведомление</f7-button>
-        <f7-button fill @click="addTwoNotifications">Добавить 2 уведомления</f7-button>
+
+      <f7-block strong-ios outline-ios>
+        <f7-button fill @click="addEvent">Добавить событие</f7-button>
+      </f7-block>
+
+      <!--
+      <f7-block strong-ios outline-ios>
+        <f7-button fill @click="addEventsArray">Добавить много событий</f7-button>
+      </f7-block>
+      -->
+
+      <f7-block strong-ios outline-ios>
+        <f7-button fill @click="add2Events">Добавить 2 события</f7-button>
       </f7-block>
 
       <f7-block strong-ios outline-ios>
-        <f7-button fill @click="getNotificationStatus" :disabled="!notificationId">Статус уведомления</f7-button>
-      </f7-block>
-
-      <f7-block strong-ios outline-ios v-if="notificationId">
-        Статус уведомления {{ notificationId }}: {{ notificationStatus }}
+        <f7-button fill @click="deleteEvent" :disabled="!eventId">Удалить событие {{ eventId
+          }}</f7-button>
       </f7-block>
 
       <f7-block strong-ios outline-ios>
-        <f7-button fill @click="deleteNotification" :disabled="!notificationId">Удалить уведомление {{ notificationId }}</f7-button>
-      </f7-block>    
+        <f7-button fill @click="deleteEventsArray" :disabled="!eventsArrayId">Удалить 2
+          события</f7-button>
+      </f7-block>
+
+      <!--
+      <f7-block strong-ios outline-ios>
+        <f7-button fill @click="deleteEventsArray" :disabled="!eventsArrayId">Удалить много
+          событий</f7-button>
+      </f7-block>
+      -->
+
+      <f7-block strong-ios outline-ios>
+        <f7-button fill @click="requestCalendarPermissions">Запросить права на календарь</f7-button>
+      </f7-block>
+     
+
+      <f7-block strong-ios outline-ios>
+        <f7-button fill @click="openCalendarSettings">Открыть настройки календаря</f7-button>
+      </f7-block>
 
       <f7-block strong-ios outline-ios>
         <f7-button fill @click="openNotificationsSettings">Открыть настройки уведомлений</f7-button>
-      </f7-block>    
+      </f7-block>
 
       <f7-block strong-ios outline-ios>
-        <a class="link external" href="https://valaam.ru" >Внешняя ссылка valaam.ru</a>
-      </f7-block>    
+        <a class="link external" href="https://valaam.ru">Внешняя ссылка valaam.ru</a>
+      </f7-block>
 
 
       <f7-block strong-ios outline-ios>
-        <a class="link external" href="https://vuejs.org/guide/introduction.html" >Внешняя ссылка vue</a>
+        <a class="link external" href="https://vuejs.org/guide/introduction.html">Внешняя ссылка vue</a>
       </f7-block>
 
     </f7-page-content>
   </f7-page>
 </template>
 <script setup lang="ts">
-import { add } from "date-fns";
+import { add, format, addMinutes } from "date-fns";
 import { ref, watch, onMounted } from "vue";
 import { f7, f7ready } from "framework7-vue";
 import { Dom7 as $ } from "framework7";
 import { f7PageContent } from "framework7-vue";
 import deviceAPI from "../js/device/device-api";
+import { CalendarEvent } from "../js/device/types";
 import { testBrowser } from "../js/device/browser-test";
 
 const currentBrightness = ref(0);
@@ -198,94 +222,247 @@ const getUID = () => {
     .reduce((acc, el) => (acc += el.toString(16).padStart(4, '0')), "");
 };
 
-const notificationId = ref('');
+const eventId = ref(localStorage.getItem('eventId') || '');
 
-const addNotification = () => {
-  const notification = {
+const addEvent = async () => {
+  const eventDate = add(new Date(), { minutes: 2 });
+  const event = {
     id: getUID(),
-    title: "Завтра Рождество Пресвятой Богородицы",
-    description: "Не забудьте сходить в храм",
-    date: add(new Date(), { seconds: 20 }),
-    url: "https://molitvoslov.valaam.ru/app/#view-calendar:/days/20241001",
+    title: "Благовещение Пресвятой Богородицы",
+    description: "7 апреля. Не забудьте сходить в храм",
+    date: eventDate,
+    url: "https://molitvoslov.valaam.ru/app/#view-calendar:/days/20250407",
+    alarmDates: [add(eventDate, { minutes: -1 }), add(eventDate, { days: -1 })],
   };
 
-  deviceAPI.addNotification(notification).then((isGranted) => {
-    f7.dialog.alert(isGranted ? "Уведомление отправлено!" : "Нет прав на уведомления");
-    isNotificationsEnabled.value = isGranted;
-    if (isGranted) {
-      notificationId.value = notification.id;
-      setTimeout(() => {
-        getNotificationStatus();
-      }, 0);
-    }
-    console.log("addNotification", notification);
-  });
+  const {isSuccess, hasPermissions, error} = await deviceAPI.addCalendarEvent(event);
+
+  if (!hasPermissions) {
+    f7.dialog.alert("Нет прав на календарь");
+    return;
+  }
+
+  if (!isSuccess) {
+    f7.dialog.alert("Ошибка при добавлении события: " + error);
+    return;
+  }
+
+  eventId.value = event.id;
+  localStorage.setItem('eventId', event.id);
+
+  f7.dialog.alert("Событие добавлено!");
 };
 
-const addTwoNotifications = () => {
-  const notification1 = {
-    id: getUID(),
-    title: "Завтра Рождество Пресвятой Богородицы",
-    description: "Не забудьте сходить в храм",
-    date: add(new Date(), { seconds: 20 }),
-    url: "https://molitvoslov.valaam.ru/app/#view-calendar:/days/20241001",
-  };
-  const notification2 = {
+const eventsArrayId = ref(JSON.parse(localStorage.getItem('eventsArrayId') || '[]'));
+
+// Create notifications for every day of the current year
+const addEventsArray = async () => {
+
+  const preloader = f7.dialog.preloader('Добавляем события...');
+
+  const currentYear = new Date().getFullYear();
+  const events: CalendarEvent[] = [];
+  
+  // Get the first day of the year
+  const startDate = new Date(currentYear, 0, 1);
+  // Get the last day of the year
+  const endDate = new Date(currentYear, 11, 31);
+  
+  // Loop through each day of the year
+  let currentDate = new Date(startDate);
+  while (currentDate <= endDate) {
+    const formattedDate = format(currentDate, "yyyyMMdd");
+    const dayMonth = format(currentDate, "dd.MM");
+    
+    // Morning notification (9:00)
+    const morningDate = new Date(currentDate);
+    morningDate.setHours(9, 0, 0, 0);
+    
+    // Evening notification (22:00)
+    const eveningDate = new Date(currentDate);
+    eveningDate.setHours(22, 0, 0, 0);
+    
+    // Create morning notification with two alarms
+    const morningNotification = {
+      id: getUID(),
+      title: `Утреннее правило (${dayMonth})`,
+      description: "Время утренней молитвы",
+      date: morningDate,
+      url: `https://molitvoslov.valaam.ru/app/#view-calendar:/days/${formattedDate}`,
+      alarmDates: [
+        addMinutes(morningDate, -10), // 10 minutes before
+        morningDate // At the event time
+      ]
+    };
+    
+    // Create evening notification with two alarms
+    const eveningNotification = {
+      id: getUID(),
+      title: `Вечернее правило (${dayMonth})`,
+      description: "Время вечерней молитвы",
+      date: eveningDate,
+      url: `https://molitvoslov.valaam.ru/app/#view-calendar:/days/${formattedDate}`,
+      alarmDates: [
+        addMinutes(eveningDate, -10), // 10 minutes before
+        eveningDate // At the event time
+      ]
+    };
+    
+    events.push(morningNotification, eveningNotification);
+    
+    // Move to the next day
+    currentDate.setDate(currentDate.getDate() + 1);
+  }
+ 
+  // We might need to send notifications in batches to avoid overwhelming the system
+  const batchSize = 50;
+
+  let lastError = null;
+  const addedIds: string[] = [];
+  
+  for (let i = 0; i < events.length; i += batchSize) {
+    const batch = events.slice(i, i + batchSize);
+
+    const {isSuccess, hasPermissions, error, id} = await deviceAPI.addCalendarEvent(batch);
+    if (!hasPermissions) {
+      preloader.close();
+      f7.dialog.alert("Нет прав на календарь");
+      return;
+    }
+
+    if (!isSuccess) {
+      lastError = error;
+    } else {
+      addedIds.push(...id);
+    } 
+  }
+
+  preloader.close();
+  isEventsEnabled.value = true;
+
+  eventsArrayId.value = addedIds;
+  localStorage.setItem('eventsArrayId', JSON.stringify(eventsArrayId.value));
+
+  if (lastError) {
+    f7.dialog.alert("Ошибка при добавлении событий: " + lastError);
+  } else {
+    f7.dialog.alert("Добавлено " + eventsArrayId.value.length + " событий");
+  }  
+};
+
+const add2Events = async () => {  
+  const event1 = {
     id: getUID(),
     title: "Утреннее правило",
     description: "Делу время, молитве час",
-    date: add(new Date(), { seconds: 80 }),
+    date: add(new Date(), { minutes: 20 }),
+    url: "https://molitvoslov.valaam.ru/app/#view-calendar:/days/20241001",
+    alarmDates: [add(new Date(), { minutes: 20 }), add(new Date(), { minutes: 15 })]
+  };
+  const event2 = {
+    id: getUID(),
+    title: "Вечернее правило",
+    description: "Делу время, молитве час",
+    date: add(new Date(), { minutes: 40 }),
     url: "https://molitvoslov.valaam.ru/app/#view-calendar:/days/20241005",
+    alarmDates: [add(new Date(), { minutes: 39 }), add(new Date(), { minutes: 35 })]
   };
 
-  deviceAPI.addNotification([notification1, notification2]).then((isGranted) => {
-    f7.dialog.alert(isGranted ? "2 уведомления отправлены!" : "Нет прав на уведомления");
-    console.log("addTwoNotifications", [notification1, notification2]);
-    isNotificationsEnabled.value = isGranted;
-    if (isGranted) {
-      notificationId.value = notification1.id;
-      setTimeout(() => {
-        getNotificationStatus();
-      }, 0);
+  const {isSuccess, hasPermissions, error, id} = await deviceAPI.addCalendarEvent([event1, event2]);
+
+  if (!hasPermissions) {
+    f7.dialog.alert("Нет прав на календарь");
+    return;
+  }
+
+  if (!isSuccess) {
+    f7.dialog.alert("Ошибка при добавлении событий: " + error);
+    return;
+  } 
+  
+  eventsArrayId.value = id;
+  localStorage.setItem('eventsArrayId', JSON.stringify(eventsArrayId.value));
+  isEventsEnabled.value = isSuccess;
+
+  f7.dialog.alert("События добавлены!");
+};
+
+const deleteEvent = async () => {
+  // alert("deleteNotification");
+  if (!eventId.value) return;
+
+  // alert("deleteNotification:" + notificationId.value);
+  const {isSuccess, hasPermissions, error} = await deviceAPI.deleteCalendarEvent(eventId.value);
+  if (!hasPermissions) {
+    f7.dialog.alert("Нет прав на календарь");
+    return;
+  }
+
+  if (!isSuccess) {
+    f7.dialog.alert("Ошибка при удалении события: " + error);
+    return;
+  }
+
+  f7.dialog.alert("Событие удалено!");
+
+};
+
+const deleteEventsArray = async () => {
+  if (!eventsArrayId.value) return;
+
+  const preloader = f7.dialog.preloader('Удаляем события...');
+
+  let lastError = null;
+  
+  // Разбиваем массив на пакеты по 50 уведомлений
+  const batchSize = 50;
+  const deletedIds: string[] = [];
+
+  for (let i = 0; i < eventsArrayId.value.length; i += batchSize) {
+    const batch = eventsArrayId.value.slice(i, i + batchSize);
+    const {isSuccess, hasPermissions, error, id} = await deviceAPI.deleteCalendarEvent(batch);
+    if (!hasPermissions) {
+      preloader.close();
+      f7.dialog.alert("Нет прав на события");
+      return;
     }
-  });
-};
 
-const deleteNotification = () => {
-  if (!notificationId.value) return;
+    if (!isSuccess) {
+      lastError = error;
+    } else {
+      deletedIds.push(...id);
+    }
+  }
+  
+  preloader.close();
 
-  deviceAPI.deleteNotification(notificationId.value);
-  f7.dialog.alert("Кажется, уведомление было удалено. По крайней мере я попытался... Что ж, статус покажет, удалилось ли");
-};
+  if (deletedIds.length > 0) {
+    f7.dialog.alert("Удалено " + deletedIds.length + " событий");
+  }
 
-const notificationStatus = ref('UNKNOWN');
+  if (lastError) {
+    f7.dialog.alert("Ошибка при удалении событий: " + lastError);
+  } else {
+    f7.dialog.alert("Удалено " + eventsArrayId.value.length + " событий");
+  }
+}
 
-const getNotificationStatus = () => {
-  console.log("getNotificationStatus, id = ", notificationId.value);
-  if (!notificationId.value) return;
+const isEventsEnabled = ref(false);
 
-  deviceAPI.getNotificationStatus(notificationId.value).then((status) => {
-    notificationStatus.value = status;
-  });
-};
-
-const isNotificationsEnabled = ref(false);
-
-const checkNotificationsEnabled = () => {
-  deviceAPI.isNotificationsEnabled().then((isEnabled) => {
-    isNotificationsEnabled.value = isEnabled;
-  });
+const checkCalendarEventsEnabled = async () => {
+  const isEnabled = await deviceAPI.hasCalendarPermissions();
+  isEventsEnabled.value = isEnabled;
 };
 
 const onVisibilityChange = () => {
   if (!document.hidden) {
     console.log("visibilitychange");
-    checkNotificationsEnabled();
+    checkCalendarEventsEnabled();
   }
 };
 
 const onTabShow = () => {
-  checkNotificationsEnabled();
+  checkCalendarEventsEnabled();
 
   document.addEventListener("visibilitychange", onVisibilityChange);
 };
@@ -302,8 +479,18 @@ const testBrowserFitures = async () => {
   f7.dialog.alert(msg);
 };
 
+const requestCalendarPermissions = async () => {
+  const isGranted = await deviceAPI.requestCalendarPermissions();
+  isEventsEnabled.value = isGranted;
+  f7.dialog.alert(isGranted ? "Права на календарь получены" : "Нет прав на календарь!");
+};
+
 const openNotificationsSettings = () => {
   deviceAPI.openNotificationsSettings();
+};
+
+const openCalendarSettings = () => {
+  deviceAPI.openCalendarSettings();
 };
 
 console.log(f7);

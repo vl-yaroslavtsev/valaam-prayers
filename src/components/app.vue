@@ -117,12 +117,12 @@ const f7params = {
   // } : {},
 } as const;
 
-// onMounted(() => {
-f7ready(() => {
-  viewsManager();
-  deviceAPI.setWebViewVisible(true);
+onMounted(() => {
+  f7ready(() => {
+    viewsManager();
+    deviceAPI.setWebViewVisible(true);
 
-  // Call F7 APIs here
+    // Call F7 APIs here
+  });
 });
-// });
 </script>
