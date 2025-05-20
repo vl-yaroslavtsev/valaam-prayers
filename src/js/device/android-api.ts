@@ -6,6 +6,9 @@ import type {
   DeviceAPI,
 } from "./types";
 
+
+const localCalendarTitle = "Календарь Валаам";
+
 const androidHandler = window.androidJsHandler;
 
 const calendarPermissionsGrantedCallbacks: ((
@@ -22,58 +25,67 @@ window.onAreCalendarPermissionsGranted = (read, write) => {
   calendarPermissionsGrantedCallbacks.length = 0;
 };
 
-const eventAddedCallbacks: ((eventId: string) => void)[] = [];
-window.onEventsAdded = (param1, param2) => {
-  console.log("onEventsAdded: param1 = ", param1, ", param2 = ", param2);
+interface AddedEventResponse {
+  id: string;
+  errorDescription?: string;
+  success: boolean;
+}
 
-  let msg = "onEventsAdded: param1 = " + param1 + ", param2 = " + param2;
+const eventAddedCallbacks: {
+  [id: string]: (event: AddedEventResponse) => void;
+} = {};
+window.onEventsAdded = (successEvents: string, errorEvents: string = "[]") => {
+  console.log(
+    "onEventsAdded: successEvents = ",
+    successEvents,
+    ", errorEvents = ",
+    errorEvents
+  );
+
   try {
-    const res = JSON.parse(param2);
-    console.log("onEventsAdded: JSON.parse param2 = ", res);
-    msg += "\n\n JSON.parse(param2) success!";
+    const successEventsArray: AddedEventResponse[] = JSON.parse(successEvents);
+    const errorEventsArray: AddedEventResponse[] = JSON.parse(errorEvents);
+
+    successEventsArray.forEach((event: AddedEventResponse) => {
+      if (eventAddedCallbacks[event.id]) {
+        eventAddedCallbacks[event.id](event);
+        delete eventAddedCallbacks[event.id];
+      }
+    });
+
+    errorEventsArray.forEach((event: AddedEventResponse) => {
+      if (eventAddedCallbacks[event.id]) {
+        eventAddedCallbacks[event.id](event);
+        delete eventAddedCallbacks[event.id];
+      }
+    });
   } catch (error) {
     console.log("onEventsAdded: JSON.parse error = ", error);
-    msg += "\n\n JSON.parse(param2) error: " + error;
   }
-
-  eventAddedCallbacks.forEach((callback) => callback(param1));
-  eventAddedCallbacks.length = 0;
-
-  alert(msg);
 };
 
-const eventDeletedCallbacks: ((eventId: string) => void)[] = [];
-window.onEventsDeleted = (param1, param2) => {
-  console.log("onEventsDeleted: param1 = ", param1, ", param2 = ", param2);
-  let msg = "onEventsDeleted: param1 = " + param1 + ", param2 = " + param2;
+interface DeletedEventResponse {
+  id: string;
+  errorDescription: string;
+  success: boolean;
+}
+
+const eventDeletedCallbacks: {
+  [id: string]: (event: DeletedEventResponse) => void;
+} = {};
+window.onEventsDeleted = (events: string = "[]") => {
+  console.log("onEventsDeleted: events = ", events);
   try {
-    const res = JSON.parse(param2);
-    console.log("onEventsDeleted: JSON.parse param2 = ", res);
-    msg += "\n\n JSON.parse(param2) success!";
+    const eventsArray: DeletedEventResponse[] = JSON.parse(events);
+    eventsArray.forEach((event: DeletedEventResponse) => {
+      if (eventDeletedCallbacks[event.id]) {
+        eventDeletedCallbacks[event.id](event);
+        delete eventDeletedCallbacks[event.id];
+      }
+    });
   } catch (error) {
     console.log("onEventsDeleted: JSON.parse error = ", error);
-    msg += "\n\n JSON.parse(param2) error: " + error;
   }
-  eventDeletedCallbacks.forEach((callback) => callback(param1));
-  eventDeletedCallbacks.length = 0;
-
-  alert(msg);
-};
-
-const calendarNotFoundCallbacks: ((errorDescription: string) => void)[] = [];
-window.onCalendarNotFound = (errorDescription) => {
-  console.log("onCalendarNotFound: errorDescription = " + errorDescription);
-  alert("onCalendarNotFound: errorDescription = " + errorDescription);
-  calendarNotFoundCallbacks.forEach((callback) => callback(errorDescription));
-  calendarNotFoundCallbacks.length = 0;
-};
-
-const stacktraceCallbacks: ((message: string) => void)[] = [];
-window.stacktrace = (message: string) => {
-  console.log("stacktrace: " + message);
-  alert("stacktrace: " + message);
-  stacktraceCallbacks.forEach((callback) => callback(message));
-  stacktraceCallbacks.length = 0;
 };
 
 const androidAPI: DeviceAPI = {
@@ -108,7 +120,9 @@ const androidAPI: DeviceAPI = {
    * Theme (day/night/unknown)
    */
   async getTheme(): Promise<"light" | "dark"> {
-    return androidHandler?.getTheme() === "UI_THEME_DARK" ? "dark" : "light";
+    const theme = androidHandler?.getTheme();
+    console.log("getTheme: theme = ", theme);
+    return theme === "UI_MODE_NIGHT_YES" ? "dark" : "light";
   },
 
   /**
@@ -172,17 +186,19 @@ const androidAPI: DeviceAPI = {
 
   /**
    * Добавляем уведомление установленного образца
-   * @param param
+   * @event event
+   * @param type 'local' | 'sync' - тип календаря (локальный или синхронизируемый)
    */
   async addCalendarEvent(
-    param: CalendarEvent | CalendarEvent[]
+    event: CalendarEvent | CalendarEvent[], 
+    type: 'local' | 'sync' = 'sync'
   ): Promise<CalendarEventResponse> {
     const isGranted = await this.hasCalendarPermissions();
     if (!isGranted) {
       return {
         isSuccess: false,
-        error: "Permission not granted",
-        id: param instanceof Array ? [] : "",
+        errorDescription: "Permission not granted",
+        id: "",
         hasPermissions: false,
       };
     }
@@ -190,77 +206,119 @@ const androidAPI: DeviceAPI = {
     if (!androidHandler) {
       return {
         isSuccess: false,
-        error: "No Android handler",
-        id: param instanceof Array ? [] : "",
+        errorDescription: "No Android handler",
+        id: "",
         hasPermissions: true,
       };
     }
 
-    const mapParam = (param: CalendarEvent): AndroidCalendarEvent => {
+    const mapEventToNative = (event: CalendarEvent): AndroidCalendarEvent => {
       const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
       return {
-        id: param.id,
-        TITLE: param.title,
+        id: event.id,
+        TITLE: event.title,
         DESCRIPTION:
-          param.description +
-            (param.url
-              ? " Открыть в приложении: " + param.url.replace("https://", "")
+          event.description +
+            (event.url
+              ? " Открыть в приложении: " + event.url.replace("https://", "") + "\n Подробнее: " + event.url
               : "") || "",
-        DTSTART: param.date.getTime(),
+        DTSTART: event.date.getTime(),
         EVENT_TIMEZONE: timezone,
-        DTEND: param.date.getTime() + 1000 * 60 * 60 * 1,
+        DTEND: event.date.getTime() + 1000 * 60 * 60 * 1,
         EVENT_END_TIMEZONE: timezone,
-        CUSTOM_APP_URI: param.url,
+        CUSTOM_APP_URI: event.url,
         CUSTOM_APP_PACKAGE: "ru.valaam.webapp",
-        HAS_ALARM: param.alarmDates ? 1 : 0,
-        reminder_MINUTES: param.alarmDates?.[0]
-          ? Math.round(
-              (param.date.getTime() - param.alarmDates[0].getTime()) /
-                (1000 * 60)
-            )
-          : undefined,
-        reminder_METHOD: 1, // METHOD_ALERT = 1
+        HAS_ALARM: event.alarmDates ? 1 : 0,
+        reminders: (event.alarmDates || []).map((alarmDate) => ({
+          MINUTES: Math.round(
+            (event.date.getTime() - alarmDate.getTime()) / (1000 * 60)
+          ),
+          METHOD: 1, // METHOD_ALERT = 1
+        })),
       };
     };
 
-    if (Array.isArray(param)) {
-      const events = param.map(mapParam);
-      console.log("addEventsListToUserCalendar", JSON.stringify(events));
+    const addEventCallback = (eventId: string, resolve: (result: CalendarEventResponse) => void) => {
+      eventAddedCallbacks[eventId] = ({success, errorDescription}: AddedEventResponse) => {
+        console.log("eventAddedCallbacks: event = ", eventId, {success, errorDescription});
+        errorDescription = errorDescription || "";
+        if (errorDescription.includes("Calendar+not+found")) {
+          errorDescription = "Calendar not found";
+        }
+        resolve({
+          isSuccess: success,
+          errorDescription,
+          id: eventId,
+          hasPermissions: true,
+        });
+      };
+    };
+
+    if (Array.isArray(event)) {
+      const nativeEvents = event.map(mapEventToNative);
+      console.log(type === 'sync' ? "addEventsListToMainCalendar" : "addEventsListToAppCalendar", JSON.stringify(nativeEvents));
       try {
-        androidHandler.addEventsListToUserCalendar(JSON.stringify(events));
-        alert("addEventsListToUserCalendar(" + JSON.stringify(events) + ")");
-        return { isSuccess: true, error: "", id: "", hasPermissions: true };
+        const promises = nativeEvents.map((event: AndroidCalendarEvent) => {
+          return new Promise<CalendarEventResponse>((resolve) => {
+            addEventCallback(event.id, resolve);
+          });
+        });
+
+        if (type === 'sync') {
+          androidHandler.addEventsListToMainCalendar(JSON.stringify(nativeEvents));
+        } else {
+          androidHandler.addEventsListToAppCalendar(JSON.stringify(nativeEvents), localCalendarTitle);
+        }
+
+        const resArray = await Promise.all(promises);
+        return resArray.reduce(
+          (acc, curr) => {
+            return {
+              isSuccess: acc.isSuccess || curr.isSuccess,
+              errorDescription: acc.errorDescription || curr.errorDescription,
+              id: curr.isSuccess ? [...acc.id, curr.id as string] : acc.id,
+              hasPermissions: true,
+            };
+          },
+          {
+            isSuccess: false,
+            errorDescription: "",
+            id: [],
+            hasPermissions: true,
+          }
+        );
+
+        // alert("addEventsListToUserCalendar(" + JSON.stringify(events) + ")");
       } catch (error) {
         return {
           isSuccess: false,
-          error: "Failed to add events list to calendar",
-          id: param instanceof Array ? [] : "",
+          errorDescription:  error instanceof Error
+          ? error.message
+          : "Failed to add event to calendar",
+          id: "",
           hasPermissions: true,
         };
       }
     } else {
       return new Promise<CalendarEventResponse>((resolve) => {
-        const event = mapParam(param);
+        const nativeEvent = mapEventToNative(event);
 
-        eventAddedCallbacks.push((eventId) => {
-          // resolve({isSuccess: true, error: "", id: eventId, hasPermissions: true});
-          console.log("eventAddedCallbacks: eventId = " + eventId);
-        });
-
-        console.log("addEventToUserCalendar: ", JSON.stringify(event));
+        addEventCallback(nativeEvent.id, resolve);
+        console.log(type === 'sync' ? "addEventToMainCalendar: " : "addEventToAppCalendar: ", JSON.stringify(nativeEvent));
         try {
-          androidHandler.addEventToUserCalendar(JSON.stringify(event));
-          alert("addEventToUserCalendar(" + JSON.stringify(event) + ")");
-          resolve({
-            isSuccess: true,
-            error: "",
-            id: param.id,
-            hasPermissions: true,
-          });
+          if (type === 'sync') {
+            androidHandler.addEventToMainCalendar(JSON.stringify(nativeEvent));
+          } else {
+            androidHandler.addEventToAppCalendar(JSON.stringify(nativeEvent), localCalendarTitle);
+          }
         } catch (error) {
+          console.log(type === 'sync' ? "addEventToMainCalendar: error = " : "addEventToAppCalendar: error = ", error);
           resolve({
             isSuccess: false,
-            error: "Failed to add event to calendar",
+            errorDescription:
+              error instanceof Error
+                ? error.message
+                : "Failed to add event to calendar",
             id: "",
             hasPermissions: true,
           });
@@ -276,7 +334,7 @@ const androidAPI: DeviceAPI = {
     if (!isGranted) {
       return {
         isSuccess: false,
-        error: "Permission not granted",
+        errorDescription: "Permission not granted",
         id: id instanceof Array ? [] : "",
         hasPermissions: false,
       };
@@ -290,23 +348,49 @@ const androidAPI: DeviceAPI = {
         (acc, curr) => {
           return {
             isSuccess: acc.isSuccess && curr.isSuccess,
-            error: acc.error || curr.error,
-            id: [...acc.id, curr.id as string],
-            hasPermissions: acc.hasPermissions && curr.hasPermissions,
+            errorDescription: acc.errorDescription || curr.errorDescription,
+            id: acc.isSuccess ? [...acc.id, curr.id as string] : acc.id,
+            hasPermissions: true,
           };
         },
-        { isSuccess: false, error: "", id: [], hasPermissions: false }
+        {
+          isSuccess: false,
+          errorDescription: "",
+          id: [],
+          hasPermissions: true,
+        }
       );
     }
-    console.log("deleteCalendarEvent with id = " + id);
 
-    eventDeletedCallbacks.push((eventId) => {
-      // resolve({isSuccess: true, error: "", id: eventId, hasPermissions: true});
-      console.log("eventDeletedCallbacks: eventId = " + eventId);
+    return new Promise<CalendarEventResponse>((resolve) => {
+      console.log("deleteCalendarEvent with id = ", id);
+
+      eventDeletedCallbacks[id] = ({success, errorDescription}: DeletedEventResponse) => {
+        // resolve({isSuccess: true, error: "", id: eventId, hasPermissions: true});
+        console.log("eventDeletedCallbacks: eventId = ", {success, errorDescription});
+        resolve({
+          isSuccess: success,
+          errorDescription,
+          id,
+          hasPermissions: true,
+        });
+      };
+
+      alert('deleteEventFromCalendar("' + id + '")');
+      try {
+        androidHandler?.deleteEventFromCalendar(id);
+      } catch (error) {
+        resolve({
+          isSuccess: false,
+          errorDescription:
+            error instanceof Error
+              ? error.message
+              : "Failed to delete event from calendar",
+          id,
+          hasPermissions: true,
+        });
+      }
     });
-    androidHandler?.deleteEventFromCalendar(id);
-    alert('deleteEventFromCalendar("' + id + '")');
-    return { isSuccess: true, error: "", id, hasPermissions: true };
   },
 
   hasCalendarPermissions(): Promise<boolean> {

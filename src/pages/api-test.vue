@@ -77,7 +77,7 @@
 
 
       <f7-block strong-ios outline-ios>
-        <f7-button fill @click="addEvent">Добавить событие</f7-button>
+        <f7-button fill @click="addEvent('sync')">Добавить событие в синх. календарь</f7-button>
       </f7-block>
 
       <!--
@@ -87,7 +87,21 @@
       -->
 
       <f7-block strong-ios outline-ios>
-        <f7-button fill @click="add2Events">Добавить 2 события</f7-button>
+        <f7-button fill @click="add2Events('sync')">Добавить 2 события в синх. календарь</f7-button>
+      </f7-block>
+
+      <f7-block strong-ios outline-ios>
+        <f7-button fill @click="addEvent('local')">Добавить событие в локал. календарь</f7-button>
+      </f7-block>
+
+      <!--
+      <f7-block strong-ios outline-ios>
+        <f7-button fill @click="addEventsArray">Добавить много событий</f7-button>
+      </f7-block>
+      -->
+
+      <f7-block strong-ios outline-ios>
+        <f7-button fill @click="add2Events('local')">Добавить 2 события в локал. календарь</f7-button>
       </f7-block>
 
       <f7-block strong-ios outline-ios>
@@ -224,7 +238,7 @@ const getUID = () => {
 
 const eventId = ref(localStorage.getItem('eventId') || '');
 
-const addEvent = async () => {
+const addEvent = async (type: 'local' | 'sync' = 'sync') => {
   const eventDate = add(new Date(), { minutes: 2 });
   const event = {
     id: getUID(),
@@ -235,7 +249,7 @@ const addEvent = async () => {
     alarmDates: [add(eventDate, { minutes: -1 }), add(eventDate, { days: -1 })],
   };
 
-  const {isSuccess, hasPermissions, error} = await deviceAPI.addCalendarEvent(event);
+  const {isSuccess, hasPermissions, errorDescription} = await deviceAPI.addCalendarEvent(event, type);
 
   if (!hasPermissions) {
     f7.dialog.alert("Нет прав на календарь");
@@ -243,7 +257,7 @@ const addEvent = async () => {
   }
 
   if (!isSuccess) {
-    f7.dialog.alert("Ошибка при добавлении события: " + error);
+    f7.dialog.alert("Ошибка при добавлении события: " + errorDescription);
     return;
   }
 
@@ -252,6 +266,16 @@ const addEvent = async () => {
 
   f7.dialog.alert("Событие добавлено!");
 };
+
+const addLocalEvent = async () => {
+  return await addEvent('local');
+};
+
+const addSyncEvent = async () => {
+  return await addEvent('sync');
+};
+
+
 
 const eventsArrayId = ref(JSON.parse(localStorage.getItem('eventsArrayId') || '[]'));
 
@@ -323,7 +347,7 @@ const addEventsArray = async () => {
   for (let i = 0; i < events.length; i += batchSize) {
     const batch = events.slice(i, i + batchSize);
 
-    const {isSuccess, hasPermissions, error, id} = await deviceAPI.addCalendarEvent(batch);
+    const {isSuccess, hasPermissions, errorDescription, id} = await deviceAPI.addCalendarEvent(batch, 'sync');
     if (!hasPermissions) {
       preloader.close();
       f7.dialog.alert("Нет прав на календарь");
@@ -331,7 +355,7 @@ const addEventsArray = async () => {
     }
 
     if (!isSuccess) {
-      lastError = error;
+      lastError = errorDescription;
     } else {
       addedIds.push(...id);
     } 
@@ -350,7 +374,9 @@ const addEventsArray = async () => {
   }  
 };
 
-const add2Events = async () => {  
+
+
+const add2Events = async (type: 'local' | 'sync' = 'sync') => {  
   const event1 = {
     id: getUID(),
     title: "Утреннее правило",
@@ -368,7 +394,7 @@ const add2Events = async () => {
     alarmDates: [add(new Date(), { minutes: 39 }), add(new Date(), { minutes: 35 })]
   };
 
-  const {isSuccess, hasPermissions, error, id} = await deviceAPI.addCalendarEvent([event1, event2]);
+  const {isSuccess, hasPermissions, errorDescription, id} = await deviceAPI.addCalendarEvent([event1, event2], type);
 
   if (!hasPermissions) {
     f7.dialog.alert("Нет прав на календарь");
@@ -376,11 +402,11 @@ const add2Events = async () => {
   }
 
   if (!isSuccess) {
-    f7.dialog.alert("Ошибка при добавлении событий: " + error);
-    return;
+    f7.dialog.alert("Ошибка при добавлении событий: " + errorDescription);
+    return; 
   } 
   
-  eventsArrayId.value = id;
+  eventsArrayId.value = [event1.id, event2.id];
   localStorage.setItem('eventsArrayId', JSON.stringify(eventsArrayId.value));
   isEventsEnabled.value = isSuccess;
 
@@ -392,14 +418,14 @@ const deleteEvent = async () => {
   if (!eventId.value) return;
 
   // alert("deleteNotification:" + notificationId.value);
-  const {isSuccess, hasPermissions, error} = await deviceAPI.deleteCalendarEvent(eventId.value);
+  const {isSuccess, hasPermissions, errorDescription} = await deviceAPI.deleteCalendarEvent(eventId.value);
   if (!hasPermissions) {
     f7.dialog.alert("Нет прав на календарь");
     return;
   }
 
   if (!isSuccess) {
-    f7.dialog.alert("Ошибка при удалении события: " + error);
+    f7.dialog.alert("Ошибка при удалении события: " + errorDescription);
     return;
   }
 
@@ -420,15 +446,15 @@ const deleteEventsArray = async () => {
 
   for (let i = 0; i < eventsArrayId.value.length; i += batchSize) {
     const batch = eventsArrayId.value.slice(i, i + batchSize);
-    const {isSuccess, hasPermissions, error, id} = await deviceAPI.deleteCalendarEvent(batch);
+    const {isSuccess, hasPermissions, errorDescription, id} = await deviceAPI.deleteCalendarEvent(batch);
     if (!hasPermissions) {
       preloader.close();
-      f7.dialog.alert("Нет прав на события");
+      f7.dialog.alert("Нет прав на календарь");
       return;
     }
 
     if (!isSuccess) {
-      lastError = error;
+      lastError = errorDescription;
     } else {
       deletedIds.push(...id);
     }

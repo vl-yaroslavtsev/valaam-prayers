@@ -144,55 +144,56 @@ const iosAPI: DeviceAPI = {
 
   // TODO: возвращать id добавленного события или false, если ошибка
   /**
-   * Добавляет уведомление в календарь
-   * @param param - Уведомление или массив уведомлений
+   * Добавляет событие в календарь
+   * @event event - Событие или массив событий
+   * @param type - тип календаря (локальный или синхронизируемый). Пока только синхронизируемый...
    * @returns Promise<CalendarEventResponse> - status: true, если уведомление успешно добавлено, false - если нет
    * id - id добавленного события или массив id добавленных событий
    */
-  async addCalendarEvent(param: CalendarEvent | CalendarEvent[]): Promise<CalendarEventResponse> {
+  async addCalendarEvent(event: CalendarEvent | CalendarEvent[], type: 'local' | 'sync' = 'sync'): Promise<CalendarEventResponse> {
     const formatDate = (date: Date) => {
       return format(date, "yyyy-MM-dd") + "T" + format(date, "HH:mm:ss");
     };
 
-    if (Array.isArray(param)) {
-      const resArray = await Promise.all(param.map((item) => this.addCalendarEvent(item)));
+    if (Array.isArray(event)) {
+      const resArray = await Promise.all(event.map((item) => this.addCalendarEvent(item, type)));
       return resArray.reduce((acc, curr) => {
         return {
           isSuccess: acc.isSuccess || curr.isSuccess,
-          error: acc.error || curr.error,
+          errorDescription: acc.errorDescription || curr.errorDescription,
           id: curr.isSuccess ? [...acc.id, curr.id as string] : acc.id,
           hasPermissions: acc.hasPermissions && curr.hasPermissions,
         };
-      }, {isSuccess: false, error: "", id: [], hasPermissions: false});
+      }, {isSuccess: false, errorDescription: "", id: [], hasPermissions: true});
     }
 
     return new Promise((resolve, reject) => {
-      const notification = {
-        id: param.id,
-        title: param.title,
-        description: param.description || "",
-        date: formatDate(param.date),
-        url: param.url || "",
-        alarmDates: param.alarmDates?.map((date) => formatDate(date)) || [formatDate(param.date)],
+      const nativeEvent = {
+        id: event.id,
+        title: event.title,
+        description: event.description || "",
+        date: formatDate(event.date),
+        url: event.url || "",
+        alarmDates: event.alarmDates?.map((date) => formatDate(date)) || [formatDate(event.date)],
       };
 
-      addEventCallbacks[param.id] = (status, errorDescription, id) => {
+      addEventCallbacks[event.id] = (status, errorDescription, id) => {
         if (status) {
-          resolve({isSuccess: true, error: "", id, hasPermissions: true});
+          resolve({isSuccess: true, errorDescription: "", id, hasPermissions: true});
 
         } else if (errorDescription.includes("not granted")) {
-          resolve({isSuccess: false, error: errorDescription, id: "", hasPermissions: false});
+          resolve({isSuccess: false, errorDescription, id: "", hasPermissions: false});
 
         } else {
-          resolve({isSuccess: false, error: errorDescription, id: "", hasPermissions: true});
+          resolve({isSuccess: false, errorDescription, id: "", hasPermissions: true});
         }
       };
 
       try {
-        iosHandler?.calendarHandler.postMessage(notification);
+        iosHandler?.calendarHandler.postMessage(nativeEvent);
       } catch (error) {
         console.error("calendarHandler error ", error);
-        resolve({isSuccess: false, error: error instanceof Error ? error.message : "unknown error", id: "", hasPermissions: true});
+        resolve({isSuccess: false, errorDescription: error instanceof Error ? error.message : "unknown error", id: "", hasPermissions: true});
       }
     });
   },
@@ -229,7 +230,7 @@ const iosAPI: DeviceAPI = {
   async deleteCalendarEvent(id: string | string[]): Promise<CalendarEventResponse> {
     const isGranted = await this.hasCalendarPermissions();
     if (!isGranted) {
-      return {isSuccess: false, error: "Permission not granted", id: typeof id === "string" ? "" : [], hasPermissions: false};
+      return {isSuccess: false, errorDescription: "Permission not granted", id: typeof id === "string" ? "" : [], hasPermissions: false};
     }
 
     if (Array.isArray(id)) {
@@ -237,24 +238,24 @@ const iosAPI: DeviceAPI = {
       return resArray.reduce((acc, curr) => {
         return {
           isSuccess: acc.isSuccess && curr.isSuccess,
-          error: acc.error || curr.error,
+          errorDescription: acc.errorDescription || curr.errorDescription,
           id: [...acc.id, curr.id as string],
           hasPermissions: acc.hasPermissions && curr.hasPermissions,
         };
-      }, {isSuccess: false, error: "", id: [], hasPermissions: false});
+      }, {isSuccess: false, errorDescription: "", id: [], hasPermissions: true});
     }
 
     return new Promise((resolve, reject) => {
       deleteEventCallbacks[id] = (status, errorDescription, id) => {
         // alert("call deleteEventCallbacks[id] id: " + id + ", status: " + status + ", errorDescription: " + errorDescription);
         if (status) {
-          resolve({isSuccess: true, error: "", id, hasPermissions: true});
+          resolve({isSuccess: true, errorDescription: "", id, hasPermissions: true});
 
         } else if (errorDescription.includes("not granted")) {
-          resolve({isSuccess: false, error: errorDescription, id, hasPermissions: false});
+          resolve({isSuccess: false, errorDescription, id, hasPermissions: false});
 
         } else {
-          resolve({isSuccess: false, error: errorDescription, id, hasPermissions: true});
+          resolve({isSuccess: false, errorDescription, id, hasPermissions: true});
         }
       };
 
@@ -264,7 +265,7 @@ const iosAPI: DeviceAPI = {
       } catch (error) {
         // alert("call deleteEventHandler error " + error);
         console.error("deleteEventHandler error ", error);
-        resolve({isSuccess: false, error: error instanceof Error ? error.message : "unknown error", id, hasPermissions: true});
+        resolve({isSuccess: false, errorDescription: error instanceof Error ? error.message : "unknown error", id, hasPermissions: true});
       }
     });
   },

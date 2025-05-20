@@ -30,11 +30,11 @@ const browserAPI: DeviceAPI = {
   offVolumeKey() {},
 
   async addCalendarEvent(event: CalendarEvent | CalendarEvent[]): Promise<CalendarEventResponse> {
-    return { isSuccess: false, error: "", id: "", hasPermissions: false};
+    return { isSuccess: false, errorDescription: "", id: "", hasPermissions: false};
   },
 
   async deleteCalendarEvent(id: string | string[]): Promise<CalendarEventResponse> {
-    return { isSuccess: false, error: "", id: "", hasPermissions: false};
+    return { isSuccess: false, errorDescription: "", id: "", hasPermissions: false};
   },
 
   async hasCalendarPermissions(): Promise<boolean> {

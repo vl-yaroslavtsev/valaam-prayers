@@ -9,7 +9,7 @@ export interface CalendarEvent {
 
 export interface CalendarEventResponse {
   isSuccess: boolean;
-  error: string;
+  errorDescription: string;
   id: string | string[];
   hasPermissions: boolean;
 }
@@ -37,8 +37,10 @@ export interface AndroidCalendarEvent {
   HAS_ALARM?: number;
   CUSTOM_APP_URI?: string; // ссылка на приложение для просмотра события
   CUSTOM_APP_PACKAGE?: string; // имя пакета приложения для просмотра события
-  reminder_MINUTES?: number; // время напоминания в минутах
-  reminder_METHOD?: number; // метод напоминания
+  reminders?: {
+    MINUTES?: number; // время напоминания в минутах
+    METHOD?: number; // метод напоминания
+  }[];
 }
 
 export interface IOSCalendarEvent {
@@ -71,7 +73,7 @@ export interface DeviceAPI {
   onVolumeKey(handler: (keyCode: number, event: any) => void): void;
   offVolumeKey(): void;
 
-  addCalendarEvent(event: CalendarEvent | CalendarEvent[]): Promise<CalendarEventResponse>;
+  addCalendarEvent(event: CalendarEvent | CalendarEvent[], type: 'local' | 'sync'): Promise<CalendarEventResponse>;
 
   deleteCalendarEvent(id: string | string[]): Promise<CalendarEventResponse>;
 
@@ -106,10 +108,12 @@ export interface AndroidHandler {
 
   subscribeKeyEvent(keyCode: number, subscribe: boolean): void;
 
-  addEventToUserCalendar(json: string): void; // в формате JSON.stringify(AndroidCalendarEvent)
-  addEventsListToUserCalendar(json: string): void; // в формате JSON.stringify(AndroidCalendarEvent[])
+  addEventToMainCalendar(json: string): void; // Добавление события в синхронизируемый  календарь в формате JSON.stringify(AndroidCalendarEvent)
+  addEventToAppCalendar(json: string, title: string): void; // Добавление события в локальный календарь в формате JSON.stringify(AndroidCalendarEvent)  
+  addEventsListToMainCalendar(json: string): void; // Добавление списка событий в синхронизируемый календарь в формате JSON.stringify(AndroidCalendarEvent[])
+  addEventsListToAppCalendar(json: string, title: string): void; // Добавление списка событий в локальный календарь в формате JSON.stringify(AndroidCalendarEvent[])
 
-  deleteEventFromCalendar(id: string): void;
+  deleteEventFromCalendar(id: string): void; // Удаление события из календаря по id
 
   requestCalendarPermissions(): void; // запрос на права Календаря (показ диалога с пользователем)
   requestCalendarPermissionsStatus(): Promise<boolean>; // запрос проверки прав на Календарь
