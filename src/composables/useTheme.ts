@@ -1,7 +1,7 @@
-import { ref, watch, onMounted } from 'vue'
+import { ref, watch, onMounted, onUnmounted } from 'vue'
 import { f7, f7ready } from 'framework7-vue'
 import deviceAPI from '@/js/device/device-api'
-
+import { useEventListener } from './useEventListener'
 export type Theme = 'light' | 'dark' | 'auto'
 
 const currentTheme = ref<Theme>('light')
@@ -70,25 +70,20 @@ export function useTheme() {
     setTheme(newTheme)
   }
 
-  // Слушаем изменения системной темы
-  const setupSystemThemeListener = () => {
-    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)')
-    
-    const handleChange = (e: MediaQueryListEvent) => {
-      if (currentTheme.value === 'auto') {
-        applyTheme(e.matches)
-      }
+  const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)')
+ 
+  const handleMediaQueryChange = (e: MediaQueryListEvent) => {
+    if (currentTheme.value === 'auto') {
+      applyTheme(e.matches)
     }
-    
-    mediaQuery.addEventListener('change', handleChange)
-    
-    return () => mediaQuery.removeEventListener('change', handleChange)
   }
+  
+  useEventListener(mediaQuery, 'change', handleMediaQueryChange as EventListener)
 
   onMounted(() => {
     // Инициализируем тему сразу
     initTheme()
-    setupSystemThemeListener()
+    // setupSystemThemeListener()
     
     // Отмечаем, что F7 готов
     f7ready(() => {
@@ -101,7 +96,6 @@ export function useTheme() {
     isDarkMode,
     setTheme,
     toggleTheme,
-    initTheme,
-    isF7Ready
+    initTheme
   }
 }
