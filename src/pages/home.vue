@@ -23,9 +23,31 @@
       </p>
     </f7-block>
     <f7-list strong-ios dividers-ios outline-ios>
-      <f7-list-item title="Темная тема">
+      <f7-list-item title="Тема приложения">
         <template #after>
-          <f7-toggle v-model:checked="isDarkTheme" />
+          <f7-segmented>
+            <f7-button 
+              :class="{ 'button-active': currentTheme === 'light' }"
+              @click="setTheme('light')"
+              small
+            >
+              Светлая
+            </f7-button>
+            <f7-button 
+              :class="{ 'button-active': currentTheme === 'dark' }"
+              @click="setTheme('dark')"
+              small
+            >
+              Темная
+            </f7-button>
+            <f7-button 
+              :class="{ 'button-active': currentTheme === 'auto' }"
+              @click="setTheme('auto')"
+              small
+            >
+              Авто
+            </f7-button>
+          </f7-segmented>
         </template>
       </f7-list-item>
     </f7-list>
@@ -56,30 +78,8 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch, onMounted } from "vue";
-import { f7, f7ready } from "framework7-vue";
-import deviceAPI from "@/js/device/device-api";
+import { useTheme } from "@/composables/useTheme";
 
-const isDarkTheme = ref(!!JSON.parse(localStorage.getItem('isDarkTheme') || 'false'));
-
-onMounted(() => {
-  f7ready(() => {
-    watch(isDarkTheme, (newVal) => {
-      f7.setDarkMode(newVal);
-      localStorage.setItem('isDarkTheme', JSON.stringify(newVal));
-      deviceAPI.setStatusBarTextColor(newVal ? 'light' : 'dark');
-
-      if (newVal) {
-        deviceAPI.setStatusBarColor('#272931');
-        deviceAPI.setNavigationBarColor('#272931');
-
-      } else {
-        deviceAPI.setStatusBarColor('#eaeefa');
-        deviceAPI.setNavigationBarColor('#eaeefa');
-      }
-    }, { immediate: true }
-    );
-  });
-});
+const { currentTheme, isDarkMode, setTheme, toggleTheme } = useTheme();
 
 </script>

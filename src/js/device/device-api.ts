@@ -15,7 +15,7 @@ const browserAPI: DeviceAPI = {
   resetBrightness() {},
 
   async getTheme() {
-    return "light";
+    return window.matchMedia('(prefers-color-scheme: dark)').matches ? "dark" : "light";
   },
 
   showStatusBar(visibility: boolean) {},

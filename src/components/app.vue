@@ -17,7 +17,9 @@
 
           <f7-block class="position-bottom">
             <!--  -->
-            <f7-button v-if="needRefresh" fill @click="updateApp">Обновить приложение</f7-button>
+            <f7-button v-if="needRefresh" fill @click="updateApp"
+              >Обновить приложение</f7-button
+            >
             <p>Версия {{ store.state.version }}</p>
           </f7-block>
           <f7-block></f7-block>
@@ -29,11 +31,32 @@
     <f7-views tabs class="safe-areas">
       <!-- Tabbar for switching views-tabs -->
       <f7-toolbar tabbar icons bottom>
-        <f7-link tab-link="#view-main" tab-link-active icon-md="material:home" text="Главная"></f7-link>
-        <f7-link tab-link="#view-prayers" icon-md="material:menu_book" text="Молитвослов"></f7-link>
-        <f7-link tab-link="#view-calendar" icon-md="material:date_range" text="Календарь"></f7-link>
-        <f7-link tab-link="#view-books" icon-md="material:book" text="API"></f7-link>
-        <f7-link tab-link="#view-rites" icon-md="material:whatshot" text="Поминовения"></f7-link>
+        <f7-link
+          tab-link="#view-main"
+          tab-link-active
+          icon-md="material:home"
+          text="Главная"
+        ></f7-link>
+        <f7-link
+          tab-link="#view-prayers"
+          icon-md="material:menu_book"
+          text="Молитвослов"
+        ></f7-link>
+        <f7-link
+          tab-link="#view-calendar"
+          icon-md="material:date_range"
+          text="Календарь"
+        ></f7-link>
+        <f7-link
+          tab-link="#view-books"
+          icon-md="material:book"
+          text="API"
+        ></f7-link>
+        <f7-link
+          tab-link="#view-rites"
+          icon-md="material:whatshot"
+          text="Поминовения"
+        ></f7-link>
       </f7-toolbar>
 
       <!-- Your main view/tab, should have "view-main" class. It also has "tab-active" class -->
@@ -43,7 +66,12 @@
       <f7-view id="view-prayers" name="prayers" tab url="/catalog/"></f7-view>
 
       <!-- Settings View -->
-      <f7-view id="view-calendar" name="calendar" tab url="/calendar/"></f7-view>
+      <f7-view
+        id="view-calendar"
+        name="calendar"
+        tab
+        url="/calendar/"
+      ></f7-view>
 
       <!-- Settings View -->
       <f7-view id="view-books" name="books" tab url="/api-test/"></f7-view>
@@ -74,7 +102,9 @@
   bottom: 0;
   left: 0;
   right: 0;
-  margin-bottom: calc(var(--f7-block-padding-horizontal) + var(--f7-safe-area-left));
+  margin-bottom: calc(
+    var(--f7-block-padding-horizontal) + var(--f7-safe-area-left)
+  );
 }
 </style>
 <script setup lang="ts">
@@ -93,7 +123,7 @@ const updateSW = registerSW({
   onNeedRefresh() {
     needRefresh.value = true;
   },
-  onOfflineReady() { },
+  onOfflineReady() {},
 });
 
 const updateApp = (): void => {
