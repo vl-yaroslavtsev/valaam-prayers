@@ -204,11 +204,11 @@ import Framework7Vue, {
 
 // Import Icons and App Custom Styles
 import "../css/f7.less";
-import "../css/icons.css";
+import "../css/icons.less";
 import "../css/app.less";
 
 // Import App Component
-import App from "../components/app.vue";
+import App from "../components/App.vue";
 
 // Init Framework7-Vue Plugin
 Framework7.use(Framework7Vue);

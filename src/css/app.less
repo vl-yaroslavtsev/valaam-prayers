@@ -1,1 +1,25 @@
 /* Your app custom styles here */
+@import "vars.less";
+@import "fonts.less";
+@import "toolbar.less";
+
+:root {
+
+  --f7-font-family: var(--font-family);
+  --f7-font-size: var(--mobile-main-text-regular-b3);
+  --f7-line-height: var(--mobile-main-text-regular-b3-line-height);
+  --f7-text-color: var(--content-color-baige-900);
+
+}
+
+.md {
+  --f7-bars-bg-color: var(--content-color-black-primary);
+  --f7-bars-bg-color-rgb: var(--content-color-black-primary);
+
+  &.dark {
+    --f7-theme-color: var(--content-color-black-secondary);
+  }
+}
+
+
+

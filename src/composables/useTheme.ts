@@ -1,4 +1,4 @@
-import { ref, watch, onMounted, onUnmounted } from 'vue'
+import { ref, onMounted } from 'vue'
 import { f7, f7ready } from 'framework7-vue'
 import deviceAPI from '@/js/device/device-api'
 import { useEventListener } from './useEventListener'
@@ -95,7 +95,6 @@ export function useTheme() {
     currentTheme,
     isDarkMode,
     setTheme,
-    toggleTheme,
-    initTheme
+    toggleTheme
   }
 }
