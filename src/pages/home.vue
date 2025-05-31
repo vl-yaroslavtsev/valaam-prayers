@@ -1,9 +1,9 @@
 <template>
   <f7-page name="home">
     <!-- Top Navbar -->
-    <f7-navbar large :sliding="false">
+    <f7-navbar large>
       <f7-nav-left>
-        <f7-link icon-md="material:menu" panel-open="left"></f7-link>
+        <f7-link panel-open="left" v-html="BurgerIcon"></f7-link>
       </f7-nav-left>
       <f7-nav-title sliding>Молитвослов и календарь</f7-nav-title>
       <f7-nav-title-large>Молитвослов и календарь</f7-nav-title-large>
@@ -79,6 +79,7 @@
 
 <script setup lang="ts">
 import { useTheme } from "@/composables/useTheme";
+import BurgerIcon from "/icons/burger.svg?raw";
 
 const { currentTheme, isDarkMode, setTheme, toggleTheme } = useTheme();
 
