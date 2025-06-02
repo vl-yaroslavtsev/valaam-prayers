@@ -13,6 +13,7 @@ export function useTheme() {
   const initTheme = () => {
     const theme = (localStorage.getItem('app-theme') as Theme) || 'auto';
     setTheme(theme);
+    useEventListener(mediaQuery, 'change', handleMediaQueryChange as EventListener);
   }
 
   // Установка темы
@@ -77,12 +78,10 @@ export function useTheme() {
       applyTheme(e.matches)
     }
   }
-  
-  useEventListener(mediaQuery, 'change', handleMediaQueryChange as EventListener)
 
   onMounted(() => {
     // Инициализируем тему сразу
-    initTheme()
+    // initTheme()
     // setupSystemThemeListener()
     
     // Отмечаем, что F7 готов
@@ -92,6 +91,7 @@ export function useTheme() {
   })
 
   return {
+    initTheme,
     currentTheme,
     isDarkMode,
     setTheme,

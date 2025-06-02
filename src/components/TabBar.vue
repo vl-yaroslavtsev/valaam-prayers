@@ -24,11 +24,11 @@
 
 <script setup lang="ts">
 // Импорт всех SVG иконок
-import HomeIcon from "./icon/HomeIcon.vue";
-import BooksIcon from "./icon/BooksIcon.vue";
-import CalendarIcon from "./icon/CalendarIcon.vue";
-import MolitvoslovIcon from "./icon/MolitvoslovIcon.vue";
-import RitesIcon from "./icon/RitesIcon.vue";
+import HomeIcon from "./icons/HomeIcon.vue";
+import BooksIcon from "./icons/BooksIcon.vue";
+import CalendarIcon from "./icons/CalendarIcon.vue";
+import MolitvoslovIcon from "./icons/MolitvoslovIcon.vue";
+import RitesIcon from "./icons/RitesIcon.vue";
 
 const { activeTab } = defineProps<{
   activeTab: string

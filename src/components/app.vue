@@ -1,30 +1,7 @@
 <template>
   <f7-app v-bind="f7params">
     <!-- Left panel with cover effect-->
-    <f7-panel left cover dark>
-      <f7-view>
-        <f7-page>
-          <!-- <f7-navbar title="Левая панель"></f7-navbar> -->
-          <f7-list>
-            <f7-list-item title="О МОНАСТЫРЕ" link="#" />
-            <f7-list-item title="ПОМЯННИК" link="#" />
-            <f7-list-item title="МОИ ЗАПИСКИ" link="#" />
-            <f7-list-item title="НАПОМИНАНИЯ" link="#" />
-            <f7-list-item title="НАСТРОЙКИ" link="#" />
-            <f7-list-item title="О ПРИЛОЖЕНИИ" link="#" />
-            <f7-list-item title="ПОИСК" link="#" />
-          </f7-list>
-
-          <f7-block class="position-bottom">
-            <f7-button v-if="needRefresh" fill @click="updateApp">
-              Обновить приложение
-            </f7-button>
-            <p>Версия {{ store.state.version }}</p>
-          </f7-block>
-          <f7-block></f7-block>
-        </f7-page>
-      </f7-view>
-    </f7-panel>
+    <LeftPanel :needRefresh="needRefresh" :updateSW="updateSW" />
 
     <!-- Views/Tabs container -->
     <f7-views tabs class="safe-areas" @tab:show="onTabShow">
@@ -80,8 +57,10 @@ import viewsManager from "../js/views-manager";
 import deviceAPI from "../js/device/device-api";
 import { useTheme } from "@/composables/useTheme";
 import TabBar from "./TabBar.vue";
+import LeftPanel from "./LeftPanel.vue";
 
 import { registerSW } from "virtual:pwa-register";
+import type { View } from "framework7/types";
 
 const needRefresh = ref(false);
 const updateSW = registerSW({
@@ -90,11 +69,6 @@ const updateSW = registerSW({
   },
   onOfflineReady() {},
 });
-
-const updateApp = (): void => {
-  f7.dialog.preloader("Обновляем приложение...");
-  updateSW();
-};
 
 // Framework7 Parameters
 const f7params = {
@@ -107,16 +81,13 @@ const f7params = {
   routes: routes,
 } as const;
 
-useTheme();
+const {initTheme} = useTheme();
+initTheme();
 
 const activeView = ref<string>("home");
 const onTabShow = (event: CustomEvent) => {
-  const target = event.target as HTMLElement & { f7View?: { name: string } };
-  if (target?.f7View?.name) {
-    activeView.value = target?.f7View?.name;
-  }
-
-  // console.log('onTabShow', event);
+  const target = event.target as HTMLElement & { f7View: View.View };
+  activeView.value = target.f7View.name;
 };
 
 onMounted(() => {
@@ -128,13 +99,4 @@ onMounted(() => {
 </script>
 
 <style scoped>
-.position-bottom {
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  margin-bottom: calc(
-    var(--f7-block-padding-horizontal) + var(--f7-safe-area-left)
-  );
-}
 </style>

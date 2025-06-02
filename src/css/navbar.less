@@ -4,6 +4,7 @@
   --f7-navbar-border-color: var(--content-color-baige-100);
   
   --f7-navbar-text-color: var(--content-color-baige-900);
+  --f7-navbar-link-color: var(--content-color-baige-900);
 
   --f7-navbar-title-font-size: var(--mobile-main-text-regular-b1);
   --f7-navbar-title-line-height: var(--mobile-main-text-regular-b1-line-height);
@@ -14,7 +15,19 @@
   --f7-navbar-large-title-height: 54px;
 
 
-  .navbar .title-large {
-    align-items: flex-start;
+  .navbar {
+    --f7-link-touch-ripple-color: rgba(255, 255, 255, 0.15);
+    
+    .title-large {
+      align-items: flex-start;
+    }
+
+    .link.panel-open {
+      padding: 0 6px;
+      
+      path {
+        fill: var(--content-color-baige-900);
+      }
+    }
   }
 }
