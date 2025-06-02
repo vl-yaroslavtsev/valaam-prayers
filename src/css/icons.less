@@ -57,3 +57,30 @@
   font-feature-settings: "liga";
   text-align: center;
 }
+
+.icon-color(@color) {
+  path[stroke] {
+    stroke: @color;
+  }
+
+  path[fill] {
+    fill: @color;
+  }
+}
+
+.icon {
+  path {
+    transition-duration: 200ms;
+  }
+
+  &.color-white{
+    .icon-color(var(--content-color-white-100));
+  }
+
+  &.color-baige-600 {
+    .icon-color(var(--content-color-baige-600));
+  }
+}
+
+
+

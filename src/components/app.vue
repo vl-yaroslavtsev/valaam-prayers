@@ -27,12 +27,12 @@
     </f7-panel>
 
     <!-- Views/Tabs container -->
-    <f7-views tabs class="safe-areas">
+    <f7-views tabs class="safe-areas" @tab:show="onTabShow">
       <!-- Tabbar component -->
-      <TabBar />
+      <TabBar :activeTab="activeView" />
 
       <!-- Your main view/tab, should have "view-main" class. It also has "tab-active" class -->
-      <f7-view id="view-main" main tab tab-active url="/"></f7-view>
+      <f7-view id="view-home" name="home" main tab tab-active url="/"></f7-view>
 
       <!-- Catalog View -->
       <f7-view id="view-prayers" name="prayers" tab url="/catalog/"></f7-view>
@@ -51,7 +51,7 @@
       <!-- Settings View -->
       <f7-view id="view-rites" name="rites" tab url="/rites/"></f7-view>
     </f7-views>
-    
+
     <!-- Popup -->
     <f7-popup id="my-popup">
       <f7-view>
@@ -108,6 +108,16 @@ const f7params = {
 } as const;
 
 useTheme();
+
+const activeView = ref<string>("home");
+const onTabShow = (event: CustomEvent) => {
+  const target = event.target as HTMLElement & { f7View?: { name: string } };
+  if (target?.f7View?.name) {
+    activeView.value = target?.f7View?.name;
+  }
+
+  // console.log('onTabShow', event);
+};
 
 onMounted(() => {
   f7ready(() => {
