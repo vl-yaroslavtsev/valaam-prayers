@@ -92,6 +92,7 @@ const iconColor = computed(() => {
 <style scoped lang="less">
 .page-left-panel {
   --list-panel-padding-top: 30px;
+  --f7-list-item-title-text-color: var(--content-color-baige-900);
 
   display: flex;
   flex-direction: column;

@@ -1,32 +1,3 @@
-/* Material Icons Font (for MD theme) */
-@font-face {
-  font-family: "Material Icons";
-  font-style: normal;
-  font-weight: 400;
-  src:
-    local("Material Icons"),
-    local("MaterialIcons-Regular"),
-    url(../fonts/material-icons.woff2) format("woff2"),
-    url(../fonts/material-icons.woff) format("woff");
-}
-.material-icons {
-  font-family: "Material Icons";
-  font-weight: normal;
-  font-style: normal;
-  font-size: 24px;
-  display: inline-block;
-  line-height: 1;
-  text-transform: none;
-  letter-spacing: normal;
-  word-wrap: normal;
-  white-space: nowrap;
-  direction: ltr;
-  -webkit-font-smoothing: antialiased;
-  text-rendering: optimizeLegibility;
-  -moz-osx-font-smoothing: grayscale;
-  font-feature-settings: "liga";
-}
-
 /* Framework7 Icons Font (for iOS theme) */
 @font-face {
   font-family: "Framework7 Icons";
@@ -89,6 +60,10 @@
     .icon-color(var(--content-color-baige-900));
   }
 
+  &.color-black-primary {
+    .icon-color(var(--content-color-black-primary));
+  }
+
   &.color-black-100 {
     .icon-color(var(--content-color-black-100));
   }
@@ -97,7 +72,8 @@
     .icon-color(var(--content-color-black-600));
   }
 
-  &.color-black-primary {
-    .icon-color(var(--content-color-black-primary));
+
+  &.color-primary-accent-50 {
+    .icon-color(var(--brand-color-primary-accent-50));
   }
 }

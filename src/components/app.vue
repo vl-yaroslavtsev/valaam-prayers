@@ -12,7 +12,7 @@
       <f7-view id="view-home" name="home" main tab tab-active url="/"></f7-view>
 
       <!-- Catalog View -->
-      <f7-view id="view-prayers" name="prayers" tab url="/catalog/"></f7-view>
+      <f7-view id="view-prayers" name="prayers" tab url="/prayers/"></f7-view>
 
       <!-- Settings View -->
       <f7-view
@@ -79,6 +79,10 @@ const f7params = {
   store: store,
   // App routes
   routes: routes,
+
+  touch: {
+    tapHold: true,
+  },
 } as const;
 
 const {initTheme} = useTheme();

@@ -3,6 +3,36 @@
     <f7-page-content ref="сontentRef">
       <f7-navbar title="Тест JS API"></f7-navbar>
 
+        <f7-list strong-ios dividers-ios outline-ios>
+        <f7-list-item title="Тема приложения">
+          <template #after>
+            <f7-segmented>
+              <f7-button 
+                :class="{ 'button-active': currentTheme === 'light' }"
+                @click="setTheme('light')"
+                small
+              >
+                Светлая
+              </f7-button>
+              <f7-button 
+                :class="{ 'button-active': currentTheme === 'dark' }"
+                @click="setTheme('dark')"
+                small
+              >
+                Темная
+              </f7-button>
+              <f7-button 
+                :class="{ 'button-active': currentTheme === 'auto' }"
+                @click="setTheme('auto')"
+                small
+              >
+                Авто
+              </f7-button>
+            </f7-segmented>
+          </template>
+        </f7-list-item>
+      </f7-list>
+
       <f7-block-title>Браузерное API</f7-block-title>
       <f7-block strong-ios outline-ios class="grid grid-cols-2 grid-gap">
         <f7-button fill @click="testBrowserFitures">Проверить API</f7-button>
@@ -155,6 +185,9 @@ import { f7PageContent } from "framework7-vue";
 import deviceAPI from "../js/device/device-api";
 import { CalendarEvent } from "../js/device/types";
 import { testBrowser } from "../js/device/browser-test";
+import { useTheme } from "@/composables/useTheme";
+
+const { currentTheme, setTheme } = useTheme();
 
 const currentBrightness = ref(0);
 

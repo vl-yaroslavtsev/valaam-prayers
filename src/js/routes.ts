@@ -3,7 +3,7 @@ import { Router } from "framework7/types";
 import HomePage from "../pages/home.vue";
 import AboutPage from "../pages/about.vue";
 import FormPage from "../pages/form.vue";
-import CatalogPage from "../pages/catalog.vue";
+import PrayersPage from "../pages/prayers.vue";
 import CalendarPage from "../pages/calendar.vue";
 import DayPage from "../pages/day.vue";
 import ProductPage from "../pages/product.vue";
@@ -28,8 +28,8 @@ const routes: Router.RouteParameters[] = [
     component: FormPage,
   },
   {
-    path: "/catalog/",
-    component: CatalogPage,
+    path: "/prayers/",
+    component: PrayersPage,
   },
   {
     path: "/calendar/",
