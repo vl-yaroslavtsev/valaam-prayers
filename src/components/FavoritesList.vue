@@ -8,6 +8,7 @@
   >
     <TransitionGroup name="favorite-item" tag="ul">
       <f7-list-item
+        :class="{ 'has-progress': !!item.progress }"
         swipeout
         v-for="item in favorites"
         :key="item.id"
@@ -15,9 +16,18 @@
         :link="item.url"
       >
         <template #root-start>
-          <f7-link class="delete-handler" @click="deleteFavorite(item)">
+          <f7-link class="delete-handler" @click="deleteItem(item)">
             <DeleteIcon color="primary-accent-50" />
           </f7-link>
+        </template>
+        <template #inner v-if="item.progress">
+          <div class="item-progress">
+            <f7-progressbar :progress="item.progress * 100" />
+            <div class="progress-text">
+              {{ Math.floor(item.progress * (item?.pages ?? 0)) }} из
+              {{ item?.pages ?? 0 }} страниц
+            </div>
+          </div>
         </template>
         <template #after>
           <div class="lang-list">
@@ -27,13 +37,13 @@
           </div>
         </template>
         <f7-swipeout-actions right v-if="!isSortableMode">
-          <f7-swipeout-button>
+          <f7-swipeout-button close @click="shareItem(item)">
             <ShareIcon :color="isDarkMode ? 'baige-900' : 'black-600'"
           /></f7-swipeout-button>
-          <f7-swipeout-button>
+          <f7-swipeout-button close @click="resetItem(item)">
             <ResetIcon :color="isDarkMode ? 'baige-900' : 'black-600'"
           /></f7-swipeout-button>
-          <f7-swipeout-button @click="deleteFavorite(item)">
+          <f7-swipeout-button @click="deleteItem(item)">
             <DeleteIcon color="primary-accent-50" />
           </f7-swipeout-button>
         </f7-swipeout-actions>
@@ -43,7 +53,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from "vue";
+import { ref, toValue } from "vue";
 import { f7 } from "framework7-vue";
 import { useTheme } from "@/composables/useTheme";
 import DeleteIcon from "@/components/icons/DeleteIcon.vue";
@@ -54,7 +64,9 @@ export interface FavoriteItem {
   id: number;
   title: string;
   url: string;
-  lang: Array<"ру" | "цс" | "гр">;
+  lang?: Array<"ру" | "цс" | "гр">;
+  progress?: number;
+  pages?: number;
 }
 
 // Props
@@ -65,12 +77,13 @@ const { favorites, sortable = false } = defineProps<{
 
 // Events
 const emit = defineEmits<{
-  deleteFavorite: [item: FavoriteItem];
+  deleteItem: [item: FavoriteItem];
+  resetItem: [item: FavoriteItem];
   sortableModeToggle: [isSortableMode: boolean];
 }>();
 
-const deleteFavorite = (item: FavoriteItem) => {
-  emit("deleteFavorite", item);
+const deleteItem = (item: FavoriteItem) => {
+  emit("deleteItem", item);
 };
 
 const { isDarkMode } = useTheme();
@@ -91,6 +104,14 @@ const onSortableDisabled = () => {
     f7.params.touch.tapHold = true;
   }
   emit("sortableModeToggle", false);
+};
+
+const resetItem = (item: FavoriteItem) => {
+  emit("resetItem", item);
+};
+
+const shareItem = (item: FavoriteItem) => {
+  console.log("shareItem", item);
 };
 </script>
 

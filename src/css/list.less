@@ -18,7 +18,10 @@
   --f7-list-item-title-line-height: var(--mobile-detail-regular-d1-line-height);
 
   --f7-list-item-title-text-color: var(--content-color-black-secondary);
+  --f7-list-item-padding-vertical: 10px;
+  
   --list-item-lang-color: var(--content-color-black-600);
+  --list-item-progress-color: var(--content-color-black-400);
   --delete-handler-width: 42px;
 
   margin-top: 30px;
@@ -50,6 +53,38 @@
 
     transition-property: transform;
     transition-duration: 300ms;
+  }
+
+  .has-progress .item-inner {
+    padding-bottom: 40px;
+
+    &:before {
+      top: auto;
+      margin-top: auto;
+    }
+  }
+
+  .item-progress {
+    --f7-progressbar-height: 1px;
+    --f7-progressbar-progress-color:  var(--list-item-progress-color);
+    --f7-progressbar-bg-color: transparent; /*rgba(255, 255, 255, 0.1);*/
+
+    position: absolute;
+    right: calc(var(--f7-list-chevron-icon-area) + var(--f7-list-item-padding-horizontal) + var(--f7-safe-area-right));
+    bottom: var(--f7-list-item-padding-vertical);
+    left: 0;
+
+    transition-duration: 300ms;
+    transition-property: transform;
+
+    .progress-text {
+      font-weight: 400;
+      font-size: var(--mobile-main-text-regular-b3);
+      line-height: var(--mobile-main-text-regular-b3-line-height);
+      color: var(--list-item-progress-color);
+      text-transform: lowercase;
+      margin-top: 2px;
+    }
   }
 
   .delete-handler {
@@ -113,6 +148,10 @@
       transform: translateX(calc(var(--delete-handler-width) - var(--f7-list-item-padding-horizontal)));
     }
 
+    .item-progress {
+      transform: translateX(calc(var(--delete-handler-width) - var(--f7-list-item-padding-horizontal)));
+    }
+
     .item-link {
       --f7-touch-ripple-color: transparent;
     }
@@ -132,6 +171,8 @@
       --f7-list-item-title-text-color: var(--content-color-baige-900);
       --list-item-lang-color: var(--content-color-baige-900);
       //Или var(--content-color-white-100); ?
+      --list-item-progress-color: var(--content-color-baige-400);
+    
 
       .swipeout-actions-right {
         a:nth-last-child(3) {

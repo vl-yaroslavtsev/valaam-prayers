@@ -17,7 +17,8 @@
       class="favorites-list"
       sortable
       :favorites="favorites"
-      @delete-favorite="onDeleteFavorite"
+      @delete-item="onDeleteItem"
+      @reset-item="onResetItem"
       @sortable-mode-toggle="onSortableModeToggle"
     />
     <SeparatorLine :color="isDarkMode ? 'baige-100' : 'black-100'" />
@@ -39,13 +40,17 @@ const favorites = ref<FavoriteItem[]>([
     id: 1,
     title: "Утренние молитвы",
     url: "#",
-    lang: ['цс', 'гр', 'ру']
+    lang: ['цс', 'гр', 'ру'],
+    progress: 0.443432,
+    pages: 12
   },
   {
     id: 2,
     title: "Вечерние молитвы",
     url: "#",
-    lang: ['цс', 'гр', 'ру']
+    lang: ['цс', 'гр', 'ру'],
+    progress: 0.113432,
+    pages: 10
   },
   {
     id: 3,
@@ -57,7 +62,9 @@ const favorites = ref<FavoriteItem[]>([
     id: 4,
     title: "Молитва иеросхим. Пафения Киевского",
     url: "#",
-    lang: ['ру']
+    lang: ['ру'],
+    progress: 0,
+    pages: 5
   },
   {
     id: 5,
@@ -69,18 +76,27 @@ const favorites = ref<FavoriteItem[]>([
     id: 6,
     title: "Правило к причащению",
     url: "#",
-    lang: [ 'цс', 'гр']
+    lang: [ 'цс', 'гр'],
+    progress: 0.343432,
+    pages: 35
   },
   {
     id: 7,
     title: "Благодарственные молитвы по причащению",
     url: "#",
-    lang: ['цс', 'гр']
+    lang: ['цс', 'гр'],
+    progress: 1,
+    pages: 16
   },
 ]);
 
-const onDeleteFavorite = (item: FavoriteItem) => {
+const onDeleteItem = (item: FavoriteItem) => {
   favorites.value = favorites.value.filter((p) => p.id !== item.id);
+};
+
+const onResetItem = (item: FavoriteItem) => {
+  item.progress = 0;
+  item.pages = 0;
 };
 
 const isSortableMode = ref(false);
