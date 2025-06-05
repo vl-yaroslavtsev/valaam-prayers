@@ -1,10 +1,9 @@
 <template>
   <f7-list
-    class="prayers"
+    :class="`prayers ${cssClass}`"
     :sortable="sortable"
     :sortable-tap-hold="sortable"
-    @sortable:enable="onSortableEnabled"
-    @sortable:disable="onSortableDisabled"
+    :sortable-enabled="isSortableMode"
   >
     <TransitionGroup name="favorite-item" tag="ul">
       <f7-list-item
@@ -20,26 +19,22 @@
             <DeleteIcon color="primary-accent-50" />
           </f7-link>
         </template>
-        <template #inner v-if="item.progress">
+        <template #inner v-if="item.progress && item.pages">
           <div class="item-progress">
             <f7-progressbar :progress="item.progress * 100" />
             <div class="progress-text">
-              {{ Math.floor(item.progress * (item?.pages ?? 0)) }} из
-              {{ item?.pages ?? 0 }} страниц
+              {{ Math.floor(item.progress * item.pages) }} из
+              {{ item.pages }} страниц
             </div>
           </div>
         </template>
         <template #after>
-          <div class="lang-list">
-            <div class="lang-item" v-for="lang in item.lang" :key="lang">
-              {{ lang }}
-            </div>
-          </div>
+          <LanguageBadges :languages="item.lang" />
         </template>
         <f7-swipeout-actions right v-if="!isSortableMode">
-          <f7-swipeout-button close @click="shareItem(item)">
-            <ShareIcon :color="isDarkMode ? 'baige-900' : 'black-600'"
-          /></f7-swipeout-button>
+          <f7-swipeout-button close @click="shareItem(item, $event)">
+            <ShareIcon :color="isDarkMode ? 'baige-900' : 'black-600'" />
+          </f7-swipeout-button>
           <f7-swipeout-button close @click="resetItem(item)">
             <ResetIcon :color="isDarkMode ? 'baige-900' : 'black-600'"
           /></f7-swipeout-button>
@@ -50,15 +45,23 @@
       </f7-list-item>
     </TransitionGroup>
   </f7-list>
+  <SharePopover
+    :item="{ title: sharedItem?.title || '', url: sharedItem?.url || '' }"
+    :target-el="sharedTargetEl"
+    v-model="isSharedOpened"
+  />
 </template>
 
 <script setup lang="ts">
-import { ref, toValue } from "vue";
+import { ref, watchEffect, computed } from "vue";
 import { f7 } from "framework7-vue";
 import { useTheme } from "@/composables/useTheme";
+
 import DeleteIcon from "@/components/icons/DeleteIcon.vue";
 import ResetIcon from "./icons/ResetIcon.vue";
 import ShareIcon from "./icons/ShareIcon.vue";
+import LanguageBadges from "./LanguageBadges.vue";
+import SharePopover from "./SharePopover.vue";
 
 export interface FavoriteItem {
   id: number;
@@ -70,16 +73,22 @@ export interface FavoriteItem {
 }
 
 // Props
-const { favorites, sortable = false } = defineProps<{
+const {
+  favorites,
+  sortable = false,
+  sortableEnabled = false,
+  cssClass = "",
+} = defineProps<{
   favorites: FavoriteItem[];
   sortable?: boolean;
+  sortableEnabled?: boolean;
+  cssClass?: string;
 }>();
 
 // Events
 const emit = defineEmits<{
   deleteItem: [item: FavoriteItem];
   resetItem: [item: FavoriteItem];
-  sortableModeToggle: [isSortableMode: boolean];
 }>();
 
 const deleteItem = (item: FavoriteItem) => {
@@ -88,30 +97,32 @@ const deleteItem = (item: FavoriteItem) => {
 
 const { isDarkMode } = useTheme();
 
-const isSortableMode = ref(false);
+const isSortableMode = computed(() => {
+  return sortable && sortableEnabled;
+});
 
-const onSortableEnabled = () => {
-  isSortableMode.value = true;
+watchEffect(() => {
   if (f7.params.touch) {
-    f7.params.touch.tapHold = false;
+    f7.params.touch.tapHold = !isSortableMode.value;
   }
-  emit("sortableModeToggle", true);
-};
-
-const onSortableDisabled = () => {
-  isSortableMode.value = false;
-  if (f7.params.touch) {
-    f7.params.touch.tapHold = true;
-  }
-  emit("sortableModeToggle", false);
-};
+});
 
 const resetItem = (item: FavoriteItem) => {
   emit("resetItem", item);
 };
 
-const shareItem = (item: FavoriteItem) => {
-  console.log("shareItem", item);
+const sharedTargetEl = ref<Element | undefined>(undefined);
+
+const isSharedOpened = ref(false);
+
+const sharedItem = ref<FavoriteItem | null>(null);
+
+const shareItem = (item: FavoriteItem, $event: Event) => {
+  sharedTargetEl.value = ($event.target as HTMLElement)
+    ?.closest("li")
+    ?.querySelector(".item-title") as HTMLElement;
+  sharedItem.value = item;
+  isSharedOpened.value = true;
 };
 </script>
 
@@ -135,25 +146,5 @@ const shareItem = (item: FavoriteItem) => {
   position: absolute;
   width: 100%;
   z-index: -1;
-}
-.lang-list {
-  display: flex;
-  gap: 18px;
-}
-.lang-item {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-
-  border: 1px solid var(--list-item-lang-color);
-  border-radius: 50px;
-  width: 14px;
-  height: 14px;
-  color: var(--list-item-lang-color);
-  font-weight: 700;
-  font-size: 10px;
-  line-height: 14px;
-  text-align: center;
-  text-transform: uppercase;
 }
 </style>

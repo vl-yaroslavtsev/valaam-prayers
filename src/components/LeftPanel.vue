@@ -1,5 +1,5 @@
 <template>
-  <f7-panel left cover :dark="isDarkMode">
+  <f7-panel left cover>
     <f7-view>
       <f7-page :page-content="false">
         <f7-page-content class="page-left-panel">
@@ -92,7 +92,7 @@ const iconColor = computed(() => {
 <style scoped lang="less">
 .page-left-panel {
   --list-panel-padding-top: 30px;
-  --f7-list-item-title-text-color: var(--content-color-baige-900);
+  --f7-list-item-title-text-color: var(--content-color-black-primary);
 
   display: flex;
   flex-direction: column;
@@ -129,5 +129,9 @@ const iconColor = computed(() => {
 
 :global(.dark .app-version) {
   color: var(--content-color-baige-600);
+}
+
+:global(.dark .page-left-panel) {
+  --f7-list-item-title-text-color: var(--content-color-baige-900);
 }
 </style>

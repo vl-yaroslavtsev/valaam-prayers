@@ -12,7 +12,9 @@
 
 .list.prayers {
   --f7-list-margin-vertical: 0;
-  --f7-swipeout-button-padding-horizontal: 16px;
+  --f7-sortable-handler-width: 50px;
+  --f7-list-chevron-icon-area: 34px;
+  // --f7-swipeout-button-padding-horizontal: 16px;
 
   --f7-list-item-title-font-size: var(--mobile-detail-regular-d1);
   --f7-list-item-title-line-height: var(--mobile-detail-regular-d1-line-height);
@@ -22,7 +24,7 @@
   
   --list-item-lang-color: var(--content-color-black-600);
   --list-item-progress-color: var(--content-color-black-400);
-  --delete-handler-width: 42px;
+  --delete-handler-width: var(--f7-sortable-handler-width);
 
   margin-top: 30px;
 
@@ -154,6 +156,17 @@
 
     .item-link {
       --f7-touch-ripple-color: transparent;
+
+      .item-inner:after {
+        content: "";
+        position: absolute;
+        right: 0;
+        top: 0;
+        bottom: 0;
+        width: calc(var(--f7-sortable-handler-width) + var(--f7-safe-area-right));
+        background: var(--sortable-item-bg-color);
+        z-index: 1;
+      }
     }
   }
 }

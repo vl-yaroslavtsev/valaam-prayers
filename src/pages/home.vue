@@ -7,19 +7,19 @@
       </f7-nav-left>
       <f7-nav-title>Избранное</f7-nav-title>
       <f7-nav-right>
-        <f7-link sortable-toggle data-sortable=".favorites-list"
-          ><PencilIcon :color="isSortableMode ? 'primary-accent-50' : 'baige-900'"
+        <f7-link @click="toggleSortable"
+          ><PencilIcon :color="sortableEnabled ? 'primary-accent-50' : 'baige-900'"
         /></f7-link>
       </f7-nav-right>
     </f7-navbar>
 
     <FavoritesList
-      class="favorites-list"
+      css-class="favorites-list"
       sortable
+      :sortable-enabled="sortableEnabled"
       :favorites="favorites"
       @delete-item="onDeleteItem"
       @reset-item="onResetItem"
-      @sortable-mode-toggle="onSortableModeToggle"
     />
     <SeparatorLine :color="isDarkMode ? 'baige-100' : 'black-100'" />
   </f7-page>
@@ -35,11 +35,12 @@ import FavoritesList, { type FavoriteItem } from "@/components/FavoritesList.vue
 
 const { isDarkMode } = useTheme();
 
+const baseUrl = "https://molitvoslov.valaam.ru/app/";
 const favorites = ref<FavoriteItem[]>([
   {
     id: 1,
     title: "Утренние молитвы",
-    url: "#",
+    url: `${baseUrl}#view-prayers:/prayers/1`,
     lang: ['цс', 'гр', 'ру'],
     progress: 0.443432,
     pages: 12
@@ -47,7 +48,7 @@ const favorites = ref<FavoriteItem[]>([
   {
     id: 2,
     title: "Вечерние молитвы",
-    url: "#",
+    url: `${baseUrl}#view-prayers:/prayers/2`,
     lang: ['цс', 'гр', 'ру'],
     progress: 0.113432,
     pages: 10
@@ -55,13 +56,13 @@ const favorites = ref<FavoriteItem[]>([
   {
     id: 3,
     title: "Правило от осквернения",
-    url: "#",
+    url: `${baseUrl}#view-prayers:/prayers/3`,
     lang: [ 'цс', 'гр']
   },
   {
     id: 4,
     title: "Молитва иеросхим. Пафения Киевского",
-    url: "#",
+    url: `${baseUrl}#view-prayers:/prayers/4`,
     lang: ['ру'],
     progress: 0,
     pages: 5
@@ -69,13 +70,13 @@ const favorites = ref<FavoriteItem[]>([
   {
     id: 5,
     title: "Помянник иеромон. Серапиона",
-    url: "#",
+    url: `${baseUrl}#view-prayers:/prayers/5`,
     lang: ['ру']
   },
   {
     id: 6,
     title: "Правило к причащению",
-    url: "#",
+    url: `${baseUrl}#view-prayers:/prayers/6`,
     lang: [ 'цс', 'гр'],
     progress: 0.343432,
     pages: 35
@@ -83,7 +84,7 @@ const favorites = ref<FavoriteItem[]>([
   {
     id: 7,
     title: "Благодарственные молитвы по причащению",
-    url: "#",
+    url: `${baseUrl}#view-prayers:/prayers/7`,
     lang: ['цс', 'гр'],
     progress: 1,
     pages: 16
@@ -99,10 +100,10 @@ const onResetItem = (item: FavoriteItem) => {
   item.pages = 0;
 };
 
-const isSortableMode = ref(false);
+const sortableEnabled = ref(false);
 
-const onSortableModeToggle = (mode: boolean) => {
-  isSortableMode.value = mode ;
+const toggleSortable = () => {
+  sortableEnabled.value = !sortableEnabled.value;
 };
 </script>
 
