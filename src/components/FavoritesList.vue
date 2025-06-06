@@ -9,7 +9,7 @@
       <f7-list-item
         :class="{ 'has-progress': !!item.progress }"
         swipeout
-        v-for="item in favorites"
+        v-for="item in items"
         :key="item.id"
         :title="item.title"
         :link="item.url"
@@ -35,7 +35,11 @@
           <f7-swipeout-button close @click="shareItem(item, $event)">
             <ShareIcon :color="isDarkMode ? 'baige-900' : 'black-600'" />
           </f7-swipeout-button>
-          <f7-swipeout-button close @click="resetItem(item)">
+          <f7-swipeout-button
+            close
+            @click="resetItem(item)"
+            v-if="item.progress && item.pages"
+          >
             <ResetIcon :color="isDarkMode ? 'baige-900' : 'black-600'"
           /></f7-swipeout-button>
           <f7-swipeout-button @click="deleteItem(item)">
@@ -53,8 +57,9 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watchEffect, computed } from "vue";
+import { ref, watchEffect, computed, onUnmounted } from "vue";
 import { f7 } from "framework7-vue";
+import type { Toast } from "framework7/types";
 import { useTheme } from "@/composables/useTheme";
 
 import DeleteIcon from "@/components/icons/DeleteIcon.vue";
@@ -74,7 +79,7 @@ export interface FavoriteItem {
 
 // Props
 const {
-  favorites,
+  favorites: items,
   sortable = false,
   sortableEnabled = false,
   cssClass = "",
@@ -88,11 +93,17 @@ const {
 // Events
 const emit = defineEmits<{
   deleteItem: [item: FavoriteItem];
-  resetItem: [item: FavoriteItem];
+  undoDeleteItem: [payload: { item: FavoriteItem; index: number }];
+  resetItemProgress: [item: FavoriteItem];
+  undoResetItemProgress: [
+    payload: { item: FavoriteItem; progress: number; pages: number },
+  ];
 }>();
 
 const deleteItem = (item: FavoriteItem) => {
+  const index = items.indexOf(item);
   emit("deleteItem", item);
+  showUndoDeleteToast(item, index);
 };
 
 const { isDarkMode } = useTheme();
@@ -108,7 +119,11 @@ watchEffect(() => {
 });
 
 const resetItem = (item: FavoriteItem) => {
-  emit("resetItem", item);
+  const progress = item.progress || 0;
+  const pages = item.pages || 0;
+
+  emit("resetItemProgress", item);
+  showUndoResetItemProgressToast(item, progress, pages);
 };
 
 const sharedTargetEl = ref<Element | undefined>(undefined);
@@ -124,6 +139,62 @@ const shareItem = (item: FavoriteItem, $event: Event) => {
   sharedItem.value = item;
   isSharedOpened.value = true;
 };
+
+let undoDeleteToast: Toast.Toast;
+let dataToUndoDelete: { item: FavoriteItem; index: number };
+
+const showUndoDeleteToast = (item: FavoriteItem, index: number) => {
+  dataToUndoDelete = { item, index };
+  if (!undoDeleteToast) {
+    // , closeTimeout: 2000
+    undoDeleteToast = f7.toast.create({
+      text: "Элемент удален",
+      closeTimeout: 5000,
+      closeButton: true,
+      closeButtonText: "Отменить",
+      on: {
+        closeButtonClick() {
+          emit("undoDeleteItem", dataToUndoDelete);
+        },
+      },
+    });
+  }
+  undoDeleteToast.open();
+};
+
+let undoResetItemProgressToast: Toast.Toast;
+let dataToUndoReset: { item: FavoriteItem; progress: number; pages: number };
+
+const showUndoResetItemProgressToast = (
+  item: FavoriteItem,
+  progress: number,
+  pages: number
+) => {
+  dataToUndoReset = { item, progress, pages };
+  if (!undoResetItemProgressToast) {
+    undoResetItemProgressToast = f7.toast.create({
+      text: "Прогресс сброшен",
+      closeTimeout: 5000,
+      closeButton: true,
+      closeButtonText: "Отменить",
+      on: {
+        closeButtonClick() {
+          emit("undoResetItemProgress", dataToUndoReset);
+        },
+      },
+    });
+  }
+  undoResetItemProgressToast.open();
+};
+
+onUnmounted(() => {
+  if (undoDeleteToast) {
+    undoDeleteToast.destroy();
+  }
+  if (undoResetItemProgressToast) {
+    undoResetItemProgressToast.destroy();
+  }
+});
 </script>
 
 <style scoped>

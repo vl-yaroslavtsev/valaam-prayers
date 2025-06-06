@@ -1,0 +1,28 @@
+.md {
+  --f7-toast-border-radius: 4px;
+  --mobile-detail-regular-d1: 16px;
+  --mobile-detail-regular-d1-line-height: 20px;
+
+  --f7-toast-font-size: var(--mobile-detail-regular-d1);
+  --f7-toast-text-color: var(--content-color-black-primary);
+  --f7-toast-bg-color: var(--content-color-white-100);
+  // --f7-toast-padding-vertical: 12px;
+  --f7-toast-padding-horizontal: 16px;
+
+  .toast {
+    line-height: var(--mobile-detail-regular-d1-line-height);
+    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.3), 0 4px 8px 3px rgba(0, 0, 0, 0.15);
+    --f7-button-font-size: var(--f7-toast-font-size);
+    --f7-button-text-color: var(--brand-color-primary-accent-50);
+
+    &.toast-bottom {
+      bottom: calc(var(--f7-tabbar-icons-height) + 8px + var(--f7-safe-area-bottom));
+    }
+  }
+
+
+  &.dark, & .dark {
+    --f7-toast-bg-color: var(--content-color-black-secondary);
+    --f7-toast-text-color: var(--content-color-baige-1000);
+  }
+}

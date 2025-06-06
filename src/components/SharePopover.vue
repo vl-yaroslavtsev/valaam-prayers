@@ -80,6 +80,12 @@ const { item, targetEl } = defineProps<{
   targetEl?: Element;
 }>();
 
+const baseUrl = "https://molitvoslov.valaam.ru/app/";
+
+const getShareUrl = (url: string) => {
+  return `${baseUrl}#view-prayers:${url}`;
+};
+
 const { isDarkMode } = useTheme();
 
 const isOpened = defineModel<boolean>();
@@ -92,21 +98,24 @@ const onOpen = (popover: Popover.Popover) => {
 
 const shareToVK = () => {
   if (!item) return;
-  const url = `https://vk.com/share.php?url=${encodeURIComponent(item.url)}&title=${encodeURIComponent(item.title)}`;
+  const shareUrl = getShareUrl(item.url);
+  const url = `https://vk.com/share.php?url=${encodeURIComponent(shareUrl)}&title=${encodeURIComponent(item.title)}`;
   window.open(url, "_blank");
   isOpened.value = false;
 };
 
 const shareToOK = () => {
   if (!item) return;
-  const url = `https://connect.ok.ru/offer?url=${encodeURIComponent(item.url)}&title=${encodeURIComponent(item.title)}`;
+  const shareUrl = getShareUrl(item.url);
+  const url = `https://connect.ok.ru/offer?url=${encodeURIComponent(shareUrl)}&title=${encodeURIComponent(item.title)}`;
   window.open(url, "_blank");
   isOpened.value = false;
 };
 
 const shareToWhatsApp = () => {
   if (!item) return;
-  const text = `${item.title} ${item.url}`;
+  const shareUrl = getShareUrl(item.url);
+  const text = `${item.title} ${shareUrl}`;
   const url = `https://wa.me/?text=${encodeURIComponent(text)}`;
   window.open(url, "_blank");
   isOpened.value = false;
@@ -114,7 +123,8 @@ const shareToWhatsApp = () => {
 
 const shareToTelegram = () => {
   if (!item) return;
-  const url = `https://t.me/share/url?url=${encodeURIComponent(item.url)}&text=${encodeURIComponent(item.title)}`;
+  const shareUrl = getShareUrl(item.url);
+  const url = `https://t.me/share/url?url=${encodeURIComponent(shareUrl)}&text=${encodeURIComponent(item.title)}`;
   window.open(url, "_blank");
   isOpened.value = false;
 };
@@ -124,7 +134,8 @@ let toast: Toast.Toast | null = null;
 const copyLink = async () => {
   if (!item) return;
   try {
-    await navigator.clipboard.writeText(item.url);
+    const shareUrl = getShareUrl(item.url);
+    await navigator.clipboard.writeText(shareUrl);
     showToast("Ссылка скопирована");
     isOpened.value = false;
   } catch (err) {
@@ -134,7 +145,10 @@ const copyLink = async () => {
 
 const showToast = (text: string) => {
   if (!toast) {
-    toast = f7.toast.create({ text, closeTimeout: 2000 });
+    toast = f7.toast.create({
+      text,
+      closeTimeout: 2000,
+    });
   }
   toast.open();
 };
