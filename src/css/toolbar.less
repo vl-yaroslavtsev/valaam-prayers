@@ -1,14 +1,54 @@
 .md {
-  --f7-tabbar-icons-height: 83px;
-  --f7-tabbar-icons-tablet-height: 83px;
+  --f7-toolbar-height: 42px;
 
-  --f7-tabbar-link-active-color: var(--content-color-white-100);
-  --f7-tabbar-link-inactive-color:  var(--content-color-baige-600);
-}
+  --f7-toolbar-font-size: var(--mobile-detail-regular-d1);
+  --f7-toolbar-bg-color: var(--content-color-black-100);
+  --f7-toolbar-link-color: var(--content-color-black-primary);
 
-.tabbar {
-  --f7-link-touch-ripple-color: rgba(255, 255, 255, 0.15);
+  --f7-tabbar-link-active-color: var(--content-color-black-primary);
+  --f7-tabbar-link-active-bg-color: var(--content-color-black-50);
+  --f7-tabbar-link-inactive-color: var(--content-color-black-primary);
+  --f7-tabbar-link-active-border-color: var(--content-color-black-primary);
 
-  backdrop-filter: blur(50px);
-  box-shadow: 0 -0px 0 0 rgba(0, 0, 0, 0.3);
+  --f7-tabbar-link-letter-spacing: 0.05em;
+  --f7-tabbar-link-font-weight: 400;
+  --f7-tabbar-link-text-transform: uppercase;
+
+  --f7-tabbar-link-active-border-color: var(--content-color-black-primary);
+
+  .tabbar {
+    line-height: var(--mobile-detail-regular-d1-line-height);
+
+    .tab-link-active {
+      --f7-tabbar-link-font-weight: 700;
+    }
+  }
+
+  .tabbar:not(.tabbar-icons) .tab-link-highlight,
+  .tabbar-icons:not(.tabbar-icons) .tab-link-highlight {
+    height: 1px;
+  }
+
+  .tabbar-scrollable {
+    .tab-link,
+    .link {
+      padding: 12px 16px 10px 16px;
+    }
+  }
+
+  .tab.page-content {
+    --f7-page-navbar-offset: 0;
+  }
+
+  &.dark,
+  & .dark {
+    --f7-toolbar-bg-color: var(--content-color-baige-50);
+    --f7-toolbar-link-color: var(--content-color-white-100);
+
+    --f7-tabbar-link-active-color: var(--content-color-white-100);
+    --f7-tabbar-link-inactive-color: var(--content-color-white-100);
+
+    --f7-tabbar-link-active-bg-color: var(--content-color-baige-50);
+    --f7-tabbar-link-active-border-color: var(--content-color-white-100);
+  }
 }

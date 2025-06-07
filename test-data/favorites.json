@@ -1,0 +1,152 @@
+[
+  {
+    "id": "1",
+    "title": "Утренние молитвы",
+    "url": "/prayers/1",
+    "lang": ["цс", "гр", "ру"],
+    "progress": 0.443432,
+    "pages": 12,
+    "type": "prayers",
+    "sort": 0
+  },
+  {
+    "id": "2",
+    "title": "Вечерние молитвы",
+    "url": "/prayers/2",
+    "lang": ["цс", "гр", "ру"],
+    "progress": 0.113432,
+    "pages": 10,
+    "type": "prayers",
+    "sort": 1
+  },
+  {
+    "id": "3",
+    "title": "Правило от осквернения",
+    "url": "/prayers/3",
+    "lang": ["цс", "гр"],
+    "type": "prayers",
+    "sort": 2
+  },
+  {
+    "id": "4",
+    "title": "Молитва иеросхим. Пафения Киевского",
+    "url": "/prayers/4",
+    "lang": ["ру"],
+    "progress": 0,
+    "pages": 5,
+    "type": "prayers",
+    "sort": 3
+  },
+  {
+    "id": "5",
+    "title": "Помянник иеромон. Серапиона",
+    "url": "/prayers/5",
+    "lang": ["ру"],
+    "type": "prayers",
+    "sort": 4
+  },
+  {
+    "id": "6",
+    "title": "Правило к причащению",
+    "url": "/prayers/6",
+    "lang": ["цс", "гр"],
+    "progress": 0.343432,
+    "pages": 35,
+    "type": "prayers",
+    "sort": 5
+  },
+  {
+    "id": "7",
+    "title": "Благодарственные молитвы по причащению",
+    "url": "/prayers/7",
+    "lang": ["цс", "гр"],
+    "progress": 1,
+    "pages": 16,
+    "type": "prayers",
+    "sort": 6
+  },
+  {
+    "id": "8",
+    "title": "Святое Евангелие",
+    "url": "/prayers/8",
+    "lang": ["цс", "ру"],
+    "progress": 0.343432,
+    "pages": 85,
+    "type": "bible",
+    "sort": 0
+  },
+  {
+    "id": "9",
+    "title": "Апостол",
+    "url": "/prayers/9",
+    "lang": ["цс", "ру"],
+    "progress": 0.2,
+    "pages": 100,
+    "type": "bible",
+    "sort": 1
+  },
+  {
+    "id": "10",
+    "title": "Ветхий Завет",
+    "url": "/prayers/10",
+    "lang": ["цс", "ру"],
+    "progress": 0.343432,
+    "pages": 185,
+    "type": "bible",
+    "sort": 2
+  },
+  {
+    "id": "11",
+    "title": "«Умное Делание. О молитве Иисусовой» Настоятель Валаамского монастыря игумен Харитон (Дунаев)",
+    "url": "/books/11",
+    "progress": 0.4,
+    "pages": 90,
+    "type": "books",
+    "sort": 0
+  },
+  {
+    "id": "12",
+    "title": "«Письма Валаамского старца» схиигумен Иоанн (Алексеев)",
+    "url": "/books/12",
+    "progress": 0,
+    "pages": 0,
+    "type": "books",
+    "sort": 1
+  },
+  {
+    "id": "13",
+    "title": "«Великие русские старцы»",
+    "url": "/books/13",
+    "progress": 0,
+    "pages": 0,
+    "type": "books",
+    "sort": 2
+  },
+  {
+    "id": "14",
+    "title": "Преподобный Серафим Саровский",
+    "url": "/saints/14",
+    "progress": 0,
+    "pages": 0,
+    "type": "saints",
+    "sort": 0
+  },
+  {
+    "id": "15",
+    "title": "Преподобный Сергий Радонежский",
+    "url": "/saints/15",
+    "progress": 0,
+    "pages": 0,
+    "type": "saints",
+    "sort": 1
+  },
+  {
+    "id": "16",
+    "title": "Валаамская икона Божией Матери",
+    "url": "/saints/16",
+    "progress": 0,
+    "pages": 0,
+    "type": "saints",
+    "sort": 2
+  }
+] 

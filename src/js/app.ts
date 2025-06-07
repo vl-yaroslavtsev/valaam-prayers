@@ -210,11 +210,17 @@ import "../css/app.less";
 // Import App Component
 import App from "../components/App.vue";
 
+// Import Pinia
+import { pinia } from "../stores";
+
 // Init Framework7-Vue Plugin
 Framework7.use(Framework7Vue);
 
 // Init App
 const app = createApp(App);
+
+// Use Pinia
+app.use(pinia);
 
 // Register Framework7 Vue components
 registerComponents(app);

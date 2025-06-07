@@ -4,15 +4,29 @@
     <LeftPanel :needRefresh="needRefresh" :updateSW="updateSW" />
 
     <!-- Views/Tabs container -->
-    <f7-views tabs class="safe-areas" @tab:show="onTabShow">
+    <f7-views tabs class="safe-areas">
       <!-- Tabbar component -->
-      <TabBar :activeTab="activeView" />
+      <BottomTabBar :activeTab="activeView" />
 
       <!-- Your main view/tab, should have "view-main" class. It also has "tab-active" class -->
-      <f7-view id="view-home" name="home" main tab tab-active url="/"></f7-view>
+      <f7-view
+        id="view-home"
+        name="home"
+        main
+        tab
+        tab-active
+        url="/"
+        @tab:show="onTabShow"
+      ></f7-view>
 
       <!-- Catalog View -->
-      <f7-view id="view-prayers" name="prayers" tab url="/prayers/"></f7-view>
+      <f7-view
+        id="view-prayers"
+        name="prayers"
+        tab
+        url="/prayers/"
+        @tab:show="onTabShow"
+      ></f7-view>
 
       <!-- Settings View -->
       <f7-view
@@ -20,13 +34,26 @@
         name="calendar"
         tab
         url="/calendar/"
+        @tab:show="onTabShow"
       ></f7-view>
 
       <!-- Settings View -->
-      <f7-view id="view-books" name="books" tab url="/api-test/"></f7-view>
+      <f7-view
+        id="view-books"
+        name="books"
+        tab
+        url="/api-test/"
+        @tab:show="onTabShow"
+      ></f7-view>
 
       <!-- Settings View -->
-      <f7-view id="view-rites" name="rites" tab url="/rites/"></f7-view>
+      <f7-view
+        id="view-rites"
+        name="rites"
+        tab
+        url="/rites/"
+        @tab:show="onTabShow"
+      ></f7-view>
     </f7-views>
 
     <!-- Popup -->
@@ -56,7 +83,7 @@ import store from "../js/store";
 import viewsManager from "../js/views-manager";
 import deviceAPI from "../js/device/device-api";
 import { useTheme } from "@/composables/useTheme";
-import TabBar from "./TabBar.vue";
+import BottomTabBar from "./BottomTabBar.vue";
 import LeftPanel from "./LeftPanel.vue";
 
 import { registerSW } from "virtual:pwa-register";
@@ -85,13 +112,12 @@ const f7params = {
   },
 } as const;
 
-const {initTheme} = useTheme();
+const { initTheme } = useTheme();
 initTheme();
 
 const activeView = ref<string>("home");
-const onTabShow = (event: CustomEvent) => {
-  const target = event.target as HTMLElement & { f7View: View.View };
-  activeView.value = target.f7View.name;
+const onTabShow = (view: HTMLElement & { f7View: View.View }) => {
+  activeView.value = view.f7View.name;
 };
 
 onMounted(() => {
@@ -102,5 +128,4 @@ onMounted(() => {
 });
 </script>
 
-<style scoped>
-</style>
+<style scoped></style>

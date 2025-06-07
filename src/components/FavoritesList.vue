@@ -4,6 +4,7 @@
     :sortable="sortable"
     :sortable-tap-hold="sortable"
     :sortable-enabled="isSortableMode"
+    @sortable:sort="onSortableSort"
   >
     <TransitionGroup name="favorite-item" tag="ul">
       <f7-list-item
@@ -13,6 +14,7 @@
         :key="item.id"
         :title="item.title"
         :link="item.url"
+        :data-id="item.id"
       >
         <template #root-start>
           <f7-link class="delete-handler" @click="deleteItem(item)">
@@ -68,15 +70,14 @@ import ShareIcon from "./icons/ShareIcon.vue";
 import LanguageBadges from "./LanguageBadges.vue";
 import SharePopover from "./SharePopover.vue";
 
-export interface FavoriteItem {
-  id: number;
+interface FavoriteListItem {
+  id: string;
   title: string;
   url: string;
   lang?: Array<"ру" | "цс" | "гр">;
   progress?: number;
   pages?: number;
 }
-
 // Props
 const {
   favorites: items,
@@ -84,7 +85,7 @@ const {
   sortableEnabled = false,
   cssClass = "",
 } = defineProps<{
-  favorites: FavoriteItem[];
+  favorites: FavoriteListItem[];
   sortable?: boolean;
   sortableEnabled?: boolean;
   cssClass?: string;
@@ -92,18 +93,17 @@ const {
 
 // Events
 const emit = defineEmits<{
-  deleteItem: [item: FavoriteItem];
-  undoDeleteItem: [payload: { item: FavoriteItem; index: number }];
-  resetItemProgress: [item: FavoriteItem];
-  undoResetItemProgress: [
-    payload: { item: FavoriteItem; progress: number; pages: number },
-  ];
+  deleteItem: [id: string ];
+  undoDeleteItem: [];
+  resetItemProgress: [id: string];
+  undoResetItemProgress: [];
+  sorted: [id: string, from: number, to: number];
 }>();
 
-const deleteItem = (item: FavoriteItem) => {
-  const index = items.indexOf(item);
-  emit("deleteItem", item);
-  showUndoDeleteToast(item, index);
+const deleteItem = (item: FavoriteListItem) => {
+  
+  emit("deleteItem", item.id);
+  showUndoDeleteToast();
 };
 
 const { isDarkMode } = useTheme();
@@ -112,27 +112,30 @@ const isSortableMode = computed(() => {
   return sortable && sortableEnabled;
 });
 
+const onSortableSort = ({ from, to, el }: { from: number; to: number; el: HTMLElement   }) => {
+  console.log("onSortableSort", from, to, el);
+  const id = el.dataset.id as string;
+  emit("sorted", id, from, to);
+};
+
 watchEffect(() => {
   if (f7.params.touch) {
     f7.params.touch.tapHold = !isSortableMode.value;
   }
 });
 
-const resetItem = (item: FavoriteItem) => {
-  const progress = item.progress || 0;
-  const pages = item.pages || 0;
-
-  emit("resetItemProgress", item);
-  showUndoResetItemProgressToast(item, progress, pages);
+const resetItem = (item: FavoriteListItem) => {
+  emit("resetItemProgress", item.id);
+  showUndoResetItemProgressToast();
 };
 
 const sharedTargetEl = ref<Element | undefined>(undefined);
 
 const isSharedOpened = ref(false);
 
-const sharedItem = ref<FavoriteItem | null>(null);
+const sharedItem = ref<FavoriteListItem | null>(null);
 
-const shareItem = (item: FavoriteItem, $event: Event) => {
+const shareItem = (item: FavoriteListItem, $event: Event) => {
   sharedTargetEl.value = ($event.target as HTMLElement)
     ?.closest("li")
     ?.querySelector(".item-title") as HTMLElement;
@@ -141,10 +144,8 @@ const shareItem = (item: FavoriteItem, $event: Event) => {
 };
 
 let undoDeleteToast: Toast.Toast;
-let dataToUndoDelete: { item: FavoriteItem; index: number };
 
-const showUndoDeleteToast = (item: FavoriteItem, index: number) => {
-  dataToUndoDelete = { item, index };
+const showUndoDeleteToast = () => {
   if (!undoDeleteToast) {
     // , closeTimeout: 2000
     undoDeleteToast = f7.toast.create({
@@ -154,7 +155,7 @@ const showUndoDeleteToast = (item: FavoriteItem, index: number) => {
       closeButtonText: "Отменить",
       on: {
         closeButtonClick() {
-          emit("undoDeleteItem", dataToUndoDelete);
+          emit("undoDeleteItem");
         },
       },
     });
@@ -163,14 +164,8 @@ const showUndoDeleteToast = (item: FavoriteItem, index: number) => {
 };
 
 let undoResetItemProgressToast: Toast.Toast;
-let dataToUndoReset: { item: FavoriteItem; progress: number; pages: number };
 
-const showUndoResetItemProgressToast = (
-  item: FavoriteItem,
-  progress: number,
-  pages: number
-) => {
-  dataToUndoReset = { item, progress, pages };
+const showUndoResetItemProgressToast = () => {
   if (!undoResetItemProgressToast) {
     undoResetItemProgressToast = f7.toast.create({
       text: "Прогресс сброшен",
@@ -179,7 +174,7 @@ const showUndoResetItemProgressToast = (
       closeButtonText: "Отменить",
       on: {
         closeButtonClick() {
-          emit("undoResetItemProgress", dataToUndoReset);
+          emit("undoResetItemProgress");
         },
       },
     });

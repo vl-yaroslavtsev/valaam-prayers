@@ -5,113 +5,89 @@
       <f7-nav-left>
         <f7-link panel-open="left" v-html="BurgerIcon"></f7-link>
       </f7-nav-left>
-      <f7-nav-title>Избранное</f7-nav-title>
+      <f7-nav-title></f7-nav-title>
       <f7-nav-right>
         <f7-link @click="toggleSortable"
-          ><PencilIcon :color="sortableEnabled ? 'primary-accent-50' : 'baige-900'"
+          ><PencilIcon
+            :color="sortableEnabled ? 'primary-accent-50' : 'baige-900'"
         /></f7-link>
       </f7-nav-right>
     </f7-navbar>
-
-    <FavoritesList
-      css-class="favorites-list"
-      sortable
-      :sortable-enabled="sortableEnabled"
-      :favorites="favorites"
-      @delete-item="onDeleteItem"
-      @undo-delete-item="onUndoDeleteItem"
-      @reset-item-progress="onResetItemProgress"
-      @undo-reset-item-progress="onUndoResetItemProgress"
-    />
-    <SeparatorLine :color="isDarkMode ? 'baige-100' : 'black-100'" />
+    <f7-toolbar position="top" tabbar scrollable>
+      <f7-link
+        v-for="(tab, index) in tabs"
+        :key="tab.id"
+        :tab-link="`#tab-${tab.id}`"
+        :tab-link-active="index === 0"
+      >
+        {{ tab.title }}
+      </f7-link>
+    </f7-toolbar>
+    <f7-tabs animated>
+      <f7-tab
+        v-for="tab in tabs"
+        :key="tab.id"
+        :id="`tab-${tab.id}`"
+        class="page-content"
+        :tab-active="tab.id === 1"
+      >
+        <f7-block v-if="getFavoritesByType(tab.type).length === 0"
+          >Здесь пока ничего нет.</f7-block
+        >
+        <FavoritesList
+          sortable
+          :sortable-enabled="sortableEnabled"
+          :favorites="getFavoritesByType(tab.type)"
+          @delete-item="onDeleteItem"
+          @undo-delete-item="onUndoDeleteItem"
+          @reset-item-progress="onResetItemProgress"
+          @undo-reset-item-progress="onUndoResetItemProgress"
+          @sorted="onSorted"
+          />
+        <SeparatorLine
+          class="separator"
+          :color="isDarkMode ? 'baige-100' : 'black-100'"
+        />
+      </f7-tab>
+    </f7-tabs>
   </f7-page>
 </template>
 
 <script setup lang="ts">
 import { ref } from "vue";
 import { useTheme } from "@/composables/useTheme";
+import { useFavoritesStore, type TabType } from "@/stores/favorites";
 
 import BurgerIcon from "/icons/burger.svg?raw";
 import SeparatorLine from "@/components/icons/SeparatorLine.vue";
 import PencilIcon from "@/components/icons/PencilIcon.vue";
-import FavoritesList, { type FavoriteItem } from "@/components/FavoritesList.vue";
+import FavoritesList from "@/components/FavoritesList.vue";
 
 const { isDarkMode } = useTheme();
 
-const favorites = ref<FavoriteItem[]>([
+// Используем Pinia store
+const favoritesStore = useFavoritesStore();
+
+const tabs = ref<
   {
-    id: 1,
-    title: "Утренние молитвы",
-    url: "/prayers/1",
-    lang: ['цс', 'гр', 'ру'],
-    progress: 0.443432,
-    pages: 12
-  },
-  {
-    id: 2,
-    title: "Вечерние молитвы",
-    url: "/prayers/2",
-    lang: ['цс', 'гр', 'ру'],
-    progress: 0.113432,
-    pages: 10
-  },
-  {
-    id: 3,
-    title: "Правило от осквернения",
-    url: "/prayers/3",
-    lang: [ 'цс', 'гр']
-  },
-  {
-    id: 4,
-    title: "Молитва иеросхим. Пафения Киевского",
-    url: "/prayers/4",
-    lang: ['ру'],
-    progress: 0,
-    pages: 5
-  },
-  {
-    id: 5,
-    title: "Помянник иеромон. Серапиона",
-    url: "/prayers/5",
-    lang: ['ру']
-  },
-  {
-    id: 6,
-    title: "Правило к причащению",
-    url: "/prayers/6",
-    lang: [ 'цс', 'гр'],
-    progress: 0.343432,
-    pages: 35
-  },
-  {
-    id: 7,
-    title: "Благодарственные молитвы по причащению",
-    url: "/prayers/7",
-    lang: ['цс', 'гр'],
-    progress: 1,
-    pages: 16
-  },
+    id: number;
+    title: string;
+    type: TabType;
+  }[]
+>([
+  { id: 1, title: "Молитвы", type: "prayers" },
+  { id: 2, title: "Библия", type: "bible" },
+  { id: 3, title: "Книги", type: "books" },
+  { id: 4, title: "Святые", type: "saints" },
+  { id: 5, title: "Мысли", type: "thoughts" },
 ]);
 
-const onDeleteItem = (item: FavoriteItem) => {
-  favorites.value = favorites.value.filter((p) => p.id !== item.id);
-};
-
-const onResetItemProgress = (item: FavoriteItem) => {
-  item.progress = 0;  
-  item.pages = 0;
-};
-
-const onUndoDeleteItem = (payload: { item: FavoriteItem; index: number }) => {
-  const { item, index } = payload;
-  favorites.value.splice(index, 0, item);
-};
-
-const onUndoResetItemProgress = (payload: { item: FavoriteItem; progress: number; pages: number }) => {
-  const { item, progress, pages } = payload;
-  item.progress = progress;
-  item.pages = pages;
-};
+// Используем методы из store
+const getFavoritesByType = favoritesStore.getFavoritesByType;
+const onDeleteItem = favoritesStore.deleteFavorite;
+const onResetItemProgress = favoritesStore.resetFavoriteProgress;
+const onUndoDeleteItem = favoritesStore.undoDeleteFavorite;
+const onUndoResetItemProgress = favoritesStore.undoResetFavoriteProgress;
 
 const sortableEnabled = ref(false);
 
@@ -119,7 +95,21 @@ const toggleSortable = () => {
   sortableEnabled.value = !sortableEnabled.value;
 };
 
+const onSorted = (id: string, from: number, to: number) => {
+  favoritesStore.sortFavorite(id, from, to);
+};
 </script>
 
-<style scoped>
+<style scoped lang="less">
+.separator {
+  margin-top: 30px;
+}
+
+// ужасный хак! Без него неправильно рассчитывается ширина tab-link-highlight
+// при первой загрузке, т.к. шрифты еще не успели подгрузиться
+.tabbar {
+  .tab-link:first-child {
+    width: 113px;
+  }
+}
 </style>
