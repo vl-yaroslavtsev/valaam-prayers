@@ -81,7 +81,6 @@ const emit = defineEmits<{
 const { isDarkMode } = useTheme();
 
 const resetItem = (item: PrayerListItem) => {
-  emit("resetItemProgress", item.id);
   showUndoResetItemProgressToast();
 };
 
