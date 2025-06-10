@@ -24,7 +24,7 @@
         id="view-prayers"
         name="prayers"
         tab
-        url="/prayers/"
+        url="/prayers/842"
         @tab:show="onTabShow"
       ></f7-view>
 
@@ -83,8 +83,8 @@ import store from "../js/store";
 import viewsManager from "../js/views-manager";
 import deviceAPI from "../js/device/device-api";
 import { useTheme } from "@/composables/useTheme";
-import BottomTabBar from "./BottomTabBar.vue";
-import LeftPanel from "./LeftPanel.vue";
+import BottomTabBar from "./layout/BottomTabBar.vue";
+import LeftPanel from "./layout/LeftPanel.vue";
 
 import { registerSW } from "virtual:pwa-register";
 import type { View } from "framework7/types";

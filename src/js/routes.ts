@@ -8,7 +8,7 @@ import CalendarPage from "../pages/calendar.vue";
 import DayPage from "../pages/day.vue";
 import ProductPage from "../pages/product.vue";
 import RitesPage from "../pages/rites.vue";
-import ApiTestPage from "../pages/api-test.vue";
+import SettingsPage from "../pages/settings.vue";
 
 import DynamicRoutePage from "../pages/dynamic-route.vue";
 import RequestAndLoad from "../pages/request-and-load.vue";
@@ -28,7 +28,7 @@ const routes: Router.RouteParameters[] = [
     component: FormPage,
   },
   {
-    path: "/prayers/",
+    path: "/prayers/:sectionId",
     component: PrayersPage,
   },
   {
@@ -48,8 +48,8 @@ const routes: Router.RouteParameters[] = [
     component: RitesPage,
   },
   {
-    path: "/api-test/",
-    component: ApiTestPage,
+    path: "/settings/",
+    component: SettingsPage,
   },
   {
     path: "/dynamic-route/blog/:blogId/post/:postId/",

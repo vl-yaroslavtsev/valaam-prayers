@@ -43,7 +43,7 @@
           @reset-item-progress="onResetItemProgress"
           @undo-reset-item-progress="onUndoResetItemProgress"
           @sorted="onSorted"
-          />
+        />
         <SeparatorLine
           class="separator"
           :color="isDarkMode ? 'baige-100' : 'black-100'"
@@ -57,9 +57,11 @@
 import { ref } from "vue";
 import { useTheme } from "@/composables/useTheme";
 import { useFavoritesStore, type TabType } from "@/stores/favorites";
+import { usePrayersStore } from "@/stores/prayers";
+import { useReadingHistoryStore } from "@/stores/readingHistory";
 
 import BurgerIcon from "/icons/burger.svg?raw";
-import SeparatorLine from "@/components/icons/SeparatorLine.vue";
+import SeparatorLine from "@/components/SeparatorLine.vue";
 import PencilIcon from "@/components/icons/PencilIcon.vue";
 import FavoritesList from "@/components/FavoritesList.vue";
 
@@ -67,6 +69,8 @@ const { isDarkMode } = useTheme();
 
 // Используем Pinia store
 const favoritesStore = useFavoritesStore();
+const prayersStore = usePrayersStore();
+const historyStore = useReadingHistoryStore();
 
 const tabs = ref<
   {
@@ -83,11 +87,34 @@ const tabs = ref<
 ]);
 
 // Используем методы из store
-const getFavoritesByType = favoritesStore.getFavoritesByType;
+
+const getFavoritesByType = (type: TabType) =>
+  favoritesStore.getFavoritesByType(type).map((f) => {
+    const history = historyStore.getItemProgress(f.id);
+    let extra = {
+      url: "",
+    };
+
+    if (["books", "prayers", "bible"].includes(type)) {
+      extra = prayersStore.getItemById(f.id) ?? extra;
+    } else if (type === "saints") {
+      extra.url = "/saints/" + f.id;
+    } else if (type === "thoughts") {
+      extra.url = "/thoughts/" + f.id;
+    }
+
+    return {
+      ...extra,
+      ...history,
+      ...f,
+    };
+  });
+
 const onDeleteItem = favoritesStore.deleteFavorite;
-const onResetItemProgress = favoritesStore.resetFavoriteProgress;
 const onUndoDeleteItem = favoritesStore.undoDeleteFavorite;
-const onUndoResetItemProgress = favoritesStore.undoResetFavoriteProgress;
+
+const onResetItemProgress = historyStore.resetProgress;
+const onUndoResetItemProgress = historyStore.undoResetProgress;
 
 const sortableEnabled = ref(false);
 
@@ -96,7 +123,7 @@ const toggleSortable = () => {
 };
 
 const onSorted = (id: string, from: number, to: number) => {
-  favoritesStore.sortFavorite(id, from, to);
+  favoritesStore.moveFavorite(id, from, to);
 };
 </script>
 

@@ -24,7 +24,14 @@
                 <AlarmIcon :color="iconColor" />
               </template>
             </f7-list-item>
-            <f7-list-item title="НАСТРОЙКИ" link="#">
+            <!-- view="#view-home"
+              tab-link="#view-home" -->
+            <f7-list-item
+              title="НАСТРОЙКИ"
+              link="/settings/"
+              view="current"              
+              panel-close
+            >
               <template #media>
                 <SettingsIcon :color="iconColor" />
               </template>
@@ -49,7 +56,7 @@
             <f7-button v-if="props.needRefresh" outline @click="updateApp">
               Обновить приложение
             </f7-button>
-            <p v-else>Версия {{ store.state.version }}</p>
+            <p v-else>Версия {{ version }}</p>
           </f7-block>
         </f7-page-content>
       </f7-page>
@@ -58,20 +65,20 @@
 </template>
 
 <script setup lang="ts">
-import AboutIcon from "./icons/AboutIcon.vue";
-import AlarmIcon from "./icons/AlarmIcon.vue";
-import InfoIcon from "./icons/InfoIcon.vue";
-import NotesIcon from "./icons/NotesIcon.vue";
-import PrayIcon from "./icons/PrayIcon.vue";
-import SettingsIcon from "./icons/SettingsIcon.vue";
-import SearchIcon from "./icons/SearchIcon.vue";
-import SeparatorLine from "./icons/SeparatorLine.vue";
-import ValaamLogo from "./icons/ValaamLogo.vue";
+import AboutIcon from "../icons/AboutIcon.vue";
+import AlarmIcon from "../icons/AlarmIcon.vue";
+import InfoIcon from "../icons/InfoIcon.vue";
+import NotesIcon from "../icons/NotesIcon.vue";
+import PrayIcon from "../icons/PrayIcon.vue";
+import SettingsIcon from "../icons/SettingsIcon.vue";
+import SearchIcon from "../icons/SearchIcon.vue";
+import SeparatorLine from "../SeparatorLine.vue";
+import ValaamLogo from "../icons/ValaamLogo.vue";
 
 import { f7 } from "framework7-vue";
 import { computed } from "vue";
-import store from "../js/store";
 import { useTheme } from "@/composables/useTheme";
+import { useSettingsStore } from "@/stores/settings";
 
 const props = defineProps<{
   needRefresh: boolean;
@@ -87,6 +94,8 @@ const { isDarkMode } = useTheme();
 const iconColor = computed(() => {
   return isDarkMode.value ? "baige-900" : "black-600";
 });
+
+const { version } = useSettingsStore();
 </script>
 
 <style scoped lang="less">
@@ -112,7 +121,7 @@ const iconColor = computed(() => {
 .logo {
   display: flex;
   justify-content: center;
-  align-items: center ;
+  align-items: center;
   /* padding-top: 40px; */
   flex: 2 0 auto;
 }
@@ -127,11 +136,12 @@ const iconColor = computed(() => {
   color: var(--content-color-black-600);
 }
 
-:global(.dark .app-version) {
-  color: var(--content-color-baige-600);
-}
-
-:global(.dark .page-left-panel) {
-  --f7-list-item-title-text-color: var(--content-color-baige-900);
+.dark {
+  .app-version {
+    color: var(--content-color-baige-600);
+  }
+  .page-left-panel {
+    --f7-list-item-title-text-color: var(--content-color-baige-900);
+  }
 }
 </style>

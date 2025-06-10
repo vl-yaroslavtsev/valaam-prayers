@@ -160,7 +160,7 @@ onUnmounted(() => {
 });
 </script>
 
-<style scoped>
+<style scoped lang="less">
 .share-popover {
   --f7-popover-width: 230px;
   --f7-block-margin-vertical: 20px;
@@ -191,7 +191,9 @@ onUnmounted(() => {
   margin-bottom: 16px;
 }
 
-:global(.dark .share-popover) {
-  --separator-color: var(--content-color-baige-300);
+.dark {
+  .share-popover {
+    --separator-color: var(--content-color-baige-300);
+  }
 }
 </style>

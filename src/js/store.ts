@@ -15,14 +15,12 @@ export interface Day {
 export interface StoreState {
   products: Product[];
   days: Day[];
-  version: string;
 }
 
 const store = createStore({
   state: {
     products: [] as Product[],
     days: [] as Day[],
-    version: import.meta.env.VITE_APP_VER,
   },
   getters: {
     products({ state }: { state: StoreState }) {
@@ -30,9 +28,6 @@ const store = createStore({
     },
     days({ state }: { state: StoreState }) {
       return state.days;
-    },
-    version({ state }: { state: StoreState }) {
-      return state.version;
     },
   },
   actions: {

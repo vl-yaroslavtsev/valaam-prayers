@@ -1,27 +1,32 @@
 <template>
-  <f7-page name="apiTest" :page-content="false" @page:tabshow="onTabShow" @page:tabhide="onTabHide">
+  <f7-page
+    name="apiTest"
+    :page-content="false"
+    @page:tabshow="onTabShow"
+    @page:tabhide="onTabHide"
+  >
     <f7-page-content ref="сontentRef">
-      <f7-navbar title="Тест JS API"></f7-navbar>
+      <f7-navbar title="Тест JS API" back-link="Back"></f7-navbar>
 
-        <f7-list strong-ios dividers-ios outline-ios>
+      <f7-list strong-ios dividers-ios outline-ios>
         <f7-list-item title="Тема приложения">
           <template #after>
             <f7-segmented>
-              <f7-button 
+              <f7-button
                 :class="{ 'button-active': currentTheme === 'light' }"
                 @click="setTheme('light')"
                 small
               >
                 Светлая
               </f7-button>
-              <f7-button 
+              <f7-button
                 :class="{ 'button-active': currentTheme === 'dark' }"
                 @click="setTheme('dark')"
                 small
               >
                 Темная
               </f7-button>
-              <f7-button 
+              <f7-button
                 :class="{ 'button-active': currentTheme === 'auto' }"
                 @click="setTheme('auto')"
                 small
@@ -45,8 +50,15 @@
             <f7-icon ios="f7:sun_min" md="material:brightness_low" />
           </div>
           <div style="width: 100%; margin: 0 16px">
-            <f7-range :min="0" :max="100" :step="1" v-model:value="currentBrightness" :label="true"
-              @range:change="onBrightnessChange" color="orange" />
+            <f7-range
+              :min="0"
+              :max="100"
+              :step="1"
+              v-model:value="currentBrightness"
+              :label="true"
+              @range:change="onBrightnessChange"
+              color="orange"
+            />
           </div>
           <div>
             <f7-icon ios="f7:sun_max_fill" md="material:brightness_high" />
@@ -86,8 +98,12 @@
       </f7-list>
 
       <f7-list strong-ios outline-ios>
-        <f7-list-input label="Цвет статусбара" type="text" placeholder="#000000"
-          v-model:value="statusBarColor"></f7-list-input>
+        <f7-list-input
+          label="Цвет статусбара"
+          type="text"
+          placeholder="#000000"
+          v-model:value="statusBarColor"
+        ></f7-list-input>
         <f7-list-item>
           <f7-button fill @click="setStatusBarColor">Установить</f7-button>
         </f7-list-item>
@@ -105,9 +121,10 @@
         События календаря разрешены: {{ isEventsEnabled }}
       </f7-block>
 
-
       <f7-block strong-ios outline-ios>
-        <f7-button fill @click="addEvent('sync')">Добавить событие в синх. календарь</f7-button>
+        <f7-button fill @click="addEvent('sync')"
+          >Добавить событие в синх. календарь</f7-button
+        >
       </f7-block>
 
       <!--
@@ -117,11 +134,15 @@
       -->
 
       <f7-block strong-ios outline-ios>
-        <f7-button fill @click="add2Events('sync')">Добавить 2 события в синх. календарь</f7-button>
+        <f7-button fill @click="add2Events('sync')"
+          >Добавить 2 события в синх. календарь</f7-button
+        >
       </f7-block>
 
       <f7-block strong-ios outline-ios>
-        <f7-button fill @click="addEvent('local')">Добавить событие в локал. календарь</f7-button>
+        <f7-button fill @click="addEvent('local')"
+          >Добавить событие в локал. календарь</f7-button
+        >
       </f7-block>
 
       <!--
@@ -131,17 +152,21 @@
       -->
 
       <f7-block strong-ios outline-ios>
-        <f7-button fill @click="add2Events('local')">Добавить 2 события в локал. календарь</f7-button>
+        <f7-button fill @click="add2Events('local')"
+          >Добавить 2 события в локал. календарь</f7-button
+        >
       </f7-block>
 
       <f7-block strong-ios outline-ios>
-        <f7-button fill @click="deleteEvent" :disabled="!eventId">Удалить событие {{ eventId
-          }}</f7-button>
+        <f7-button fill @click="deleteEvent" :disabled="!eventId"
+          >Удалить событие {{ eventId }}</f7-button
+        >
       </f7-block>
 
       <f7-block strong-ios outline-ios>
-        <f7-button fill @click="deleteEventsArray" :disabled="!eventsArrayId">Удалить 2
-          события</f7-button>
+        <f7-button fill @click="deleteEventsArray" :disabled="!eventsArrayId"
+          >Удалить 2 события</f7-button
+        >
       </f7-block>
 
       <!--
@@ -152,27 +177,36 @@
       -->
 
       <f7-block strong-ios outline-ios>
-        <f7-button fill @click="requestCalendarPermissions">Запросить права на календарь</f7-button>
-      </f7-block>
-     
-
-      <f7-block strong-ios outline-ios>
-        <f7-button fill @click="openCalendarSettings">Открыть настройки календаря</f7-button>
+        <f7-button fill @click="requestCalendarPermissions"
+          >Запросить права на календарь</f7-button
+        >
       </f7-block>
 
       <f7-block strong-ios outline-ios>
-        <f7-button fill @click="openNotificationsSettings">Открыть настройки уведомлений</f7-button>
+        <f7-button fill @click="openCalendarSettings"
+          >Открыть настройки календаря</f7-button
+        >
       </f7-block>
 
       <f7-block strong-ios outline-ios>
-        <a class="link external" href="https://valaam.ru">Внешняя ссылка valaam.ru</a>
+        <f7-button fill @click="openNotificationsSettings"
+          >Открыть настройки уведомлений</f7-button
+        >
       </f7-block>
-
 
       <f7-block strong-ios outline-ios>
-        <a class="link external" href="https://vuejs.org/guide/introduction.html">Внешняя ссылка vue</a>
+        <a class="link external" href="https://valaam.ru"
+          >Внешняя ссылка valaam.ru</a
+        >
       </f7-block>
 
+      <f7-block strong-ios outline-ios>
+        <a
+          class="link external"
+          href="https://vuejs.org/guide/introduction.html"
+          >Внешняя ссылка vue</a
+        >
+      </f7-block>
     </f7-page-content>
   </f7-page>
 </template>
@@ -266,12 +300,12 @@ watch(isVolumeButtonsScroll, (newVal) => {
 const getUID = () => {
   return window.crypto
     .getRandomValues(new Uint16Array(4))
-    .reduce((acc, el) => (acc += el.toString(16).padStart(4, '0')), "");
+    .reduce((acc, el) => (acc += el.toString(16).padStart(4, "0")), "");
 };
 
-const eventId = ref(localStorage.getItem('eventId') || '');
+const eventId = ref(localStorage.getItem("eventId") || "");
 
-const addEvent = async (type: 'local' | 'sync' = 'sync') => {
+const addEvent = async (type: "local" | "sync" = "sync") => {
   const eventDate = add(new Date(), { minutes: 2 });
   const event = {
     id: getUID(),
@@ -282,7 +316,8 @@ const addEvent = async (type: 'local' | 'sync' = 'sync') => {
     alarmDates: [add(eventDate, { minutes: -1 }), add(eventDate, { days: -1 })],
   };
 
-  const {isSuccess, hasPermissions, errorDescription} = await deviceAPI.addCalendarEvent(event, type);
+  const { isSuccess, hasPermissions, errorDescription } =
+    await deviceAPI.addCalendarEvent(event, type);
 
   if (!hasPermissions) {
     f7.dialog.alert("Нет прав на календарь");
@@ -295,50 +330,49 @@ const addEvent = async (type: 'local' | 'sync' = 'sync') => {
   }
 
   eventId.value = event.id;
-  localStorage.setItem('eventId', event.id);
+  localStorage.setItem("eventId", event.id);
 
   f7.dialog.alert("Событие добавлено!");
 };
 
 const addLocalEvent = async () => {
-  return await addEvent('local');
+  return await addEvent("local");
 };
 
 const addSyncEvent = async () => {
-  return await addEvent('sync');
+  return await addEvent("sync");
 };
 
-
-
-const eventsArrayId = ref(JSON.parse(localStorage.getItem('eventsArrayId') || '[]'));
+const eventsArrayId = ref(
+  JSON.parse(localStorage.getItem("eventsArrayId") || "[]")
+);
 
 // Create notifications for every day of the current year
 const addEventsArray = async () => {
-
-  const preloader = f7.dialog.preloader('Добавляем события...');
+  const preloader = f7.dialog.preloader("Добавляем события...");
 
   const currentYear = new Date().getFullYear();
   const events: CalendarEvent[] = [];
-  
+
   // Get the first day of the year
   const startDate = new Date(currentYear, 0, 1);
   // Get the last day of the year
   const endDate = new Date(currentYear, 11, 31);
-  
+
   // Loop through each day of the year
   let currentDate = new Date(startDate);
   while (currentDate <= endDate) {
     const formattedDate = format(currentDate, "yyyyMMdd");
     const dayMonth = format(currentDate, "dd.MM");
-    
+
     // Morning notification (9:00)
     const morningDate = new Date(currentDate);
     morningDate.setHours(9, 0, 0, 0);
-    
+
     // Evening notification (22:00)
     const eveningDate = new Date(currentDate);
     eveningDate.setHours(22, 0, 0, 0);
-    
+
     // Create morning notification with two alarms
     const morningNotification = {
       id: getUID(),
@@ -348,10 +382,10 @@ const addEventsArray = async () => {
       url: `https://molitvoslov.valaam.ru/app/#view-calendar:/days/${formattedDate}`,
       alarmDates: [
         addMinutes(morningDate, -10), // 10 minutes before
-        morningDate // At the event time
-      ]
+        morningDate, // At the event time
+      ],
     };
-    
+
     // Create evening notification with two alarms
     const eveningNotification = {
       id: getUID(),
@@ -361,26 +395,27 @@ const addEventsArray = async () => {
       url: `https://molitvoslov.valaam.ru/app/#view-calendar:/days/${formattedDate}`,
       alarmDates: [
         addMinutes(eveningDate, -10), // 10 minutes before
-        eveningDate // At the event time
-      ]
+        eveningDate, // At the event time
+      ],
     };
-    
+
     events.push(morningNotification, eveningNotification);
-    
+
     // Move to the next day
     currentDate.setDate(currentDate.getDate() + 1);
   }
- 
+
   // We might need to send notifications in batches to avoid overwhelming the system
   const batchSize = 50;
 
   let lastError = null;
   const addedIds: string[] = [];
-  
+
   for (let i = 0; i < events.length; i += batchSize) {
     const batch = events.slice(i, i + batchSize);
 
-    const {isSuccess, hasPermissions, errorDescription, id} = await deviceAPI.addCalendarEvent(batch, 'sync');
+    const { isSuccess, hasPermissions, errorDescription, id } =
+      await deviceAPI.addCalendarEvent(batch, "sync");
     if (!hasPermissions) {
       preloader.close();
       f7.dialog.alert("Нет прав на календарь");
@@ -391,32 +426,33 @@ const addEventsArray = async () => {
       lastError = errorDescription;
     } else {
       addedIds.push(...id);
-    } 
+    }
   }
 
   preloader.close();
   isEventsEnabled.value = true;
 
   eventsArrayId.value = addedIds;
-  localStorage.setItem('eventsArrayId', JSON.stringify(eventsArrayId.value));
+  localStorage.setItem("eventsArrayId", JSON.stringify(eventsArrayId.value));
 
   if (lastError) {
     f7.dialog.alert("Ошибка при добавлении событий: " + lastError);
   } else {
     f7.dialog.alert("Добавлено " + eventsArrayId.value.length + " событий");
-  }  
+  }
 };
 
-
-
-const add2Events = async (type: 'local' | 'sync' = 'sync') => {  
+const add2Events = async (type: "local" | "sync" = "sync") => {
   const event1 = {
     id: getUID(),
     title: "Утреннее правило",
     description: "Делу время, молитве час",
     date: add(new Date(), { minutes: 20 }),
     url: "https://molitvoslov.valaam.ru/app/#view-calendar:/days/20241001",
-    alarmDates: [add(new Date(), { minutes: 20 }), add(new Date(), { minutes: 15 })]
+    alarmDates: [
+      add(new Date(), { minutes: 20 }),
+      add(new Date(), { minutes: 15 }),
+    ],
   };
   const event2 = {
     id: getUID(),
@@ -424,10 +460,14 @@ const add2Events = async (type: 'local' | 'sync' = 'sync') => {
     description: "Делу время, молитве час",
     date: add(new Date(), { minutes: 40 }),
     url: "https://molitvoslov.valaam.ru/app/#view-calendar:/days/20241005",
-    alarmDates: [add(new Date(), { minutes: 39 }), add(new Date(), { minutes: 35 })]
+    alarmDates: [
+      add(new Date(), { minutes: 39 }),
+      add(new Date(), { minutes: 35 }),
+    ],
   };
 
-  const {isSuccess, hasPermissions, errorDescription, id} = await deviceAPI.addCalendarEvent([event1, event2], type);
+  const { isSuccess, hasPermissions, errorDescription, id } =
+    await deviceAPI.addCalendarEvent([event1, event2], type);
 
   if (!hasPermissions) {
     f7.dialog.alert("Нет прав на календарь");
@@ -436,11 +476,11 @@ const add2Events = async (type: 'local' | 'sync' = 'sync') => {
 
   if (!isSuccess) {
     f7.dialog.alert("Ошибка при добавлении событий: " + errorDescription);
-    return; 
-  } 
-  
+    return;
+  }
+
   eventsArrayId.value = [event1.id, event2.id];
-  localStorage.setItem('eventsArrayId', JSON.stringify(eventsArrayId.value));
+  localStorage.setItem("eventsArrayId", JSON.stringify(eventsArrayId.value));
   isEventsEnabled.value = isSuccess;
 
   f7.dialog.alert("События добавлены!");
@@ -451,7 +491,8 @@ const deleteEvent = async () => {
   if (!eventId.value) return;
 
   // alert("deleteNotification:" + notificationId.value);
-  const {isSuccess, hasPermissions, errorDescription} = await deviceAPI.deleteCalendarEvent(eventId.value);
+  const { isSuccess, hasPermissions, errorDescription } =
+    await deviceAPI.deleteCalendarEvent(eventId.value);
   if (!hasPermissions) {
     f7.dialog.alert("Нет прав на календарь");
     return;
@@ -463,23 +504,23 @@ const deleteEvent = async () => {
   }
 
   f7.dialog.alert("Событие удалено!");
-
 };
 
 const deleteEventsArray = async () => {
   if (!eventsArrayId.value) return;
 
-  const preloader = f7.dialog.preloader('Удаляем события...');
+  const preloader = f7.dialog.preloader("Удаляем события...");
 
   let lastError = null;
-  
+
   // Разбиваем массив на пакеты по 50 уведомлений
   const batchSize = 50;
   const deletedIds: string[] = [];
 
   for (let i = 0; i < eventsArrayId.value.length; i += batchSize) {
     const batch = eventsArrayId.value.slice(i, i + batchSize);
-    const {isSuccess, hasPermissions, errorDescription, id} = await deviceAPI.deleteCalendarEvent(batch);
+    const { isSuccess, hasPermissions, errorDescription, id } =
+      await deviceAPI.deleteCalendarEvent(batch);
     if (!hasPermissions) {
       preloader.close();
       f7.dialog.alert("Нет прав на календарь");
@@ -492,7 +533,7 @@ const deleteEventsArray = async () => {
       deletedIds.push(...id);
     }
   }
-  
+
   preloader.close();
 
   if (deletedIds.length > 0) {
@@ -504,7 +545,7 @@ const deleteEventsArray = async () => {
   } else {
     f7.dialog.alert("Удалено " + eventsArrayId.value.length + " событий");
   }
-}
+};
 
 const isEventsEnabled = ref(false);
 
@@ -541,7 +582,9 @@ const testBrowserFitures = async () => {
 const requestCalendarPermissions = async () => {
   const isGranted = await deviceAPI.requestCalendarPermissions();
   isEventsEnabled.value = isGranted;
-  f7.dialog.alert(isGranted ? "Права на календарь получены" : "Нет прав на календарь!");
+  f7.dialog.alert(
+    isGranted ? "Права на календарь получены" : "Нет прав на календарь!"
+  );
 };
 
 const openNotificationsSettings = () => {

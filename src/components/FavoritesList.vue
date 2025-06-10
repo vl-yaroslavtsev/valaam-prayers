@@ -12,7 +12,7 @@
         swipeout
         v-for="item in items"
         :key="item.id"
-        :title="item.title"
+        :title="item.name"
         :link="item.url"
         :data-id="item.id"
       >
@@ -52,17 +52,17 @@
     </TransitionGroup>
   </f7-list>
   <SharePopover
-    :item="{ title: sharedItem?.title || '', url: sharedItem?.url || '' }"
+    :item="{ title: sharedItem?.name || '', url: sharedItem?.url || '' }"
     :target-el="sharedTargetEl"
     v-model="isSharedOpened"
   />
 </template>
 
 <script setup lang="ts">
-import { ref, watchEffect, computed, onUnmounted } from "vue";
+import { ref, watchEffect, computed } from "vue";
 import { f7 } from "framework7-vue";
-import type { Toast } from "framework7/types";
 import { useTheme } from "@/composables/useTheme";
+import { useUndoToast } from "@/composables/useUndoToast";
 
 import DeleteIcon from "@/components/icons/DeleteIcon.vue";
 import ResetIcon from "./icons/ResetIcon.vue";
@@ -72,7 +72,7 @@ import SharePopover from "./SharePopover.vue";
 
 interface FavoriteListItem {
   id: string;
-  title: string;
+  name: string;
   url: string;
   lang?: Array<"ру" | "цс" | "гр">;
   progress?: number;
@@ -126,7 +126,7 @@ watchEffect(() => {
 
 const resetItem = (item: FavoriteListItem) => {
   emit("resetItemProgress", item.id);
-  showUndoResetItemProgressToast();
+  showUndoResetToast();
 };
 
 const sharedTargetEl = ref<Element | undefined>(undefined);
@@ -143,53 +143,21 @@ const shareItem = (item: FavoriteListItem, $event: Event) => {
   isSharedOpened.value = true;
 };
 
-let undoDeleteToast: Toast.Toast;
-
-const showUndoDeleteToast = () => {
-  if (!undoDeleteToast) {
-    // , closeTimeout: 2000
-    undoDeleteToast = f7.toast.create({
-      text: "Элемент удален",
-      closeTimeout: 5000,
-      closeButton: true,
-      closeButtonText: "Отменить",
-      on: {
-        closeButtonClick() {
-          emit("undoDeleteItem");
-        },
-      },
-    });
-  }
-  undoDeleteToast.open();
-};
-
-let undoResetItemProgressToast: Toast.Toast;
-
-const showUndoResetItemProgressToast = () => {
-  if (!undoResetItemProgressToast) {
-    undoResetItemProgressToast = f7.toast.create({
-      text: "Прогресс сброшен",
-      closeTimeout: 5000,
-      closeButton: true,
-      closeButtonText: "Отменить",
-      on: {
-        closeButtonClick() {
-          emit("undoResetItemProgress");
-        },
-      },
-    });
-  }
-  undoResetItemProgressToast.open();
-};
-
-onUnmounted(() => {
-  if (undoDeleteToast) {
-    undoDeleteToast.destroy();
-  }
-  if (undoResetItemProgressToast) {
-    undoResetItemProgressToast.destroy();
-  }
+const { showUndoToast: showUndoDeleteToast } = useUndoToast({
+  text: "Элемент удален",
+  onUndo: () => {
+    emit("undoDeleteItem");
+  },
 });
+
+const { showUndoToast: showUndoResetToast } = useUndoToast({
+  text: "Прогресс сброшен",
+  onUndo: () => {
+    emit("undoResetItemProgress");
+  },
+});
+
+
 </script>
 
 <style scoped>
