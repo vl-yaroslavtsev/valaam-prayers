@@ -1,42 +1,71 @@
 // stores/readingHistory.ts
 import { defineStore } from "pinia";
-import historyData from '../../test-data/reading-history.json';
+import historyData from "../../test-data/reading-history.json";
+
+type ReadingType = "prayers" | "books" | "saints";
 
 interface ReadingHistoryItem {
   id: string;
   progress: number;
   pages: number;
+  type: ReadingType;
+  lastReadAt: Date;
 }
 
 export const useReadingHistoryStore = defineStore("readingHistory", {
   state: () => ({
-    history: historyData as ReadingHistoryItem[],
+    history: historyData.map((e) => {
+      return { ...e, lastReadAt: new Date(e.lastReadAt) };
+    }) as ReadingHistoryItem[],
     snapshot: {
-      id: '',
+      id: "",
       progress: 0,
-      pages: 0
-    } as ReadingHistoryItem
+      pages: 0,
+      type: "prayers",
+      lastReadAt: new Date(),
+    } as ReadingHistoryItem,
   }),
 
   getters: {
     getItemProgress: (state) => (id: string) => {
       return state.history.find((item) => item.id === id);
     },
+    getLastItems:
+      (state) =>
+      (type: ReadingType | "all" = "all", count: number = 10) => {
+        let history = [...state.history];
+
+        if (type != "all") {
+          history = history.filter((h) => h.type === type);
+        }
+
+        return history
+          .sort((a, b) => b.lastReadAt.getTime() - a.lastReadAt.getTime())
+          .slice(0, count);
+      },
   },
 
   actions: {
-    updateProgress(id: string, progress: number, pages: number) {
+    updateProgress(
+      id: string,
+      progress: number,
+      pages: number,
+      type: ReadingType = "prayers"
+    ) {
       const existingItem = this.history.find((item) => item.id === id);
 
       if (existingItem) {
-        this.snapshot = {...existingItem};
+        this.snapshot = { ...existingItem };
         existingItem.progress = progress;
         existingItem.pages = pages;
+        existingItem.lastReadAt = new Date();
       } else {
         this.history.push({
           id,
           progress,
           pages,
+          type,
+          lastReadAt: new Date(),
         });
       }
     },
@@ -52,6 +81,7 @@ export const useReadingHistoryStore = defineStore("readingHistory", {
 
       item.progress = this.snapshot.progress;
       item.pages = this.snapshot.pages;
-    }
+      item.lastReadAt = new Date();
+    },
   },
 });

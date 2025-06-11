@@ -24,6 +24,7 @@
         id="view-prayers"
         name="prayers"
         tab
+        init-router-on-tab-show
         url="/prayers/842"
         @tab:show="onTabShow"
       ></f7-view>
@@ -33,6 +34,7 @@
         id="view-calendar"
         name="calendar"
         tab
+        init-router-on-tab-show
         url="/calendar/"
         @tab:show="onTabShow"
       ></f7-view>
@@ -42,7 +44,8 @@
         id="view-books"
         name="books"
         tab
-        url="/api-test/"
+        init-router-on-tab-show
+        url="/prayers/1983"
         @tab:show="onTabShow"
       ></f7-view>
 
@@ -51,6 +54,7 @@
         id="view-rites"
         name="rites"
         tab
+        init-router-on-tab-show
         url="/rites/"
         @tab:show="onTabShow"
       ></f7-view>

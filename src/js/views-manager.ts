@@ -6,7 +6,7 @@ import { f7 } from "framework7-vue";
 import deviceAPI from "./device/device-api";
 
 const viewsIds = [
-  "#view-main",
+  "#view-home",
   "#view-books",
   "#view-prayers",
   "#view-calendar",
@@ -24,6 +24,8 @@ function viewsManager(): void {
 function parseHash(): void {
   const [viewId, url] = document.location.hash.split(":");
   const view = f7.views.get(viewId);
+
+  console.log(f7);
   if (!view) {
     // view = createView(viewId);
     return;

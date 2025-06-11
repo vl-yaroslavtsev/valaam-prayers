@@ -2,12 +2,12 @@ import { defineStore } from "pinia";
 import { computed, ref } from "vue";
 import favoritesData from "../../test-data/favorites.json";
 
-export type TabType = "prayers" | "books" | "saints" | "thoughts" | "bible";
+export type FavoriteType = "prayers" | "books" | "saints" | "thoughts" | "bible";
 
 export interface FavoritesItem {
   id: string;
   name: string;
-  type: TabType;
+  type: FavoriteType;
   sort: number;
 }
 
@@ -19,7 +19,7 @@ export const useFavoritesStore = defineStore("favorites", () => {
   let dataToUndoDelete: { item: FavoritesItem; index: number };
 
   // Getters
-  const getFavoritesByType = (type: TabType) =>
+  const getFavoritesByType = (type: FavoriteType) =>
     favorites.value
       .filter((item) => item.type === type)
       .sort((a, b) => a.sort - b.sort);

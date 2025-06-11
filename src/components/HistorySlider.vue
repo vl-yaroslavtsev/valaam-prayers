@@ -7,66 +7,64 @@
     :navigation="false"
     class="history-swiper"
   >
-    <swiper-slide>
+    <swiper-slide v-for="item in items" :key="item.id">
+      <f7-link :href="item.url">
       <div class="slide-main">
-        <div class="slide-header">Новый Завет</div>
-        <div class="slide-info">Прочитано 6 из 20 страниц</div>
+        <div class="slide-header">{{ item.name }}</div>
+        <div class="slide-info">
+          Прочитано {{ Math.floor(item.progress * item.pages) }} из
+            {{ item.pages }} страниц
+        </div>
       </div>
-      <div class="slide-footer">2 марта 2021 15:43</div>
-    </swiper-slide>
-    <swiper-slide>
-      <div class="slide-main">
-        <div class="slide-header">Молитвы на сон грядущим</div>
-        <div class="slide-info">Прочитано 12 из 25 страниц</div>
+      <div class="slide-footer">
+        <span>{{ formatDay(item.lastReadAt) }}</span
+        ><span>{{ formatTime(item.lastReadAt) }}</span>
       </div>
-      <div class="slide-footer">1 марта 2021 15:43</div>
+    </f7-link>
     </swiper-slide>
-    <swiper-slide>
-      <div class="slide-main">
-        <div class="slide-header">Правило от осквернения</div>
-        <div class="slide-info">Прочитано 1 из 15 страниц</div>
-      </div>
-      <div class="slide-footer">28 февраля 2021 15:43</div>
-    </swiper-slide>
-    <swiper-slide>Slide 4</swiper-slide>
-    <swiper-slide>Slide 5</swiper-slide>
-    <swiper-slide>Slide 6</swiper-slide>
-    <swiper-slide>Slide 7</swiper-slide>
-    <swiper-slide>Slide 8</swiper-slide>
-    <swiper-slide>Slide 9</swiper-slide>
   </swiper-container>
 </template>
 <script setup lang="ts">
-const { width = 300, color = "white" } = defineProps({
-  color: String,
-  width: Number,
-});
+interface HistoryItem {
+  id: string;
+  name: string;
+  url: string;
+  progress: number;
+  pages: number;
+  lastReadAt: Date;
+}
+
+const { items } = defineProps<{
+  items: HistoryItem[];
+}>();
+
+import { formatDate } from "@/js/utils";
+
+const formatDay = (date: Date) => formatDate(date, "d MMMM yyyy");
+const formatTime = (date: Date) => formatDate(date, "HH:mm");
 </script>
 <style lang="less" scoped>
 .history-swiper {
   --history-swiper-bg-color: var(--content-color-white-100);
+
+  --history-swiper-header-text-color: var(--content-color-black-primary);
+  --history-swiper-info-text-color: var(--content-color-black-400);
+  --history-swiper-footer-text-color: var(--content-color-black-600);
 }
 
 swiper-slide {
   box-sizing: border-box;
   width: 240px;
   height: 150px;
-  border-radius: 10px;
   margin-top: 20px;
-  margin-bottom: 20px;
-  padding: 10px 15px 15px 15px;
+  margin-bottom: 30px;
+  border-radius: 10px;
+ 
   box-shadow: 0 4px 30px 0 rgba(0, 0, 0, 0.1);
-  background: var(--history-swiper-bg-color);
 
   font-size: var(--mobile-main-text-regular-b3);
   line-height: var(--mobile-main-text-regular-b3-line-height);
   font-weight: 400;
-
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  flex-direction: column;
-  gap: 10px;
 
   &:first-child {
     margin-left: 15px;
@@ -77,12 +75,28 @@ swiper-slide {
   }
 }
 
+.link {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  flex-direction: column;
+  gap: 10px;
+  border-radius: 10px;
+
+  width: 100%;
+  height: 100%;
+  padding: 10px 15px 15px 15px;
+
+  background: var(--history-swiper-bg-color);
+  overflow: hidden;
+}
+
 .slide-main {
   display: flex;
   flex-direction: column;
   width: 100%;
   overflow: hidden;
-  gap: 6px;
+  gap: 12px;
 }
 
 .text-ellipsis() {
@@ -92,43 +106,51 @@ swiper-slide {
 }
 
 .slide-header {
+  --history-slider-header-lh: 27px;
+
   display: -webkit-box;
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 2;
   line-clamp: 2;
   white-space: normal;
   overflow: hidden;
-  overflow: hidden;
   text-overflow: ellipsis;
-  height: 60px;
+  height: calc(var(--history-slider-header-lh) * 2);
 
   font-size: var(--mobile-main-text-bold-b1);
-  line-height: 27px; //var(--mobile-main-text-bold-b1-line-height);
+  line-height: var(--history-slider-header-lh);
   font-weight: 700;
-  color: var(--content-color-white-100);
+  color: var(--history-swiper-header-text-color);
 }
 .slide-subheader {
-  color: var(--content-color-white-100);
+  color: var(--history-swiper-header-text-color);
   .text-ellipsis();
   height: 21px;
 }
 
 .slide-info {
-  color: var(--content-color-baige-400);
+  color: var(--history-swiper-info-text-color);
   .text-ellipsis();
 }
 
 .slide-footer {
-  color: var(--content-color-baige-600);
+  display: flex;
+  gap: 16px;
+  color: var(--history-swiper-footer-text-color);
   width: 100%;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+
+  span:last-child {
+    .text-ellipsis();
+  }
 }
 
 .dark {
   .history-swiper {
     --history-swiper-bg-color: var(--content-color-black-secondary);
+
+    --history-swiper-header-text-color: var(--content-color-white-100);
+    --history-swiper-info-text-color: var(--content-color-baige-400);
+    --history-swiper-footer-text-color: var(--content-color-baige-600);
   }
 }
 </style>

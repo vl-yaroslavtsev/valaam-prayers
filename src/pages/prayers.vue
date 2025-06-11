@@ -13,8 +13,10 @@
         isFirstPage ? "Сейчас читаю" : title
       }}</f7-nav-title-large>
     </f7-navbar>
-    <HistorySlider v-if="isFirstPage"></HistorySlider>
-    <f7-block-title v-if="isFirstPage"> Полный молитвослов </f7-block-title>
+    <HistorySlider v-if="isFirstPage" :items="lastReadings"></HistorySlider>
+    <f7-block-title v-if="isFirstPage" class="block-title">
+      {{title}}
+    </f7-block-title>
     <PrayersList
       :cssClass="`${isFirstPage ? 'no-margin-top' : ''}`"
       :prayers="prayers"
@@ -33,14 +35,13 @@ import { ref, computed } from "vue";
 import type { Router } from "framework7/types";
 
 import BurgerIcon from "/icons/burger.svg?raw";
-import PrayersList from "@/components/PrayersList.vue";
+import { PrayersList } from "@/components/prayers";
 import SeparatorLine from "@/components/SeparatorLine.vue";
 import HistorySlider from "@/components/HistorySlider.vue";
 
 import { useTheme } from "@/composables/useTheme";
-import { usePrayersStore } from "@/stores/prayers";
+import { usePrayersStore, BOOKS_SECTION_ID } from "@/stores/prayers";
 import { useReadingHistoryStore } from "@/stores/readingHistory";
-import { f7 } from "framework7-vue";
 
 const { sectionId, f7router } = defineProps<{
   sectionId: string;
@@ -49,23 +50,38 @@ const { sectionId, f7router } = defineProps<{
 
 const isFirstPage = ref<boolean>(true);
 
-const rootSectionId = "842";
-
 const { isDarkMode } = useTheme();
 
 const prayersStore = usePrayersStore();
 const historyStore = useReadingHistoryStore();
 
-const title = computed(() => isFirstPage.value
-  ? "Молитвослов"
-  : prayersStore.getItemById(sectionId)?.name);
+// isFirstPage.value ? "Молитвослов" :
+const title = computed(() =>
+   prayersStore.getItemById(sectionId)?.name
+);
+
+console.log("page prayers with sectionId = " + sectionId);
 
 const prayers = computed(() =>
   prayersStore.getItemsBySection(sectionId).map((p) => {
-    const history = historyStore.getItemProgress(p.id) || {};
+    const history = historyStore.getItemProgress(p.id) ?? { progress: 0, pages: 0};
     return {
-      ...history,
+      progress: history.progress, 
+      pages: history.pages,
       ...p,
+    };
+  })
+);
+
+
+const readingsType = sectionId == BOOKS_SECTION_ID ? "books" : "prayers";
+const lastReadings = computed(() =>
+  historyStore.getLastItems(readingsType, 10).map((r) => {
+    const p = prayersStore.getItemById(r.id) ?? { name: "", url: "" };
+    return {
+      name: p.name,
+      url: p.url,
+      ...r,
     };
   })
 );
@@ -75,6 +91,7 @@ const onPageBeforeIn = () => {
 };
 
 const onResetItemProgress = (id: string) => {
+  console.log("prayers page onResetItemProgress ", id);
   historyStore.resetProgress(id);
 };
 
@@ -83,4 +100,7 @@ const onUndoResetItemProgress = () => {
 };
 </script>
 <style scoped lang="less">
+.block-title {
+  margin-top: 20px;
+}
 </style>

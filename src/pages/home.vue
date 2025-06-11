@@ -56,14 +56,14 @@
 <script setup lang="ts">
 import { ref } from "vue";
 import { useTheme } from "@/composables/useTheme";
-import { useFavoritesStore, type TabType } from "@/stores/favorites";
+import { useFavoritesStore, type FavoriteType } from "@/stores/favorites";
 import { usePrayersStore } from "@/stores/prayers";
 import { useReadingHistoryStore } from "@/stores/readingHistory";
 
 import BurgerIcon from "/icons/burger.svg?raw";
 import SeparatorLine from "@/components/SeparatorLine.vue";
 import PencilIcon from "@/components/icons/PencilIcon.vue";
-import FavoritesList from "@/components/FavoritesList.vue";
+import { FavoritesList } from "@/components/prayers";
 
 const { isDarkMode } = useTheme();
 
@@ -76,7 +76,7 @@ const tabs = ref<
   {
     id: number;
     title: string;
-    type: TabType;
+    type: FavoriteType;
   }[]
 >([
   { id: 1, title: "Молитвы", type: "prayers" },
@@ -87,8 +87,7 @@ const tabs = ref<
 ]);
 
 // Используем методы из store
-
-const getFavoritesByType = (type: TabType) =>
+const getFavoritesByType = (type: FavoriteType) =>
   favoritesStore.getFavoritesByType(type).map((f) => {
     const history = historyStore.getItemProgress(f.id);
     let extra = {

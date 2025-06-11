@@ -21,14 +21,8 @@
             <DeleteIcon color="primary-accent-50" />
           </f7-link>
         </template>
-        <template #inner v-if="item.progress && item.pages">
-          <div class="item-progress">
-            <f7-progressbar :progress="item.progress * 100" />
-            <div class="progress-text">
-              {{ Math.floor(item.progress * item.pages) }} из
-              {{ item.pages }} страниц
-            </div>
-          </div>
+        <template #inner>
+          <PrayersListProgress :progress="item.progress" :pages="item.pages" />
         </template>
         <template #after>
           <LanguageBadges :languages="item.lang" />
@@ -65,10 +59,11 @@ import { useTheme } from "@/composables/useTheme";
 import { useUndoToast } from "@/composables/useUndoToast";
 
 import DeleteIcon from "@/components/icons/DeleteIcon.vue";
-import ResetIcon from "./icons/ResetIcon.vue";
-import ShareIcon from "./icons/ShareIcon.vue";
+import ResetIcon from "@/components/icons/ResetIcon.vue";
+import ShareIcon from "@/components/icons/ShareIcon.vue";
 import LanguageBadges from "./LanguageBadges.vue";
-import SharePopover from "./SharePopover.vue";
+import SharePopover from "@/components/SharePopover.vue";
+import PrayersListProgress from "./PrayersListProgress.vue";
 
 interface FavoriteListItem {
   id: string;

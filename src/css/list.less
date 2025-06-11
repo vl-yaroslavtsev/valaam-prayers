@@ -22,8 +22,6 @@
   --f7-list-item-title-text-color: var(--content-color-black-secondary);
   --f7-list-item-padding-vertical: 10px;
   
-  --list-item-lang-color: var(--content-color-black-600);
-  --list-item-progress-color: var(--content-color-black-400);
   --delete-handler-width: var(--f7-sortable-handler-width);
 
   margin-top: 30px;
@@ -66,27 +64,27 @@
     }
   }
 
-  .item-progress {
-    --f7-progressbar-height: 1px;
-    --f7-progressbar-progress-color:  var(--list-item-progress-color);
-    --f7-progressbar-bg-color: transparent; /*rgba(255, 255, 255, 0.1);*/
+  // .item-progress {
+  //   --f7-progressbar-height: 1px;
+  //   --f7-progressbar-progress-color:  var(--list-item-progress-color);
+  //   --f7-progressbar-bg-color: transparent; /*rgba(255, 255, 255, 0.1);*/
 
-    position: absolute;
-    right: calc(var(--f7-list-chevron-icon-area) + var(--f7-list-item-padding-horizontal) + var(--f7-safe-area-right));
-    bottom: var(--f7-list-item-padding-vertical);
-    left: 0;
+  //   position: absolute;
+  //   right: calc(var(--f7-list-chevron-icon-area) + var(--f7-list-item-padding-horizontal) + var(--f7-safe-area-right));
+  //   bottom: var(--f7-list-item-padding-vertical);
+  //   left: 0;
 
-    transition: transform 300ms;
+  //   transition: transform 300ms;
 
-    .progress-text {
-      font-weight: 400;
-      font-size: var(--mobile-main-text-regular-b3);
-      line-height: var(--mobile-main-text-regular-b3-line-height);
-      color: var(--list-item-progress-color);
-      text-transform: lowercase;
-      margin-top: 2px;
-    }
-  }
+  //   .progress-text {
+  //     font-weight: 400;
+  //     font-size: var(--mobile-main-text-regular-b3);
+  //     line-height: var(--mobile-main-text-regular-b3-line-height);
+  //     color: var(--list-item-progress-color);
+  //     text-transform: lowercase;
+  //     margin-top: 2px;
+  //   }
+  // }
 
   .delete-handler {
     position: absolute;
@@ -181,9 +179,7 @@
 
     .list.prayers {
       --f7-list-item-title-text-color: var(--content-color-baige-900);
-      --list-item-lang-color: var(--content-color-baige-900);
-      //Или var(--content-color-white-100); ?
-      --list-item-progress-color: var(--content-color-baige-400);
+      //Или var(--content-color-white-100); 
     
 
       .swipeout-actions-right {

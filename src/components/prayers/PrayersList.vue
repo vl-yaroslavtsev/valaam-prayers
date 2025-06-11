@@ -10,15 +10,7 @@
       :data-id="item.id"
     >
       <template #inner>
-        <Transition name="fade">
-          <div class="item-progress" v-if="item.progress && item.pages">
-            <f7-progressbar :progress="Math.round(item.progress * 100)" />
-            <div class="progress-text">
-              {{ Math.floor(item.progress * item.pages) }} из
-              {{ item.pages }} страниц
-            </div>
-          </div>
-        </Transition>
+        <PrayersListProgress :progress="item.progress" :pages="item.pages" />
       </template>
       <template #after>
         <LanguageBadges :languages="item.lang" />
@@ -53,10 +45,11 @@ import { f7 } from "framework7-vue";
 import { useTheme } from "@/composables/useTheme";
 import { useUndoToast } from "@/composables/useUndoToast";
 
-import ResetIcon from "./icons/ResetIcon.vue";
-import ShareIcon from "./icons/ShareIcon.vue";
+import ResetIcon from "@/components/icons/ResetIcon.vue";
+import ShareIcon from "@/components/icons/ShareIcon.vue";
 import LanguageBadges from "./LanguageBadges.vue";
-import SharePopover from "./SharePopover.vue";
+import SharePopover from "@/components/SharePopover.vue";
+import PrayersListProgress from "./PrayersListProgress.vue";
 
 interface PrayerListItem {
   id: string;
@@ -81,6 +74,7 @@ const emit = defineEmits<{
 const { isDarkMode } = useTheme();
 
 const resetItem = (item: PrayerListItem) => {
+  emit("resetItemProgress", item.id);
   showUndoResetItemProgressToast();
 };
 
@@ -110,17 +104,5 @@ const { showUndoToast: showUndoResetItemProgressToast } = useUndoToast({
 :deep(.item-inner) {
   transition: padding;
   transition-duration: 600ms;
-}
-
-.list.prayers {
-  .fade-enter-active,
-  .fade-leave-active {
-    transition: opacity 600ms ease;
-  }
-
-  .fade-enter-from,
-  .fade-leave-to {
-    opacity: 0;
-  }
 }
 </style>

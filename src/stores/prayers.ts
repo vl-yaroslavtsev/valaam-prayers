@@ -21,8 +21,13 @@ export interface PrayerSection {
   url: string;
 }
 
+const BIBLE_SECTION_ID = "1078";
+const MOLITVOSLOV_SECTION_ID = "842";
+export const BOOKS_SECTION_ID = "1983";
+const BOOKS_LITURGY_SECTION_ID = "937";
+const BOOKS_SPIRITUAL_SECTION_ID = "976";
+
 export const usePrayersStore = defineStore("prayers", () => {
-  const historyStore = useReadingHistoryStore();
   // State
   const elements = shallowRef<PrayerElement[]>(
     prayersData.e.map((e) => {
@@ -45,12 +50,9 @@ export const usePrayersStore = defineStore("prayers", () => {
   );
   const sections = shallowRef<PrayerSection[]>(
     prayersData.s.map((s) => {
-      let progress = historyStore.getItemProgress(s.id) || {};
-
       return {
         ...s,
         url: "/prayers/" + s.id,
-        ...progress,
       };
     })
   );
@@ -58,7 +60,27 @@ export const usePrayersStore = defineStore("prayers", () => {
   const getItemsBySection = (sectionId: string) => {
     let items: Array<PrayerElement | PrayerSection> = [];
 
-    items = sections.value.filter((s) => s.parent === sectionId);
+    const isMolitvoslov = sectionId === MOLITVOSLOV_SECTION_ID;
+    const isBooks = sectionId === BOOKS_SECTION_ID;
+
+    items = sections.value.filter((s) => {
+      // В полном молитвослове Библию не выводим.
+      if (isMolitvoslov && s.id === BIBLE_SECTION_ID) {
+        return false;
+      }
+
+      // В молитвослове добавляем Богослужебные книги
+      if (isMolitvoslov && s.id === BOOKS_LITURGY_SECTION_ID) {
+        return true;
+      }
+
+      // В книгах Богослужебные книги не выводим.
+      if (isBooks && s.id === BOOKS_LITURGY_SECTION_ID) {
+        return false;
+      }
+
+      return s.parent === sectionId;
+    });
 
     items = items.concat(
       elements.value.filter(({ parents }) => {
@@ -73,10 +95,18 @@ export const usePrayersStore = defineStore("prayers", () => {
       return a.sort - b.sort;
     });
 
+    // В книгах выводим в начале Библию
+    if (isBooks) {
+      const itemsBible = getItemsBySection(BIBLE_SECTION_ID);
+      items.unshift(...itemsBible);
+    }
+
     return items;
   };
 
-  const getItemById = (id: string): PrayerElement | PrayerSection | undefined => {
+  const getItemById = (
+    id: string
+  ): PrayerElement | PrayerSection | undefined => {
     let item: PrayerElement | PrayerSection | undefined;
 
     item = sections.value.find((s) => s.id === id);
