@@ -2,7 +2,12 @@ import { defineStore } from "pinia";
 import { computed, ref } from "vue";
 import favoritesData from "../../test-data/favorites.json";
 
-export type FavoriteType = "prayers" | "books" | "saints" | "thoughts" | "bible";
+export type FavoriteType =
+  | "prayers"
+  | "books"
+  | "saints"
+  | "thoughts"
+  | "bible";
 
 export interface FavoritesItem {
   id: string;
@@ -40,6 +45,29 @@ export const useFavoritesStore = defineStore("favorites", () => {
     }
   };
 
+  const addFavorite = (id: string, type: FavoriteType) => {
+    const item = favorites.value.find((p) => p.id === id);
+    if (item) return;
+
+    const newItem: FavoritesItem = {
+      id,
+      name: "",
+      type,
+      sort: -1,
+    };
+    favorites.value.push(newItem);
+    const itemsByType = favorites.value
+      .filter((p) => p.type === type)
+      .sort((a, b) => a.sort - b.sort);
+    itemsByType.forEach((p, i) => {
+      p.sort = i;
+    });
+  };
+
+  const isFavorite = (id: string) => {
+    return !!favorites.value.find((p) => p.id === id);
+  };
+
   const moveFavorite = (id: string, from: number, to: number) => {
     const item = favorites.value.find((p) => p.id === id);
     if (!item) return;
@@ -60,7 +88,9 @@ export const useFavoritesStore = defineStore("favorites", () => {
     favorites,
     // Getters
     getFavoritesByType,
+    isFavorite,
     // Actions
+    addFavorite,
     deleteFavorite,
     undoDeleteFavorite,
     moveFavorite,

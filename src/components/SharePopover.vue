@@ -170,6 +170,9 @@ onUnmounted(() => {
   --f7-list-item-min-height: 40px;
   --f7-list-item-media-margin: 8px;
 
+  --f7-block-title-font-size: var(--mobile-detail-regular-d1);
+  --f7-block-title-line-height: var(--mobile-detail-regular-d1-line-height);
+
   --separator-color: var(--content-color-black-200);
 
   font-size: var(--mobile-detail-regular-d1);

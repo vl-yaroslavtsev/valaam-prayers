@@ -30,14 +30,23 @@
         </f7-swipeout-button>
         <f7-swipeout-button
           close
-          @click="resetItem(item)"
           v-if="item.progress && item.pages"
+          @click="resetItem(item)"
         >
           <ResetIcon :color="isDarkMode ? 'baige-900' : 'black-600'"
         /></f7-swipeout-button>
-        <!-- <f7-swipeout-button @click="deleteItem(item)">
-            <DeleteIcon color="primary-accent-50" />
-          </f7-swipeout-button> -->
+        <f7-swipeout-button
+          close
+          v-if="!isSection(item.id, item.url)"
+          @click="toggleFavorite(item)"
+        >
+          <FavoriteFillIcon
+            v-if="isFavorite(item.id)"
+            :size="27"
+            color="primary-accent-50"
+          />
+          <FavoriteIcon v-else :size="27" color="primary-accent-50" />
+        </f7-swipeout-button>
       </f7-swipeout-actions>
     </f7-list-item>
   </f7-list>
@@ -49,17 +58,25 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch, watchEffect } from "vue";
-import type { VirtualList } from "framework7/types";
+import { ref, watch, onUnmounted } from "vue";
+import type { VirtualList, Toast } from "framework7/types";
+import { f7 } from "framework7-vue";
 
 import { useTheme } from "@/composables/useTheme";
 import { useUndoToast } from "@/composables/useUndoToast";
 
 import ResetIcon from "@/components/icons/ResetIcon.vue";
 import ShareIcon from "@/components/icons/ShareIcon.vue";
+import FavoriteFillIcon from "@/components/icons/FavoriteFillIcon.vue";
+import FavoriteIcon from "@/components/icons/FavoriteIcon.vue";
+
 import LanguageBadges from "./LanguageBadges.vue";
 import SharePopover from "@/components/SharePopover.vue";
 import PrayersListProgress from "./PrayersListProgress.vue";
+
+import { usePrayersStore } from "@/stores/prayers";
+import { useFavoritesStore } from "@/stores/favorites";
+import { useInfoToast } from "@/composables/useInfoToast";
 
 interface PrayerListItem {
   id: string;
@@ -78,7 +95,11 @@ interface VirtualListData {
   items: PrayerListItem[];
 }
 // Props
-const { prayers: items, cssClass = "", query = ""} = defineProps<{
+const {
+  prayers: items,
+  cssClass = "",
+  query = "",
+} = defineProps<{
   prayers: PrayerListItem[];
   query: string;
   cssClass?: string;
@@ -102,16 +123,18 @@ const renderExternal = (vl: VirtualList.VirtualList, data: VirtualListData) => {
   vlData.value = data;
 };
 
-watch(() => items, () => {
-  // console.log("watch items", items);
-  if (f7VirtualList) {
-    f7VirtualList.replaceAllItems(items);
-    if (query) {
-      f7VirtualList.filterItems(searchAll(query, items));
+watch(
+  () => items,
+  () => {
+    // console.log("watch items", items);
+    if (f7VirtualList) {
+      f7VirtualList.replaceAllItems(items);
+      if (query) {
+        f7VirtualList.filterItems(searchAll(query, items));
+      }
     }
   }
-
-});
+);
 
 const getRowHeight = (item: PrayerListItem) => {
   const longName = item.name.length > 26;
@@ -130,22 +153,25 @@ const getRowHeight = (item: PrayerListItem) => {
   return 62;
 };
 
-watch(() => query, (newQuery, oldQuery) => {
-  console.log("watch query = ", newQuery, oldQuery);
+watch(
+  () => query,
+  (newQuery, oldQuery) => {
+    console.log("watch query = ", newQuery, oldQuery);
 
-  if (!f7VirtualList) {
-    return;
+    if (!f7VirtualList) {
+      return;
+    }
+
+    if (oldQuery && !newQuery) {
+      f7VirtualList.resetFilter();
+      return;
+    }
+
+    if (newQuery) {
+      f7VirtualList.filterItems(searchAll(newQuery, f7VirtualList.items));
+    }
   }
-
-  if (oldQuery && !newQuery) {
-    f7VirtualList.resetFilter();
-    return;
-  }
-
-  if (newQuery) {
-    f7VirtualList.filterItems(searchAll(newQuery, f7VirtualList.items));  
-  }  
-});
+);
 
 const searchAll = (query: string, items: PrayerListItem[]) => {
   const found = [];
@@ -153,8 +179,7 @@ const searchAll = (query: string, items: PrayerListItem[]) => {
 
   for (let i = 0; i < items.length; i += 1) {
     const name = items[i].name.toLowerCase();
-    if (name.indexOf(lowerQuery) >= 0)
-      found.push(i);
+    if (name.indexOf(lowerQuery) >= 0) found.push(i);
   }
   return found; // return array with matched indexes
 };
@@ -186,6 +211,28 @@ const { showUndoToast: showUndoResetItemProgressToast } = useUndoToast({
     emit("undoResetItemProgress");
   },
 });
+
+const { isSection } = usePrayersStore();
+
+const { addFavorite, deleteFavorite, isFavorite } = useFavoritesStore();
+
+const { showInfoToast: showAddedToFavoritesToast } = useInfoToast({
+  text: "Элемент добавлен на главный экран",
+});
+
+const { showInfoToast: showRemovedFromFavoritesToast } = useInfoToast({
+  text: "Элемент удален с главного экрана",
+});
+
+const toggleFavorite = (item: PrayerListItem) => {
+  if (isFavorite(item.id)) {
+    deleteFavorite(item.id);
+    showRemovedFromFavoritesToast();
+  } else {
+    addFavorite(item.id, "prayers");
+    showAddedToFavoritesToast();
+  }
+};
 </script>
 
 <style scoped lang="less">

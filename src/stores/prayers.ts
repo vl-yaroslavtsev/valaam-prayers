@@ -118,6 +118,14 @@ export const usePrayersStore = defineStore("prayers", () => {
     return item;
   };
 
+  // Проверяем, является ли элемент секцией
+  const isSection = (id: string, url: string = "") => {
+    if (url) {
+      return url.match(/\/prayers\/\d+/);
+    }
+    return !!sections.value.find((s) => s.id === id);
+  };
+
   return {
     // State
     elements,
@@ -125,6 +133,7 @@ export const usePrayersStore = defineStore("prayers", () => {
     // Getters
     getItemsBySection,
     getItemById,
+    isSection,
     // Actions,
     //undoDeleteFavorite,
     //resetFavoriteProgress,

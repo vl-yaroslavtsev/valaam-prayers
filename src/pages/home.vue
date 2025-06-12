@@ -91,6 +91,7 @@ const getFavoritesByType = (type: FavoriteType) =>
   favoritesStore.getFavoritesByType(type).map((f) => {
     const history = historyStore.getItemProgress(f.id);
     let extra = {
+      name: "",
       url: "",
     };
 
@@ -106,6 +107,7 @@ const getFavoritesByType = (type: FavoriteType) =>
       ...extra,
       ...history,
       ...f,
+      name: extra.name || f.name,
     };
   });
 
