@@ -25,7 +25,6 @@ const BIBLE_SECTION_ID = "1078";
 const MOLITVOSLOV_SECTION_ID = "842";
 export const BOOKS_SECTION_ID = "1983";
 const BOOKS_LITURGY_SECTION_ID = "937";
-const BOOKS_SPIRITUAL_SECTION_ID = "976";
 
 export const usePrayersStore = defineStore("prayers", () => {
   // State

@@ -9,17 +9,36 @@
         ></f7-link>
       </f7-nav-left>
       <f7-nav-title sliding>{{ title }}</f7-nav-title>
+      <f7-nav-right
+        ><f7-link v-if="!isFirstPage" @click="toggleSearch" icon-md="f7:search"
+      /></f7-nav-right>
       <f7-nav-title-large>{{
         isFirstPage ? "Сейчас читаю" : title
       }}</f7-nav-title-large>
+      <f7-searchbar
+        ref="searchbar"
+        class="searchbar-prayers"
+        expandable
+        custom-search
+        disable-button-text=""
+        placeholder="Поиск в разделе"
+        v-model:value="searchQuery"
+      >
+        <template #input-wrap-end>
+          <span class="input-clear-button custom-button">
+            <CancelIcon color="baige-300" />
+          </span>
+        </template>
+      </f7-searchbar>
     </f7-navbar>
     <HistorySlider v-if="isFirstPage" :items="lastReadings"></HistorySlider>
     <f7-block-title v-if="isFirstPage" class="block-title">
-      {{title}}
+      {{ title }}
     </f7-block-title>
     <PrayersList
       :cssClass="`${isFirstPage ? 'no-margin-top' : ''}`"
       :prayers="prayers"
+      :query="searchQuery"
       @reset-item-progress="onResetItemProgress"
       @undo-reset-item-progress="onUndoResetItemProgress"
     />
@@ -31,11 +50,12 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from "vue";
-import type { Router } from "framework7/types";
+import { ref, computed, useTemplateRef, onMounted } from "vue";
+import type { Router, Searchbar } from "framework7/types";
 
 import BurgerIcon from "/icons/burger.svg?raw";
 import { PrayersList } from "@/components/prayers";
+import CancelIcon from "@/components/icons/CancelIcon.vue";
 import SeparatorLine from "@/components/SeparatorLine.vue";
 import HistorySlider from "@/components/HistorySlider.vue";
 
@@ -56,23 +76,23 @@ const prayersStore = usePrayersStore();
 const historyStore = useReadingHistoryStore();
 
 // isFirstPage.value ? "Молитвослов" :
-const title = computed(() =>
-   prayersStore.getItemById(sectionId)?.name
-);
+const title = computed(() => prayersStore.getItemById(sectionId)?.name);
 
 console.log("page prayers with sectionId = " + sectionId);
 
 const prayers = computed(() =>
   prayersStore.getItemsBySection(sectionId).map((p) => {
-    const history = historyStore.getItemProgress(p.id) ?? { progress: 0, pages: 0};
+    const history = historyStore.getItemProgress(p.id) ?? {
+      progress: 0,
+      pages: 0,
+    };
     return {
-      progress: history.progress, 
+      progress: history.progress,
       pages: history.pages,
       ...p,
     };
   })
 );
-
 
 const readingsType = sectionId == BOOKS_SECTION_ID ? "books" : "prayers";
 const lastReadings = computed(() =>
@@ -98,9 +118,38 @@ const onResetItemProgress = (id: string) => {
 const onUndoResetItemProgress = () => {
   historyStore.undoResetProgress();
 };
+
+const f7SearchbarRef = useTemplateRef<Searchbar.Searchbar>("searchbar");
+
+const toggleSearch = () => {
+  if (f7SearchbarRef.value) {
+    f7SearchbarRef.value.toggle();
+  }
+};
+
+const searchQuery = ref("");
+
 </script>
 <style scoped lang="less">
 .block-title {
   margin-top: 20px;
+}
+
+.md .searchbar {
+  .input-clear-button {
+    &:not(.custom-button) {
+      display: none;
+    }
+
+    &.custom-button {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+  }
+}
+
+:global(.md .searchbar .input-clear-button::after) {
+  display: none;
 }
 </style>
