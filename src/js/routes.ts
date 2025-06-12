@@ -32,6 +32,9 @@ const routes: Router.RouteParameters[] = [
   {
     path: "/prayers/text/:elementId",
     component: PrayersTextPage,
+    options: {
+      transition: "f7-fade",
+    },
   },
   {
     path: "/calendar/",
