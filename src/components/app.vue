@@ -83,7 +83,6 @@ import { ref, onMounted } from "vue";
 import { f7, f7ready } from "framework7-vue";
 
 import routes from "../js/routes";
-import store from "../js/store";
 import viewsManager from "../js/views-manager";
 import deviceAPI from "../js/device/device-api";
 import { useTheme } from "@/composables/useTheme";
@@ -106,8 +105,6 @@ const f7params = {
   name: "Валаамский календарь и молитвослов", // App name
   theme: "md",
 
-  // App store
-  store: store,
   // App routes
   routes: routes,
 

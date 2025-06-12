@@ -8,21 +8,16 @@
   </f7-page>
 </template>
 <script>
-import { f7, useStore } from "framework7-vue";
+import { useCalendarStore } from "@/stores/calendar";
 
 export default {
   props: {
     f7route: Object,
   },
   setup(props) {
-    const days = useStore("days");
+    const calendarStore = useCalendarStore();
     const dayId = props.f7route.params.id;
-    let currentDay;
-    days.value.forEach(function (day) {
-      if (day.id === dayId) {
-        currentDay = day;
-      }
-    });
+    let currentDay = calendarStore.getDayById(dayId);
 
     if (!currentDay) {
       currentDay = {
@@ -31,8 +26,6 @@ export default {
         description: "Описание дня " + dayId,
       };
     }
-
-    console.log(`App version:`, f7.store.state.version);
 
     return {
       day: currentDay,

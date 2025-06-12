@@ -5,12 +5,12 @@ import { Dom7 as $$ } from "framework7";
 import { f7 } from "framework7-vue";
 import deviceAPI from "./device/device-api";
 
-const viewsIds = [
-  "#view-home",
-  "#view-books",
-  "#view-prayers",
-  "#view-calendar",
-  "#view-rites",
+const viewsNames = [
+  "home",
+  "books",
+  "prayers",
+  "calendar",
+  "rites",
 ] as const;
 
 let backButtonAttempts = 0;
@@ -22,138 +22,27 @@ function viewsManager(): void {
 }
 
 function parseHash(): void {
-  const [viewId, url] = document.location.hash.split(":");
-  const view = f7.views.get(viewId);
-
-  console.log(f7);
-  if (!view) {
-    // view = createView(viewId);
+  const [viewName, url] = document.location.hash.replace("#","").split(":");
+  if (!viewName) {
     return;
   }
 
-  if (!viewsIds.includes(viewId as any)) return;
+  if (!(viewsNames as readonly string[]).includes(viewName)) {
+    return;
+  }
 
-  f7.tab.show(viewId);
+  f7.tab.show("#view-" + viewName);
+
+  const view = f7.view.get("#view-" + viewName);
+  if (!view) {
+    return;
+  }
   if (url) {
     view.router.navigate(url);
   }
 
   document.location.hash = "";
 }
-
-/**
- * Инициализируем табы - представления
- */
-// function initViewTabs() {
-// app.root.find('.views.tabs').on('tab:show', (event) => {
-// 	let id = event.target.id;
-// 	if (!id || !id.startsWith('view-'))
-// 	 	return;
-// 	createView('#' + id);
-// });
-
-// app.on('pageBeforeIn', (page) => updateStatusbar(page.$el));
-// app.on('pageTabShow', (page) => updateStatusbar($$(page)));
-
-// app.root.on('mouseup', 'a[data-view-tab]', function(event) {
-// 	let $target = $$(this);
-// 	app.tab.show($target.data('view'));
-// });
-
-// app.root.on('click', 'a.tab-link[href="#view-main"]', function(event) {
-// 	let view = app.views.get('#view-main');
-// 	if (view) { // Перезгружаем историю меню
-// 		view.router.navigate(view.router.history[0], {reloadAll: true});
-// 	}
-// });
-
-// app.on('popupOpened', (popup) => {
-// 	let $el = popup.$el;
-// 	let isTablet = !isMobile();
-// 	let isDarkMode = $$('html').hasClass('theme-dark') ||
-// 					 				 $el.find('.photo-browser-dark').length;
-//
-// 	if (isTablet && !$el.hasClass('popup-tablet-fullscreen')) {
-// 		return;
-// 	}
-//
-// 	if (isDarkMode) {
-// 		app.phonegap.statusbar.styleLightContent();
-// 	} else {
-// 		app.phonegap.statusbar.styleDefault();
-// 	}
-// });
-//
-// app.on('popupClose', (popup) => {
-// 	app.phonegap.statusbar.styleLightContent();
-// });
-
-// 	f7.tab.show('#view-main');
-
-// 	parseHash();
-// 	$$(window).on('hashchange', parseHash);
-// }
-
-/**
- * Создаем вью по запросу
- * @param  {string} id айдишник
- */
-// function createView(id) {
-// 	let view;
-// 	if (!viewsIds.includes(id)) return;
-
-// 	if (id == '#view-calendar') {
-// 		app.methods.storageSet('calendar-date');
-// 		app.emit('calendarClearDate');
-// 	}
-
-// 	if (view = app.views.get(id)) {
-// 		app.emit('viewShown', view);
-// 		return;
-// 	}
-
-// 	switch (id) {
-// 		case '#view-main':
-// 			view = app.views.create('#view-main', {
-// 				url: '/menu'
-// 			});
-// 			break;
-
-// 		case '#view-prayers':
-// 			view = app.views.create('#view-prayers', {
-// 				name: 'Полный молитвослов',
-// 				url: '/prayers/842'
-// 			});
-// 			break;
-
-// 		case '#view-calendar':
-// 			view = app.views.create('#view-calendar', {
-// 				name: 'Календарь',
-// 				url: '/calendar'
-// 			});
-// 			break;
-
-// 		case '#view-books':
-// 			view = app.views.create('#view-books', {
-// 				name: 'Книги',
-// 				url: '/prayers/976',
-// 			});
-// 			break;
-
-// 		case '#view-rites':
-// 			view = app.views.create('#view-rites', {
-// 				name: 'Поминовения',
-// 				url: '/rites'
-// 			});
-// 			break;
-
-// 		default:
-// 			break;
-// 	}
-
-// 	app.emit('viewShown', view);
-// 	return view;
-// }
 
 /**
  * Обработка системной кнопки назад
@@ -247,11 +136,11 @@ function handleBackKey() {
 
   if (
     currentView.$el.hasClass("tab") &&
-    currentView.$el.attr("id") != "view-main"
+    currentView.$el.attr("id") != "view-home"
   ) {
-    f7.tab.show("#view-main");
+    f7.tab.show("#view-home");
 
-    console.log("handleBackKey: f7.tab.show('#view-main')");
+    console.log("handleBackKey: f7.tab.show('#view-home')");
     // e.preventDefault();
     return true;
   }

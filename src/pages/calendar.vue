@@ -12,8 +12,10 @@
   </f7-page>
 </template>
 <script setup>
-import { useStore } from "framework7-vue";
-import store from "../js/store";
+import { computed } from "vue";
+import { useCalendarStore } from "@/stores/calendar";
 
-const days = useStore("days");
+const calendarStore = useCalendarStore();
+const days = computed(() => calendarStore.getDays());
+
 </script>
