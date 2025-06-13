@@ -1,0 +1,172 @@
+.reading-text {
+  --reading-text-kinovar-color: #804040;
+  --reading-text-text-color: #333;
+  --reading-text-background-color: var(--content-color-baige-1000);
+  --reading-text-h1-color: var(--content-color-black-primary);
+  --reading-text-subtitle-color: rgba(51, 51, 51, 0.6);
+
+  --reading-text-font-size: var(--mobile-main-text-regular-b2);
+  --reading-text-line-height: var(--mobile-main-text-regular-b2-line-height);
+
+  padding: 30px 24px 40px 24px;
+
+  font-size: var(--reading-text-font-size);
+  line-height: var(--reading-text-line-height);
+  background-color: var(--reading-text-background-color);
+  color: var(--reading-text-text-color);
+  text-align: justify;
+  hyphens: manual;
+
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    text-align: left;
+    hyphens: none;
+  }
+
+  h1 {
+    font-weight: 700;
+    font-size: var(--mobile-heading-h3);
+    line-height: var(--mobile-heading-h3-line-height);
+    margin: 0 0 20px 0;
+  }
+
+  h2 {
+    font-weight: 700;
+    font-size: 1.1em;
+    line-height: 1.4em;
+    margin: 0 0 15px 0;
+  }
+
+  h3 {
+    font-weight: 700;
+    font-size: var(--reading-text-font-size);
+    line-height: var(--reading-text-line-height);
+    margin: 0 0 15px 0;
+  }
+
+  p {
+    margin: 15px 0;
+  }
+
+  &.prayer-text {
+    padding: 16px 24px;
+
+    .subtitle {
+      font-size: var(--mobile-main-text-regular-b3);
+      line-height: var(--mobile-main-text-regular-b3-line-height);
+      text-align: center;
+      color: var(--reading-text-subtitle-color);
+      margin-bottom: 10px;
+    }
+
+    h1 {
+      margin-bottom: 30px;
+    }
+
+    h1,
+    h2,
+    h3,
+    h4 {
+      color: var(--reading-text-kinovar-color);
+      text-align: center;
+    }
+
+    h2,
+    h3,
+    h4,
+    h5,
+    h6 {
+      font-weight: 400;
+      text-align: center;
+    }
+
+    h4,
+    h5 {
+      font-size: var(--reading-text-font-size);
+    }
+
+    h6 {
+      font-size: 0.8em;
+      margin: 0.2em 0 0 1em;
+    }
+
+    p:first-letter {
+      color: var(--reading-text-kinovar-color);
+    }
+
+    strong,
+    b {
+      font-weight: 400;
+      color: var(--reading-text-kinovar-color);
+    }
+
+    blockquote {
+      margin: 15px 0;
+      font-size: var(--mobile-main-text-regular-b3-italic);
+      line-height: var(--mobile-main-text-regular-b3-italic-line-height);
+      opacity: 0.8;
+    }
+  }
+
+  &.theme-light {
+    --reading-text-kinovar-color: #804040;
+    --reading-text-text-color: #333;
+    --reading-text-background-color: var(--content-color-white-100);
+    --reading-text-h1-color: var(--content-color-black-primary);
+    --reading-text-subtitle-color: var(--content-color-black-600);
+  }
+
+  &.theme-sepia {
+    --reading-text-kinovar-color: #807866;
+    --reading-text-text-color: #807c73;
+    --reading-text-background-color: #f2ebda;
+    --reading-text-h1-color: var(--reading-text-text-color);
+    --reading-text-subtitle-color: rgba(128, 124, 115, 0.6);
+  }
+
+  &.theme-sepia-contrast {
+    --reading-text-kinovar-color: #806d40;
+    --reading-text-text-color: #333;
+    --reading-text-background-color: #f2ebda;
+    --reading-text-h1-color: var(--reading-text-text-color);
+    --reading-text-subtitle-color: rgba(51, 51, 51, 0.6);
+  }
+
+  &.theme-grey {
+    --reading-text-kinovar-color: #804040;
+    --reading-text-text-color: #333;
+    --reading-text-background-color: var(--content-color-baige-1000);
+    --reading-text-h1-color: var(--content-color-black-primary);
+    --reading-text-subtitle-color: rgba(51, 51, 51, 0.6);
+  }
+
+  &.theme-cream {
+    --reading-text-kinovar-color: #804f40;
+    --reading-text-text-color: #333;
+    --reading-text-background-color: #f2e5da;
+    --reading-text-h1-color: var(--reading-text-text-color);
+    --reading-text-subtitle-color: rgba(51, 51, 51, 0.6);
+  }
+
+  &.theme-yellow {
+    --reading-text-kinovar-color: #404a80;
+    --reading-text-text-color: #333;
+    --reading-text-background-color: #f2f0da;
+    --reading-text-h1-color: var(--reading-text-text-color);
+    --reading-text-subtitle-color: rgba(51, 51, 51, 0.6);
+  }
+}
+
+.dark {
+  .reading-text {
+    --reading-text-kinovar-color: #cc8f8f;
+    --reading-text-text-color: var(--content-color-baige-1000);
+    --reading-text-background-color: var(--content-color-black-primary);
+    --reading-text-h1-color: var(--content-color-white-100);
+    --reading-text-subtitle-color: var(--content-color-baige-600);
+  }
+}

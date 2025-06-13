@@ -49,7 +49,7 @@ export const useReadingHistoryStore = defineStore("readingHistory", {
     updateProgress(
       id: string,
       progress: number,
-      pages: number,
+      pages?: number,
       type: ReadingType = "prayers"
     ) {
       const existingItem = this.history.find((item) => item.id === id);
@@ -57,13 +57,13 @@ export const useReadingHistoryStore = defineStore("readingHistory", {
       if (existingItem) {
         this.snapshot = { ...existingItem };
         existingItem.progress = progress;
-        existingItem.pages = pages;
+        if (pages !== undefined) existingItem.pages = pages;
         existingItem.lastReadAt = new Date();
       } else {
         this.history.push({
           id,
           progress,
-          pages,
+          pages: pages ?? 0,
           type,
           lastReadAt: new Date(),
         });
@@ -71,7 +71,7 @@ export const useReadingHistoryStore = defineStore("readingHistory", {
     },
 
     resetProgress(id: string) {
-      this.updateProgress(id, 0, 0);
+      this.updateProgress(id, 0);
     },
 
     undoResetProgress() {
@@ -80,8 +80,6 @@ export const useReadingHistoryStore = defineStore("readingHistory", {
       if (!item) return;
 
       item.progress = this.snapshot.progress;
-      item.pages = this.snapshot.pages;
-      item.lastReadAt = new Date();
     },
   },
 });

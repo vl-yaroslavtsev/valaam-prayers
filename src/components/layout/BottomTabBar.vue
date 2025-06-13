@@ -1,5 +1,5 @@
 <template>
-  <f7-toolbar tabbar icons bottom class="bottom-menu">
+  <f7-toolbar tabbar icons bottom class="bottom-menu" ref="toolbar">
     <f7-link tab-link="#view-home" tab-link-active
       ><HomeIcon :color="getColor('home')"></HomeIcon>
     </f7-link>
@@ -29,12 +29,22 @@ import BooksIcon from "../icons/BooksIcon.vue";
 import CalendarIcon from "../icons/CalendarIcon.vue";
 import MolitvoslovIcon from "../icons/MolitvoslovIcon.vue";
 import RitesIcon from "../icons/RitesIcon.vue";
+import { useComponentsStore, Toolbar } from "@/stores/components";
+import { onMounted, useTemplateRef } from "vue";
 
 const { activeTab } = defineProps<{
   activeTab: string;
 }>();
 
 const getColor = (tab: string) => (activeTab === tab ? "white" : "baige-600");
+const { register } = useComponentsStore();
+
+const toolbarRef = useTemplateRef<Toolbar >("toolbar");
+
+onMounted(() => {
+  register('toolbar', toolbarRef.value);
+})
+
 </script>
 
 <style scoped lang="less">
