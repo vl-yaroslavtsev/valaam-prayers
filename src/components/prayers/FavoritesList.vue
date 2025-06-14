@@ -1,6 +1,6 @@
 <template>
   <f7-list
-    :class="`prayers ${cssClass}`"
+    :class="`prayers ${cssClass} favorites-list`"
     :sortable="sortable"
     :sortable-tap-hold="sortable"
     :sortable-enabled="isSortableMode"
@@ -13,7 +13,7 @@
         v-for="item in items"
         :key="item.id"
         :title="item.name"
-        :link="item.url"
+        :link="isSortableMode ? undefined : item.url"
         :data-id="item.id"
       >
         <template #root-start>
@@ -175,5 +175,9 @@ const { showUndoToast: showUndoResetToast } = useUndoToast({
   position: absolute;
   width: 100%;
   z-index: -1;
+}
+
+.favorites-list :deep(.item-link) {
+  --f7-touch-ripple-color: transparent;
 }
 </style>
