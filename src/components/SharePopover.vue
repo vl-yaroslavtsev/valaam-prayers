@@ -8,7 +8,9 @@
     <f7-list>
       <f7-list-item title="ВКонтакте" @click="shareToVK">
         <template #media>
-          <VkIcon
+          <SvgIcon
+            icon="vk"
+            :size="32"
             :color="isDarkMode ? 'baige-1000' : 'black-primary'"
             :border-color="isDarkMode ? 'baige-300' : 'black-200'"
           />
@@ -16,7 +18,9 @@
       </f7-list-item>
       <f7-list-item title="Одноклассники" @click="shareToOK">
         <template #media>
-          <OdnovlassnikiIcon
+          <SvgIcon
+            icon="odnoklassniki"
+            :size="32"
             :color="isDarkMode ? 'baige-1000' : 'black-primary'"
             :border-color="isDarkMode ? 'baige-300' : 'black-200'"
           />
@@ -24,7 +28,9 @@
       </f7-list-item>
       <f7-list-item title="WhatsApp" @click="shareToWhatsApp">
         <template #media>
-          <WhatsappIcon
+          <SvgIcon
+            icon="whatsapp"
+            :size="32"
             :color="isDarkMode ? 'baige-1000' : 'black-primary'"
             :border-color="isDarkMode ? 'baige-300' : 'black-200'"
           />
@@ -32,7 +38,9 @@
       </f7-list-item>
       <f7-list-item title="Telegram" @click="shareToTelegram">
         <template #media>
-          <TelegramIcon
+          <SvgIcon
+            icon="telegram"
+            :size="32"
             :color="isDarkMode ? 'baige-1000' : 'black-primary'"
             :border-color="isDarkMode ? 'baige-300' : 'black-200'"
           />
@@ -47,7 +55,9 @@
         @click="copyLink"
       >
         <template #media>
-          <ChainIcon
+          <SvgIcon
+            icon="chain"
+            :size="32"
             :color="isDarkMode ? 'baige-1000' : 'black-primary'"
             :border-color="isDarkMode ? 'baige-300' : 'black-200'"
           />
@@ -64,11 +74,7 @@ import { Popover, Toast } from "framework7/types";
 import { f7 } from "framework7-vue";
 import { useTheme } from "@/composables/useTheme";
 
-import VkIcon from "@/components/icons/VkIcon.vue";
-import OdnovlassnikiIcon from "@/components/icons/OdnovlassnikiIcon.vue";
-import WhatsappIcon from "@/components/icons/WhatsappIcon.vue";
-import TelegramIcon from "@/components/icons/TelegramIcon.vue";
-import ChainIcon from "@/components/icons/ChainIcon.vue";
+import SvgIcon from "@/components/SvgIcon.vue";
 
 interface ShareItem {
   title: string;

@@ -13,12 +13,12 @@
         v-for="item in items"
         :key="item.id"
         :title="item.name"
-        :link="isSortableMode ? undefined : item.url"
+        :link="isSortableMode ? 'javascript:void(0)' : item.url"
         :data-id="item.id"
       >
         <template #root-start>
           <f7-link class="delete-handler" @click="deleteItem(item)">
-            <DeleteIcon color="primary-accent-50" />
+            <SvgIcon icon="delete" color="primary-accent-50" />
           </f7-link>
         </template>
         <template #inner>
@@ -29,17 +29,17 @@
         </template>
         <f7-swipeout-actions right v-if="!isSortableMode">
           <f7-swipeout-button close @click="shareItem(item, $event)">
-            <ShareIcon :color="isDarkMode ? 'baige-900' : 'black-600'" />
+            <SvgIcon icon="share" :color="isDarkMode ? 'baige-900' : 'black-600'" />
           </f7-swipeout-button>
           <f7-swipeout-button
             close
             @click="resetItem(item)"
             v-if="item.progress && item.pages"
           >
-            <ResetIcon :color="isDarkMode ? 'baige-900' : 'black-600'"
+            <SvgIcon icon="reset" :color="isDarkMode ? 'baige-900' : 'black-600'"
           /></f7-swipeout-button>
           <f7-swipeout-button @click="deleteItem(item)">
-            <DeleteIcon color="primary-accent-50" />
+            <SvgIcon icon="delete" color="primary-accent-50" />
           </f7-swipeout-button>
         </f7-swipeout-actions>
       </f7-list-item>
@@ -53,14 +53,12 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watchEffect, computed } from "vue";
+import { ref, watchEffect, computed, watch } from "vue";
 import { f7 } from "framework7-vue";
 import { useTheme } from "@/composables/useTheme";
 import { useUndoToast } from "@/composables/useUndoToast";
 
-import DeleteIcon from "@/components/icons/DeleteIcon.vue";
-import ResetIcon from "@/components/icons/ResetIcon.vue";
-import ShareIcon from "@/components/icons/ShareIcon.vue";
+import SvgIcon from "@/components/SvgIcon.vue";
 import LanguageBadges from "./LanguageBadges.vue";
 import SharePopover from "@/components/SharePopover.vue";
 import PrayersListProgress from "./PrayersListProgress.vue";

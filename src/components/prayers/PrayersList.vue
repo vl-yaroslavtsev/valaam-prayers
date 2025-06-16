@@ -26,26 +26,22 @@
       </template>
       <f7-swipeout-actions right>
         <f7-swipeout-button close @click="shareItem(item, $event)">
-          <ShareIcon :color="isDarkMode ? 'baige-900' : 'black-600'" />
+          <SvgIcon icon="share" :color="isDarkMode ? 'baige-900' : 'black-600'" />
         </f7-swipeout-button>
         <f7-swipeout-button
           close
           v-if="item.progress && item.pages"
           @click="resetItem(item)"
         >
-          <ResetIcon :color="isDarkMode ? 'baige-900' : 'black-600'"
-        /></f7-swipeout-button>
+          <SvgIcon :color="isDarkMode ? 'baige-900' : 'black-600'" icon="reset" />
+        </f7-swipeout-button>
         <f7-swipeout-button
           close
           v-if="!isSection(item.id, item.url)"
           @click="toggleFavorite(item)"
         >
-          <FavoriteFillIcon
-            v-if="isFavorite(item.id)"
-            :size="27"
-            color="primary-accent-50"
-          />
-          <FavoriteIcon v-else :size="27" color="primary-accent-50" />
+          <SvgIcon v-if="isFavorite(item.id)" icon="favorite-fill" :size="27" color="primary-accent-50" />
+          <SvgIcon v-else icon="favorite" :size="27" color="primary-accent-50" />
         </f7-swipeout-button>
       </f7-swipeout-actions>
     </f7-list-item>
@@ -65,14 +61,10 @@ import { f7 } from "framework7-vue";
 import { useTheme } from "@/composables/useTheme";
 import { useUndoToast } from "@/composables/useUndoToast";
 
-import ResetIcon from "@/components/icons/ResetIcon.vue";
-import ShareIcon from "@/components/icons/ShareIcon.vue";
-import FavoriteFillIcon from "@/components/icons/FavoriteFillIcon.vue";
-import FavoriteIcon from "@/components/icons/FavoriteIcon.vue";
-
 import LanguageBadges from "./LanguageBadges.vue";
 import SharePopover from "@/components/SharePopover.vue";
 import PrayersListProgress from "./PrayersListProgress.vue";
+import SvgIcon from "@/components/SvgIcon.vue";
 
 import { usePrayersStore } from "@/stores/prayers";
 import { useFavoritesStore } from "@/stores/favorites";

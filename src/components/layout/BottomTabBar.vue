@@ -1,34 +1,29 @@
 <template>
   <f7-toolbar tabbar icons bottom class="bottom-menu" ref="toolbar">
     <f7-link tab-link="#view-home" tab-link-active
-      ><HomeIcon :color="getColor('home')"></HomeIcon>
-    </f7-link>
+      ><SvgIcon icon="home" :color="getColor('home')" :size="48"/></f7-link>
 
     <f7-link tab-link="#view-prayers">
-      <MolitvoslovIcon :color="getColor('prayers')"></MolitvoslovIcon>
+      <SvgIcon icon="molitvoslov" :color="getColor('prayers')" :size="48"/>
     </f7-link>
 
     <f7-link tab-link="#view-calendar">
-      <CalendarIcon :color="getColor('calendar')"></CalendarIcon>
+      <SvgIcon icon="calendar" :color="getColor('calendar')" :size="48"/>
     </f7-link>
 
     <f7-link tab-link="#view-books">
-      <BooksIcon :color="getColor('books')"></BooksIcon>
+      <SvgIcon icon="books" :color="getColor('books')" :size="48"/>
     </f7-link>
 
     <f7-link tab-link="#view-rites">
-      <RitesIcon :color="getColor('rites')"></RitesIcon>
+      <SvgIcon icon="rites" :color="getColor('rites')" :size="48"/>
     </f7-link>
   </f7-toolbar>
 </template>
 
 <script setup lang="ts">
 // Импорт всех SVG иконок
-import HomeIcon from "../icons/HomeIcon.vue";
-import BooksIcon from "../icons/BooksIcon.vue";
-import CalendarIcon from "../icons/CalendarIcon.vue";
-import MolitvoslovIcon from "../icons/MolitvoslovIcon.vue";
-import RitesIcon from "../icons/RitesIcon.vue";
+import SvgIcon from "@/components/SvgIcon.vue";
 import { useComponentsStore, Toolbar } from "@/stores/components";
 import { onMounted, useTemplateRef } from "vue";
 

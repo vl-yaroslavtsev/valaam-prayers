@@ -6,22 +6,22 @@
           <f7-list class="list-panel">
             <f7-list-item title="О МОНАСТЫРЕ" link="#">
               <template #media>
-                <AboutIcon :color="iconColor" />
+                <SvgIcon icon="about" :color="iconColor" />
               </template>
             </f7-list-item>
             <f7-list-item title="ПОМЯННИК" link="#">
               <template #media>
-                <PrayIcon :color="iconColor" />
+                <SvgIcon icon="pray" :color="iconColor" />
               </template>
             </f7-list-item>
             <f7-list-item title="МОИ ЗАПИСКИ" link="#">
               <template #media>
-                <NotesIcon :color="iconColor" />
+                <SvgIcon icon="notes" :color="iconColor" />
               </template>
             </f7-list-item>
             <f7-list-item title="НАПОМИНАНИЯ" link="#">
               <template #media>
-                <AlarmIcon :color="iconColor" />
+                <SvgIcon icon="alarm" :color="iconColor" />
               </template>
             </f7-list-item>
             <!-- view="#view-home"
@@ -33,23 +33,23 @@
               panel-close
             >
               <template #media>
-                <SettingsIcon :color="iconColor" />
+                <SvgIcon icon="settings" :color="iconColor" />
               </template>
             </f7-list-item>
             <f7-list-item title="О ПРИЛОЖЕНИИ" link="#">
               <template #media>
-                <InfoIcon :color="iconColor" />
+                <SvgIcon icon="info" :color="iconColor" />
               </template>
             </f7-list-item>
             <f7-list-item title="ПОИСК" link="#">
               <template #media>
-                <SearchIcon :color="iconColor" />
+                <SvgIcon icon="search" :color="iconColor" />
               </template>
             </f7-list-item>
           </f7-list>
           <SeparatorLine :color="isDarkMode ? 'baige-100' : 'black-100'" />
           <div class="logo">
-            <ValaamLogo :color="isDarkMode ? 'white' : 'black-primary'" />
+            <SvgIcon icon="valaam-logo" :size="42" :color="iconColor" />
           </div>
 
           <f7-block class="app-version">
@@ -65,15 +65,8 @@
 </template>
 
 <script setup lang="ts">
-import AboutIcon from "../icons/AboutIcon.vue";
-import AlarmIcon from "../icons/AlarmIcon.vue";
-import InfoIcon from "../icons/InfoIcon.vue";
-import NotesIcon from "../icons/NotesIcon.vue";
-import PrayIcon from "../icons/PrayIcon.vue";
-import SettingsIcon from "../icons/SettingsIcon.vue";
-import SearchIcon from "../icons/SearchIcon.vue";
+import SvgIcon from "@/components/SvgIcon.vue";
 import SeparatorLine from "../SeparatorLine.vue";
-import ValaamLogo from "../icons/ValaamLogo.vue";
 
 import { f7 } from "framework7-vue";
 import { computed } from "vue";

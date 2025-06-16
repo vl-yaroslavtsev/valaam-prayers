@@ -16,6 +16,8 @@
       <div class="subtitle display-none">{{ subtitle }}</div>
       <h1>{{ title }}</h1>
       <div v-html="text"></div>
+
+      <!-- <swiper-container init="false"></swiper-container> -->
     </f7-page-content>
   </f7-page>
 </template>
@@ -89,5 +91,24 @@ const onPageContentClick = () => {
   }
   isNavbarHidden = !isNavbarHidden;
 };
+
+
+
+ // swiper element
+//  const swiperEl = document.querySelector('swiper-container');
+
+// // swiper parameters
+// const swiperParams = {
+//   virtual: {
+//     // virtual slides
+//     slides: ['Slide 1', 'Slide 2', 'Slide 3'],
+//   },
+// };
+
+// // assign all parameters to Swiper element
+// Object.assign(swiperEl, swiperParams);
+
+// // and now initialize it
+// swiperEl.initialize();
 </script>
 <style scoped lang="less"></style>

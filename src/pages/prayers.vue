@@ -26,7 +26,7 @@
       >
         <template #input-wrap-end>
           <span class="input-clear-button custom-button">
-            <CancelIcon color="baige-300" />
+            <SvgIcon icon="cancel" color="baige-300" />
           </span>
         </template>
       </f7-searchbar>
@@ -55,7 +55,7 @@ import type { Router, Searchbar } from "framework7/types";
 
 import BurgerIcon from "/icons/burger.svg?raw";
 import { PrayersList } from "@/components/prayers";
-import CancelIcon from "@/components/icons/CancelIcon.vue";
+import SvgIcon from "@/components/SvgIcon.vue";
 import SeparatorLine from "@/components/SeparatorLine.vue";
 import HistorySlider from "@/components/HistorySlider.vue";
 

@@ -3,13 +3,17 @@
     <!-- Top Navbar -->
     <f7-navbar>
       <f7-nav-left>
-        <f7-link panel-open="left" v-html="BurgerIcon"></f7-link>
+        <f7-link panel-open="left">
+          <SvgIcon icon="burger" :size="32" />
+        </f7-link>
       </f7-nav-left>
       <f7-nav-title></f7-nav-title>
       <f7-nav-right>
         <f7-link @click="toggleSortable"
-          ><PencilIcon
+          ><SvgIcon
+            icon="pencil"
             :color="sortableEnabled ? 'primary-accent-50' : 'baige-900'"
+            :size="24"
         /></f7-link>
       </f7-nav-right>
     </f7-navbar>
@@ -60,9 +64,8 @@ import { useFavoritesStore, type FavoriteType } from "@/stores/favorites";
 import { usePrayersStore } from "@/stores/prayers";
 import { useReadingHistoryStore } from "@/stores/readingHistory";
 
-import BurgerIcon from "/icons/burger.svg?raw";
+import SvgIcon from "@/components/SvgIcon.vue";
 import SeparatorLine from "@/components/SeparatorLine.vue";
-import PencilIcon from "@/components/icons/PencilIcon.vue";
 import { FavoritesList } from "@/components/prayers";
 
 const { isDarkMode } = useTheme();
