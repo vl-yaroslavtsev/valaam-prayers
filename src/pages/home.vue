@@ -17,7 +17,7 @@
         /></f7-link>
       </f7-nav-right>
     </f7-navbar>
-    <f7-toolbar position="top" tabbar scrollable>
+    <f7-toolbar position="top" tabbar>
       <f7-link
         v-for="(tab, index) in tabs"
         :key="tab.id"
@@ -60,7 +60,7 @@
 <script setup lang="ts">
 import { ref } from "vue";
 import { useTheme } from "@/composables/useTheme";
-import { useFavoritesStore, type FavoriteType } from "@/stores/favorites";
+import { useFavoritesStore, type FavoriteType, type FavoritesItem } from "@/stores/favorites";
 import { usePrayersStore } from "@/stores/prayers";
 import { useReadingHistoryStore } from "@/stores/readingHistory";
 
@@ -75,30 +75,43 @@ const favoritesStore = useFavoritesStore();
 const prayersStore = usePrayersStore();
 const historyStore = useReadingHistoryStore();
 
+type TabType = "prayers" | "books" | "calendar";
+
 const tabs = ref<
   {
     id: number;
     title: string;
-    type: FavoriteType;
+    type: TabType;
   }[]
 >([
   { id: 1, title: "Молитвы", type: "prayers" },
-  { id: 2, title: "Библия", type: "bible" },
-  { id: 3, title: "Книги", type: "books" },
-  { id: 4, title: "Святые", type: "saints" },
-  { id: 5, title: "Мысли", type: "thoughts" },
+  { id: 2, title: "Книги", type: "books" },
+  { id: 3, title: "Календарь", type: "calendar" },
 ]);
 
 // Используем методы из store
-const getFavoritesByType = (type: FavoriteType) =>
-  favoritesStore.getFavoritesByType(type).map((f) => {
+const getFavoritesByType = (tabType: TabType) => {
+  let favorites: FavoritesItem[] = [];
+  if (tabType === "books") {
+    favorites = favoritesStore.getFavoritesByType("books");
+
+  } else if (tabType === "prayers") {
+    favorites = favoritesStore.getFavoritesByType("prayers");
+
+  } else if (tabType === "calendar") {
+    favorites = favoritesStore.getFavoritesByType("saints");
+    favorites = favorites.concat(favoritesStore.getFavoritesByType("thoughts"));
+
+  }
+  return favorites.map((f) => {
+    const type = f.type;
     const history = historyStore.getItemProgress(f.id);
     let extra = {
       name: "",
       url: "",
     };
 
-    if (["books", "prayers", "bible"].includes(type)) {
+    if (["books", "prayers"].includes(type)) {
       extra = prayersStore.getItemById(f.id) ?? extra;
     } else if (type === "saints") {
       extra.url = "/saints/" + f.id;
@@ -113,6 +126,7 @@ const getFavoritesByType = (type: FavoriteType) =>
       name: extra.name || f.name,
     };
   });
+};
 
 const onDeleteItem = favoritesStore.deleteFavorite;
 const onUndoDeleteItem = favoritesStore.undoDeleteFavorite;
@@ -138,9 +152,9 @@ const onSorted = (id: string, from: number, to: number) => {
 
 // ужасный хак! Без него неправильно рассчитывается ширина tab-link-highlight
 // при первой загрузке, т.к. шрифты еще не успели подгрузиться
-.tabbar {
-  .tab-link:first-child {
-    width: 113px;
-  }
-}
+// .tabbar {
+//   .tab-link:first-child {
+//     width: 113px;
+//   }
+// }
 </style>

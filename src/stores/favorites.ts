@@ -6,8 +6,7 @@ export type FavoriteType =
   | "prayers"
   | "books"
   | "saints"
-  | "thoughts"
-  | "bible";
+  | "thoughts";
 
 export interface FavoritesItem {
   id: string;
