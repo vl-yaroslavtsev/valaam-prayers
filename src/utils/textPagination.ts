@@ -19,7 +19,7 @@
  * ```
  */
 
-import { measureMemory } from "vm";
+
 
 export interface Slide {
   id: number | string;
@@ -28,7 +28,7 @@ export interface Slide {
 
 // Функция для создания временного элемента для измерения высоты
 const createMeasureElement = (
-  maxHeight: number,
+  width: number,
   cssClasses?: string
 ): HTMLElement => {
   const element = document.createElement("div");
@@ -39,12 +39,12 @@ const createMeasureElement = (
   element.style.visibility = "hidden";
   element.style.top = "-9999px";
   element.style.left = "0";
-  element.style.width = "100%";
+  element.style.width = `${width}px`;
   element.style.height = "auto";
   // element.style.maxHeight = `${maxHeight}px`;
   element.style.boxSizing = "border-box";
   element.style.overflow = "hidden";
-  element.style.wordBreak = "break-word";
+  // element.style.wordBreak = "break-word";
   element.style.whiteSpace = "normal";
   document.body.appendChild(element);
   return element;
@@ -61,6 +61,19 @@ const getPageHeight = (container?: HTMLElement): number => {
   return paginatorContainer
     ? paginatorContainer.clientHeight
     : window.innerHeight;
+};
+
+
+const getPageWidth = (container?: HTMLElement): number => {
+  if (container) {
+    return Math.round(container.clientWidth);
+  }
+  const paginatorContainer = document.querySelector(
+    ".text-paginator"
+  ) as HTMLElement;
+  return paginatorContainer
+    ? Math.round(paginatorContainer.clientWidth)
+    : Math.round(window.innerWidth);
 };
 
 // Функция для получения реальной доступной высоты с учетом стилей
@@ -198,7 +211,12 @@ const splitTextNode = (
   }
 
   while (currentHeight > maxHeight && mid > 0) {
-    container.innerHTML = originalText.substring(0, --mid);
+    const testText = originalText.substring(0, --mid);
+    // Восстанавливаем исходное содержимое и добавляем тестовый текст
+    container.innerHTML = originalContent;
+    const testNode = document.createTextNode(testText);
+    container.appendChild(testNode);
+
     currentHeight = container.scrollHeight;
     console.log("splitTextNode: fixHeight: currentHeight", currentHeight);
   }
@@ -228,11 +246,13 @@ const splitTextNode = (
   const fittedText = originalText.substring(0, bestFit);
   const lastSpaceIndex = fittedText.lastIndexOf(" ");
 
-  let splitIndex = bestFit;
-  if (lastSpaceIndex > bestFit * 0.8) {
+  // let splitIndex = bestFit;
+  // if (lastSpaceIndex > bestFit * 0.8) {
     // Если пробел не слишком далеко от конца
-    splitIndex = lastSpaceIndex + 1;
-  }
+    // splitIndex = lastSpaceIndex + 1;
+  // }
+
+  const splitIndex = lastSpaceIndex + 1;
 
   const fitted = document.createTextNode(originalText.substring(0, splitIndex));
   const remaining = document.createTextNode(originalText.substring(splitIndex));
@@ -244,7 +264,8 @@ const splitTextNode = (
 const splitElement = (
   element: HTMLElement,
   maxHeight: number,
-  measureEl: HTMLElement
+  measureEl: HTMLElement,
+  doClearMeasureEl: boolean = true
 ): {
   fitted: HTMLElement | null;
   remaining: HTMLElement | null;
@@ -253,10 +274,18 @@ const splitElement = (
 
   // Заголовки не разбиваем - они должны помещаться целиком или переноситься на новую страницу
   if (["h1", "h2", "h3", "h4", "h5", "h6"].includes(tagName)) {
-    measureEl.innerHTML = "";
-    measureEl.appendChild(cloneElement(element));
+    if (doClearMeasureEl) {
+      measureEl.innerHTML = "";
+    }
+    
+    const clone = cloneElement(element);
+    measureEl.appendChild(clone);
+    const scrollHeight = measureEl.scrollHeight;
+    if (!doClearMeasureEl) {
+      measureEl.removeChild(clone);
+    }
 
-    if (measureEl.scrollHeight <= maxHeight) {
+    if (scrollHeight <= maxHeight) {      
       return { fitted: element, remaining: null };
     } else {
       // Заголовок не помещается - возвращаем как remaining для переноса на новую страницу
@@ -266,28 +295,42 @@ const splitElement = (
 
   // Ссылки тоже стараемся не разбивать
   if (tagName === "a") {
-    measureEl.innerHTML = "";
-    measureEl.appendChild(cloneElement(element));
+    if (doClearMeasureEl) {
+      measureEl.innerHTML = "";
+    }
 
-    if (measureEl.scrollHeight <= maxHeight) {
+    const clone = cloneElement(element);
+    measureEl.appendChild(clone);
+    const scrollHeight = measureEl.scrollHeight;
+    if (!doClearMeasureEl) {
+      measureEl.removeChild(clone);
+    }
+    
+    if (scrollHeight <= maxHeight) {
       return { fitted: element, remaining: null };
     } else {
       return { fitted: null, remaining: element };
     }
   }
 
-  // Для небольших элементов (strong, em, b, i) тоже стараемся не разбивать
-  // if (['strong', 'em', 'b', 'i'].includes(tagName)) {
-  //   measureEl.innerHTML = '';
-  //   measureEl.appendChild(cloneElement(element));
-
-  //   if (measureEl.scrollHeight <= maxHeight) {
-  //     return { fitted: element, remaining: null };
-  //   }
-  //   // Если не помещается, пытаемся разбить содержимое
-  // }
-
- 
+  // Для небольших элементов (strong, em, b, i) тоже стараемся не разбивать, но если не помещаются - разбиваем
+  if (['strong', 'em', 'b', 'i'].includes(tagName)) {
+    if (doClearMeasureEl) {
+      measureEl.innerHTML = '';
+    }
+    
+    const clone = cloneElement(element);
+    measureEl.appendChild(clone);
+    const scrollHeight = measureEl.scrollHeight;
+    if (!doClearMeasureEl) {
+      measureEl.removeChild(clone);
+    }
+    
+    if (scrollHeight <= maxHeight) {
+      return { fitted: element, remaining: null };
+    }
+    // Если не помещается, пытаемся разбить содержимое (продолжаем выполнение)
+  }
 
   // Для остальных элементов пытаемся разбить содержимое
   const fittedElement = cloneElement(element);
@@ -296,10 +339,12 @@ const splitElement = (
   fittedElement.innerHTML = "";
   remainingElement.innerHTML = "";
 
-  measureEl.innerHTML = "";
+  if (doClearMeasureEl) {
+    measureEl.innerHTML = "";
+  }
   measureEl.appendChild(fittedElement);
 
-  const baseHeight = measureEl.scrollHeight;
+  // const baseHeight = measureEl.scrollHeight;
 
   let hasContent = false;
   let hasRemaining = false;
@@ -326,15 +371,23 @@ const splitElement = (
       if (remaining) {
         remainingElement.appendChild(remaining);
         hasRemaining = true;
+        
+        // Добавляем все оставшиеся элементы в remaining
+        const siblings = Array.from(element.childNodes);
+        const currentIndex = siblings.indexOf(child);
+        for (let i = currentIndex + 1; i < siblings.length; i++) {
+          remainingElement.appendChild(siblings[i].cloneNode(true));
+        }
         break;
       }
     } else if (child.nodeType === Node.ELEMENT_NODE) {
       const childElement = child as HTMLElement;
-      const availableSpace = maxHeight - (measureEl.scrollHeight - baseHeight);
+      const availableSpace = maxHeight; // - baseHeight;
       const { fitted, remaining } = splitElement(
         childElement,
         availableSpace,
-        measureEl
+        fittedElement, 
+        false
       );
 
       if (fitted) {
@@ -360,7 +413,9 @@ const splitElement = (
   // Если ничего не поместилось, но элемент небольшой, принудительно помещаем его
   if (!hasContent && !hasRemaining) {
     // Проверяем размер исходного элемента
-    measureEl.innerHTML = "";
+    if (doClearMeasureEl) {
+      measureEl.innerHTML = "";
+    }
     measureEl.appendChild(cloneElement(element));
     const elementHeight = measureEl.scrollHeight;
 
@@ -396,16 +451,9 @@ export const paginateText = (
   cssClasses?: string
 ): Slide[] => {
   const slides: Slide[] = [];
-  const containerHeight = getPageHeight(container);
-  const pageHeight = getAvailableHeight(container, cssClasses);
-  console.log(
-    "containerHeight",
-    containerHeight,
-    "availableHeight",
-    pageHeight
-  );
-  const measureEl = createMeasureElement(containerHeight, cssClasses);
-  const maxAllowedHeight = containerHeight; //measureEl.clientHeight; // Константа для оптимизации
+  const pageWidth = getPageWidth(container);
+  const measureEl = createMeasureElement(pageWidth, cssClasses);
+  const maxAllowedHeight = getPageHeight(container); //measureEl.clientHeight; // Константа для оптимизации
   const styles = getStyles(measureEl);
   debugger;
   const startTime = Date.now();
@@ -484,12 +532,7 @@ export const paginateText = (
             continue;
           }
 
-          // if (!wouldFit && currentPageContent.length > 0) {
-          //   // Текст не помещается, но на странице уже есть контент - завершаем страницу
-          //   console.log('Text would not fit, finalizing current page');
-          //   finalizePage();
-          //   continue; // Попробуем на новой странице
-          // }
+          // Убираем логику переноса текста целиком - всегда пытаемся разбить
 
           // Текст не помещается целиком, пытаемся разбить
           const { fitted, remaining } = splitTextNode(
@@ -551,12 +594,7 @@ export const paginateText = (
           const wouldFit = measureEl.scrollHeight <= maxAllowedHeight;
           measureEl.removeChild(testElement);
 
-          // if (!wouldFit && currentPageContent.length > 0) {
-          //   // Элемент не помещается, но на странице уже есть контент - завершаем страницу
-          //   console.log(`Element ${remainingElement.tagName} would not fit, finalizing current page`);
-          //   finalizePage();
-          //   continue; // Попробуем на новой странице
-          // }
+          // Убираем логику переноса элементов целиком - всегда пытаемся разбить
 
           // Если элемент помещается целиком, добавляем его
           if (wouldFit) {
@@ -685,59 +723,4 @@ export const estimatePageCount = (
   document.body.removeChild(tempDiv);
 
   return Math.ceil(totalHeight / pageHeight);
-};
-
-/**
- * Функция для отладки - показывает информацию о размерах контейнера
- *
- * @param container - Контейнер для анализа (опционально)
- * @param cssClasses - CSS-классы для анализа (опционально)
- */
-export const debugContainerSizes = (
-  container?: HTMLElement,
-  cssClasses?: string
-): void => {
-  const containerHeight = getPageHeight(container);
-  const availableHeight = getAvailableHeight(container, cssClasses);
-
-  console.log("=== Container Size Debug ===");
-  console.log("Container height:", containerHeight);
-  console.log("Available height for content:", availableHeight);
-  console.log("Padding/border overhead:", containerHeight - availableHeight);
-  console.log("Applied CSS classes:", cssClasses);
-
-  if (container) {
-    const rect = container.getBoundingClientRect();
-    console.log("Container dimensions:", {
-      width: rect.width,
-      height: rect.height,
-      clientHeight: container.clientHeight,
-      scrollHeight: container.scrollHeight,
-    });
-  }
-};
-
-/**
- * Включает/выключает отладочные логи
- */
-let debugMode = true;
-
-export const setDebugMode = (enabled: boolean): void => {
-  debugMode = enabled;
-};
-
-const debugLog = (...args: any[]): void => {
-  if (debugMode) {
-    console.log(...args);
-  }
-};
-
-const debugWarn = (...args: any[]): void => {
-  if (debugMode) {
-    console.warn(...args);
-  }
-};
-
-const debugError = (...args: any[]): void => {
-  console.error(...args); // Ошибки всегда показываем
 };
