@@ -56,9 +56,24 @@ export default async () => {
       rollupOptions: {
         treeshake: true,
         output: {
-          manualChunks: {
-            vue: ["vue"],
-            f7: ["framework7", "framework7-vue"],
+          manualChunks: (id) => {
+            // Vue
+            if (id.includes('node_modules/vue')) {
+              return 'vue';
+            }
+            // Framework7
+            if (id.includes('node_modules/framework7')) {
+              return 'f7';
+            }
+            // SVG иконки
+            if (id.includes('/icons/') && id.includes('.svg?raw')) {
+              return 'svg-icons';
+            }
+
+            // // 
+            // if (id.includes('/test-data/')) {
+            //   return 'test-data';
+            // }
           },
         },
       },

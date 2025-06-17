@@ -10,14 +10,14 @@
       <f7-nav-right><f7-link icon-md="f7:search" /></f7-nav-right>
     </f7-navbar>
     <f7-page-content
-      class="reading-text prayer-text theme-grey"
+      class=""
       @click="onPageContentClick"
     >
-      <div class="subtitle display-none">{{ subtitle }}</div>
-      <h1>{{ title }}</h1>
-      <div v-html="text"></div>
-
-      <!-- <swiper-container init="false"></swiper-container> -->
+      <TextPaginator 
+        :mode="'horizontal'"
+        :text="text" 
+        ref="textPaginator"
+      />
     </f7-page-content>
   </f7-page>
 </template>
@@ -31,6 +31,7 @@ import { useTheme } from "@/composables/useTheme";
 import { usePrayersStore, BOOKS_SECTION_ID } from "@/stores/prayers";
 import { useReadingHistoryStore } from "@/stores/readingHistory";
 import { useComponentsStore } from "@/stores/components";
+import TextPaginator from "@/components/TextPaginator.vue";
 
 const { elementId, f7router } = defineProps<{
   elementId: string;
@@ -67,7 +68,7 @@ watchEffect(async () => {
   } catch (error) {
     text.value = "Данные не найдены";
   }
-})();
+});
 
 const { toolbar } = useComponentsStore();
 
@@ -92,23 +93,7 @@ const onPageContentClick = () => {
   isNavbarHidden = !isNavbarHidden;
 };
 
-
-
- // swiper element
-//  const swiperEl = document.querySelector('swiper-container');
-
-// // swiper parameters
-// const swiperParams = {
-//   virtual: {
-//     // virtual slides
-//     slides: ['Slide 1', 'Slide 2', 'Slide 3'],
-//   },
-// };
-
-// // assign all parameters to Swiper element
-// Object.assign(swiperEl, swiperParams);
-
-// // and now initialize it
-// swiperEl.initialize();
+const textPaginator = useTemplateRef("textPaginator");
 </script>
-<style scoped lang="less"></style>
+<style scoped lang="less">
+</style>
