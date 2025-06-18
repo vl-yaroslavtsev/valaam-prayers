@@ -83,7 +83,7 @@ import { ref, onMounted } from "vue";
 import { f7, f7ready } from "framework7-vue";
 
 import routes from "../js/routes";
-import viewsManager from "../js/views-manager";
+import viewsManager from "../js/viewsManager";
 import deviceAPI from "../js/device/device-api";
 import { useTheme } from "@/composables/useTheme";
 import BottomTabBar from "./layout/BottomTabBar.vue";

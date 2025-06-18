@@ -4,7 +4,7 @@ import HomePage from "../pages/home.vue";
 import AboutPage from "../pages/about.vue";
 import FormPage from "../pages/form.vue";
 import PrayersPage from "../pages/prayers.vue";
-import PrayersTextPage from "../pages/prayers-text.vue";
+import PrayersTextPage from "../pages/prayersText.vue";
 import CalendarPage from "../pages/calendar.vue";
 import DayPage from "../pages/day.vue";
 import RitesPage from "../pages/rites.vue";

@@ -1,6 +1,6 @@
-# Модуль разбиения текста на страницы (textPagination)
+# Модуль обработки текста (text-processing)
 
-Модуль для разбиения HTML-текста на страницы как в читалке. Поддерживает различные HTML-теги и умное разбиение больших элементов между страницами.
+Модуль для обработки текста, включающий пагинацию HTML-текста и утилиты для работы с текстом. Поддерживает различные HTML-теги и умное разбиение больших элементов между страницами.
 
 ## Возможности
 
@@ -17,7 +17,7 @@
 ### Базовое использование
 
 ```typescript
-import { paginateText } from '@/utils/textPagination';
+import { paginateText } from '@/text-processing';
 
 const htmlText = `
   <h2>Заголовок</h2>
@@ -49,7 +49,7 @@ pages.forEach((page, index) => {
 
 <script setup lang="ts">
 import { ref, computed, watchEffect } from 'vue';
-import { paginateText, type Slide } from '@/utils/textPagination';
+import { paginateText, type Slide } from '@/text-processing';
 
 const props = defineProps<{
   text: string;
@@ -84,7 +84,9 @@ const prevPage = () => {
 
 ## API
 
-### `paginateText(html: string, container?: HTMLElement): Slide[]`
+### Функции пагинации
+
+#### `paginateText(html: string, container?: HTMLElement): Slide[]`
 
 Основная функция для разбиения HTML-текста на страницы.
 
@@ -94,7 +96,7 @@ const prevPage = () => {
 
 **Возвращает:** Массив объектов `Slide` с разбитым по страницам контентом.
 
-### `calculateOptimalPageSize(container: HTMLElement): number`
+#### `calculateOptimalPageSize(container: HTMLElement): number`
 
 Вычисляет оптимальный размер страницы для контейнера.
 
@@ -103,7 +105,7 @@ const prevPage = () => {
 
 **Возвращает:** Высота страницы в пикселях.
 
-### `estimatePageCount(html: string, container?: HTMLElement): number`
+#### `estimatePageCount(html: string, container?: HTMLElement): number`
 
 Приблизительно оценивает количество страниц для данного HTML-текста.
 
@@ -113,7 +115,29 @@ const prevPage = () => {
 
 **Возвращает:** Приблизительное количество страниц.
 
-### Интерфейс `Slide`
+### Утилиты для работы с текстом
+
+#### `stripHtmlTags(html: string): string`
+Удаляет HTML-теги из строки, возвращая только текстовое содержимое.
+
+#### `endsWithLetter(str: string): boolean`
+Проверяет, заканчивается ли строка на букву (поддерживает кириллицу и латиницу).
+
+#### `startsWithLetter(str: string): boolean`
+Проверяет, начинается ли строка с буквы (поддерживает кириллицу и латиницу).
+
+#### `getLastWord(text: string): string`
+Извлекает последнее слово из текста.
+
+#### `moveLastWordBetweenElements(fromElement: HTMLElement, toElement: HTMLElement): boolean`
+Переносит последнее слово из одного HTML элемента в начало другого. Работает с сложной DOM структурой, сохраняя теги.
+
+#### `getTextNodes(element: HTMLElement): Text[]`
+Получает все текстовые узлы из HTML элемента рекурсивно.
+
+### Интерфейсы
+
+#### Интерфейс `Slide`
 
 ```typescript
 interface Slide {

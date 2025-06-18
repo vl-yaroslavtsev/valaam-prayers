@@ -30,7 +30,7 @@ import {
   estimatePageCount,
   paginateText,
   type Slide,
-} from "@/utils/textPagination";
+} from "@/text-processing";
 
 const { text, mode = "horizontal" } = defineProps<{
   mode?: "vertical" | "horizontal";
