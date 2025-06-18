@@ -66,7 +66,7 @@ export default async () => {
               return 'f7';
             }
             // SVG иконки
-            if (id.includes('/icons/') && id.includes('.svg?raw')) {
+            if (id.includes('/assets/icons/') && id.includes('.svg?raw')) {
               return 'svg-icons';
             }
 
