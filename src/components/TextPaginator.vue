@@ -3,9 +3,9 @@
     class="text-paginator"
     ref="swiper"
     :virtual="{
-      slides: slides,
-      renderExternal,
+      slides: [],
     }"
+    height="100%"
     :direction="mode"
     :freeMode="mode === 'vertical'"
     :speed="300"
@@ -20,90 +20,72 @@
       },
     }"
   >
-    <swiper-slide
-      class="text-paginator-slide"
-      v-for="slide in swData.slides"
-      :key="slide.id"
-      :style="mode === 'horizontal' ? `left: ${swData.offset}px;` : `top: ${swData.offset}px;`"
-    >
-      <div class="text-page reading-text prayer-text theme-grey">
-        <div v-html="slide.content"></div>
-      </div>
-    </swiper-slide>
   </swiper-container>
 </template>
 
 <script setup lang="ts">
-import { ref, useTemplateRef, watchEffect, nextTick } from "vue";
+import { ref, useTemplateRef, watchEffect, nextTick, onMounted } from "vue";
 import type { SwiperContainer } from "swiper/element";
-import { estimatePageCount, paginateText, type Slide } from "@/utils/textPagination";
+import {
+  estimatePageCount,
+  paginateText,
+  type Slide,
+} from "@/utils/textPagination";
 
-interface SwiperData {
-  slides: Slide[];
-  offset: number;
-}
-
-const { text, mode = 'horizontal' } = defineProps<{
-  mode?: 'vertical' | 'horizontal';
+const { text, mode = "horizontal" } = defineProps<{
+  mode?: "vertical" | "horizontal";
   text: string;
 }>();
 
-const swData = ref<SwiperData>({
-  slides: [],
-  offset: 0,
-});
+const swiperRef = useTemplateRef<SwiperContainer>("swiper");
 
-const renderExternal = (data: SwiperData) => {
-  swData.value = data;
+const updateSlides = (slides: Slide[]) => {
+  const template = `<div class="text-page reading-text prayer-text theme-grey">$content</div>`;
+
+  const swiper = swiperRef.value?.swiper;
+  if (!swiper) {
+    return;
+  }
+
+  swiper.virtual.slides = slides.map((slide) =>
+    template.replace("$content", slide.content)
+  );
+  swiper.virtual.update(true);
 };
-
-// Создаем слайды из текста
-const slides = ref<Slide[]>([]);
-
-const swiper = useTemplateRef<SwiperContainer>("swiper");
 
 watchEffect(() => {
   if (text) {
-    const container = document.querySelector('.text-paginator') as HTMLElement;
-    const cssClasses = 'text-page reading-text prayer-text';
-    console.log('estimating pages: ', estimatePageCount(text, container, cssClasses));
-    console.time('paginateText');
+    const container = document.querySelector(".text-paginator") as HTMLElement;
+    const cssClasses = "text-page reading-text prayer-text";
+    console.log(
+      "estimating pages: ",
+      estimatePageCount(text, container, cssClasses)
+    );
+    console.time("paginateText");
     const paginatedSlides = paginateText(text, container, cssClasses);
-    slides.value = paginatedSlides;
-    console.timeEnd('paginateText');
+    console.timeEnd("paginateText");
 
-    console.log('paginatedSlides', paginatedSlides);
-    
-    // Обновляем swiper с новыми слайдами
-    nextTick(() => {
-      if (swiper.value?.swiper) {
-        swiper.value.swiper.virtual.slides = paginatedSlides;
-        swiper.value.swiper.virtual.update(true);
-      }
-    });
+    updateSlides(paginatedSlides);
   }
 });
 
 watchEffect(() => {
-  if (swiper.value) {
-    console.log('TextPaginator swiper initialized:', swiper.value);
+  if (swiperRef.value) {
+    console.log("TextPaginator swiper initialized:", swiperRef.value);
   }
 });
 
 // Expose swiper instance for parent component
 defineExpose({
-  swiper,
+  swiper: swiperRef,
   goToSlide: (index: number) => {
-    if (swiper.value?.swiper) {
-      swiper.value.swiper.slideTo(index);
+    if (swiperRef.value?.swiper) {
+      swiperRef.value.swiper.slideTo(index);
     }
   },
   getCurrentSlide: () => {
-    return swiper.value?.swiper?.activeIndex || 0;
+    return swiperRef.value?.swiper?.activeIndex || 0;
   },
-  getTotalSlides: () => {
-    return slides.value.length;
-  }
 });
 </script>
 
@@ -114,10 +96,6 @@ defineExpose({
   left: 0;
   height: 100%;
   width: 100%;
-}
-
-.text-paginator-slide {
-  transition-duration: 0.3s;
 }
 
 :global(.text-page) {
@@ -134,4 +112,4 @@ defineExpose({
     --page-border-color: var(--content-color-baige-100);
   }
 }
-</style> 
+</style>

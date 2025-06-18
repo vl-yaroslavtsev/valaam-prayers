@@ -594,8 +594,6 @@ export const paginateText = (
           const wouldFit = measureEl.scrollHeight <= maxAllowedHeight;
           measureEl.removeChild(testElement);
 
-          // Убираем логику переноса элементов целиком - всегда пытаемся разбить
-
           // Если элемент помещается целиком, добавляем его
           if (wouldFit) {
             console.log(

@@ -53,7 +53,7 @@
 import { ref, computed, useTemplateRef, onMounted } from "vue";
 import type { Router, Searchbar } from "framework7/types";
 
-import BurgerIcon from "/icons/burger.svg?raw";
+import BurgerIcon from "@/assets/icons/burger.svg?raw";
 import { PrayersList } from "@/components/prayers";
 import SvgIcon from "@/components/SvgIcon.vue";
 import SeparatorLine from "@/components/SeparatorLine.vue";
