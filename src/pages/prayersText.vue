@@ -11,12 +11,13 @@
     </f7-navbar>
     <f7-page-content
       class=""
-      @click="onPageContentClick"
+     
     >
       <TextPaginator 
-        :mode="'horizontal'"
+        :mode="'vertical'"
         :text="text" 
         ref="textPaginator"
+        @tap="onTextPaginatorTap"
       />
     </f7-page-content>
   </f7-page>
@@ -82,7 +83,7 @@ const onPageAfterOut = () => {
   toolbar?.show(true);
 };
 
-const onPageContentClick = () => {
+const toggleNavbar = () => {
   if (!navbarRef.value) return;
 
   if (isNavbarHidden) {
@@ -94,6 +95,13 @@ const onPageContentClick = () => {
 };
 
 const textPaginator = useTemplateRef("textPaginator");
+
+const onTextPaginatorTap = (type: "center" | "left" | "right" | "top" | "bottom", x: number, y: number) => {
+  console.log("onTextPaginatorTap", type, x, y);
+  if (type === "center") {
+    toggleNavbar();
+  }
+};
 </script>
 <style scoped lang="less">
 </style>

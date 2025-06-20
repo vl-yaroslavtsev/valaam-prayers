@@ -25,11 +25,6 @@ import {
   moveLastWordBetweenElements,
 } from "./textUtils";
 
-export interface Slide {
-  id: number | string;
-  content: string;
-}
-
 // Кэш для хранения вычисленных значений
 interface PaginationCache {
   pageWidth: number;
@@ -491,7 +486,7 @@ export const paginateText = (
   html: string,
   container?: HTMLElement,
   cssClasses?: string
-): Slide[] => {
+): string[] => {
   const startTime = performance.now();
 
   // Проверяем кэш
@@ -522,7 +517,7 @@ export const paginateText = (
     document.body.removeChild(measureEl);
   }
 
-  const slides: Slide[] = [];
+  const pages: string[] = [];
   const measureEl = createMeasureElement(pageWidth, cssClasses);
   const maxAllowedHeight = cache.pageHeight;
 
@@ -548,10 +543,7 @@ export const paginateText = (
         const pageDiv = document.createElement("div");
         pageDiv.appendChild(fragment);
 
-        slides.push({
-          id: pageIndex++,
-          content: pageDiv.innerHTML,
-        });
+        pages.push(pageDiv.innerHTML);
         currentPageContent = [];
       }
     };
@@ -735,7 +727,7 @@ export const paginateText = (
     );
   }
 
-  return slides.length > 0 ? slides : [{ id: 0, content: "" }];
+  return pages.length > 0 ? pages : [""];
 };
 
 /**
