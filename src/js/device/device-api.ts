@@ -15,7 +15,9 @@ const browserAPI: DeviceAPI = {
   resetBrightness() {},
 
   async getTheme() {
-    return window.matchMedia('(prefers-color-scheme: dark)').matches ? "dark" : "light";
+    return window.matchMedia("(prefers-color-scheme: dark)").matches
+      ? "dark"
+      : "light";
   },
 
   showStatusBar(visibility: boolean) {},
@@ -29,12 +31,26 @@ const browserAPI: DeviceAPI = {
   onVolumeKey(handler: (keyCode: number, event: any) => void) {},
   offVolumeKey() {},
 
-  async addCalendarEvent(event: CalendarEvent | CalendarEvent[]): Promise<CalendarEventResponse> {
-    return { isSuccess: false, errorDescription: "", id: "", hasPermissions: false};
+  async addCalendarEvent(
+    event: CalendarEvent | CalendarEvent[]
+  ): Promise<CalendarEventResponse> {
+    return {
+      isSuccess: false,
+      errorDescription: "",
+      id: "",
+      hasPermissions: false,
+    };
   },
 
-  async deleteCalendarEvent(id: string | string[]): Promise<CalendarEventResponse> {
-    return { isSuccess: false, errorDescription: "", id: "", hasPermissions: false};
+  async deleteCalendarEvent(
+    id: string | string[]
+  ): Promise<CalendarEventResponse> {
+    return {
+      isSuccess: false,
+      errorDescription: "",
+      id: "",
+      hasPermissions: false,
+    };
   },
 
   async hasCalendarPermissions(): Promise<boolean> {
@@ -46,15 +62,14 @@ const browserAPI: DeviceAPI = {
   },
 
   setWebViewVisible(visible: boolean) {},
-  
-  setStatusBarTextColor(color: 'light' | 'dark') {},
+
+  setStatusBarTextColor(color: "light" | "dark") {},
 
   setNavigationBarColor(color: string) {},
 
   openNotificationsSettings() {},
 
   openCalendarSettings() {},
-
 };
 
 const isAndroid = "androidJsHandler" in window;
