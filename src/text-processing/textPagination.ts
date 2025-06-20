@@ -30,6 +30,35 @@ export interface Slide {
   content: string;
 }
 
+// Кэш для хранения вычисленных значений
+interface PaginationCache {
+  pageWidth: number;
+  pageHeight: number;
+  availableHeight: number;
+  styles: {
+    [key: string]: {
+      marginTop: number;
+      marginBottom: number;
+      lineHeight: number;
+    };
+  };
+  cssClasses: string;
+  containerKey: string;
+}
+
+const paginationCache = new Map<string, PaginationCache>();
+
+// Функция для создания ключа кэша
+const createCacheKey = (
+  container?: HTMLElement,
+  cssClasses?: string
+): string => {
+  const containerKey = container
+    ? `${container.clientWidth}x${container.clientHeight}`
+    : `${window.innerWidth}x${window.innerHeight}`;
+  return `${containerKey}_${cssClasses || "default"}`;
+};
+
 // Функция для создания временного элемента для измерения высоты
 const createMeasureElement = (
   width: number,
@@ -39,17 +68,21 @@ const createMeasureElement = (
   if (cssClasses) {
     element.className = cssClasses;
   }
-  element.style.position = "absolute";
-  element.style.visibility = "hidden";
-  element.style.top = "-9999px";
-  element.style.left = "0";
-  element.style.width = `${width}px`;
-  element.style.height = "auto";
-  // element.style.maxHeight = `${maxHeight}px`;
-  element.style.boxSizing = "border-box";
-  element.style.overflow = "hidden";
-  // element.style.wordBreak = "break-word";
-  element.style.whiteSpace = "normal";
+
+  // Оптимизированные стили для измерения
+  Object.assign(element.style, {
+    position: "absolute",
+    visibility: "hidden",
+    top: "-9999px",
+    left: "0",
+    width: `${width}px`,
+    height: "auto",
+    boxSizing: "border-box",
+    overflow: "hidden",
+    whiteSpace: "normal",
+    contain: "layout style", // Оптимизация для браузера
+  });
+
   document.body.appendChild(element);
   return element;
 };
@@ -79,11 +112,16 @@ const getPageWidth = (container?: HTMLElement): number => {
     : Math.round(window.innerWidth);
 };
 
-// Функция для получения реальной доступной высоты с учетом стилей
+//Оптимизированная функция для получения реальной доступной высоты с кэшированием
 const getAvailableHeight = (
   container?: HTMLElement,
-  cssClasses?: string
+  cssClasses?: string,
+  cache?: PaginationCache
 ): number => {
+  if (cache && cache.availableHeight > 0) {
+    return cache.availableHeight;
+  }
+
   const containerHeight = getPageHeight(container);
 
   // Создаем временный элемент для измерения реальных отступов
@@ -91,14 +129,18 @@ const getAvailableHeight = (
   if (cssClasses) {
     testElement.className = cssClasses;
   }
-  testElement.style.position = "absolute";
-  testElement.style.visibility = "hidden";
-  testElement.style.top = "-9999px";
-  testElement.style.width = "100%";
-  testElement.style.height = `${containerHeight}px`;
-  testElement.style.boxSizing = "border-box";
-  testElement.innerHTML = "<p>Test content</p>";
 
+  Object.assign(testElement.style, {
+    position: "absolute",
+    visibility: "hidden",
+    top: "-9999px",
+    width: "100%",
+    height: `${containerHeight}px`,
+    boxSizing: "border-box",
+    contain: "layout style",
+  });
+
+  testElement.innerHTML = "<p>Test content</p>";
   document.body.appendChild(testElement);
 
   // Получаем доступную высоту для контента
@@ -111,23 +153,15 @@ const getAvailableHeight = (
   const availableHeight =
     containerHeight - paddingTop - paddingBottom - borderTop - borderBottom;
 
-  console.log("Height calculation:", {
-    containerHeight,
-    paddingTop,
-    paddingBottom,
-    borderTop,
-    borderBottom,
-    availableHeight,
-  });
-
   document.body.removeChild(testElement);
 
   return Math.max(availableHeight, 100); // Минимум 100px
 };
 
-// Функция для получения отступов элемента
+// Оптимизированная функция для получения стилей с кэшированием
 const getStyles = (
-  measureEl: HTMLElement
+  measureEl: HTMLElement,
+  cache?: PaginationCache
 ): {
   [key: string]: {
     marginTop: number;
@@ -135,6 +169,10 @@ const getStyles = (
     lineHeight: number;
   };
 } => {
+  if (cache && cache.styles) {
+    return cache.styles;
+  }
+
   const styles: {
     [key: string]: {
       marginTop: number;
@@ -142,17 +180,32 @@ const getStyles = (
       lineHeight: number;
     };
   } = {};
-  ["H1", "H2", "H3", "H4", "H5", "H6", "P", "BLOCKQUOTE"].forEach((tagName) => {
+  const tags = ["H1", "H2", "H3", "H4", "H5", "H6", "P", "BLOCKQUOTE"];
+
+  // Батчевое создание элементов для измерения
+  const fragment = document.createElement("div");
+  const elements: { [key: string]: HTMLElement } = {};
+
+  tags.forEach((tagName) => {
     const element = document.createElement(tagName);
-    measureEl.innerHTML = "";
-    measureEl.appendChild(element);
-    const computedStyle = window.getComputedStyle(element);
-    const marginTop = parseFloat(computedStyle.marginTop || "0");
-    const marginBottom = parseFloat(computedStyle.marginBottom || "0");
-    const lineHeight = parseFloat(computedStyle.lineHeight || "0");
-    styles[tagName] = { marginTop, marginBottom, lineHeight };
+    elements[tagName] = element;
+    fragment.appendChild(element);
   });
 
+  measureEl.appendChild(fragment);
+
+  // Батчевое получение стилей
+  tags.forEach((tagName) => {
+    const element = elements[tagName];
+    const computedStyle = window.getComputedStyle(element);
+    styles[tagName] = {
+      marginTop: parseFloat(computedStyle.marginTop || "0"),
+      marginBottom: parseFloat(computedStyle.marginBottom || "0"),
+      lineHeight: parseFloat(computedStyle.lineHeight || "0"),
+    };
+  });
+
+  measureEl.removeChild(fragment);
   return styles;
 };
 
@@ -168,16 +221,13 @@ const cloneElement = (element: HTMLElement): HTMLElement => {
   return element.cloneNode(true) as HTMLElement;
 };
 
-// Функция для разбиения текстового узла
+// Оптимизированная функция для разбиения текстового узла
 const splitTextNode = (
   textNode: Text,
   container: HTMLElement,
   maxHeight: number,
   measureEl: HTMLElement
-): {
-  fitted: Text | null;
-  remaining: Text | null;
-} => {
+): { fitted: Text | null; remaining: Text | null } => {
   const originalText = textNode.textContent || "";
   if (!originalText.trim()) {
     return { fitted: textNode, remaining: null };
@@ -185,31 +235,44 @@ const splitTextNode = (
 
   // Сохраняем исходное содержимое контейнера
   const originalContent = container.innerHTML;
+  // const originalScrollHeight = measureEl.scrollHeight;
 
-  // Бинарный поиск для нахождения максимального количества символов
+  // Быстрая проверка - помещается ли весь текст
+  const testNode = document.createTextNode(originalText);
+  container.appendChild(testNode);
+  const fullTextHeight = measureEl.scrollHeight;
+
+  if (fullTextHeight <= maxHeight) {
+    container.removeChild(testNode);
+    container.innerHTML = originalContent;
+    return { fitted: textNode, remaining: null };
+  }
+
+  container.removeChild(testNode);
+
+  // Оптимизированный бинарный поиск с меньшим количеством DOM-операций
   let left = 0;
   let right = originalText.length;
   let bestFit = 0;
   let iterations = 0;
-  let mid = 0;
-  let currentHeight = 0;
+  const maxIterations = Math.min(
+    20,
+    Math.ceil(Math.log2(originalText.length)) + 5
+  );
 
-  while (left <= right && iterations < 50) {
-    // Защита от бесконечного цикла
+  let currentHeight = 0;
+  let mid = 0;
+  while (left <= right && iterations < maxIterations) {
     iterations++;
     mid = Math.floor((left + right) / 2);
     const testText = originalText.substring(0, mid);
 
-    // Восстанавливаем исходное содержимое и добавляем тестовый текст
-    container.innerHTML = originalContent;
-    const testNode = document.createTextNode(testText);
-    container.appendChild(testNode);
-
+    // Используем textContent вместо innerHTML для лучшей производительности
+    const tempNode = document.createTextNode(testText);
+    container.appendChild(tempNode);
     currentHeight = measureEl.scrollHeight;
+    container.removeChild(tempNode);
 
-    // console.log(`Binary search iteration ${iterations}: testing ${mid} chars, height ${currentHeight}/${containerHeight}`);
-
-    // Проверяем, помещается ли контент в контейнер
     if (currentHeight <= maxHeight) {
       bestFit = mid;
       left = mid + 1;
@@ -218,22 +281,16 @@ const splitTextNode = (
     }
   }
 
-  if (iterations >= 50) {
-    console.warn(
-      "Binary search exceeded maximum iterations, using current best fit:",
-      bestFit
-    );
-  }
-
   while (currentHeight > maxHeight && mid > 0) {
     const testText = originalText.substring(0, --mid);
-    // Восстанавливаем исходное содержимое и добавляем тестовый текст
-    container.innerHTML = originalContent;
-    const testNode = document.createTextNode(testText);
-    container.appendChild(testNode);
-
+    // Используем textContent вместо innerHTML для лучшей производительности
+    const tempNode = document.createTextNode(testText);
+    container.appendChild(tempNode);
     currentHeight = measureEl.scrollHeight;
-    console.log("splitTextNode: fixHeight: currentHeight", currentHeight);
+    container.removeChild(tempNode);
+    if (process.env.NODE_ENV === "development") {
+      console.log("splitTextNode: fixHeight: currentHeight", currentHeight);
+    }
   }
 
   // Восстанавливаем исходное содержимое
@@ -247,55 +304,63 @@ const splitTextNode = (
     return { fitted: textNode, remaining: null };
   }
 
-  // Попытаемся разбить по словам
+  // Оптимизированное разбиение по словам
   const fittedText = originalText.substring(0, bestFit);
   const lastSpaceIndex = fittedText.lastIndexOf(" ");
-  const splitIndex = lastSpaceIndex + 1;
 
-  const fitted = document.createTextNode(originalText.substring(0, splitIndex));
-  const remaining = document.createTextNode(originalText.substring(splitIndex));
+  // && lastSpaceIndex > bestFit * 0.8
+  if (lastSpaceIndex > 0 ) {
+    // Разбиваем по последнему пробелу, если он не слишком далеко от оптимального места
+    const splitIndex = lastSpaceIndex + 1;
+    return {
+      fitted: document.createTextNode(originalText.substring(0, splitIndex)),
+      remaining: document.createTextNode(originalText.substring(splitIndex)),
+    };
+  }
 
-  return { fitted, remaining };
+  // Иначе разбиваем по символам
+  return {
+    fitted: document.createTextNode(originalText.substring(0, bestFit)),
+    remaining: document.createTextNode(originalText.substring(bestFit)),
+  };
 };
 
-// Функция для разбиения элемента между страницами
+// Оптимизированная функция для разбиения элемента между страницами
 const splitElement = (
   element: HTMLElement,
   container: HTMLElement,
   maxHeight: number,
   measureEl: HTMLElement
-): {
-  fitted: HTMLElement | null;
-  remaining: HTMLElement | null;
-} => {
+): { fitted: HTMLElement | null; remaining: HTMLElement | null } => {
   const tagName = element.tagName.toLowerCase();
 
-  // Заголовки не разбиваем - они должны помещаться целиком или переноситься на новую страницу
-  if (["h1", "h2", "h3", "h4", "h5", "h6", "a", "br"].includes(tagName)) {
-    const clone = cloneElement(element);
-    container.appendChild(clone);
-    const scrollHeight = measureEl.scrollHeight;
-    container.removeChild(clone);
+  // Заголовки и небольшие элементы не разбиваем
+  const nonSplittableTags = ["h1", "h2", "h3", "h4", "h5", "h6", "a", "br"];
+  const smallTags = ["strong", "em", "b", "i"];
 
-    if (scrollHeight <= maxHeight) {
-      return { fitted: element, remaining: null };
-    } else {
-      // Заголовок не помещается - возвращаем как remaining для переноса на новую страницу
-      return { fitted: null, remaining: element };
-    }
+  if (nonSplittableTags.includes(tagName)) {
+    // Быстрая проверка без клонирования
+    const originalHeight = measureEl.scrollHeight;
+    container.appendChild(element);
+    const newHeight = measureEl.scrollHeight;
+    container.removeChild(element);
+
+    return newHeight <= maxHeight
+      ? { fitted: element, remaining: null }
+      : { fitted: null, remaining: element };
   }
 
-  // Для небольших элементов (strong, em, b, i) тоже стараемся не разбивать, но если не помещаются - разбиваем
-  if (["strong", "em", "b", "i"].includes(tagName)) {
-    const clone = cloneElement(element);
-    container.appendChild(clone);
-    const scrollHeight = measureEl.scrollHeight;
-    container.removeChild(clone);
+  // Для небольших элементов сначала пытаемся поместить целиком
+  if (smallTags.includes(tagName)) {
+    const originalHeight = measureEl.scrollHeight;
+    container.appendChild(element);
+    const newHeight = measureEl.scrollHeight;
+    container.removeChild(element);
 
-    if (scrollHeight <= maxHeight) {
+    if (newHeight <= maxHeight) {
       return { fitted: element, remaining: null };
     }
-    // Если не помещается, пытаемся разбить содержимое (продолжаем выполнение)
+    // Если не помещается, продолжаем с разбиением
   }
 
   // Для остальных элементов пытаемся разбить содержимое
@@ -312,7 +377,12 @@ const splitElement = (
   let hasContent = false;
   let hasRemaining = false;
 
-  for (const child of Array.from(element.childNodes)) {
+  // Оптимизированная обработка дочерних узлов
+  const childNodes = Array.from(element.childNodes);
+
+  for (let i = 0; i < childNodes.length; i++) {
+    const child = childNodes[i];
+
     if (child.nodeType === Node.TEXT_NODE) {
       const textNode = child as Text;
       if (!textNode.textContent?.trim()) {
@@ -337,10 +407,8 @@ const splitElement = (
         hasRemaining = true;
 
         // Добавляем все оставшиеся элементы в remaining
-        const siblings = Array.from(element.childNodes);
-        const currentIndex = siblings.indexOf(child);
-        for (let i = currentIndex + 1; i < siblings.length; i++) {
-          remainingElement.appendChild(siblings[i].cloneNode(true));
+        for (let j = i + 1; j < childNodes.length; j++) {
+          remainingElement.appendChild(childNodes[j].cloneNode(true));
         }
         break;
       }
@@ -359,21 +427,23 @@ const splitElement = (
       }
 
       if (remaining) {
-        // Если fitted заканчивается на букву, а remaining начинается на букву,
-        // переносим последнее слово из fitted в начало remaining
+        // Оптимизированная проверка переноса слов
+        const fittedText = fittedElement.textContent || "";
+        const remainingText = remaining.textContent || "";
+
         if (
-          endsWithLetter(fittedElement.textContent || "") &&
-          startsWithLetter(remaining.textContent || "")
+          fittedText &&
+          remainingText &&
+          endsWithLetter(fittedText) &&
+          startsWithLetter(remainingText)
         ) {
-          debugger;
-          const wordMoved = moveLastWordBetweenElements(
-            fittedElement,
-            remaining
-          );
-          if (wordMoved) {
-            console.log(
-              "Moved last word to avoid splitting words between pages"
-            );
+          try {
+            debugger;
+            moveLastWordBetweenElements(fittedElement, remaining);
+          } catch (e) {
+            if (process.env.NODE_ENV === "development") {
+              console.warn("Failed to move word between elements:", e);
+            }
           }
         }
 
@@ -381,10 +451,8 @@ const splitElement = (
         hasRemaining = true;
 
         // Добавляем все оставшиеся элементы в remaining
-        const siblings = Array.from(element.childNodes);
-        const currentIndex = siblings.indexOf(child);
-        for (let i = currentIndex + 1; i < siblings.length; i++) {
-          remainingElement.appendChild(siblings[i].cloneNode(true));
+        for (let j = i + 1; j < childNodes.length; j++) {
+          remainingElement.appendChild(childNodes[j].cloneNode(true));
         }
         break;
       }
@@ -393,18 +461,14 @@ const splitElement = (
 
   // Если ничего не поместилось, но элемент небольшой, принудительно помещаем его
   if (!hasContent && !hasRemaining) {
-    // Проверяем размер исходного элемента
+    const originalHeight = measureEl.scrollHeight;
     container.appendChild(cloneElement(element));
     const elementHeight = measureEl.scrollHeight;
+    container.removeChild(container.lastChild!);
 
-    console.log(
-      `Element ${element.tagName} height: ${elementHeight}, available: ${maxHeight}`
-    );
-
-    // Если элемент относительно небольшой, принудительно помещаем его
-    if (elementHeight <= maxHeight) {
+    // * 1.2
+    if (elementHeight <= maxHeight ) {
       // Позволяем превышение на 20%
-      console.warn(`Forcing element ${element.tagName} to fit despite size`);
       return { fitted: element, remaining: null };
     }
   }
@@ -428,14 +492,39 @@ export const paginateText = (
   container?: HTMLElement,
   cssClasses?: string
 ): Slide[] => {
-  const slides: Slide[] = [];
+  const startTime = performance.now();
+
+  // Проверяем кэш
+  const cacheKey = createCacheKey(container, cssClasses);
+  let cache = paginationCache.get(cacheKey);
+
   const pageWidth = getPageWidth(container);
+  const pageHeight = getPageHeight(container);
+
+  // Обновляем или создаем кэш
+  if (
+    !cache ||
+    cache.pageWidth !== pageWidth ||
+    cache.pageHeight !== pageHeight
+  ) {
+    const measureEl = createMeasureElement(pageWidth, cssClasses);
+
+    cache = {
+      pageWidth,
+      pageHeight,
+      availableHeight: getAvailableHeight(container, cssClasses),
+      styles: getStyles(measureEl),
+      cssClasses: cssClasses || "",
+      containerKey: cacheKey,
+    };
+
+    paginationCache.set(cacheKey, cache);
+    document.body.removeChild(measureEl);
+  }
+
+  const slides: Slide[] = [];
   const measureEl = createMeasureElement(pageWidth, cssClasses);
-  const maxAllowedHeight = getPageHeight(container); //measureEl.clientHeight; // Константа для оптимизации
-  const styles = getStyles(measureEl);
-  debugger;
-  const startTime = Date.now();
-  const maxProcessingTime = 30000; // 30 секунд максимум
+  const maxAllowedHeight = cache.pageHeight;
 
   try {
     const fragment = parseHTML(html);
@@ -450,17 +539,14 @@ export const paginateText = (
 
     const finalizePage = () => {
       if (currentPageContent.length > 0) {
-        const pageDiv = document.createElement("div");
+        // Оптимизированное создание страницы
+        const fragment = document.createDocumentFragment();
         currentPageContent.forEach((node) =>
-          pageDiv.appendChild(node.cloneNode(true))
+          fragment.appendChild(node.cloneNode(true))
         );
 
-        // Проверяем высоту созданной страницы
-        measureEl.innerHTML = pageDiv.innerHTML;
-        const actualPageHeight = measureEl.scrollHeight;
-        console.log(
-          `Page ${pageIndex + 1}: content height ${actualPageHeight}px, max allowed ${maxAllowedHeight}px`
-        );
+        const pageDiv = document.createElement("div");
+        pageDiv.appendChild(fragment);
 
         slides.push({
           id: pageIndex++,
@@ -470,31 +556,30 @@ export const paginateText = (
       }
     };
 
-    for (const element of elements) {
-      // Проверяем время выполнения
-      // if (Date.now() - startTime > maxProcessingTime) {
-      //   console.error('Text pagination exceeded maximum processing time, stopping');
-      //   break;
-      // }
+    // Оптимизированная обработка элементов
+    for (let elementIndex = 0; elementIndex < elements.length; elementIndex++) {
+      const element = elements[elementIndex];
 
       if (element.nodeType === Node.TEXT_NODE) {
         const textNode = element as Text;
         if (!textNode.textContent?.trim()) continue;
 
         let remainingText: Text | null = textNode;
-
         let textIterations = 0;
-        while (remainingText && textIterations < 1000) {
-          // Защита от бесконечного цикла
+        const maxTextIterations = 100; // Уменьшили лимит
+
+        while (remainingText && textIterations < maxTextIterations) {
           textIterations++;
-          // console.log(`Text iteration ${textIterations}, remaining text length: ${remainingText.textContent?.length || 0}`);
 
+          // Оптимизированное восстановление содержимого страницы
           measureEl.innerHTML = "";
+          const pageFragment = document.createDocumentFragment();
           currentPageContent.forEach((node) =>
-            measureEl.appendChild(node.cloneNode(true))
+            pageFragment.appendChild(node.cloneNode(true))
           );
+          measureEl.appendChild(pageFragment);
 
-          // Проверяем, поместится ли весь оставшийся текст
+          // Быстрая проверка - поместится ли весь оставшийся текст
           const testElement = document.createTextNode(
             remainingText.textContent || ""
           );
@@ -503,16 +588,12 @@ export const paginateText = (
           measureEl.removeChild(testElement);
 
           if (wouldFit) {
-            // Весь текст помещается, добавляем его целиком
-            console.log("All remaining text fits, adding to page");
             currentPageContent.push(remainingText);
             remainingText = null;
             continue;
           }
 
-          // Убираем логику переноса текста целиком - всегда пытаемся разбить
-
-          // Текст не помещается целиком, пытаемся разбить
+          // Разбиваем текст
           const { fitted, remaining } = splitTextNode(
             remainingText,
             measureEl,
@@ -520,105 +601,87 @@ export const paginateText = (
             measureEl
           );
 
-          // Проверяем, что мы действительно продвигаемся
+          // Проверка на бесконечный цикл
           if (
             remaining &&
             remaining.textContent === remainingText.textContent
           ) {
-            console.error(
-              "splitTextNode returned the same text, breaking to avoid infinite loop"
-            );
+            if (process.env.NODE_ENV === "development") {
+              console.error(
+                "splitTextNode returned the same text, breaking to avoid infinite loop"
+              );
+            }
             finalizePage();
             break;
           }
 
           if (fitted) {
             currentPageContent.push(fitted);
-            // console.log(`Added fitted text: ${fitted.textContent?.substring(0, 50)}...`);
           }
 
           if (remaining) {
-            // console.log(`Text remaining: ${remaining.textContent?.substring(0, 50)}...`);
             finalizePage();
             remainingText = remaining;
           } else {
-            // console.log('No remaining text');
             remainingText = null;
           }
         }
 
-        if (textIterations >= 1000) {
-          console.error(
-            "Text processing exceeded maximum iterations, breaking loop"
-          );
+        if (textIterations >= maxTextIterations) {
+          if (process.env.NODE_ENV === "development") {
+            console.error(
+              "Text processing exceeded maximum iterations, breaking loop"
+            );
+          }
           break;
         }
       } else if (element.nodeType === Node.ELEMENT_NODE) {
         let remainingElement: HTMLElement | null = element as HTMLElement;
-
         let elementIterations = 0;
-        while (remainingElement && elementIterations < 1000) {
-          // Защита от бесконечного цикла
+        const maxElementIterations = 50; // Уменьшили лимит
+
+        while (remainingElement && elementIterations < maxElementIterations) {
           elementIterations++;
-          // console.log(`Element iteration ${elementIterations}, element: ${remainingElement.tagName}`);
 
+          // Оптимизированное восстановление содержимого страницы
           measureEl.innerHTML = "";
+          const pageFragment = document.createDocumentFragment();
           currentPageContent.forEach((node) =>
-            measureEl.appendChild(node.cloneNode(true))
+            pageFragment.appendChild(node.cloneNode(true))
           );
+          measureEl.appendChild(pageFragment);
 
-          // Проверяем, поместится ли элемент целиком
+          // Быстрая проверка - поместится ли элемент целиком
           const testElement = cloneElement(remainingElement);
           measureEl.appendChild(testElement);
           const wouldFit = measureEl.scrollHeight <= maxAllowedHeight;
           measureEl.removeChild(testElement);
 
-          // Если элемент помещается целиком, добавляем его
           if (wouldFit) {
-            console.log(
-              `Element ${remainingElement.tagName} fits completely, adding to page`
-            );
             currentPageContent.push(remainingElement);
             remainingElement = null;
             continue;
           }
 
-          const {
-            marginTop = 0,
-            marginBottom = 0,
-            lineHeight = 0,
-          } = styles[remainingElement.tagName];
-          const availableHeight =
-            maxAllowedHeight -
-            marginTop -
-            marginBottom -
-            measureEl.scrollHeight;
+          // Быстрая проверка доступной высоты
+          const elementStyles = cache.styles[remainingElement.tagName];
+          if (elementStyles) {
+            const availableHeight =
+              maxAllowedHeight -
+              measureEl.scrollHeight -
+              elementStyles.marginTop -
+              elementStyles.marginBottom;
 
-          console.log(
-            "remainingElement",
-            remainingElement,
-            "availableHeight",
-            availableHeight,
-            "measureEl.scrollHeight",
-            measureEl.scrollHeight,
-            "marginTop",
-            marginTop,
-            "marginBottom",
-            marginBottom
-          );
-
-          if (lineHeight > 0 && availableHeight < lineHeight) {
-            console.log(
-              "Элемент точно не поместится, lineHeight",
-              lineHeight,
-              "availableHeight",
-              availableHeight
-            );
-            finalizePage();
-            continue;
+            if (
+              elementStyles.lineHeight > 0 &&
+              availableHeight < elementStyles.lineHeight
+            ) {
+              finalizePage();
+              continue;
+            }
           }
 
-          // Элемент не помещается, пытаемся разбить
+          // Разбиваем элемент
           const { fitted, remaining } = splitElement(
             remainingElement,
             measureEl,
@@ -626,11 +689,12 @@ export const paginateText = (
             measureEl
           );
 
-          // Если ничего не поместилось, но у нас пустая страница, принудительно добавляем элемент
           if (!fitted && !remaining && currentPageContent.length === 0) {
-            console.warn(
-              `No split possible for ${remainingElement.tagName}, forcing on empty page`
-            );
+            if (process.env.NODE_ENV === "development") {
+              console.warn(
+                `No split possible for ${remainingElement.tagName}, forcing on empty page`
+              );
+            }
             currentPageContent.push(remainingElement);
             remainingElement = null;
             continue;
@@ -638,23 +702,22 @@ export const paginateText = (
 
           if (fitted) {
             currentPageContent.push(fitted);
-            // console.log(`Added fitted element: ${fitted.tagName}`);
           }
 
           if (remaining) {
-            // console.log(`Element remaining: ${remaining.tagName}`);
             finalizePage();
             remainingElement = remaining;
           } else {
-            // console.log('No remaining element');
             remainingElement = null;
           }
         }
 
-        if (elementIterations >= 1000) {
-          console.error(
-            "Element processing exceeded maximum iterations, breaking loop"
-          );
+        if (elementIterations >= maxElementIterations) {
+          if (process.env.NODE_ENV === "development") {
+            console.error(
+              "Element processing exceeded maximum iterations, breaking loop"
+            );
+          }
           break;
         }
       }
@@ -665,7 +728,49 @@ export const paginateText = (
     document.body.removeChild(measureEl);
   }
 
+  const endTime = performance.now();
+  if (process.env.NODE_ENV === "development") {
+    console.log(
+      `Text pagination completed in ${(endTime - startTime).toFixed(2)}ms`
+    );
+  }
+
   return slides.length > 0 ? slides : [{ id: 0, content: "" }];
+};
+
+/**
+ * Очищает кэш пагинации
+ */
+export const clearPaginationCache = (): void => {
+  paginationCache.clear();
+};
+
+/**
+ * Инициализирует автоматическую очистку кэша при изменении размеров окна
+ */
+export const initPaginationCacheAutoCleanup = (): (() => void) => {
+  let timeoutId: number | null = null;
+
+  const handleResize = () => {
+    if (timeoutId) {
+      clearTimeout(timeoutId);
+    }
+
+    // Дебаунс для избежания частых очисток кэша
+    timeoutId = window.setTimeout(() => {
+      clearPaginationCache();
+    }, 300);
+  };
+
+  window.addEventListener("resize", handleResize);
+
+  // Возвращаем функцию для очистки слушателя
+  return () => {
+    if (timeoutId) {
+      clearTimeout(timeoutId);
+    }
+    window.removeEventListener("resize", handleResize);
+  };
 };
 
 /**
@@ -691,23 +796,44 @@ export const estimatePageCount = (
   container?: HTMLElement,
   cssClasses?: string
 ): number => {
+  const cacheKey = createCacheKey(container, cssClasses);
+  let cache = paginationCache.get(cacheKey);
+
+  if (!cache) {
+    const pageWidth = getPageWidth(container);
+    const measureEl = createMeasureElement(pageWidth, cssClasses);
+
+    cache = {
+      pageWidth,
+      pageHeight: getPageHeight(container),
+      availableHeight: getAvailableHeight(container, cssClasses),
+      styles: getStyles(measureEl),
+      cssClasses: cssClasses || "",
+      containerKey: cacheKey,
+    };
+
+    paginationCache.set(cacheKey, cache);
+    document.body.removeChild(measureEl);
+  }
+
   const tempDiv = document.createElement("div");
   tempDiv.innerHTML = html;
-  tempDiv.style.position = "absolute";
-  tempDiv.style.visibility = "hidden";
-  tempDiv.style.width = "100%";
-  tempDiv.style.boxSizing = "border-box";
+
+  Object.assign(tempDiv.style, {
+    position: "absolute",
+    visibility: "hidden",
+    width: "100%",
+    boxSizing: "border-box",
+    contain: "layout style",
+  });
 
   if (cssClasses) {
     tempDiv.className = cssClasses;
   }
 
   document.body.appendChild(tempDiv);
-
   const totalHeight = tempDiv.scrollHeight;
-  const pageHeight = getAvailableHeight(container, cssClasses);
-
   document.body.removeChild(tempDiv);
 
-  return Math.ceil(totalHeight / pageHeight);
+  return Math.ceil(totalHeight / cache.availableHeight);
 };

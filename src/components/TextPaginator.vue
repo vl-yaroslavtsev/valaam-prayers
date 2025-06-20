@@ -61,9 +61,7 @@ watchEffect(() => {
       "estimating pages: ",
       estimatePageCount(text, container, cssClasses)
     );
-    console.time("paginateText");
     const paginatedSlides = paginateText(text, container, cssClasses);
-    console.timeEnd("paginateText");
 
     updateSlides(paginatedSlides);
   }
