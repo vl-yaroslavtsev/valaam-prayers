@@ -24,13 +24,14 @@ import { ref, useTemplateRef, watchEffect, nextTick, onMounted } from "vue";
 import type { SwiperContainer } from "swiper/element";
 import type { Swiper } from "swiper";
 import {
-  estimatePageCount,
   paginateText,
 } from "@/text-processing";
 
 const { text, mode = "horizontal" } = defineProps<{
   mode?: "vertical" | "horizontal";
   text: string;
+  theme?: "light" | "dark" | "grey" | "sepia" | "sepia-contrast" | "cream" | "yellow";
+  lang?: "cs" | "cs-cf" | "ru";
 }>();
 
 // Events
@@ -155,10 +156,10 @@ watchEffect(() => {
     const cssClasses = "text-page reading-text prayer-text";
 
     swiperRect = container.getBoundingClientRect();
-    console.log(
-      "estimating pages: ",
-      estimatePageCount(text, container, cssClasses)
-    );
+    // console.log(
+    //   "estimating pages: ",
+    //   estimatePageCount(text, container, cssClasses)
+    // );
     const pages = paginateText(text, container, cssClasses);
 
     updateSlides(pages);

@@ -433,7 +433,7 @@ const splitElement = (
           startsWithLetter(remainingText)
         ) {
           try {
-            debugger;
+            // debugger;
             moveLastWordBetweenElements(fittedElement, remaining);
           } catch (e) {
             if (process.env.NODE_ENV === "development") {

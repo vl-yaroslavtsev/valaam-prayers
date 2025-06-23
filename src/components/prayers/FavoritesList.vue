@@ -5,6 +5,7 @@
     :sortable-tap-hold="sortable"
     :sortable-enabled="isSortableMode"
     @sortable:sort="onSortableSort"
+    @contextmenu="handleContextMenu"
   >
     <TransitionGroup name="favorite-item" tag="ul">
       <f7-list-item
@@ -15,6 +16,7 @@
         :title="item.name"
         :link="isSortableMode ? 'javascript:void(0)' : item.url"
         :data-id="item.id"
+        @contextmenu="handleContextMenu"
       >
         <template #root-start>
           <f7-link class="delete-handler" @click="deleteItem(item)">
@@ -150,6 +152,12 @@ const { showUndoToast: showUndoResetToast } = useUndoToast({
   },
 });
 
+// Добавляем обработчик контекстного меню
+const handleContextMenu = (e: Event) => {
+  // Предотвращаем показ нативного контекстного меню на мобильных устройствах
+  e.preventDefault();
+  return false;
+};
 
 </script>
 
