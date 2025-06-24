@@ -109,7 +109,7 @@ const f7params = {
   routes: routes,
 
   touch: {
-    tapHold: true,
+    tapHold: false,
   },
 } as const;
 

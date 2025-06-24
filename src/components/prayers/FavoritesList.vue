@@ -59,11 +59,13 @@ import { ref, watchEffect, computed, watch } from "vue";
 import { f7 } from "framework7-vue";
 import { useTheme } from "@/composables/useTheme";
 import { useUndoToast } from "@/composables/useUndoToast";
+import deviceAPI  from "@/js/device/device-api";
 
 import SvgIcon from "@/components/SvgIcon.vue";
 import LanguageBadges from "./LanguageBadges.vue";
 import SharePopover from "@/components/SharePopover.vue";
 import PrayersListProgress from "./PrayersListProgress.vue";
+import { usePageVisiblility } from "@/composables/usePageVisiblity";
 
 interface FavoriteListItem {
   id: string;
@@ -113,11 +115,24 @@ const onSortableSort = ({ from, to, el }: { from: number; to: number; el: HTMLEl
   emit("sorted", id, from, to);
 };
 
+const { isPageVisible } = usePageVisiblility();
+
 watchEffect(() => {
-  if (f7.params.touch) {
-    f7.params.touch.tapHold = !isSortableMode.value;
+  if (!f7.params.touch) {
+    return;
   }
+
+  if (isPageVisible.value) {
+    f7.params.touch.tapHold = !isSortableMode.value;
+    deviceAPI.setShouldHandleLongClick(f7.params.touch.tapHold);
+  } else {
+    f7.params.touch.tapHold = false;
+    deviceAPI.setShouldHandleLongClick(f7.params.touch.tapHold);
+  }
+
+  console.log('f7.params.touch.tapHold = ', f7.params.touch.tapHold);
 });
+
 
 const resetItem = (item: FavoriteListItem) => {
   emit("resetItemProgress", item.id);

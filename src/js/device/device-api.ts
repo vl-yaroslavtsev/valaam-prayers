@@ -70,6 +70,8 @@ const browserAPI: DeviceAPI = {
   openNotificationsSettings() {},
 
   openCalendarSettings() {},
+
+  setShouldHandleLongClick(shouldHandle: boolean) {},
 };
 
 const isAndroid = "androidJsHandler" in window;

@@ -457,6 +457,10 @@ const androidAPI: DeviceAPI = {
   openCalendarSettings(): void {
     androidHandler?.openSettings("settings");
   },
+
+  setShouldHandleLongClick(shouldHandle: boolean): void {
+    androidHandler?.setShouldHandleLongClick(shouldHandle);
+  },
 };
 
 export default androidAPI;

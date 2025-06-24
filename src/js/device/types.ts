@@ -90,6 +90,8 @@ export interface DeviceAPI {
   openNotificationsSettings(): void;
 
   openCalendarSettings(): void;
+
+  setShouldHandleLongClick(shouldHandle: boolean): void;
 }
 
 export interface AndroidHandler {
@@ -121,6 +123,8 @@ export interface AndroidHandler {
   setWebViewVisible(visible: boolean): void;
 
   openSettings(type: "notifications" | "settings"): void;
+
+  setShouldHandleLongClick(shouldHandle: boolean): void;
 }
 
 export interface IOSHandler {
@@ -153,9 +157,6 @@ export interface IOSHandler {
     postMessage(data: { action: "get" }): void;
   };
 
-  // deleteEventHandler: {
-  //   postMessage( id: string ): void;
-  // };
   deleteEventHandler: {
     postMessage(data: { id: string }): void;
   };

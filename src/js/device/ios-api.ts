@@ -312,6 +312,10 @@ const iosAPI: DeviceAPI = {
   openCalendarSettings(): void {
     // iOS не поддерживает
   },
+
+  setShouldHandleLongClick(shouldHandle: boolean): void {
+    // iOS не поддерживает
+  },
 };
 
 export default iosAPI;
