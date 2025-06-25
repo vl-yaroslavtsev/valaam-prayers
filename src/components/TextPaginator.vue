@@ -29,20 +29,20 @@
 -->
 
 <script setup lang="ts">
-import { ref, useTemplateRef, watchEffect, nextTick, onMounted } from "vue";
+import { useTemplateRef, watchEffect } from "vue";
 import { useTextSelection } from "@/composables/useTextSelection";
 import type { SwiperContainer } from "swiper/element";
 import type { Swiper } from "swiper";
+import type { TextTheme, Lang } from "@/types/common";
 import {
   paginateText,
 } from "@/text-processing";
-import { useEventListener } from "@/composables/useEventListener";
 
 const { text, mode = "horizontal", theme = "grey", lang = "cs-cf" } = defineProps<{
   mode?: "vertical" | "horizontal";
   text: string;
-  theme?: "light" | "dark" | "grey" | "sepia" | "sepia-contrast" | "cream" | "yellow";
-  lang?: "cs" | "cs-cf" | "ru";
+  theme?: TextTheme;
+  lang?: Lang;
 }>();
 
 // Events

@@ -1,14 +1,14 @@
 import { defineStore } from "pinia";
-import { computed, ref, shallowRef } from "vue";
+import { shallowRef } from "vue";
+import type { Lang } from "@/types/common";
 import prayersData from "../../test-data/prayers.json";
-import { useReadingHistoryStore } from "./readingHistory";
 
 export interface PrayerElement {
   id: string;
   name: string;
   parent: string;
   parents: Array<string>;
-  lang: Array<"ру" | "цс" | "гр">;
+  lang: Array<Lang>;
   sort: number;
   url: string;
 }
@@ -30,11 +30,11 @@ export const usePrayersStore = defineStore("prayers", () => {
   // State
   const elements = shallowRef<PrayerElement[]>(
     prayersData.e.map((e) => {
-      const lang: Array<"ру" | "цс" | "гр"> = [];
+      const lang: Array<Lang> = [];
 
-      if (e.lang_cs) lang.push("цс");
-      if (e.lang_sl) lang.push("гр");
-      if (e.lang_ru) lang.push("ру");
+      if (e.lang_cs) lang.push("cs");
+      if (e.lang_sl) lang.push("cs-cf");
+      if (e.lang_ru) lang.push("ru");
 
       return {
         id: e.id,
