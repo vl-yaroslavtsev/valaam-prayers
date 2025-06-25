@@ -1,10 +1,6 @@
-import androidAPI from "./android-api";
-import iosAPI from "./ios-api";
-import type { CalendarEvent, CalendarEventResponse, DeviceAPI } from "./types";
+import type { CalendarEvent, CalendarEventResponse, Device } from "@/js/device/types";
 
-let deviceAPI: DeviceAPI;
-
-const browserAPI: DeviceAPI = {
+const browser: Device = {
   KEYCODE_VOLUME_DOWN: 0,
   KEYCODE_VOLUME_UP: 0,
 
@@ -74,15 +70,4 @@ const browserAPI: DeviceAPI = {
   setShouldHandleLongClick(shouldHandle: boolean) {},
 };
 
-const isAndroid = "androidJsHandler" in window;
-const isIOS = window.webkit && "messageHandlers" in window.webkit;
-
-if (isAndroid) {
-  deviceAPI = androidAPI;
-} else if (isIOS) {
-  deviceAPI = iosAPI;
-} else {
-  deviceAPI = browserAPI;
-}
-
-export default deviceAPI;
+export default browser;

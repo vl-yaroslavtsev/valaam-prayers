@@ -3,7 +3,7 @@
  */
 import { Dom7 as $$ } from "framework7";
 import { f7 } from "framework7-vue";
-import deviceAPI from "./device/device-api";
+import { device } from "./device";
 
 const viewsNames = [
   "home",
@@ -16,7 +16,7 @@ const viewsNames = [
 let backButtonAttempts = 0;
 
 function viewsManager(): void {
-  deviceAPI.onBackKey(handleBackKey);
+  device.onBackKey(handleBackKey);
   parseHash();
   $$(window).on("hashchange", parseHash);
 }

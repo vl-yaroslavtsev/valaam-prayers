@@ -3,8 +3,8 @@ import type {
   AndroidCalendarEvent,
   CalendarEvent,
   CalendarEventResponse,
-  DeviceAPI,
-} from "./types";
+  Device,
+} from "@/js/device/types";
 
 
 const localCalendarTitle = "Календарь Валаам";
@@ -88,7 +88,7 @@ window.onEventsDeleted = (events: string = "[]") => {
   }
 };
 
-const androidAPI: DeviceAPI = {
+const android: Device = {
   KEYCODE_VOLUME_UP: 24,
   KEYCODE_VOLUME_DOWN: 25,
   /**
@@ -463,4 +463,4 @@ const androidAPI: DeviceAPI = {
   },
 };
 
-export default androidAPI;
+export default android;

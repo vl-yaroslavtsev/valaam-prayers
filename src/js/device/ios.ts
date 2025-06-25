@@ -1,5 +1,5 @@
 import { format } from "date-fns";
-import type { CalendarEvent, CalendarEventResponse, IOSHandler, DeviceAPI } from "./types";
+import type { CalendarEvent, CalendarEventResponse, IOSHandler, Device } from "@/js/device/types";
 
 const iosHandler = window.webkit?.messageHandlers as IOSHandler;
 
@@ -44,7 +44,7 @@ window.onDeleteEvent = (status, errorDescription, id) => {
 };
 
 
-const iosAPI: DeviceAPI = {
+const ios: Device = {
   KEYCODE_VOLUME_UP: 0,
   KEYCODE_VOLUME_DOWN: 0,
 
@@ -235,7 +235,7 @@ const iosAPI: DeviceAPI = {
 
     if (Array.isArray(id)) {
       const resArray = await Promise.all(id.map((item) => this.deleteCalendarEvent(item)));
-      return resArray.reduce((acc, curr) => {
+      return resArray.reduce((acc: CalendarEventResponse, curr: CalendarEventResponse) => {
         return {
           isSuccess: acc.isSuccess && curr.isSuccess,
           errorDescription: acc.errorDescription || curr.errorDescription,
@@ -318,7 +318,7 @@ const iosAPI: DeviceAPI = {
   },
 };
 
-export default iosAPI;
+export default ios;
 
 /*
 - при создении событий в календаре, надо формировать сообщение в метод window.webkit.messageHandlers.calendarHandler.postMessage(notification) и теперь помимо старых свойст в объекте есть и alarmDates - это массив дат

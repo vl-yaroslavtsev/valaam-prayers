@@ -84,7 +84,7 @@ import { f7, f7ready } from "framework7-vue";
 
 import routes from "../js/routes";
 import viewsManager from "../js/viewsManager";
-import deviceAPI from "../js/device/device-api";
+import { device } from "@/js/device";
 import { useTheme } from "@/composables/useTheme";
 import BottomTabBar from "./layout/BottomTabBar.vue";
 import LeftPanel from "./layout/LeftPanel.vue";
@@ -124,7 +124,7 @@ const onTabShow = (view: HTMLElement & { f7View: View.View }) => {
 onMounted(() => {
   f7ready(() => {
     viewsManager();
-    deviceAPI.setWebViewVisible(true);
+    device.setWebViewVisible(true); 
   });
 });
 </script>

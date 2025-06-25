@@ -216,8 +216,8 @@ import { ref, watch, onMounted } from "vue";
 import { f7, f7ready } from "framework7-vue";
 import { Dom7 as $ } from "framework7";
 import { f7PageContent } from "framework7-vue";
-import deviceAPI from "../js/device/device-api";
-import { CalendarEvent } from "../js/device/types";
+import { device } from "@/js/device";
+import type { CalendarEvent } from "@/js/device/types";
 import { testBrowser } from "../js/device/browser-test";
 import { useTheme } from "@/composables/useTheme";
 
@@ -225,49 +225,49 @@ const { currentTheme, setTheme } = useTheme();
 
 const currentBrightness = ref(0);
 
-deviceAPI
+device
   .getBrightness()
   .then((brightness) => (currentBrightness.value = brightness));
 
 const onBrightnessChange = (newVal: number) => {
   console.log("onBrightnessChange = ", newVal);
-  deviceAPI.setBrightness(newVal);
+  device.setBrightness(newVal);
 };
 
 const resetBrightness = () => {
-  deviceAPI.resetBrightness();
+  device.resetBrightness();
 
   setTimeout(async () => {
-    currentBrightness.value = await deviceAPI.getBrightness();
+    currentBrightness.value = await device.getBrightness();
   }, 0);
 };
 
 const showThemeAlert = async () => {
-  const theme = await deviceAPI.getTheme();
+  const theme = await device.getTheme();
   f7.dialog.alert(`Тема устройства: ${theme}`);
 };
 
 const isStatusBarShown = ref(true);
 watch(isStatusBarShown, (newVal) => {
-  deviceAPI.showStatusBar(newVal);
+  device.showStatusBar(newVal);
   console.log("isStatusBarShown", newVal);
 });
 
 const isFullscreen = ref(false);
 watch(isFullscreen, (newVal) => {
-  deviceAPI.setFullScreen(newVal);
+  device.setFullScreen(newVal);
   console.log("isFullscreen", newVal);
 });
 
 const isKeepScreenOn = ref(false);
 watch(isKeepScreenOn, (newVal) => {
-  deviceAPI.keepScreenOn(newVal);
+  device.keepScreenOn(newVal);
   console.log("isKeepScreenOn", newVal);
 });
 
 const statusBarColor = ref("#000000");
 const setStatusBarColor = () => {
-  deviceAPI.setStatusBarColor(statusBarColor.value);
+  device.setStatusBarColor(statusBarColor.value);
   console.log(statusBarColor.value);
 };
 
@@ -281,19 +281,19 @@ watch(isVolumeButtonsScroll, (newVal) => {
   console.log(сontentRef.value.$el);
   const $сontent = $(сontentRef.value.$el);
   if (newVal) {
-    deviceAPI.onVolumeKey((keyCode, event) => {
+    device.onVolumeKey((keyCode, event) => {
       switch (keyCode) {
-        case deviceAPI.KEYCODE_VOLUME_UP:
+        case device.KEYCODE_VOLUME_UP:
           $сontent.scrollTop($сontent.scrollTop() - 50, 200);
           break;
 
-        case deviceAPI.KEYCODE_VOLUME_DOWN:
+        case device.KEYCODE_VOLUME_DOWN:
           $сontent.scrollTop($сontent.scrollTop() + 50, 200);
           break;
       }
     });
   } else {
-    deviceAPI.offVolumeKey();
+    device.offVolumeKey();
   }
 });
 
@@ -317,7 +317,7 @@ const addEvent = async (type: "local" | "sync" = "sync") => {
   };
 
   const { isSuccess, hasPermissions, errorDescription } =
-    await deviceAPI.addCalendarEvent(event, type);
+    await device.addCalendarEvent(event, type);
 
   if (!hasPermissions) {
     f7.dialog.alert("Нет прав на календарь");
@@ -415,7 +415,7 @@ const addEventsArray = async () => {
     const batch = events.slice(i, i + batchSize);
 
     const { isSuccess, hasPermissions, errorDescription, id } =
-      await deviceAPI.addCalendarEvent(batch, "sync");
+      await device.addCalendarEvent(batch, "sync");
     if (!hasPermissions) {
       preloader.close();
       f7.dialog.alert("Нет прав на календарь");
@@ -467,7 +467,7 @@ const add2Events = async (type: "local" | "sync" = "sync") => {
   };
 
   const { isSuccess, hasPermissions, errorDescription, id } =
-    await deviceAPI.addCalendarEvent([event1, event2], type);
+    await device.addCalendarEvent([event1, event2], type);
 
   if (!hasPermissions) {
     f7.dialog.alert("Нет прав на календарь");
@@ -492,7 +492,7 @@ const deleteEvent = async () => {
 
   // alert("deleteNotification:" + notificationId.value);
   const { isSuccess, hasPermissions, errorDescription } =
-    await deviceAPI.deleteCalendarEvent(eventId.value);
+    await device.deleteCalendarEvent(eventId.value);
   if (!hasPermissions) {
     f7.dialog.alert("Нет прав на календарь");
     return;
@@ -520,7 +520,7 @@ const deleteEventsArray = async () => {
   for (let i = 0; i < eventsArrayId.value.length; i += batchSize) {
     const batch = eventsArrayId.value.slice(i, i + batchSize);
     const { isSuccess, hasPermissions, errorDescription, id } =
-      await deviceAPI.deleteCalendarEvent(batch);
+      await device.deleteCalendarEvent(batch);
     if (!hasPermissions) {
       preloader.close();
       f7.dialog.alert("Нет прав на календарь");
@@ -550,7 +550,7 @@ const deleteEventsArray = async () => {
 const isEventsEnabled = ref(false);
 
 const checkCalendarEventsEnabled = async () => {
-  const isEnabled = await deviceAPI.hasCalendarPermissions();
+  const isEnabled = await device.hasCalendarPermissions();
   isEventsEnabled.value = isEnabled;
 };
 
@@ -580,7 +580,7 @@ const testBrowserFitures = async () => {
 };
 
 const requestCalendarPermissions = async () => {
-  const isGranted = await deviceAPI.requestCalendarPermissions();
+  const isGranted = await device.requestCalendarPermissions();
   isEventsEnabled.value = isGranted;
   f7.dialog.alert(
     isGranted ? "Права на календарь получены" : "Нет прав на календарь!"
@@ -588,11 +588,11 @@ const requestCalendarPermissions = async () => {
 };
 
 const openNotificationsSettings = () => {
-  deviceAPI.openNotificationsSettings();
+  device.openNotificationsSettings();
 };
 
 const openCalendarSettings = () => {
-  deviceAPI.openCalendarSettings();
+  device.openCalendarSettings();
 };
 
 console.log(f7);

@@ -1,3 +1,5 @@
+// Типы для устройств и нативного API
+
 export interface CalendarEvent {
   id: string;
   title: string;
@@ -52,7 +54,7 @@ export interface IOSCalendarEvent {
   alarmDates?: string[]; // массив дат в формате yyyy-MM-ddTHH:mm:ss
 }
 
-export interface DeviceAPI {
+export interface Device {
   KEYCODE_VOLUME_DOWN: number;
   KEYCODE_VOLUME_UP: number;
 
@@ -197,3 +199,5 @@ declare global {
     onAskForEventPermission?(granted: boolean, comment: string): void;
   }
 }
+
+export {}; // Делает файл модулем 

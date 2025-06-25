@@ -59,7 +59,7 @@ import { ref, watchEffect, computed, watch } from "vue";
 import { f7 } from "framework7-vue";
 import { useTheme } from "@/composables/useTheme";
 import { useUndoToast } from "@/composables/useUndoToast";
-import deviceAPI  from "@/js/device/device-api";
+import { device } from "@/js/device";
 
 import SvgIcon from "@/components/SvgIcon.vue";
 import LanguageBadges from "./LanguageBadges.vue";
@@ -124,10 +124,10 @@ watchEffect(() => {
 
   if (isPageVisible.value) {
     f7.params.touch.tapHold = !isSortableMode.value;
-    deviceAPI.setShouldHandleLongClick(f7.params.touch.tapHold);
+      device.setShouldHandleLongClick(f7.params.touch.tapHold);
   } else {
     f7.params.touch.tapHold = false;
-    deviceAPI.setShouldHandleLongClick(f7.params.touch.tapHold);
+    device.setShouldHandleLongClick(f7.params.touch.tapHold);
   }
 });
 

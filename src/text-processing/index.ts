@@ -8,7 +8,6 @@ export {
   paginateText,
   estimatePageCount,
   calculateOptimalPageSize,
-  type Slide,
 } from './textPagination';
 
 // Экспорт утилит для работы с текстом

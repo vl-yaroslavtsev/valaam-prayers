@@ -1,6 +1,6 @@
 import { ref, onMounted } from 'vue'
 import { f7, f7ready } from 'framework7-vue'
-import deviceAPI from '@/js/device/device-api'
+import { device } from '@/js/device'
 import { useEventListener } from './useEventListener'
 export type Theme = 'light' | 'dark' | 'auto'
 
@@ -25,7 +25,7 @@ export function useTheme() {
     
     if (theme === 'auto') {
       // Определяем тему системы
-      const deviceTheme = await deviceAPI.getTheme()
+      const deviceTheme = await device.getTheme()
       shouldBeDark = deviceTheme === 'dark'
     } else {
       shouldBeDark = theme === 'dark'
@@ -55,14 +55,14 @@ export function useTheme() {
     
     // Настройки для мобильных устройств
     // deviceAPI.setStatusBarTextColor(dark ? 'light' : 'dark')
-    deviceAPI.setStatusBarTextColor('dark')
+    device.setStatusBarTextColor('dark')
     
     if (dark) {
-      deviceAPI.setStatusBarColor('#1f1b1a')
-      deviceAPI.setNavigationBarColor('#1f1b1a')
+      device.setStatusBarColor('#1f1b1a')
+      device.setNavigationBarColor('#1f1b1a')
     } else {
-      deviceAPI.setStatusBarColor('#1f1b1a')
-      deviceAPI.setNavigationBarColor('#1f1b1a')
+      device.setStatusBarColor('#1f1b1a')
+      device.setNavigationBarColor('#1f1b1a')
     }
   }
 
