@@ -14,8 +14,9 @@
      
     >
       <TextPaginator 
-        :mode="'vertical'"
+        :mode="'horizontal'"
         :text="text" 
+        :theme="theme"
         ref="textPaginator"
         @tap="onTextPaginatorTap"
       />
@@ -32,7 +33,7 @@ import { useTheme } from "@/composables/useTheme";
 import { usePrayersStore, BOOKS_SECTION_ID } from "@/stores/prayers";
 import { useReadingHistoryStore } from "@/stores/readingHistory";
 import { useComponentsStore } from "@/stores/components";
-import TextPaginator from "@/components/TextPaginator.vue";
+import TextPaginator from "@/components/TextPaginator.vue"
 
 const { elementId, f7router } = defineProps<{
   elementId: string;
@@ -46,6 +47,7 @@ interface Navbar {
 
 const { isDarkMode } = useTheme();
 const navbarRef = useTemplateRef<Navbar>("navbar");
+const theme = ref<"light" | "dark" | "grey" | "sepia" | "sepia-contrast" | "cream" | "yellow">("grey");
 
 const prayersStore = usePrayersStore();
 const historyStore = useReadingHistoryStore();
@@ -69,6 +71,10 @@ watchEffect(async () => {
   } catch (error) {
     text.value = "Данные не найдены";
   }
+});
+
+watchEffect(() => {
+  theme.value = isDarkMode.value ? "dark" : "grey";
 });
 
 const { toolbar } = useComponentsStore();

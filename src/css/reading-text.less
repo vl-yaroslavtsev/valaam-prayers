@@ -176,6 +176,13 @@
   height: 100%;
   box-sizing: border-box;
   border-bottom: 1px solid var(--page-border-color);
+
+  /* Разрешаем выделение текста */
+  -webkit-user-select: text;
+  user-select: text;
+  
+  /* Включаем контекстное меню на Android */
+  -webkit-touch-callout: default;
 }
 
 .dark {

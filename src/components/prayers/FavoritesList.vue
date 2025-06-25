@@ -129,8 +129,6 @@ watchEffect(() => {
     f7.params.touch.tapHold = false;
     deviceAPI.setShouldHandleLongClick(f7.params.touch.tapHold);
   }
-
-  console.log('f7.params.touch.tapHold = ', f7.params.touch.tapHold);
 });
 
 

@@ -283,9 +283,9 @@ const splitTextNode = (
     container.appendChild(tempNode);
     currentHeight = measureEl.scrollHeight;
     container.removeChild(tempNode);
-    if (process.env.NODE_ENV === "development") {
-      console.log("splitTextNode: fixHeight: currentHeight", currentHeight);
-    }
+    // if (process.env.NODE_ENV === "development") {
+    //   console.log("splitTextNode: fixHeight: currentHeight", currentHeight);
+    // }
   }
 
   // Восстанавливаем исходное содержимое

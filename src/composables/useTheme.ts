@@ -5,8 +5,8 @@ import { useEventListener } from './useEventListener'
 export type Theme = 'light' | 'dark' | 'auto'
 
 const currentTheme = ref<Theme>('light')
-const isDarkMode = ref(false)
-const isF7Ready = ref(false)
+const isDarkMode = ref<boolean >(false)
+const isF7Ready = ref<boolean>(false)
 
 export function useTheme() {
   // Инициализация темы из localStorage
@@ -54,14 +54,15 @@ export function useTheme() {
     }
     
     // Настройки для мобильных устройств
-    deviceAPI.setStatusBarTextColor(dark ? 'light' : 'dark')
+    // deviceAPI.setStatusBarTextColor(dark ? 'light' : 'dark')
+    deviceAPI.setStatusBarTextColor('dark')
     
     if (dark) {
-      deviceAPI.setStatusBarColor('#272931')
-      deviceAPI.setNavigationBarColor('#272931')
+      deviceAPI.setStatusBarColor('#1f1b1a')
+      deviceAPI.setNavigationBarColor('#1f1b1a')
     } else {
-      deviceAPI.setStatusBarColor('#eaeefa')
-      deviceAPI.setNavigationBarColor('#eaeefa')
+      deviceAPI.setStatusBarColor('#1f1b1a')
+      deviceAPI.setNavigationBarColor('#1f1b1a')
     }
   }
 

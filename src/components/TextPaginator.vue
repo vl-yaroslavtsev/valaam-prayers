@@ -1,9 +1,15 @@
 <template>
-  <swiper-container class="text-paginator" ref="swiper" :virtual="{
-    slides: [],
-    addSlidesAfter: 1,
-    addSlidesBefore: 1,
-  }" :direction="mode" :freeMode="mode === 'vertical'" :speed="300"
+  <swiper-container class="text-paginator" 
+    ref="swiper" 
+    :touchStartPreventDefault="false"
+    :virtual="{
+      slides: [],
+      addSlidesAfter: 1,
+      addSlidesBefore: 1,
+    }" 
+    :direction="mode" 
+    :freeMode="mode === 'vertical'" 
+    :speed="300"
     :effect="mode === 'horizontal' ? 'creative' : 'slide'" :creativeEffect="{
       prev: {
         shadow: true,
@@ -12,7 +18,10 @@
       next: {
         translate: ['100%', 0, 0],
       },
-    }" @tap="handleTap">
+    }"
+    @tap="handleTap"
+    @slidechange="handleSlideChange"
+    >
   </swiper-container>
 </template>
 <!--    
@@ -21,13 +30,15 @@
 
 <script setup lang="ts">
 import { ref, useTemplateRef, watchEffect, nextTick, onMounted } from "vue";
+import { useTextSelection } from "@/composables/useTextSelection";
 import type { SwiperContainer } from "swiper/element";
 import type { Swiper } from "swiper";
 import {
   paginateText,
 } from "@/text-processing";
+import { useEventListener } from "@/composables/useEventListener";
 
-const { text, mode = "horizontal" } = defineProps<{
+const { text, mode = "horizontal", theme = "grey", lang = "cs-cf" } = defineProps<{
   mode?: "vertical" | "horizontal";
   text: string;
   theme?: "light" | "dark" | "grey" | "sepia" | "sepia-contrast" | "cream" | "yellow";
@@ -50,7 +61,7 @@ let swiperRect = {
 };
 
 const updateSlides = (slides: string[]) => {
-  const template = `<div class="text-page reading-text prayer-text theme-grey">$content</div>`;
+  const template = `<div class="text-page reading-text prayer-text theme-${theme} lang-${lang}">$content</div>`;
 
   const swiper = swiperRef.value?.swiper;
   if (!swiper) {
@@ -63,7 +74,16 @@ const updateSlides = (slides: string[]) => {
   swiper.virtual.update(true);
 };
 
+
+const { clearSelection, isSelected } = useTextSelection();
+
 const handleTap = (e: CustomEvent<[swiper: Swiper, event: PointerEvent]>) => {
+
+  if (isSelected.value) {
+    clearSelection();
+    return;
+  }
+
   const [swiper, event] = e.detail;
   const clientX = event.clientX;
   const clientY = event.clientY;
@@ -150,16 +170,20 @@ const handleTap = (e: CustomEvent<[swiper: Swiper, event: PointerEvent]>) => {
   }
 };
 
+const handleSlideChange = (e: CustomEvent<[swiper: Swiper]>) => {
+  // const [swiper] = e.detail;
+  if (isSelected.value) {
+    clearSelection();
+    return;
+  }
+};
+
 watchEffect(() => {
   if (text && swiperRef.value) {
     const container = swiperRef.value;
     const cssClasses = "text-page reading-text prayer-text";
 
     swiperRect = container.getBoundingClientRect();
-    // console.log(
-    //   "estimating pages: ",
-    //   estimatePageCount(text, container, cssClasses)
-    // );
     const pages = paginateText(text, container, cssClasses);
 
     updateSlides(pages);
