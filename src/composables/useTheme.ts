@@ -54,16 +54,15 @@ export function useTheme() {
     }
     
     // Настройки для мобильных устройств
-    // deviceAPI.setStatusBarTextColor(dark ? 'light' : 'dark')
-    device.setStatusBarTextColor('dark')
+    device.setStatusBarTextColor('light')
     
-    if (dark) {
-      device.setStatusBarColor('#1f1b1a')
-      device.setNavigationBarColor('#1f1b1a')
-    } else {
-      device.setStatusBarColor('#1f1b1a')
-      device.setNavigationBarColor('#1f1b1a')
-    }
+    // if (dark) {
+    //   device.setStatusBarColor('#1f1b1a')
+    //   device.setNavigationBarColor('#1f1b1a')
+    // } else {
+    //   device.setStatusBarColor('#1f1b1a')
+    //   device.setNavigationBarColor('#1f1b1a')
+    // }
   }
 
   // Переключение темы
