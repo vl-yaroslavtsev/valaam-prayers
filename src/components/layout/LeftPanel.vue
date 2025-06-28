@@ -1,66 +1,58 @@
 <template>
   <f7-panel left cover>
-    <f7-view>
-      <f7-page :page-content="false">
-        <f7-page-content class="page-left-panel">
-          <f7-list class="list-panel">
-            <f7-list-item title="О МОНАСТЫРЕ" link="#">
-              <template #media>
-                <SvgIcon icon="about" :color="iconColor" />
-              </template>
-            </f7-list-item>
-            <f7-list-item title="ПОМЯННИК" link="#">
-              <template #media>
-                <SvgIcon icon="pray" :color="iconColor" />
-              </template>
-            </f7-list-item>
-            <f7-list-item title="МОИ ЗАПИСКИ" link="#">
-              <template #media>
-                <SvgIcon icon="notes" :color="iconColor" />
-              </template>
-            </f7-list-item>
-            <f7-list-item title="НАПОМИНАНИЯ" link="#">
-              <template #media>
-                <SvgIcon icon="alarm" :color="iconColor" />
-              </template>
-            </f7-list-item>
-            <!-- view="#view-home"
-              tab-link="#view-home" -->
-            <f7-list-item
-              title="НАСТРОЙКИ"
-              link="/settings/"
-              view="current"              
-              panel-close
-            >
-              <template #media>
-                <SvgIcon icon="settings" :color="iconColor" />
-              </template>
-            </f7-list-item>
-            <f7-list-item title="О ПРИЛОЖЕНИИ" link="#">
-              <template #media>
-                <SvgIcon icon="info" :color="iconColor" />
-              </template>
-            </f7-list-item>
-            <f7-list-item title="ПОИСК" link="#">
-              <template #media>
-                <SvgIcon icon="search" :color="iconColor" />
-              </template>
-            </f7-list-item>
-          </f7-list>
-          <SeparatorLine :color="isDarkMode ? 'baige-100' : 'black-100'" />
-          <div class="logo">
-            <SvgIcon icon="valaam-logo" :size="42" :color="iconColor" />
-          </div>
+    <f7-page :page-content="false">
+      <f7-page-content class="page-left-panel">
+        <f7-list class="list-panel">
+          <f7-list-item title="О МОНАСТЫРЕ" link="#">
+            <template #media>
+              <SvgIcon icon="about" :color="iconColor" />
+            </template>
+          </f7-list-item>
+          <f7-list-item title="ПОМЯННИК" link="#">
+            <template #media>
+              <SvgIcon icon="pray" :color="iconColor" />
+            </template>
+          </f7-list-item>
+          <f7-list-item title="МОИ ЗАПИСКИ" link="#">
+            <template #media>
+              <SvgIcon icon="notes" :color="iconColor" />
+            </template>
+          </f7-list-item>
+          <f7-list-item title="НАПОМИНАНИЯ" link="#">
+            <template #media>
+              <SvgIcon icon="alarm" :color="iconColor" />
+            </template>
+          </f7-list-item>
+          <f7-list-item title="НАСТРОЙКИ" link="/settings/" view="current" panel-close>
+            <template #media>
+              <SvgIcon icon="settings" :color="iconColor" />
+            </template>
+          </f7-list-item>
+          <f7-list-item title="О ПРИЛОЖЕНИИ" link="/about/" view="current" panel-close>
+            <template #media>
+              <SvgIcon icon="info" :color="iconColor" />
+            </template>
+          </f7-list-item>
+          <f7-list-item title="ПОИСК" link="#">
+            <template #media>
+              <SvgIcon icon="search" :color="iconColor" />
+            </template>
+          </f7-list-item>
+        </f7-list>
+        <SeparatorLine :color="isDarkMode ? 'baige-100' : 'black-100'" />
+        <!--<SeparatorLine :color="'baige-100'" />-->
+        <div class="logo">
+          <SvgIcon icon="valaam-logo" :size="42" :color="iconColor" />
+        </div>
 
-          <f7-block class="app-version">
-            <f7-button v-if="props.needRefresh" outline @click="updateApp">
-              Обновить приложение
-            </f7-button>
-            <p v-else>Версия {{ version }}</p>
-          </f7-block>
-        </f7-page-content>
-      </f7-page>
-    </f7-view>
+        <f7-block class="app-version">
+          <f7-button v-if="props.needRefresh" outline @click="updateApp">
+            Обновить приложение
+          </f7-button>
+          <p v-else>Версия {{ version }}</p>
+        </f7-block>
+      </f7-page-content>
+    </f7-page>
   </f7-panel>
 </template>
 
@@ -85,6 +77,7 @@ const updateApp = (): void => {
 
 const { isDarkMode } = useTheme();
 const iconColor = computed(() => {
+  // return "baige-900";
   return isDarkMode.value ? "baige-900" : "black-600";
 });
 
@@ -96,6 +89,7 @@ const { version } = useSettingsStore();
   --list-panel-padding-top: 30px;
   --f7-list-item-title-text-color: var(--content-color-black-primary);
 
+  // padding-top: var(--f7-safe-area-top);
   display: flex;
   flex-direction: column;
   justify-content: flex-start;
@@ -122,9 +116,7 @@ const { version } = useSettingsStore();
 .app-version {
   text-align: center;
   font-size: 12px;
-  margin-bottom: calc(
-    var(--f7-block-padding-horizontal) + var(--f7-safe-area-left)
-  );
+  margin-bottom: 8px;
 
   color: var(--content-color-black-600);
 }
@@ -133,6 +125,7 @@ const { version } = useSettingsStore();
   .app-version {
     color: var(--content-color-baige-600);
   }
+
   .page-left-panel {
     --f7-list-item-title-text-color: var(--content-color-baige-900);
   }
