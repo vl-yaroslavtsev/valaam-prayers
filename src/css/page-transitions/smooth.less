@@ -1,0 +1,72 @@
+/**
+  Почти как default, но с плавным переходом.
+  Похоже на то, что используется в Material Design.
+ */
+.md {
+  .router-transition-smooth-forward {
+    .page-next {
+      animation: smooth-next-to-current var(--f7-page-transition-duration)
+        forwards cubic-bezier(0, 0.8, 0.3, 1);
+    }
+    .page-current {
+      animation: smooth-current-to-previous var(--f7-page-transition-duration)
+        forwards cubic-bezier(0, 0.8, 0.3, 1);
+    }
+  }
+  .router-transition-smooth-backward {
+    .page-current {
+      animation:
+        md-page-current-to-next calc(var(--f7-page-transition-duration) / 4)
+          forwards cubic-bezier(0.8, 0, 1, 0.3),
+        md-page-current-to-next-opacity
+          calc(var(--f7-page-transition-duration) / 4) forwards;
+    }
+    .page-previous {
+      animation: smooth-previous-to-current var(--f7-page-transition-duration)
+        forwards;
+    }
+  }
+}
+
+@keyframes smooth-next-to-current {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 128px, 0);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0px, 0);
+  }
+}
+@keyframes smooth-current-to-next {
+  from {
+    transform: translate3d(0, 0, 0);
+  }
+  to {
+    transform: translate3d(0, 128px, 0);
+  }
+}
+@keyframes smooth-current-to-next-opacity {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+@keyframes smooth-current-to-previous {
+  from {
+    transform: translate3d(0, 0, 0);
+  }
+  to {
+    transform: translate3d(0, -20px, 0);
+  }
+}
+@keyframes smooth-previous-to-current {
+  from {
+    transform: translate3d(0, -20px, 0);
+  }
+  to {
+    transform: translate3d(0, 0px, 0);
+  }
+}

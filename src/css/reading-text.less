@@ -170,9 +170,9 @@
 
 
 .text-page {
-  --page-border-color: var(--content-color-black-100);
+  --page-border-color: var(--content-color-black-200);
 
-  padding: 16px 24px 24px 24px;
+  padding: 16px 24px calc(16px + var(--f7-safe-area-bottom)) 24px;
   height: 100%;
   box-sizing: border-box;
   border-bottom: 1px solid var(--page-border-color);
@@ -187,6 +187,12 @@
 
 .dark {
   .text-page {
-    --page-border-color: var(--content-color-baige-100);
+    --page-border-color: var(--content-color-baige-300);
+  }
+}
+
+.mode-horizontal {
+  .text-page {
+    --page-border-color: transparent;
   }
 }

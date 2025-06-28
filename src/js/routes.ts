@@ -28,29 +28,44 @@ const routes: Router.RouteParameters[] = [
   {
     path: "/prayers/:sectionId",
     component: PrayersPage,
+    options: {
+      transition: "fade-slide",
+    },
   },
   {
     path: "/prayers/text/:elementId",
     component: PrayersTextPage,
     options: {
-      transition: "f7-fade",
+      // transition: "smooth",
     },
   },
   {
     path: "/calendar/",
     component: CalendarPage,
+    options: {
+      transition: "fade-slide",
+    },
   },
   {
     path: "/days/:id",
     component: DayPage,
+    options: {
+      transition: "fade-slide",
+    },
   },
   {
     path: "/rites/",
     component: RitesPage,
+    options: {
+      transition: "fade-slide",
+    },
   },
   {
     path: "/settings/",
     component: SettingsPage,
+    options: {
+      transition: "fade-slide",
+    },
   },
   {
     path: "(.*)",

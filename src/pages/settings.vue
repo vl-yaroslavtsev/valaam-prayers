@@ -5,9 +5,8 @@
     @page:tabshow="onTabShow"
     @page:tabhide="onTabHide"
   >
+    <f7-navbar title="Настройки" back-link="Back"></f7-navbar>
     <f7-page-content ref="сontentRef">
-      <f7-navbar title="Тест JS API" back-link="Back"></f7-navbar>
-
       <f7-list strong-ios dividers-ios outline-ios>
         <f7-list-item title="Тема приложения">
           <template #after>
