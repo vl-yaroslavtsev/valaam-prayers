@@ -4,6 +4,8 @@ const browser: Device = {
   KEYCODE_VOLUME_DOWN: 0,
   KEYCODE_VOLUME_UP: 0,
 
+  init(){},
+
   setBrightness(value: number) {},
   async getBrightness() {
     return 50;
@@ -21,7 +23,6 @@ const browser: Device = {
   setFullScreen(mode: boolean) {},
   keepScreenOn(mode: boolean) {},
   setStatusBarColor(color: string) {},
-
   onBackKey(handler: () => boolean) {},
 
   onVolumeKey(handler: (keyCode: number, event: any) => void) {},

@@ -58,6 +58,8 @@ export interface Device {
   KEYCODE_VOLUME_DOWN: number;
   KEYCODE_VOLUME_UP: number;
 
+  init(): void;
+
   setBrightness(value: number): void;
   getBrightness(): Promise<number>;
   resetBrightness(): void;
@@ -68,8 +70,9 @@ export interface Device {
 
   setFullScreen(mode: boolean): void;
   keepScreenOn(mode: boolean): void;
-  setStatusBarColor(color: string): void;
 
+  setStatusBarColor(color: string): void;
+  
   onBackKey(handler: () => boolean): void;
 
   onVolumeKey(handler: (keyCode: number, event: any) => void): void;

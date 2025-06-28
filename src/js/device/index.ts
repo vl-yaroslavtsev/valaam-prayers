@@ -17,4 +17,6 @@ if (isAndroid) {
   device = browser;
 }
 
+device.init();
+
 export { device, isAndroid, isIOS, isBrowser };

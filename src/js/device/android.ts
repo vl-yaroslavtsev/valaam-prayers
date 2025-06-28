@@ -1,4 +1,5 @@
-import { format } from "date-fns";
+import { getCSSVariable, setCSSVariable } from "@/js/utils";
+
 import type {
   AndroidCalendarEvent,
   CalendarEvent,
@@ -15,7 +16,7 @@ const calendarPermissionsGrantedCallbacks: ((
   read: boolean,
   write: boolean
 ) => void)[] = [];
-window.onAreCalendarPermissionsGranted = (read, write) => {
+const onAreCalendarPermissionsGranted = (read: boolean, write: boolean) => {
   console.log(
     "onAreCalendarPermissionsGranted: read = " + read + ", write = " + write
   );
@@ -34,7 +35,7 @@ interface AddedEventResponse {
 const eventAddedCallbacks: {
   [id: string]: (event: AddedEventResponse) => void;
 } = {};
-window.onEventsAdded = (successEvents: string, errorEvents: string = "[]") => {
+const onEventsAdded = (successEvents: string, errorEvents: string = "[]") => {
   console.log(
     "onEventsAdded: successEvents = ",
     successEvents,
@@ -73,7 +74,7 @@ interface DeletedEventResponse {
 const eventDeletedCallbacks: {
   [id: string]: (event: DeletedEventResponse) => void;
 } = {};
-window.onEventsDeleted = (events: string = "[]") => {
+const onEventsDeleted = (events: string = "[]") => {
   console.log("onEventsDeleted: events = ", events);
   try {
     const eventsArray: DeletedEventResponse[] = JSON.parse(events);
@@ -88,9 +89,25 @@ window.onEventsDeleted = (events: string = "[]") => {
   }
 };
 
+// При скрытии статус бара Android сбрасывает env(safe-area-top)
+// Сохраняем это значение, чтобы место под статус бар оставалось после его скрытия.
+const saveStatusBarHeight = () => {
+  const statusBarHeight = getCSSVariable('--f7-safe-area-top');
+  setCSSVariable('--f7-safe-area-top', statusBarHeight);
+  console.log("saveStatusBarHeight: statusBarHeight = ", statusBarHeight);
+};
+
 const android: Device = {
   KEYCODE_VOLUME_UP: 24,
   KEYCODE_VOLUME_DOWN: 25,
+
+  init ()  {
+    window.onEventsDeleted = onEventsDeleted;
+    window.onEventsAdded = onEventsAdded;
+    window.onAreCalendarPermissionsGranted = onAreCalendarPermissionsGranted;
+
+    saveStatusBarHeight();
+  },
   /**
    * Устанавливаем яркость от 0 до 100
    */

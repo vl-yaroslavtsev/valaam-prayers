@@ -4,25 +4,25 @@ import type { CalendarEvent, CalendarEventResponse, IOSHandler, Device } from "@
 const iosHandler = window.webkit?.messageHandlers as IOSHandler;
 
 let askForEventPermissionCallbacks: ((granted: boolean) => void)[] = [];
-window.onAskForEventPermission = (granted, comment) => {
+const onAskForEventPermission = (granted: boolean, comment: string) => {
   askForEventPermissionCallbacks.forEach((callback) => callback(granted));
   askForEventPermissionCallbacks = [];
 };
 
 let themeValueCallbacks: ((theme: 'light' | 'dark') => void)[] = [];
-window.onThemeValue = (theme) => {
+const onThemeValue = (theme: 'light' | 'dark') => {
   themeValueCallbacks.forEach((callback) => callback(theme));
   themeValueCallbacks = [];
 };
 
 let brightnessValueCallbacks: ((value: number) => void)[] = [];
-window.onBrightnessValue = (value) => {
+const onBrightnessValue = (value: number) => {
   brightnessValueCallbacks.forEach((callback) => callback(value));
   brightnessValueCallbacks = [];
 };
 
 const addEventCallbacks: { [key: string]: ((status: boolean, errorDescription: string, id: string) => void) } = {};
-window.onAddEvent = (status, errorDescription, id) => {
+const onAddEvent = (status: boolean, errorDescription: string, id: string) => {
   if (!addEventCallbacks[id]) {
     return;
   }
@@ -31,7 +31,7 @@ window.onAddEvent = (status, errorDescription, id) => {
 };
 
 const deleteEventCallbacks: { [key: string]: ((status: boolean, errorDescription: string, id: string) => void) } = {};
-window.onDeleteEvent = (status, errorDescription, id) => {
+const onDeleteEvent = (status: boolean, errorDescription: string, id: string) => {
   // if (errorDescription.includes("not granted")) {
     // alert("onDeleteEvent id: " + id + ", status: " + status + ", errorDescription: " + errorDescription);
   // }
@@ -47,6 +47,14 @@ window.onDeleteEvent = (status, errorDescription, id) => {
 const ios: Device = {
   KEYCODE_VOLUME_UP: 0,
   KEYCODE_VOLUME_DOWN: 0,
+
+  init() {
+    window.onDeleteEvent = onDeleteEvent;
+    window.onAddEvent = onAddEvent;
+    window.onBrightnessValue = onBrightnessValue;
+    window.onThemeValue = onThemeValue;
+    window.onAskForEventPermission = onAskForEventPermission;
+  },
 
   /**
    * Устанавливает яркость устройства
