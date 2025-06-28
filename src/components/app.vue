@@ -91,6 +91,7 @@ import LeftPanel from "./layout/LeftPanel.vue";
 
 import { registerSW } from "virtual:pwa-register";
 import type { View } from "framework7/types";
+import { waitForFontsLoaded } from "@/js/utils";
 
 const needRefresh = ref(false);
 const updateSW = registerSW({
@@ -122,9 +123,10 @@ const onTabShow = (view: HTMLElement & { f7View: View.View }) => {
 };
 
 onMounted(() => {
-  f7ready(() => {
+  f7ready(async () => {
     viewsManager();
-    device.setWebViewVisible(true); 
+    await waitForFontsLoaded();
+    device.setWebViewVisible(true);
   });
 });
 </script>

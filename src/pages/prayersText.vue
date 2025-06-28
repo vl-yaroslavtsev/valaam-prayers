@@ -11,7 +11,6 @@
     </f7-navbar>
     <f7-page-content
       class=""
-     
     >
       <TextPaginator 
         :mode="'horizontal'"

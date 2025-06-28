@@ -25,6 +25,8 @@ import {
   moveLastWordBetweenElements,
 } from "./textUtils";
 
+import { waitForFontsLoaded} from "@/js/utils";
+
 // Кэш для хранения вычисленных значений
 interface PaginationCache {
   pageWidth: number;
@@ -75,7 +77,7 @@ const createMeasureElement = (
     boxSizing: "border-box",
     overflow: "hidden",
     whiteSpace: "normal",
-    contain: "layout style", // Оптимизация для браузера
+    // contain: "layout style", // Оптимизация для браузера
   });
 
   document.body.appendChild(element);
@@ -215,6 +217,29 @@ const parseHTML = (html: string): DocumentFragment => {
 const cloneElement = (element: HTMLElement): HTMLElement => {
   return element.cloneNode(true) as HTMLElement;
 };
+
+
+/**
+ * Ждем загрузки шрифтов
+ * @param measureEl
+ */
+const loadFonts = async ( measureEl: HTMLElement ) => {
+  // Быстрая проверка - поместится ли элемент целиком
+  const div = document.createElement('div');
+  div.innerHTML = `
+   <strong>
+    Жирный текст...
+  </strong>
+  <strong>
+    <em>Жирный косой текст...</em>
+  </strong>
+  <em>Это просто косой тест.</em>`;
+  measureEl.appendChild(div);
+  await waitForFontsLoaded();
+  measureEl.removeChild(div);  
+};
+
+
 
 // Оптимизированная функция для разбиения текстового узла
 const splitTextNode = (
@@ -482,19 +507,23 @@ const splitElement = (
  * @param cssClasses - CSS-классы для применения к страницам (опционально)
  * @returns Массив слайдов с разбитым по страницам контентом
  */
-export const paginateText = (
+export const paginateText = async (
   html: string,
   container?: HTMLElement,
   cssClasses?: string
-): string[] => {
+): Promise<string[]> => {
   const startTime = performance.now();
 
   // Проверяем кэш
   const cacheKey = createCacheKey(container, cssClasses);
+  console.log("paginateText: cacheKey", cacheKey);
   let cache = paginationCache.get(cacheKey);
 
   const pageWidth = getPageWidth(container);
   const pageHeight = getPageHeight(container);
+
+  console.log("paginateText: pageWidth", pageWidth);
+  console.log("paginateText: pageHeight", pageHeight);
 
   // Обновляем или создаем кэш
   if (
@@ -520,6 +549,8 @@ export const paginateText = (
   const pages: string[] = [];
   const measureEl = createMeasureElement(pageWidth, cssClasses);
   const maxAllowedHeight = cache.pageHeight;
+
+  await loadFonts(measureEl);
 
   try {
     const fragment = parseHTML(html);

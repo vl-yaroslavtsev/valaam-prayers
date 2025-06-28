@@ -1,5 +1,5 @@
 <template>
-  <swiper-container class="text-paginator" 
+  <swiper-container :class="`text-paginator mode-${mode}`" 
     ref="swiper" 
     :touchStartPreventDefault="false"
     :virtual="{
@@ -10,7 +10,8 @@
     :direction="mode" 
     :freeMode="mode === 'vertical'" 
     :speed="300"
-    :effect="mode === 'horizontal' ? 'creative' : 'slide'" :creativeEffect="{
+    :effect="mode === 'horizontal' ? 'creative' : 'slide'" 
+    :creativeEffect="{
       prev: {
         shadow: true,
         translate: ['-20%', 0, -1],
@@ -24,16 +25,13 @@
     >
   </swiper-container>
 </template>
-<!--    
-
--->
-
 <script setup lang="ts">
 import { useTemplateRef, watchEffect } from "vue";
 import { useTextSelection } from "@/composables/useTextSelection";
 import type { SwiperContainer } from "swiper/element";
 import type { Swiper } from "swiper";
 import type { TextTheme, Lang } from "@/types/common";
+import { waitForFontsLoaded } from "@/js/utils";
 import {
   paginateText,
 } from "@/text-processing";
@@ -82,6 +80,10 @@ const handleTap = (e: CustomEvent<[swiper: Swiper, event: PointerEvent]>) => {
   if (isSelected.value) {
     clearSelection();
     return;
+  }
+
+  if (swiperRef.value) {
+    swiperRect = swiperRef.value.getBoundingClientRect();
   }
 
   const [swiper, event] = e.detail;
@@ -178,13 +180,11 @@ const handleSlideChange = (e: CustomEvent<[swiper: Swiper]>) => {
   }
 };
 
-watchEffect(() => {
+watchEffect(async () => {
   if (text && swiperRef.value) {
     const container = swiperRef.value;
     const cssClasses = "text-page reading-text prayer-text";
-
-    swiperRect = container.getBoundingClientRect();
-    const pages = paginateText(text, container, cssClasses);
+    const pages = await paginateText(text, container, cssClasses);
 
     updateSlides(pages);
   }
@@ -215,7 +215,7 @@ defineExpose({
   position: absolute;
   top: var(--f7-safe-area-top);
   left: 0;
-  bottom: var(--f7-safe-area-bottom);
+  bottom: 0;
   width: 100%;
 }
 </style>
