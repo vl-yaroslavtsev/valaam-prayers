@@ -1,10 +1,13 @@
 <template>
   <f7-list
+    ref="list"
     :class="`prayers ${cssClass} favorites-list`"
     :sortable="sortable"
     :sortable-tap-hold="sortable"
     :sortable-enabled="isSortableMode"
     @sortable:sort="onSortableSort"
+    @taphold.passive="onTapHold"
+    @touchend.passive="onTouchEnd"
     @contextmenu="handleContextMenu"
   >
     <TransitionGroup name="favorite-item" tag="ul">
@@ -29,17 +32,18 @@
         <template #after>
           <LanguageBadges :languages="item.lang" />
         </template>
-        <f7-swipeout-actions right v-if="!isSortableMode">
+        <f7-swipeout-actions right v-if="!isSortableMode && !isSortingByTapHold">
           <f7-swipeout-button close @click="shareItem(item, $event)">
             <SvgIcon icon="share" :color="isDarkMode ? 'baige-900' : 'black-600'" />
           </f7-swipeout-button>
           <f7-swipeout-button
             close
             @click="resetItem(item)"
-            v-if="item.progress && item.pages"
+            
           >
             <SvgIcon icon="reset" :color="isDarkMode ? 'baige-900' : 'black-600'"
           /></f7-swipeout-button>
+          <!--v-if="item.progress && item.pages"-->
           <f7-swipeout-button @click="deleteItem(item)">
             <SvgIcon icon="delete" color="primary-accent-50" />
           </f7-swipeout-button>
@@ -55,7 +59,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watchEffect, computed, watch } from "vue";
+import { ref, watchEffect, computed, useTemplateRef, ComponentPublicInstance } from "vue";
 import { f7 } from "framework7-vue";
 import { useTheme } from "@/composables/useTheme";
 import { useUndoToast } from "@/composables/useUndoToast";
@@ -66,6 +70,7 @@ import LanguageBadges from "./LanguageBadges.vue";
 import SharePopover from "@/components/SharePopover.vue";
 import PrayersListProgress from "./PrayersListProgress.vue";
 import { usePageVisiblility } from "@/composables/usePageVisiblity";
+import { useSwipeoutEdgeGuard } from "@/composables/useSwipeoutEdgeGuard";
 
 interface FavoriteListItem {
   id: string;
@@ -110,9 +115,23 @@ const isSortableMode = computed(() => {
 });
 
 const onSortableSort = ({ from, to, el }: { from: number; to: number; el: HTMLElement   }) => {
-  console.log("onSortableSort", from, to, el);
+  // console.log("onSortableSort", from, to, el);
   const id = el.dataset.id as string;
   emit("sorted", id, from, to);
+};
+
+const listRef = useTemplateRef<ComponentPublicInstance>("list");
+useSwipeoutEdgeGuard(() => listRef.value?.$el);
+
+const isSortingByTapHold = ref(false);
+const onTapHold = (e: Event) => {
+  // console.log("onTapHold", e);
+  isSortingByTapHold.value = true;
+};
+
+const onTouchEnd = (e: Event) => {
+  // console.log("onTouchEnd", e);
+  isSortingByTapHold.value = false;
 };
 
 const { isPageVisible } = usePageVisiblility();
@@ -121,10 +140,11 @@ watchEffect(() => {
   if (!f7.params.touch) {
     return;
   }
+  // console.log("f7", f7);
 
   if (isPageVisible.value) {
     f7.params.touch.tapHold = !isSortableMode.value;
-      device.setShouldHandleLongClick(f7.params.touch.tapHold);
+    device.setShouldHandleLongClick(f7.params.touch.tapHold);
   } else {
     f7.params.touch.tapHold = false;
     device.setShouldHandleLongClick(f7.params.touch.tapHold);

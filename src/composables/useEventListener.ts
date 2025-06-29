@@ -1,9 +1,18 @@
 // event.js
-import { onMounted, onUnmounted } from 'vue'
+import { onMounted, onBeforeUnmount, Ref, toValue } from "vue";
 
-export function useEventListener(target: EventTarget, event: string, callback: EventListener) {
-  // если вы хотите, вы также можете сделать так, чтобы
-  // это поддерживало строки селектора в качестве цели
-  onMounted(() => target.addEventListener(event, callback))
-  onUnmounted(() => target.removeEventListener(event, callback))
+export function useEventListener<T extends Event>(
+  target: EventTarget | Ref<EventTarget> | (() => EventTarget),
+  event: string,
+  callback: (e: T) => void,
+  options?: boolean | AddEventListenerOptions
+) {
+  onMounted(() => {
+    const targetValue = toValue(target);
+    targetValue.addEventListener(event, callback as EventListener, options);
+  });
+  onBeforeUnmount(() => {
+    const targetValue = toValue(target);
+    targetValue.removeEventListener(event, callback as EventListener, options);
+  });
 }

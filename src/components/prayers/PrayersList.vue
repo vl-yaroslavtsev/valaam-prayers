@@ -2,6 +2,7 @@
   <!-- searchAll,-->
   <f7-list
     :class="`prayers ${cssClass}`"
+    ref="list"
     virtual-list
     :virtual-list-params="{
       items,
@@ -54,7 +55,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch, onUnmounted } from "vue";
+import { ref, watch, onUnmounted, useTemplateRef, ComponentPublicInstance } from "vue";
 import type { VirtualList, Toast } from "framework7/types";
 import { f7 } from "framework7-vue";
 
@@ -69,6 +70,7 @@ import SvgIcon from "@/components/SvgIcon.vue";
 import { usePrayersStore } from "@/stores/prayers";
 import { useFavoritesStore } from "@/stores/favorites";
 import { useInfoToast } from "@/composables/useInfoToast";
+import { useSwipeoutEdgeGuard } from "@/composables/useSwipeoutEdgeGuard";
 
 interface PrayerListItem {
   id: string;
@@ -182,6 +184,9 @@ const resetItem = (item: PrayerListItem) => {
   emit("resetItemProgress", item.id);
   showUndoResetItemProgressToast();
 };
+
+const listRef = useTemplateRef<ComponentPublicInstance>("list");
+useSwipeoutEdgeGuard(() => listRef.value?.$el);
 
 const sharedTargetEl = ref<Element | undefined>(undefined);
 
