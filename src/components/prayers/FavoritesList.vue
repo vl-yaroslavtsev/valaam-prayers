@@ -39,11 +39,10 @@
           <f7-swipeout-button
             close
             @click="resetItem(item)"
-            
+            v-if="item.progress && item.pages"
           >
             <SvgIcon icon="reset" :color="isDarkMode ? 'baige-900' : 'black-600'"
           /></f7-swipeout-button>
-          <!--v-if="item.progress && item.pages"-->
           <f7-swipeout-button @click="deleteItem(item)">
             <SvgIcon icon="delete" color="primary-accent-50" />
           </f7-swipeout-button>
@@ -71,6 +70,7 @@ import SharePopover from "@/components/SharePopover.vue";
 import PrayersListProgress from "./PrayersListProgress.vue";
 import { usePageVisiblility } from "@/composables/usePageVisiblity";
 import { useSwipeoutEdgeGuard } from "@/composables/useSwipeoutEdgeGuard";
+import { useSwipeoutClearCache } from "@/composables/useSwipeoutClearCache";
 
 interface FavoriteListItem {
   id: string;
@@ -122,6 +122,7 @@ const onSortableSort = ({ from, to, el }: { from: number; to: number; el: HTMLEl
 
 const listRef = useTemplateRef<ComponentPublicInstance>("list");
 useSwipeoutEdgeGuard(() => listRef.value?.$el);
+useSwipeoutClearCache(() => listRef.value?.$el);
 
 const isSortingByTapHold = ref(false);
 const onTapHold = (e: Event) => {
@@ -153,8 +154,11 @@ watchEffect(() => {
 
 
 const resetItem = (item: FavoriteListItem) => {
-  emit("resetItemProgress", item.id);
-  showUndoResetToast();
+  // Ждем, пока отработает анимация скрытия swipeout
+  setTimeout(() => {
+    emit("resetItemProgress", item.id);
+    showUndoResetToast();
+  }, 310);
 };
 
 const sharedTargetEl = ref<Element | undefined>(undefined);

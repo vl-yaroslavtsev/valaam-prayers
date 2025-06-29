@@ -71,6 +71,7 @@ import { usePrayersStore } from "@/stores/prayers";
 import { useFavoritesStore } from "@/stores/favorites";
 import { useInfoToast } from "@/composables/useInfoToast";
 import { useSwipeoutEdgeGuard } from "@/composables/useSwipeoutEdgeGuard";
+import { useSwipeoutClearCache } from "@/composables/useSwipeoutClearCache";
 
 interface PrayerListItem {
   id: string;
@@ -181,12 +182,16 @@ const searchAll = (query: string, items: PrayerListItem[]) => {
 const { isDarkMode } = useTheme();
 
 const resetItem = (item: PrayerListItem) => {
-  emit("resetItemProgress", item.id);
-  showUndoResetItemProgressToast();
+  // Ждем, пока отработает анимация скрытия swipeout
+  setTimeout(() => {
+    emit("resetItemProgress", item.id);
+    showUndoResetItemProgressToast();
+  }, 310);
 };
 
 const listRef = useTemplateRef<ComponentPublicInstance>("list");
 useSwipeoutEdgeGuard(() => listRef.value?.$el);
+useSwipeoutClearCache(() => listRef.value?.$el);
 
 const sharedTargetEl = ref<Element | undefined>(undefined);
 
@@ -235,6 +240,6 @@ const toggleFavorite = (item: PrayerListItem) => {
 <style scoped lang="less">
 :deep(.item-inner) {
   transition: padding;
-  transition-duration: 600ms;
+  transition-duration: 300ms;
 }
 </style>
