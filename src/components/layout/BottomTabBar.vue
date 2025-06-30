@@ -47,8 +47,8 @@ onMounted(() => {
   --f7-toolbar-bg-color: var(--content-color-black-primary);
   --f7-tabbar-link-active-bg-color: var(--content-color-black-primary);
 
-  --f7-tabbar-icons-height: 83px;
-  --f7-tabbar-icons-tablet-height: 83px;
+  --f7-tabbar-icons-height: calc(83px - var(--f7-safe-area-bottom));
+  --f7-tabbar-icons-tablet-height: calc(83px - var(--f7-safe-area-bottom));
 
   --f7-link-touch-ripple-color: rgba(255, 255, 255, 0.15);
   --f7-tabbar-link-active-color: var(--content-color-white-100);

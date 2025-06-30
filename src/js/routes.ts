@@ -36,7 +36,7 @@ const routes: Router.RouteParameters[] = [
     path: "/prayers/text/:elementId",
     component: PrayersTextPage,
     options: {
-      // transition: "smooth",
+      // transition: "f7-dive",
     },
   },
   {

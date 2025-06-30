@@ -69,8 +69,7 @@ import LanguageBadges from "./LanguageBadges.vue";
 import SharePopover from "@/components/SharePopover.vue";
 import PrayersListProgress from "./PrayersListProgress.vue";
 import { usePageVisiblility } from "@/composables/usePageVisiblity";
-import { useSwipeoutEdgeGuard } from "@/composables/useSwipeoutEdgeGuard";
-import { useSwipeoutClearCache } from "@/composables/useSwipeoutClearCache";
+import { useSwipeoutEdgeGuard, swipeoutClearCache } from "@/composables/useSwipeout";
 
 interface FavoriteListItem {
   id: string;
@@ -122,7 +121,6 @@ const onSortableSort = ({ from, to, el }: { from: number; to: number; el: HTMLEl
 
 const listRef = useTemplateRef<ComponentPublicInstance>("list");
 useSwipeoutEdgeGuard(() => listRef.value?.$el);
-useSwipeoutClearCache(() => listRef.value?.$el);
 
 const isSortingByTapHold = ref(false);
 const onTapHold = (e: Event) => {
@@ -152,13 +150,16 @@ watchEffect(() => {
   }
 });
 
-
 const resetItem = (item: FavoriteListItem) => {
-  // Ждем, пока отработает анимация скрытия swipeout
-  setTimeout(() => {
+
+  if (!listRef.value) return;
+  
+  listRef.value.$el.addEventListener("swipeout:closed", (e: Event) => {
+    const swipeoutEl = e.target as HTMLElement;
+    swipeoutClearCache(swipeoutEl);
     emit("resetItemProgress", item.id);
     showUndoResetToast();
-  }, 310);
+  }, { once: true });
 };
 
 const sharedTargetEl = ref<Element | undefined>(undefined);

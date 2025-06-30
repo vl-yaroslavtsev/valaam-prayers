@@ -70,8 +70,7 @@ import SvgIcon from "@/components/SvgIcon.vue";
 import { usePrayersStore } from "@/stores/prayers";
 import { useFavoritesStore } from "@/stores/favorites";
 import { useInfoToast } from "@/composables/useInfoToast";
-import { useSwipeoutEdgeGuard } from "@/composables/useSwipeoutEdgeGuard";
-import { useSwipeoutClearCache } from "@/composables/useSwipeoutClearCache";
+import { useSwipeoutEdgeGuard, swipeoutClearCache } from "@/composables/useSwipeout";
 
 interface PrayerListItem {
   id: string;
@@ -182,16 +181,18 @@ const searchAll = (query: string, items: PrayerListItem[]) => {
 const { isDarkMode } = useTheme();
 
 const resetItem = (item: PrayerListItem) => {
-  // Ждем, пока отработает анимация скрытия swipeout
-  setTimeout(() => {
+  if (!listRef.value) return;
+  
+  listRef.value.$el.addEventListener("swipeout:closed", (e: Event) => {
+    const swipeoutEl = e.target as HTMLElement;
+    swipeoutClearCache(swipeoutEl);
     emit("resetItemProgress", item.id);
     showUndoResetItemProgressToast();
-  }, 310);
+  }, { once: true });
 };
 
 const listRef = useTemplateRef<ComponentPublicInstance>("list");
 useSwipeoutEdgeGuard(() => listRef.value?.$el);
-useSwipeoutClearCache(() => listRef.value?.$el);
 
 const sharedTargetEl = ref<Element | undefined>(undefined);
 

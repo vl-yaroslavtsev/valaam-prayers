@@ -1,8 +1,12 @@
 .md {
-  --default-page-transition-height: var(--f7-navbar-height);
+  --default-page-transition-height: 128px; //var(--f7-navbar-height);
   //  var(--f7-navbar-height) + var(--f7-safe-area-top) + var(--f7-navbar-large-title-height)
 
   .router-transition-forward {
+    .navbar-hidden {
+      opacity: 0;
+    }
+
     .page-next {
       animation: md-page-next-to-current var(--f7-page-transition-duration)
         forwards cubic-bezier(0, 0.8, 0.3, 1);
@@ -13,6 +17,10 @@
     }
   }
   .router-transition-backward {
+    .navbar-hidden {
+      opacity: 0;
+    }
+    
     .page-current {
       animation:
         md-page-current-to-next calc(var(--f7-page-transition-duration) / 4)
