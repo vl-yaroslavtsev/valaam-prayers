@@ -64,6 +64,8 @@ import { useTheme } from "@/composables/useTheme";
 import { useUndoToast } from "@/composables/useUndoToast";
 import { device } from "@/js/device";
 
+import type { Lang } from "@/types/common";
+
 import SvgIcon from "@/components/SvgIcon.vue";
 import LanguageBadges from "./LanguageBadges.vue";
 import SharePopover from "@/components/SharePopover.vue";
@@ -75,7 +77,7 @@ interface FavoriteListItem {
   id: string;
   name: string;
   url: string;
-  lang?: Array<"ру" | "цс" | "гр">;
+  lang?: Lang[];
   progress?: number;
   pages?: number;
 }

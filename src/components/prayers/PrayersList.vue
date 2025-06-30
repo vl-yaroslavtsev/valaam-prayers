@@ -62,6 +62,8 @@ import { f7 } from "framework7-vue";
 import { useTheme } from "@/composables/useTheme";
 import { useUndoToast } from "@/composables/useUndoToast";
 
+import type { Lang } from "@/types/common";
+
 import LanguageBadges from "./LanguageBadges.vue";
 import SharePopover from "@/components/SharePopover.vue";
 import PrayersListProgress from "./PrayersListProgress.vue";
@@ -76,7 +78,7 @@ interface PrayerListItem {
   id: string;
   name: string;
   url: string;
-  lang?: Array<"ру" | "цс" | "гр">;
+  lang?: Lang[];
   progress?: number;
   pages?: number;
 }
