@@ -6,11 +6,13 @@
   ></div>
 </template>
 <script setup lang="ts">
+import { computed } from 'vue';
+
 type IconName =
   | "burger"
   | "pencil"
   | "favorite"
-  | "favorite-fill"
+  | "favorite-filled"
   | "cancel"
   | "chain"
   | "share"
@@ -52,7 +54,7 @@ const {
 import burgerIcon from "@/assets/icons/burger.svg?raw";
 import pencilIcon from "@/assets/icons/pencil.svg?raw";
 import favoriteIcon from "@/assets/icons/favorite.svg?raw";
-import favoriteFillIcon from "@/assets/icons/favorite-fill.svg?raw";
+import favoriteFilledIcon from "@/assets/icons/favorite-filled.svg?raw";
 import cancelIcon from "@/assets/icons/cancel.svg?raw";
 import chainIcon from "@/assets/icons/chain.svg?raw";
 import shareIcon from "@/assets/icons/share.svg?raw";
@@ -79,100 +81,71 @@ import valaamLogoIcon from "@/assets/icons/valaam-logo.svg?raw";
 import languageIcon from "@/assets/icons/language.svg?raw";
 import menuIcon from "@/assets/icons/menu.svg?raw";
 
-let svgIcon = "";
-
-switch (icon) {
-  case "burger":
-    svgIcon = burgerIcon;
-    break;
-  case "pencil":
-    svgIcon = pencilIcon;
-    break;
-  case "favorite":
-    svgIcon = favoriteIcon;
-    break;
-  case "favorite-fill":
-    svgIcon = favoriteFillIcon;
-    break;
-  case "cancel":
-    svgIcon = cancelIcon;
-    break;
-  case "chain":
-    svgIcon = chainIcon;
-    break;
-  case "share":
-    svgIcon = shareIcon;
-    break;
-  case "reset":
-    svgIcon = resetIcon;
-    break;
-  case "delete":
-    svgIcon = deleteIcon;
-    break;
-  case "search":
-    svgIcon = searchIcon;
-    break;
-  case "settings":
-    svgIcon = settingsIcon;
-    break;
-  case "settings-2":
-    svgIcon = settings2Icon;
-    break;
-  case "info":
-    svgIcon = infoIcon;
-    break;
-  case "home":
-    svgIcon = homeIcon;
-    break;
-  case "calendar":
-    svgIcon = calendarIcon;
-    break;
-  case "books":
-    svgIcon = booksIcon;
-    break;
-  case "molitvoslov":
-    svgIcon = molitvoslovIcon;
-    break;
-  case "alarm":
-    svgIcon = alarmIcon;
-    break;
-  case "notes":
-    svgIcon = notesIcon;
-    break;
-  case "pray":
-    svgIcon = prayIcon;
-    break;
-  case "about":
-    svgIcon = aboutIcon;
-    break;
-  case "rites":
-    svgIcon = ritesIcon;
-    break;
-  case "telegram":
-    svgIcon = telegramIcon;
-    break;
-  case "vk":
-    svgIcon = vkIcon;
-    break;
-  case "whatsapp":
-    svgIcon = whatsappIcon;
-    break;
-  case "odnoklassniki":
-    svgIcon = odnoklassnikiIcon;
-    break;
-  case "valaam-logo":
-    svgIcon = valaamLogoIcon;
-    break;
-  case "language":
-    svgIcon = languageIcon;
-    break;
-  case "menu":
-    svgIcon = menuIcon;
-    break;
-  default:
-    svgIcon = "";
-    break;
-}
+// Используем computed для реактивности
+const svgIcon = computed(() => {
+  switch (icon) {
+    case "burger":
+      return burgerIcon;
+    case "pencil":
+      return pencilIcon;
+    case "favorite":
+      return favoriteIcon;
+    case "favorite-filled":
+      return favoriteFilledIcon;
+    case "cancel":
+      return cancelIcon;
+    case "chain":
+      return chainIcon;
+    case "share":
+      return shareIcon;
+    case "reset":
+      return resetIcon;
+    case "delete":
+      return deleteIcon;
+    case "search":
+      return searchIcon;
+    case "settings":
+      return settingsIcon;
+    case "settings-2":
+      return settings2Icon;
+    case "info":
+      return infoIcon;
+    case "home":
+      return homeIcon;
+    case "calendar":
+      return calendarIcon;
+    case "books":
+      return booksIcon;
+    case "molitvoslov":
+      return molitvoslovIcon;
+    case "alarm":
+      return alarmIcon;
+    case "notes":
+      return notesIcon;
+    case "pray":
+      return prayIcon;
+    case "about":
+      return aboutIcon;
+    case "rites":
+      return ritesIcon;
+    case "telegram":
+      return telegramIcon;
+    case "vk":
+      return vkIcon;
+    case "whatsapp":
+      return whatsappIcon;
+    case "odnoklassniki":
+      return odnoklassnikiIcon;
+    case "valaam-logo":
+      return valaamLogoIcon;
+    case "language":
+      return languageIcon;
+    case "menu":
+      return menuIcon;
+    default:
+      return "";
+  }
+});
 </script>
 <style scoped lang="less">
 .icon {

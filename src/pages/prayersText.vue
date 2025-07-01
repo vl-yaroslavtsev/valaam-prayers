@@ -11,7 +11,8 @@
           <SvgIcon icon="language" color="baige-900" :size="30" />
         </f7-link>
         <f7-link icon-only>
-          <SvgIcon icon="favorite" color="baige-900" :size="24" />
+          <SvgIcon :icon="isElementFavorite ? 'favorite-filled' : 'favorite'" color="baige-900" :size="24"
+            @click="toggleFavorite" />
         </f7-link>
         <f7-link icon-only>
           <SvgIcon icon="settings-2" color="baige-900" :size="30" />
@@ -42,6 +43,8 @@ import { useReadingHistoryStore } from "@/stores/readingHistory";
 import { useComponentsStore } from "@/stores/components";
 import TextPaginator from "@/components/TextPaginator.vue"
 import SvgIcon from "@/components/SvgIcon.vue";
+import { useFavoritesStore } from "@/stores/favorites";
+import { useInfoToast } from "@/composables/useInfoToast";
 
 const { elementId, f7router } = defineProps<{
   elementId: string;
@@ -71,7 +74,7 @@ watchEffect(async () => {
     // console.log(prayersData);
 
     text.value = `<h1>${title.value}</h1>\n\n`;
-    text.value += 
+    text.value +=
       (prayersData.slavonic_text || prayersData.ru_text || prayersData.csl_text);
     // text.value = text.value.replace(/\u00AD/g, "");
   } catch (error) {
@@ -130,6 +133,33 @@ const shareItem = (e: Event) => {
     title: title.value || "",
     url: prayer.value?.url || "",
   }, target);
+};
+
+
+const { addFavorite, deleteFavorite, isFavorite } = useFavoritesStore();
+
+const { showInfoToast: showAddedToFavoritesToast } = useInfoToast({
+  text: "Элемент добавлен на главный экран",
+});
+
+const { showInfoToast: showRemovedFromFavoritesToast } = useInfoToast({
+  text: "Элемент удален с главного экрана",
+});
+
+const isElementFavorite = computed(() => isFavorite(elementId));
+
+watchEffect(() => {
+  console.log("isElementFavorite", isElementFavorite.value);
+});
+
+const toggleFavorite = () => {
+  if (isFavorite(elementId)) {
+    deleteFavorite(elementId);
+    showRemovedFromFavoritesToast();
+  } else {
+    addFavorite(elementId, "prayers");
+    showAddedToFavoritesToast();
+  }
 };
 </script>
 <style scoped lang="less"></style>

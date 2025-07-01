@@ -24,6 +24,7 @@
 <script setup lang="ts">
 // Импорт всех SVG иконок
 import SvgIcon from "@/components/SvgIcon.vue";
+import { setCSSVariable } from "@/js/utils";
 import { useTemplateRef } from "vue";
 
 export interface Toolbar {
@@ -39,9 +40,11 @@ const toolbarRef = useTemplateRef<Toolbar>("toolbar");
 
 const show = (animate?: boolean) => {
   toolbarRef.value?.show(animate);
+  setCSSVariable("--bottom-tabbar-shown", "1");
 };
 const hide = (animate?: boolean) => {
   toolbarRef.value?.hide(animate);
+  setCSSVariable("--bottom-tabbar-shown", "0");
 };
 
 defineExpose({

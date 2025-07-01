@@ -41,8 +41,7 @@
           v-if="!isSection(item.id, item.url)"
           @click="toggleFavorite(item)"
         >
-          <SvgIcon v-if="isFavorite(item.id)" icon="favorite-fill" :size="27" color="primary-accent-50" />
-          <SvgIcon v-else icon="favorite" :size="27" color="primary-accent-50" />
+          <SvgIcon :icon="isFavorite(item.id) ? 'favorite-filled' : 'favorite'" :size="27" color="primary-accent-50" />
         </f7-swipeout-button>
       </f7-swipeout-actions>
     </f7-list-item>
