@@ -50,15 +50,11 @@
       </f7-list-item>
     </TransitionGroup>
   </f7-list>
-  <SharePopover
-    :item="{ title: sharedItem?.name || '', url: sharedItem?.url || '' }"
-    :target-el="sharedTargetEl"
-    v-model="isSharedOpened"
-  />
 </template>
 
 <script setup lang="ts">
 import { ref, watchEffect, computed, useTemplateRef, ComponentPublicInstance } from "vue";
+import { storeToRefs } from "pinia";
 import { f7 } from "framework7-vue";
 import { useTheme } from "@/composables/useTheme";
 import { useUndoToast } from "@/composables/useUndoToast";
@@ -68,10 +64,10 @@ import type { Lang } from "@/types/common";
 
 import SvgIcon from "@/components/SvgIcon.vue";
 import LanguageBadges from "./LanguageBadges.vue";
-import SharePopover from "@/components/SharePopover.vue";
 import PrayersListProgress from "./PrayersListProgress.vue";
 import { usePageVisiblility } from "@/composables/usePageVisiblity";
 import { useSwipeoutEdgeGuard, swipeoutClearCache } from "@/composables/useSwipeout";
+import { useComponentsStore } from "@/stores/components";
 
 interface FavoriteListItem {
   id: string;
@@ -104,7 +100,6 @@ const emit = defineEmits<{
 }>();
 
 const deleteItem = (item: FavoriteListItem) => {
-  
   emit("deleteItem", item.id);
   showUndoDeleteToast();
 };
@@ -120,6 +115,8 @@ const onSortableSort = ({ from, to, el }: { from: number; to: number; el: HTMLEl
   const id = el.dataset.id as string;
   emit("sorted", id, from, to);
 };
+
+const { getComponent }  = useComponentsStore();
 
 const listRef = useTemplateRef<ComponentPublicInstance>("list");
 useSwipeoutEdgeGuard(() => listRef.value?.$el);
@@ -164,18 +161,18 @@ const resetItem = (item: FavoriteListItem) => {
   }, { once: true });
 };
 
-const sharedTargetEl = ref<Element | undefined>(undefined);
-
-const isSharedOpened = ref(false);
-
-const sharedItem = ref<FavoriteListItem | null>(null);
-
 const shareItem = (item: FavoriteListItem, $event: Event) => {
-  sharedTargetEl.value = ($event.target as HTMLElement)
+  const sharePopover = getComponent("sharePopover");
+  if (!sharePopover) return;
+
+  const targetEl = ($event.target as HTMLElement)
     ?.closest("li")
     ?.querySelector(".item-title") as HTMLElement;
-  sharedItem.value = item;
-  isSharedOpened.value = true;
+  
+  sharePopover.open({
+    title: item.name,
+    url: item.url,
+  }, targetEl);
 };
 
 const { showUndoToast: showUndoDeleteToast } = useUndoToast({

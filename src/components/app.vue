@@ -6,7 +6,7 @@
     <!-- Views/Tabs container -->
     <f7-views tabs class="safe-areas">
       <!-- Tabbar component -->
-      <BottomTabBar :activeTab="activeView" />
+      <BottomTabBar ref="bottomTabBar" :activeTab="activeView" />
 
       <!-- Your main view/tab, should have "view-main" class. It also has "tab-active" class -->
       <f7-view
@@ -60,21 +60,7 @@
       ></f7-view>
     </f7-views>
 
-    <!-- Popup -->
-    <f7-popup id="my-popup">
-      <f7-view>
-        <f7-page>
-          <f7-navbar title="Попапчик">
-            <f7-nav-right>
-              <f7-link popup-close>Close</f7-link>
-            </f7-nav-right>
-          </f7-navbar>
-          <f7-block>
-            <p>Содержание попапчика</p>
-          </f7-block>
-        </f7-page>
-      </f7-view>
-    </f7-popup>
+    <SharePopover ref="sharePopover" />
   </f7-app>
 </template>
 
@@ -86,12 +72,18 @@ import routes from "../js/routes";
 import viewsManager from "../js/viewsManager";
 import { device } from "@/js/device";
 import { useTheme } from "@/composables/useTheme";
+import SharePopover from "./SharePopover.vue";
 import BottomTabBar from "./layout/BottomTabBar.vue";
 import LeftPanel from "./layout/LeftPanel.vue";
 
 import { registerSW } from "virtual:pwa-register";
 import type { View } from "framework7/types";
 import { waitForFontsLoaded } from "@/js/utils";
+import { useComponentsStore } from "@/stores/components";
+const { registerComponent } = useComponentsStore();
+
+const sharePopover = ref<InstanceType<typeof SharePopover> | null>(null);
+const bottomTabBar = ref<InstanceType<typeof BottomTabBar> | null>(null);
 
 const needRefresh = ref(false);
 const updateSW = registerSW({
@@ -124,6 +116,9 @@ const onTabShow = (view: HTMLElement & { f7View: View.View }) => {
 
 onMounted(() => {
   f7ready(async () => {
+    registerComponent('sharePopover', sharePopover.value);
+    registerComponent('bottomTabBar', bottomTabBar.value);
+
     viewsManager();
     await waitForFontsLoaded();
     device.setWebViewVisible(true);

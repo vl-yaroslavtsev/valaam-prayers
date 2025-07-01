@@ -47,17 +47,13 @@
       </f7-swipeout-actions>
     </f7-list-item>
   </f7-list>
-  <SharePopover
-    :item="{ title: sharedItem?.name || '', url: sharedItem?.url || '' }"
-    :target-el="sharedTargetEl"
-    v-model="isSharedOpened"
-  />
 </template>
 
 <script setup lang="ts">
 import { ref, watch, onUnmounted, useTemplateRef, ComponentPublicInstance } from "vue";
 import type { VirtualList, Toast } from "framework7/types";
 import { f7 } from "framework7-vue";
+import { storeToRefs } from "pinia";
 
 import { useTheme } from "@/composables/useTheme";
 import { useUndoToast } from "@/composables/useUndoToast";
@@ -65,7 +61,6 @@ import { useUndoToast } from "@/composables/useUndoToast";
 import type { Lang } from "@/types/common";
 
 import LanguageBadges from "./LanguageBadges.vue";
-import SharePopover from "@/components/SharePopover.vue";
 import PrayersListProgress from "./PrayersListProgress.vue";
 import SvgIcon from "@/components/SvgIcon.vue";
 
@@ -73,6 +68,7 @@ import { usePrayersStore } from "@/stores/prayers";
 import { useFavoritesStore } from "@/stores/favorites";
 import { useInfoToast } from "@/composables/useInfoToast";
 import { useSwipeoutEdgeGuard, swipeoutClearCache } from "@/composables/useSwipeout";
+import { useComponentsStore } from "@/stores/components";
 
 interface PrayerListItem {
   id: string;
@@ -106,6 +102,9 @@ const emit = defineEmits<{
   resetItemProgress: [id: string];
   undoResetItemProgress: [];
 }>();
+
+
+const { getComponent }  = useComponentsStore();
 
 const vlData = ref<VirtualListData>({
   items: [],
@@ -196,18 +195,18 @@ const resetItem = (item: PrayerListItem) => {
 const listRef = useTemplateRef<ComponentPublicInstance>("list");
 useSwipeoutEdgeGuard(() => listRef.value?.$el);
 
-const sharedTargetEl = ref<Element | undefined>(undefined);
-
-const isSharedOpened = ref(false);
-
-const sharedItem = ref<PrayerListItem | null>(null);
-
 const shareItem = (item: PrayerListItem, $event: Event) => {
-  sharedTargetEl.value = ($event.target as HTMLElement)
+  const sharePopover = getComponent("sharePopover");
+  if (!sharePopover) return;
+
+  const targetEl = ($event.target as HTMLElement)
     ?.closest("li")
     ?.querySelector(".item-title") as HTMLElement;
-  sharedItem.value = item;
-  isSharedOpened.value = true;
+
+  sharePopover.open({
+    title: item.name,
+    url: item.url,
+  }, targetEl);
 };
 
 const { showUndoToast: showUndoResetItemProgressToast } = useUndoToast({

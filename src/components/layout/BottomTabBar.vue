@@ -24,28 +24,38 @@
 <script setup lang="ts">
 // Импорт всех SVG иконок
 import SvgIcon from "@/components/SvgIcon.vue";
-import { useComponentsStore, Toolbar } from "@/stores/components";
-import { onMounted, useTemplateRef } from "vue";
+import { useTemplateRef } from "vue";
+
+export interface Toolbar {
+  hide: (animate?: boolean) => void;
+  show: (animate?: boolean) => void;
+}
 
 const { activeTab } = defineProps<{
   activeTab: string;
 }>();
 
+const toolbarRef = useTemplateRef<Toolbar>("toolbar");
+
+const show = (animate?: boolean) => {
+  toolbarRef.value?.show(animate);
+};
+const hide = (animate?: boolean) => {
+  toolbarRef.value?.hide(animate);
+};
+
+defineExpose({
+  show,
+  hide,
+});
+
 const getColor = (tab: string) => (activeTab === tab ? "white" : "baige-600");
-const { register } = useComponentsStore();
-
-const toolbarRef = useTemplateRef<Toolbar >("toolbar");
-
-onMounted(() => {
-  register('toolbar', toolbarRef.value);
-})
-
 </script>
 
 <style scoped lang="less">
 .bottom-menu {
   --f7-toolbar-bg-color: var(--content-color-black-primary);
-  --f7-tabbar-link-active-bg-color: var(--content-color-black-primary);
+  --f7-tabbar-link-active-bg-color: transparent; // var(--content-color-black-primary);
 
   --f7-tabbar-icons-height: calc(83px - var(--f7-safe-area-bottom));
   --f7-tabbar-icons-tablet-height: calc(83px - var(--f7-safe-area-bottom));
@@ -60,8 +70,7 @@ onMounted(() => {
 
 .dark {
   .bottom-menu {
-    --f7-toolbar-bg-color: var(--content-color-black-primary);
-    --f7-tabbar-link-active-bg-color: var(--content-color-black-primary);
+    --f7-toolbar-bg-color: var(--content-color-baige-50-no-opacity); //var(--content-color-baige-50); //var(--content-color-black-primary);
   }
 }
 </style>

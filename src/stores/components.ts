@@ -1,40 +1,33 @@
 import { defineStore } from "pinia";
-import { computed, ref } from "vue";
-import type { Toolbar } from "framework7/framework7-types";
-
-export interface Toolbar {
-  hide: (animate?: boolean) => void;
-  show: (animate?: boolean) => void;
-}
+import { computed, Ref, shallowRef } from "vue";
+import SharePopover from "@/components/SharePopover.vue";
+import BottomTabBar from "@/components/layout/BottomTabBar.vue";
 
 interface Components {
-  toolbar: Toolbar | null;
+  bottomTabBar: InstanceType<typeof BottomTabBar> | null;
+  sharePopover: InstanceType<typeof SharePopover> | null;
 }
 
 export const useComponentsStore = defineStore("components", () => {
-  // State
   const components: Components = {
-    toolbar: null,
+    bottomTabBar: null,
+    sharePopover: null,
   };
 
-  // Getters
-  const toolbar = computed(() => components.toolbar);
-
-  // Getters
   // Actions
-  const register = (
-    id: keyof Components,
-    component: Components[keyof Components]
+  const getComponent = <T extends keyof Components>(id: T) => components[id];
+
+  const registerComponent = <T extends keyof Components>(
+    id: T,
+    component: Components[T]
   ) => (components[id] = component);
 
   return {
     // State
     components,
 
-    // Getters
-    toolbar,
-
     // Actions
-    register,
+    registerComponent,
+    getComponent,
   };
 });

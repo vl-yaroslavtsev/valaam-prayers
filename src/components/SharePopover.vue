@@ -68,7 +68,7 @@
 </template>
 
 <script setup lang="ts">
-import { onUnmounted } from "vue";
+import { onUnmounted, ref } from "vue";
 import { Dom7 as $$ } from "framework7";
 import { Popover, Toast } from "framework7/types";
 import { f7 } from "framework7-vue";
@@ -80,11 +80,27 @@ interface ShareItem {
   title: string;
   url: string;
 }
+const isOpened = defineModel<boolean>();
+const shareItem = ref<ShareItem | null>(null);
+const targetEl = ref<Element | null>(null);
 
-const { item, targetEl } = defineProps<{
-  item?: ShareItem;
-  targetEl?: Element;
-}>();
+const open = (item: ShareItem, target?: Element) => {
+  shareItem.value = item;
+  targetEl.value = target || null;
+
+  isOpened.value = true;
+};
+
+const close = () => {
+  shareItem.value = null;
+  targetEl.value = null;
+  isOpened.value = false;
+};
+
+defineExpose({
+  open,
+  close,
+});
 
 const baseUrl = "https://molitvoslov.valaam.ru/app/";
 
@@ -94,56 +110,54 @@ const getShareUrl = (url: string) => {
 
 const { isDarkMode } = useTheme();
 
-const isOpened = defineModel<boolean>();
-
 const onOpen = (popover: Popover.Popover) => {
-  if (targetEl) {
-    popover.$targetEl = $$(targetEl);
+  if (targetEl.value) {
+    popover.$targetEl = $$(targetEl.value);
   }
 };
 
 const shareToVK = () => {
-  if (!item) return;
-  const shareUrl = getShareUrl(item.url);
-  const url = `https://vk.com/share.php?url=${encodeURIComponent(shareUrl)}&title=${encodeURIComponent(item.title)}`;
+  if (!shareItem.value) return;
+  const shareUrl = getShareUrl(shareItem.value.url);
+  const url = `https://vk.com/share.php?url=${encodeURIComponent(shareUrl)}&title=${encodeURIComponent(shareItem.value.title)}`;
   window.open(url, "_blank");
-  isOpened.value = false;
+  close();
 };
 
 const shareToOK = () => {
-  if (!item) return;
-  const shareUrl = getShareUrl(item.url);
-  const url = `https://connect.ok.ru/offer?url=${encodeURIComponent(shareUrl)}&title=${encodeURIComponent(item.title)}`;
+  if (!shareItem.value) return;
+  const shareUrl = getShareUrl(shareItem.value.url);
+  const url = `https://connect.ok.ru/offer?url=${encodeURIComponent(shareUrl)}&title=${encodeURIComponent(shareItem.value.title)}`;
   window.open(url, "_blank");
-  isOpened.value = false;
+  close();
 };
 
 const shareToWhatsApp = () => {
-  if (!item) return;
-  const shareUrl = getShareUrl(item.url);
-  const text = `${item.title} ${shareUrl}`;
+  if (!shareItem.value) return;
+  const shareUrl = getShareUrl(shareItem.value.url);
+  const text = `${shareItem.value.title} ${shareUrl}`;
   const url = `https://wa.me/?text=${encodeURIComponent(text)}`;
   window.open(url, "_blank");
-  isOpened.value = false;
+  close();
 };
 
 const shareToTelegram = () => {
-  if (!item) return;
-  const shareUrl = getShareUrl(item.url);
-  const url = `https://t.me/share/url?url=${encodeURIComponent(shareUrl)}&text=${encodeURIComponent(item.title)}`;
+  if (!shareItem.value) return;
+  const shareUrl = getShareUrl(shareItem.value.url);
+  const url = `https://t.me/share/url?url=${encodeURIComponent(shareUrl)}&text=${encodeURIComponent(shareItem.value.title)}`;
   window.open(url, "_blank");
-  isOpened.value = false;
+  close();
 };
 
 let toast: Toast.Toast | null = null;
 
 const copyLink = async () => {
-  if (!item) return;
+  if (!shareItem.value) return;
   try {
-    const shareUrl = getShareUrl(item.url);
+    const shareUrl = getShareUrl(shareItem.value.url);
     await navigator.clipboard.writeText(shareUrl);
     showToast("Ссылка скопирована");
-    isOpened.value = false;
+    close();
   } catch (err) {
     console.error("Ошибка копирования:", err);
   }
