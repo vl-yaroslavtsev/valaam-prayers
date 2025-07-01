@@ -18,7 +18,10 @@ type IconName =
   | "delete"
   | "search"
   | "settings"
+  | "settings-2"
   | "info"
+  | "language"
+  | "menu"
   | "home"
   | "calendar"
   | "books"
@@ -57,6 +60,7 @@ import resetIcon from "@/assets/icons/reset.svg?raw";
 import deleteIcon from "@/assets/icons/delete.svg?raw";
 import searchIcon from "@/assets/icons/search.svg?raw";
 import settingsIcon from "@/assets/icons/settings.svg?raw";
+import settings2Icon from "@/assets/icons/settings-2.svg?raw";
 import infoIcon from "@/assets/icons/info.svg?raw";
 import homeIcon from "@/assets/icons/home.svg?raw";
 import calendarIcon from "@/assets/icons/calendar.svg?raw";
@@ -72,6 +76,8 @@ import vkIcon from "@/assets/icons/vk.svg?raw";
 import whatsappIcon from "@/assets/icons/whatsapp.svg?raw";
 import odnoklassnikiIcon from "@/assets/icons/odnoklassniki.svg?raw";
 import valaamLogoIcon from "@/assets/icons/valaam-logo.svg?raw";
+import languageIcon from "@/assets/icons/language.svg?raw";
+import menuIcon from "@/assets/icons/menu.svg?raw";
 
 let svgIcon = "";
 
@@ -108,6 +114,9 @@ switch (icon) {
     break;
   case "settings":
     svgIcon = settingsIcon;
+    break;
+  case "settings-2":
+    svgIcon = settings2Icon;
     break;
   case "info":
     svgIcon = infoIcon;
@@ -154,6 +163,12 @@ switch (icon) {
   case "valaam-logo":
     svgIcon = valaamLogoIcon;
     break;
+  case "language":
+    svgIcon = languageIcon;
+    break;
+  case "menu":
+    svgIcon = menuIcon;
+    break;
   default:
     svgIcon = "";
     break;
@@ -165,7 +180,7 @@ switch (icon) {
   align-items: center;
   justify-content: center;
 
-  svg {
+  :deep(svg) {
     width: 100%;
     height: 100%;
   }
