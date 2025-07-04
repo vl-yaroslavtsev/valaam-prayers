@@ -70,6 +70,7 @@ import { f7, f7ready } from "framework7-vue";
 
 import routes from "../js/routes";
 import viewsManager from "../js/viewsManager";
+import { initStorageError } from "@/services/storage";
 import { device } from "@/js/device";
 import { useTheme } from "@/composables/useTheme";
 import SharePopover from "./SharePopover.vue";
@@ -118,6 +119,15 @@ onMounted(() => {
   f7ready(async () => {
     registerComponent('sharePopover', sharePopover.value);
     registerComponent('bottomTabBar', bottomTabBar.value);
+
+    if (initStorageError) {
+      f7.toast.show({
+        text: "Ошибка при инициализации базы данных. Пожалуйста, перезагрузите приложение.\n" + initStorageError,
+        position: "bottom",
+        cssClass: "toast-error",
+      });
+      console.error("failed to init db!", initStorageError);
+    }
 
     viewsManager();
     await waitForFontsLoaded();

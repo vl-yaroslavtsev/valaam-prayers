@@ -43,6 +43,8 @@ interface PaginationCache {
   containerKey: string;
 }
 
+const maxPagesPerYield = 10;
+
 const paginationCache = new Map<string, PaginationCache>();
 
 // Функция для создания ключа кэша
@@ -500,6 +502,15 @@ const splitElement = (
 };
 
 /**
+ * Функция для создания задержки и передачи управления основному потоку
+ */
+const yieldToMainThread = (): Promise<void> => {
+  return new Promise(resolve => {
+    setTimeout(resolve, 0);
+  });
+};
+
+/**
  * Основная функция для разбиения HTML-текста на страницы
  *
  * @param html - HTML-строка для разбиения на страницы
@@ -562,8 +573,9 @@ export const paginateText = async (
 
     let currentPageContent: Node[] = [];
     let pageIndex = 0;
-
-    const finalizePage = () => {
+    let pagesProcessedSinceYield = 0;
+    
+    const finalizePage = async () => {
       if (currentPageContent.length > 0) {
         // Оптимизированное создание страницы
         const fragment = document.createDocumentFragment();
@@ -576,6 +588,18 @@ export const paginateText = async (
 
         pages.push(pageDiv.innerHTML);
         currentPageContent = [];
+
+        pagesProcessedSinceYield++;
+
+        // Каждые 10 страниц даем основному потоку возможность выполнить другие задачи
+        if (pagesProcessedSinceYield >= maxPagesPerYield) {
+          await yieldToMainThread();
+          pagesProcessedSinceYield = 0;
+          
+          if (process.env.NODE_ENV === "development") {
+            console.log(`Processed ${pages.length} pages, yielding to main thread`);
+          }
+        }
       }
     };
 
@@ -634,7 +658,7 @@ export const paginateText = async (
                 "splitTextNode returned the same text, breaking to avoid infinite loop"
               );
             }
-            finalizePage();
+            await finalizePage();
             break;
           }
 
@@ -643,7 +667,7 @@ export const paginateText = async (
           }
 
           if (remaining) {
-            finalizePage();
+            await finalizePage();
             remainingText = remaining;
           } else {
             remainingText = null;
@@ -699,7 +723,7 @@ export const paginateText = async (
               elementStyles.lineHeight > 0 &&
               availableHeight < elementStyles.lineHeight
             ) {
-              finalizePage();
+              await finalizePage();
               continue;
             }
           }
@@ -728,7 +752,7 @@ export const paginateText = async (
           }
 
           if (remaining) {
-            finalizePage();
+            await finalizePage();
             remainingElement = remaining;
           } else {
             remainingElement = null;
@@ -746,7 +770,7 @@ export const paginateText = async (
       }
     }
 
-    finalizePage();
+    await finalizePage();
   } finally {
     document.body.removeChild(measureEl);
   }

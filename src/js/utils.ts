@@ -32,7 +32,6 @@ export function getCSSVariable(variableName: string, element: HTMLElement = docu
     .trim();
 };
 
-
 /**
  * Устанавливаем значение CSS переменной
  */

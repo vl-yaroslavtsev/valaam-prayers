@@ -35,8 +35,8 @@
         class="page-content"
         :tab-active="tab.id === 1"
       >
-        <f7-block v-if="getFavoritesByType(tab.type).length === 0"
-          >Здесь пока ничего нет.</f7-block
+        <f7-block v-if="isEmptyList(tab.type)"
+          >Здесь появятся избранные молитвы, книги и святые.</f7-block
         >
         <FavoritesList
           sortable
@@ -49,6 +49,7 @@
           @sorted="onSorted"
         />
         <SeparatorLine
+          v-if="favoritesStore.isInitialized"
           class="separator"
           :color="isDarkMode ? 'baige-100' : 'black-100'"
         />
@@ -58,7 +59,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from "vue";
+import { ref, watchEffect, computed } from "vue";
 import { useTheme } from "@/composables/useTheme";
 import { useFavoritesStore, type FavoriteType, type FavoritesItem } from "@/stores/favorites";
 import { usePrayersStore } from "@/stores/prayers";
@@ -88,6 +89,15 @@ const tabs = ref<
   { id: 2, title: "Книги", type: "books" },
   { id: 3, title: "Календарь", type: "calendar" },
 ]);
+
+// watchEffect(async () => {
+//   await favoritesStore.init();
+// });
+
+const isEmptyList = (type: TabType) => {
+  console.log("favoritesStore.isInitialized", favoritesStore.isInitialized);
+  return favoritesStore.isInitialized && getFavoritesByType(type).length === 0;
+};
 
 // Используем методы из store
 const getFavoritesByType = (tabType: TabType) => {

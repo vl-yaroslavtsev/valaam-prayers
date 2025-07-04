@@ -1,7 +1,7 @@
 {
   "name": "valaam-prayers",
   "private": true,
-  "version": "1.9.32",
+  "version": "1.10.0",
   "description": "Валаамский молитвослов и календарь",
   "repository": "",
   "license": "UNLICENSED",
@@ -31,6 +31,7 @@
     "framework7": "^8.3.4",
     "framework7-icons": "^5.0.5",
     "framework7-vue": "^8.3.4",
+    "idb": "^8.0.3",
     "lodash-es": "^4.17.21",
     "material-icons": "^1.13.14",
     "pinia": "^3.0.3",

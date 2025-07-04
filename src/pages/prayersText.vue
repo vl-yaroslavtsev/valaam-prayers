@@ -27,13 +27,13 @@
       <f7-nav-title-large>{{ title }}</f7-nav-title-large>
     </f7-navbar>
     <f7-page-content class="">
-      <TextPaginator :mode="'horizontal'" :text="text" :theme="theme" ref="textPaginator" @tap="onTextPaginatorTap" />
+      <TextPaginator :isLoading="isLoading" :mode="'horizontal'" :text="text" :theme="theme" ref="textPaginator" @tap="onTextPaginatorTap" />
     </f7-page-content>
   </f7-page>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watchEffect, useTemplateRef, ComponentPublicInstance } from "vue";
+import { ref, computed, watchEffect, useTemplateRef, ComponentPublicInstance, watch } from "vue";
 import type { Router } from "framework7/types";
 import { f7 } from "framework7-vue";
 
@@ -45,6 +45,7 @@ import TextPaginator from "@/components/TextPaginator.vue"
 import SvgIcon from "@/components/SvgIcon.vue";
 import { useFavoritesStore } from "@/stores/favorites";
 import { useInfoToast } from "@/composables/useInfoToast";
+import { useApiState } from "@/composables/useApiState";
 
 const { elementId, f7router } = defineProps<{
   elementId: string;
@@ -66,20 +67,17 @@ const subtitle = computed(
 const title = computed(() => prayer.value?.name);
 const text = ref<string>("");
 
-watchEffect(async () => {
-  try {
-    const prayersData = await import(
-      `../../test-data/prayers-text/${elementId}.json`
-    );
-    // console.log(prayersData);
+const { isLoading, isError, error, data } = useApiState(null, prayersStore.getPrayerText(elementId));
 
-    text.value = `<h1>${title.value}</h1>\n\n`;
-    text.value +=
-      (prayersData.slavonic_text || prayersData.ru_text || prayersData.csl_text);
-    // text.value = text.value.replace(/\u00AD/g, "");
-  } catch (error) {
-    text.value = "Данные не найдены";
-  }
+watch(data, async () => {
+  if (!data.value) return;
+  text.value = `<h1>${title.value}</h1>\n\n${data.value.text_cs_cf}`;
+});
+
+watch(error, async () => {
+  if (!error.value) return;
+  console.log("error", error.value);
+  text.value = `Данные не найдены`;
 });
 
 watchEffect(() => {
@@ -139,11 +137,11 @@ const shareItem = (e: Event) => {
 const { addFavorite, deleteFavorite, isFavorite } = useFavoritesStore();
 
 const { showInfoToast: showAddedToFavoritesToast } = useInfoToast({
-  text: "Элемент добавлен на главный экран",
+  text: "Добавлено на главный экран",
 });
 
 const { showInfoToast: showRemovedFromFavoritesToast } = useInfoToast({
-  text: "Элемент удален с главного экрана",
+  text: "Удалено с главного экрана",
 });
 
 const isElementFavorite = computed(() => isFavorite(elementId));
@@ -152,12 +150,12 @@ watchEffect(() => {
   console.log("isElementFavorite", isElementFavorite.value);
 });
 
-const toggleFavorite = () => {
+const toggleFavorite = async () => {
   if (isFavorite(elementId)) {
-    deleteFavorite(elementId);
+    await deleteFavorite(elementId);
     showRemovedFromFavoritesToast();
   } else {
-    addFavorite(elementId, "prayers");
+    await addFavorite(elementId, "prayers");
     showAddedToFavoritesToast();
   }
 };

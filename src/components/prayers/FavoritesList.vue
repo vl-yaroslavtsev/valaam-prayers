@@ -10,7 +10,7 @@
     @touchend.passive="onTouchEnd"
     @contextmenu="handleContextMenu"
   >
-    <TransitionGroup name="favorite-item" tag="ul">
+    <TransitionGroup :name="showListAnimation ? 'favorite-item' : ''" tag="ul">
       <f7-list-item
         :class="{ 'has-progress': !!item.progress }"
         swipeout
@@ -99,16 +99,22 @@ const emit = defineEmits<{
   sorted: [id: string, from: number, to: number];
 }>();
 
-const deleteItem = (item: FavoriteListItem) => {
-  emit("deleteItem", item.id);
-  showUndoDeleteToast();
-};
-
 const { isDarkMode } = useTheme();
 
 const isSortableMode = computed(() => {
   return sortable && sortableEnabled;
 });
+
+const showListAnimation = ref(false);
+
+const deleteItem = (item: FavoriteListItem) => {
+  showListAnimation.value = true;
+  setTimeout(() => {
+    showListAnimation.value = false;
+  }, 600);
+  emit("deleteItem", item.id);
+  showUndoDeleteToast();
+};
 
 const onSortableSort = ({ from, to, el }: { from: number; to: number; el: HTMLElement   }) => {
   // console.log("onSortableSort", from, to, el);
@@ -178,6 +184,10 @@ const shareItem = (item: FavoriteListItem, $event: Event) => {
 const { showUndoToast: showUndoDeleteToast } = useUndoToast({
   text: "Элемент удален",
   onUndo: () => {
+    showListAnimation.value = true;
+    setTimeout(() => {
+      showListAnimation.value = false;
+    }, 600);
     emit("undoDeleteItem");
   },
 });

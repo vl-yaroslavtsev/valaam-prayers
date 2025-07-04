@@ -213,6 +213,9 @@ import App from "../components/App.vue";
 // Import Pinia
 import { pinia } from "../stores";
 
+// Import storage initialization
+import { initStorage } from "@/services/storage";
+
 // Init Framework7-Vue Plugin
 Framework7.use(Framework7Vue);
 
@@ -225,8 +228,21 @@ app.use(pinia);
 // Register Framework7 Vue components
 registerComponents(app);
 
-// Запуск приложения
-app.mount("#app");
+// Initialize storage and data before mounting
+(async () => {
+  try {
+    // Initialize IndexedDB
+    console.time('Storage init');
+    await initStorage();
+    console.timeEnd('Storage init');
+    console.log('Storage initialized successfully');
+  } catch (error) {
+    console.error('Failed to initialize storage:', error);
+  } finally {
+    // Mount the app regardless of initialization success/failure
+    app.mount("#app");
+  }
+})();
 
 function registerComponents(app: TApp<Element>) {
   // app.component('f7-accordion-content', f7AccordionContent);

@@ -220,19 +220,19 @@ const { isSection } = usePrayersStore();
 const { addFavorite, deleteFavorite, isFavorite } = useFavoritesStore();
 
 const { showInfoToast: showAddedToFavoritesToast } = useInfoToast({
-  text: "Элемент добавлен на главный экран",
+  text: "Добавлено на главный экран",
 });
 
 const { showInfoToast: showRemovedFromFavoritesToast } = useInfoToast({
-  text: "Элемент удален с главного экрана",
+  text: "Удалено с главного экрана",
 });
 
-const toggleFavorite = (item: PrayerListItem) => {
+const toggleFavorite = async (item: PrayerListItem) => {
   if (isFavorite(item.id)) {
-    deleteFavorite(item.id);
+    await deleteFavorite(item.id);
     showRemovedFromFavoritesToast();
   } else {
-    addFavorite(item.id, "prayers");
+    await addFavorite(item.id, "prayers");
     showAddedToFavoritesToast();
   }
 };

@@ -21,26 +21,31 @@
       },
     }"
     @tap="handleTap"
-    @slidechange="handleSlideChange"
-    >
+    @slidechange="handleSlideChange">
   </swiper-container>
+  <div v-if="isLoading || isCalculating" :class="`text-paginator text-page reading-text prayer-text theme-${theme}`" style="z-index: 1000;">
+    <h1 class="skeleton-text skeleton-effect-wave">__________ ___________</h1>
+    <f7-skeleton-block class="skeleton-text-line skeleton-effect-wave" />
+    <f7-skeleton-block class="skeleton-text-line skeleton-effect-wave" />
+    <f7-skeleton-block class="skeleton-text-line skeleton-effect-wave" />
+  </div>
 </template>
 <script setup lang="ts">
-import { useTemplateRef, watchEffect } from "vue";
+import { useTemplateRef, watchEffect, ref, watch } from "vue";
 import { useTextSelection } from "@/composables/useTextSelection";
 import type { SwiperContainer } from "swiper/element";
 import type { Swiper } from "swiper";
 import type { TextTheme, Lang } from "@/types/common";
-import { waitForFontsLoaded } from "@/js/utils";
 import {
   paginateText,
 } from "@/text-processing";
 
-const { text, mode = "horizontal", theme = "grey", lang = "cs-cf" } = defineProps<{
+const { text, mode = "horizontal", theme = "grey", lang = "cs-cf", isLoading = false } = defineProps<{
   mode?: "vertical" | "horizontal";
   text: string;
   theme?: TextTheme;
   lang?: Lang;
+  isLoading?: boolean;
 }>();
 
 // Events
@@ -57,6 +62,12 @@ let swiperRect = {
   width: 0,
   height: 0,
 };
+
+watch(() => isLoading, (newVal) => {
+  console.log("isLoading", newVal);
+}, { immediate: true });
+
+const isCalculating = ref<boolean>(false);
 
 const updateSlides = (slides: string[]) => {
   const template = `<div class="text-page reading-text prayer-text theme-${theme} lang-${lang}">$content</div>`;
@@ -182,11 +193,14 @@ const handleSlideChange = (e: CustomEvent<[swiper: Swiper]>) => {
 
 watchEffect(async () => {
   if (text && swiperRef.value) {
+    isCalculating.value = true;
+
     const container = swiperRef.value;
     const cssClasses = "text-page reading-text prayer-text";
+    
     const pages = await paginateText(text, container, cssClasses);
-
     updateSlides(pages);
+    isCalculating.value = false;
   }
 });
 
@@ -217,5 +231,8 @@ defineExpose({
   left: 0;
   bottom: 0;
   width: 100%;
+}
+.skeleton-text-line {
+  margin-bottom: 0.3em;
 }
 </style>

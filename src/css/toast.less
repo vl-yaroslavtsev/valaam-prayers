@@ -17,13 +17,27 @@
     box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.3), 0 4px 8px 3px rgba(0, 0, 0, 0.15);
     
     &.toast-bottom {
-      bottom: calc(var(--bottom-tabbar-shown, 1) * var(--f7-tabbar-icons-height) + 8px + var(--f7-safe-area-bottom));
+      bottom: calc(var(--f7-tabbar-icons-height) + 8px + var(--f7-safe-area-bottom));
+    }
+
+    &.toast-error {
+      --f7-toast-bg-color: var(--red-r-1000);
+      --f7-toast-text-color: var(--content-color-white-100);
     }
   }
+
+
 
 
   &.dark, & .dark {
     --f7-toast-bg-color: var(--content-color-black-secondary);
     --f7-toast-text-color: var(--content-color-baige-1000);
+
+    .toast {
+      &.toast-error {
+        --f7-toast-bg-color: #b25959;
+        --f7-toast-text-color: var(--content-color-baige-1000);
+      }
+    }
   }
 }
