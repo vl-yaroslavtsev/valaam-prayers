@@ -10,7 +10,6 @@ export type FavoriteType =
 
 export interface FavoritesItem {
   id: string;
-  name: string;
   type: FavoriteType;
   sort: number;
 }
@@ -84,7 +83,6 @@ export const useFavoritesStore = defineStore("favorites", () => {
 
     const newItem: FavoritesItem = {
       id,
-      name: "",
       type,
       sort: -1,
     };
@@ -122,8 +120,8 @@ export const useFavoritesStore = defineStore("favorites", () => {
       p.sort = i;
     });
 
-     // Сохраняем в IndexedDB
-     try {
+    // Сохраняем в IndexedDB
+    try {
       await favoritesStorage?.putAll(itemsByType);
     } catch (error) {
       console.error('Failed to save favorite to storage:', error);

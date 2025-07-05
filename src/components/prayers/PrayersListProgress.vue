@@ -1,8 +1,11 @@
 <template>
   <Transition name="fade">
     <div class="item-progress" v-if="progress && pages">
-      <f7-progressbar :progress="Math.round(progress * 100)" />
-      <div class="progress-text">
+      <f7-progressbar :progress="Math.round(progress * 100)" v-if="!loading" />
+      <div class="skeleton-text" v-if="loading">
+        _____________________
+      </div>
+      <div class="progress-text" v-else>
         {{ Math.floor(progress * pages) }} из
         {{ pages }} страниц
       </div>
@@ -14,6 +17,7 @@
 interface Props {
   progress?: number;
   pages?: number;
+  loading?: boolean;
 }
 
 defineProps<Props>();

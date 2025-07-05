@@ -1,10 +1,9 @@
-
 import type { ValaamDB } from "./indexedDB";
 import { BaseStorage } from "./BaseStorage";
 
-export class SectionsStorage extends BaseStorage<"sections"> {
+export class SectionsStorage extends BaseStorage<"prayer-sections"> {
   constructor() {
-    super("sections");
+    super("prayer-sections");
   }
 
   async getByParent(

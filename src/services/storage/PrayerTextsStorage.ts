@@ -1,8 +1,8 @@
 import { BaseStorage } from "./BaseStorage";
 
-export class PrayerTextsStorage extends BaseStorage<"prayer-texts"> {
+export class PrayerDetailsStorage extends BaseStorage<"prayer-details"> {
   constructor() {
-    super("prayer-texts");
+    super("prayer-details");
   }
 } 
 

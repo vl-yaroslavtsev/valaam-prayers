@@ -1,43 +1,83 @@
 import { openDB, DBSchema, IDBPDatabase } from 'idb';
 import defaultFavorites from './data/defaultFavorites.json';
+import type { Lang } from '@/types/common';
 
 /**
  * Схема базы данных
  */
 interface ValaamDB extends DBSchema {
-  prayers: {
+  'prayers-index': {
     key: string;
     value: {
       id: string;
       name: string;
       parent: string;
       parents: string[];
-      lang: string[];
+      lang: Lang[];
       sort: number;
-      url: string;
+    };
+    indexes: {
+      'by-parent': string;
     };
   };
-  sections: {
+  'prayer-sections': {
     key: string;
     value: {
       id: string;
       name: string;
       parent: string;
       sort: number;
-      url: string;
+    };
+    indexes: {
+      'by-parent': string;
     };
   };
   favorites: {
     key: string;
     value: {
       id: string;
-      name: string;
       type: 'prayers' | 'books' | 'saints' | 'thoughts';
       sort: number;
     };
     indexes: {
       'by-type': string;
       'by-sort': number;
+    };
+  };
+  'saints-index': {
+    key: string;
+    value: {
+      id: string;
+      name: string;
+    };
+  };
+  'saint-details': {
+    key: string;
+    value: {
+      id: string;
+      name: string;
+      dates: string[];
+      life: string;
+      tropars?: string[];
+      canons?: string[];
+      akathists?: string[];
+    };
+  };
+  'thoughts-index': {
+    key: string;
+    value: {
+      id: string;
+      name: string;
+    };
+  };
+  'thought-details': {
+    key: string;
+    value: {
+      id: string;
+      name: string;
+      text: string;
+      author?: string;
+      date?: string;
     };
   };
   metadata: {
@@ -48,7 +88,7 @@ interface ValaamDB extends DBSchema {
       updatedAt: Date;
     };
   };
-  'prayer-texts': {
+  'prayer-details': {
     key: string;
     value: {
       id: string;
@@ -84,17 +124,19 @@ async function initIndexedDB() {
   db = await openDB<ValaamDB>(DB_NAME, DB_VERSION, {
     upgrade(db) {
       // Создаем хранилище молитв
-      if (!db.objectStoreNames.contains('prayers')) {
-        const prayersStore = db.createObjectStore('prayers', {
+      if (!db.objectStoreNames.contains('prayers-index')) {
+        const prayersStore = db.createObjectStore('prayers-index', {
           keyPath: 'id'
         });
+        prayersStore.createIndex('by-parent', 'parent');
       }
 
       // Создаем хранилище секций
-      if (!db.objectStoreNames.contains('sections')) {
-        const sectionsStore = db.createObjectStore('sections', {
+      if (!db.objectStoreNames.contains('prayer-sections')) {
+        const sectionsStore = db.createObjectStore('prayer-sections', {
           keyPath: 'id'
         });
+        sectionsStore.createIndex('by-parent', 'parent');
       }
 
       // Создаем хранилище избранного
@@ -118,8 +160,36 @@ async function initIndexedDB() {
       }
 
       // Создаем хранилище текстов молитв (отдельно для оптимизации)
-      if (!db.objectStoreNames.contains('prayer-texts')) {
-        db.createObjectStore('prayer-texts', {
+      if (!db.objectStoreNames.contains('prayer-details')) {
+        db.createObjectStore('prayer-details', {
+          keyPath: 'id'
+        });
+      }
+
+      // Создаем хранилище индекса святых
+      if (!db.objectStoreNames.contains('saints-index')) {
+        db.createObjectStore('saints-index', {
+          keyPath: 'id'
+        });
+      }
+
+      // Создаем хранилище полных данных святых
+      if (!db.objectStoreNames.contains('saint-details')) {
+        db.createObjectStore('saint-details', {
+          keyPath: 'id'
+        });
+      }
+
+      // Создаем хранилище индекса размышлений
+      if (!db.objectStoreNames.contains('thoughts-index')) {
+        db.createObjectStore('thoughts-index', {
+          keyPath: 'id'
+        });
+      }
+
+      // Создаем хранилище полных данных размышлений
+      if (!db.objectStoreNames.contains('thought-details')) {
+        db.createObjectStore('thought-details', {
           keyPath: 'id'
         });
       }

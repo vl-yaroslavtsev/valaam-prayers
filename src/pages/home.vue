@@ -63,6 +63,8 @@ import { ref, watchEffect, computed } from "vue";
 import { useTheme } from "@/composables/useTheme";
 import { useFavoritesStore, type FavoriteType, type FavoritesItem } from "@/stores/favorites";
 import { usePrayersStore } from "@/stores/prayers";
+import { useSaintsStore } from "@/stores/saints";
+import { useThoughtsStore } from "@/stores/thoughts";
 import { useReadingHistoryStore } from "@/stores/readingHistory";
 
 import SvgIcon from "@/components/SvgIcon.vue";
@@ -74,6 +76,8 @@ const { isDarkMode } = useTheme();
 // Используем Pinia store
 const favoritesStore = useFavoritesStore();
 const prayersStore = usePrayersStore();
+const saintsStore = useSaintsStore();
+const thoughtsStore = useThoughtsStore();
 const historyStore = useReadingHistoryStore();
 
 type TabType = "prayers" | "books" | "calendar";
@@ -122,18 +126,33 @@ const getFavoritesByType = (tabType: TabType) => {
     };
 
     if (["books", "prayers"].includes(type)) {
-      extra = prayersStore.getItemById(f.id) ?? extra;
+      const item = prayersStore.getItemById(f.id);
+      if (item) {
+        extra.name = item.name;
+        extra.url = item.url;
+      }
     } else if (type === "saints") {
+      const saint = saintsStore.getSaintById(f.id);
+      if (saint) {
+        extra.name = saint.name;
+      }
       extra.url = "/saints/" + f.id;
     } else if (type === "thoughts") {
+      const thought = thoughtsStore.getThoughtById(f.id);
+      if (thought) {
+        extra.name = thought.name;
+      }
       extra.url = "/thoughts/" + f.id;
     }
 
+    // extra.name = "";
+
     return {
-      ...extra,
-      ...history,
       ...f,
-      name: extra.name || f.name,
+      progress: history?.progress,
+      pages: history?.pages,
+      lastReadAt: history?.lastReadAt,
+      ...extra,
     };
   });
 };
@@ -159,12 +178,4 @@ const onSorted = (id: string, from: number, to: number) => {
 .separator {
   margin-top: 30px;
 }
-
-// ужасный хак! Без него неправильно рассчитывается ширина tab-link-highlight
-// при первой загрузке, т.к. шрифты еще не успели подгрузиться
-// .tabbar {
-//   .tab-link:first-child {
-//     width: 113px;
-//   }
-// }
 </style>

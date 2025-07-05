@@ -12,12 +12,12 @@
   >
     <TransitionGroup :name="showListAnimation ? 'favorite-item' : ''" tag="ul">
       <f7-list-item
-        :class="{ 'has-progress': !!item.progress }"
+        :class="{ 'has-progress': !!item.progress, 'skeleton-text skeleton-effect-wave': !item.name }"
         swipeout
         v-for="item in items"
         :key="item.id"
-        :title="item.name"
-        :link="isSortableMode ? 'javascript:void(0)' : item.url"
+        :title="item.name ? item.name : '________________________________'"
+        :link="isSortableMode || !item.name ? 'javascript:void(0)' : item.url"
         :data-id="item.id"
         @contextmenu="handleContextMenu"
       >
@@ -27,7 +27,7 @@
           </f7-link>
         </template>
         <template #inner>
-          <PrayersListProgress :progress="item.progress" :pages="item.pages" />
+          <PrayersListProgress :progress="item.progress" :pages="item.pages" :loading="!item.name" />
         </template>
         <template #after>
           <LanguageBadges :languages="item.lang" />
@@ -219,8 +219,8 @@ const handleContextMenu = (e: Event) => {
 .favorite-item-enter-from,
 .favorite-item-leave-to {
   opacity: 0;
-  /* transform: translateY(-100%); */
-  transform: translateX(-40%);
+  /* transform: translateY(-50%); */
+  transform: translateX(-40%) translateY(-50%);
 }
 
 /* Обеспечиваем плавное схлопывание высоты */

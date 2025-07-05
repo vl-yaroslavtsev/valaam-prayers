@@ -3,14 +3,14 @@ import { ref, shallowRef } from "vue";
 import type { Lang } from "@/types/common";
 import { prayersApi } from "@/services/api";
 import type { PrayerApiElement, PrayerApiSection, PrayerTextApiResponse } from "@/services/api";
-import { prayersStorage, prayerTextsStorage, sectionsStorage } from "@/services/storage";
+import { prayersIndexStorage, prayerDetailsStorage, sectionsStorage } from "@/services/storage";
 
 export interface PrayerElement {
   id: string;
   name: string;
   parent: string;
-  parents: Array<string>;
-  lang: Array<Lang>;
+  parents: string[];
+  lang: Lang[];
   sort: number;
   url: string;
 }
@@ -68,12 +68,12 @@ export const usePrayersStore = defineStore("prayers", () => {
     try {
       // Пытаемся загрузить данные из кэша
       console.time("Prayers initStore");
-      const cachedPrayers = await prayersStorage?.getAll();
+      const cachedPrayers = await prayersIndexStorage?.getAll();
       const cachedSections = await sectionsStorage?.getAll();
 
       if (cachedPrayers && cachedSections) {
-        elements.value = cachedPrayers as PrayerElement[];
-        sections.value = cachedSections as PrayerSection[];
+        elements.value = cachedPrayers.map(transformApiElement);  
+        sections.value = cachedSections.map(transformApiSection);
         console.log('Loaded prayers from cache');
       }
       console.timeEnd("Prayers initStore");
@@ -104,7 +104,7 @@ export const usePrayersStore = defineStore("prayers", () => {
 
       console.time("Prayers cache elements and sections");
       // Сохраняем в кэш
-      await prayersStorage?.putAll(elements.value);
+      await prayersIndexStorage?.putAll(elements.value);
       await sectionsStorage?.putAll(sections.value);
       console.timeEnd("Prayers cache elements and sections");
 
@@ -126,7 +126,7 @@ export const usePrayersStore = defineStore("prayers", () => {
   const getPrayerText = async (id: string): Promise<PrayerTextApiResponse> => {
     try {
       // Сначала проверяем кэш
-      const cached = await prayerTextsStorage?.get(id);
+      const cached = await prayerDetailsStorage?.get(id);
       if (cached) {
         return cached;
       }
@@ -134,7 +134,7 @@ export const usePrayersStore = defineStore("prayers", () => {
       // Загружаем с сервера
       const response = await prayersApi.getPrayerText(id);
       // Сохраняем в кэш
-      // await prayerTextsStorage?.put(response);
+      await prayerDetailsStorage?.put(response);
       
       return response;
     } catch (err) {
