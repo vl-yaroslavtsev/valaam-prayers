@@ -30,15 +30,16 @@
     <f7-tabs animated>
       <f7-tab
         v-for="tab in tabs"
-        :key="tab.id"
+        :key="`${tab.id}`"
         :id="`tab-${tab.id}`"
         class="page-content"
         :tab-active="tab.id === 1"
       >
         <f7-block v-if="isEmptyList(tab.type)"
-          >Здесь появятся избранные молитвы, книги и святые.</f7-block
+          >Отметьте звездочкой молитвы, книги, святые, мысли и они появятся здесь.</f7-block
         >
         <FavoritesList
+          :isLoading="isLoading"
           sortable
           :sortable-enabled="sortableEnabled"
           :favorites="getFavoritesByType(tab.type)"
@@ -49,7 +50,6 @@
           @sorted="onSorted"
         />
         <SeparatorLine
-          v-if="favoritesStore.isInitialized"
           class="separator"
           :color="isDarkMode ? 'baige-100' : 'black-100'"
         />
@@ -66,6 +66,7 @@ import { usePrayersStore } from "@/stores/prayers";
 import { useSaintsStore } from "@/stores/saints";
 import { useThoughtsStore } from "@/stores/thoughts";
 import { useReadingHistoryStore } from "@/stores/readingHistory";
+import { useErrorToast } from "@/composables/useErrorToast";
 
 import SvgIcon from "@/components/SvgIcon.vue";
 import SeparatorLine from "@/components/SeparatorLine.vue";
@@ -94,14 +95,30 @@ const tabs = ref<
   { id: 3, title: "Календарь", type: "calendar" },
 ]);
 
-// watchEffect(async () => {
-//   await favoritesStore.init();
-// });
+const isLoading = computed(() => {
+  return prayersStore.isLoading || saintsStore.isLoading || thoughtsStore.isLoading;
+});
 
 const isEmptyList = (type: TabType) => {
-  console.log("favoritesStore.isInitialized", favoritesStore.isInitialized);
-  return favoritesStore.isInitialized && getFavoritesByType(type).length === 0;
+  return !isLoading.value && getFavoritesByType(type).length === 0;
 };
+
+const showErrorToast = useErrorToast({
+  text: "Ошибка при загрузке данных. Пожалуйста, проверьте интернет соединение.",
+});
+
+const isError = computed(() => {
+  return (prayersStore.error && prayersStore.elements.length === 0)
+  || (saintsStore.error && saintsStore.saints.length === 0)
+  || (thoughtsStore.error && thoughtsStore.thoughts.length === 0);
+});
+
+watchEffect(() => {
+  if (isError.value) {
+    showErrorToast.showErrorToast();
+  }
+});
+
 
 // Используем методы из store
 const getFavoritesByType = (tabType: TabType) => {
@@ -144,8 +161,6 @@ const getFavoritesByType = (tabType: TabType) => {
       }
       extra.url = "/thoughts/" + f.id;
     }
-
-    // extra.name = "";
 
     return {
       ...f,

@@ -17,7 +17,7 @@ export interface ThoughtDetails {
 
 export const useThoughtsStore = defineStore("thoughts", () => {
   // State
-  const thoughtsIndex = shallowRef<ThoughtIndex[]>([]);
+  const thoughts = shallowRef<ThoughtIndex[]>([]);
   const isInitialized = ref<boolean>(false);
   const isInitializing = ref<boolean>(false);
   const isLoading = shallowRef(false);
@@ -35,7 +35,7 @@ export const useThoughtsStore = defineStore("thoughts", () => {
       const cachedThoughts = await thoughtsIndexStorage?.getAll();
       
       if (cachedThoughts) {
-        thoughtsIndex.value = cachedThoughts as ThoughtIndex[];
+        thoughts.value = cachedThoughts as ThoughtIndex[];
         console.log('Loaded thoughts index from cache');
       } else {
         // TODO: Загрузить с сервера, если нет в кэше
@@ -55,7 +55,7 @@ export const useThoughtsStore = defineStore("thoughts", () => {
    * Получает размышление по ID из индекса
    */
   const getThoughtById = (id: string): ThoughtIndex | undefined => {
-    return thoughtsIndex.value.find((thought) => thought.id === id);
+    return thoughts.value.find((thought) => thought.id === id);
   };
 
   /**
@@ -78,11 +78,9 @@ export const useThoughtsStore = defineStore("thoughts", () => {
     }
   };
 
-  initStore();
-
   return {
     // State
-    thoughtsIndex,
+    thoughts,
     isInitialized,
     isLoading,
     error,

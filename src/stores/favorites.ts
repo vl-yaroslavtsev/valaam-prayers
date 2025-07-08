@@ -128,8 +128,6 @@ export const useFavoritesStore = defineStore("favorites", () => {
     }
   };
 
-  initStore();
-
   return {
     // State
     favorites,
@@ -138,6 +136,7 @@ export const useFavoritesStore = defineStore("favorites", () => {
     getFavoritesByType,
     isFavorite,
     // Actions
+    initStore,
     addFavorite,
     deleteFavorite,
     undoDeleteFavorite,

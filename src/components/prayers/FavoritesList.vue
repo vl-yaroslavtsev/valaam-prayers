@@ -1,33 +1,32 @@
 <template>
-  <f7-list
-    ref="list"
-    :class="`prayers ${cssClass} favorites-list`"
-    :sortable="sortable"
+  <f7-list ref="list" :class="`prayers ${cssClass} favorites-list`" 
+    :sortable="sortable" 
     :sortable-tap-hold="sortable"
-    :sortable-enabled="isSortableMode"
-    @sortable:sort="onSortableSort"
+    :sortable-enabled="isSortableMode" 
+    @sortable:sort="onSortableSort" 
     @taphold.passive="onTapHold"
-    @touchend.passive="onTouchEnd"
-    @contextmenu="handleContextMenu"
-  >
-    <TransitionGroup :name="showListAnimation ? 'favorite-item' : ''" tag="ul">
-      <f7-list-item
-        :class="{ 'has-progress': !!item.progress, 'skeleton-text skeleton-effect-wave': !item.name }"
-        swipeout
-        v-for="item in items"
-        :key="item.id"
-        :title="item.name ? item.name : '________________________________'"
-        :link="isSortableMode || !item.name ? 'javascript:void(0)' : item.url"
-        :data-id="item.id"
-        @contextmenu="handleContextMenu"
-      >
+    @touchend.passive="onTouchEnd" 
+    @contextmenu="handleContextMenu">
+    <TransitionGroup 
+      :name="showListAnimation ? 'favorite-item' : ''" 
+      tag="ul" 
+      :key="isLoading ? 'loading' : 'loaded'">
+      <f7-list-item 
+        :class="{ 'has-progress': !!item.progress, 'skeleton-text skeleton-effect-wave': isLoading }"
+        swipeout 
+        v-for="item in localItems" 
+        :key="item.id" 
+        :title="item.name"
+        :link="isSortableMode ? 'javascript:void(0)' : item.url" 
+        :data-id="item.id" 
+        @contextmenu="handleContextMenu">
         <template #root-start>
           <f7-link class="delete-handler" @click="deleteItem(item)">
             <SvgIcon icon="delete" color="primary-accent-50" />
           </f7-link>
         </template>
         <template #inner>
-          <PrayersListProgress :progress="item.progress" :pages="item.pages" :loading="!item.name" />
+          <PrayersListProgress :progress="item.progress" :pages="item.pages" :loading="isLoading" />
         </template>
         <template #after>
           <LanguageBadges :languages="item.lang" />
@@ -36,13 +35,9 @@
           <f7-swipeout-button close @click="shareItem(item, $event)">
             <SvgIcon icon="share" :color="isDarkMode ? 'baige-900' : 'black-600'" />
           </f7-swipeout-button>
-          <f7-swipeout-button
-            close
-            @click="resetItem(item)"
-            v-if="item.progress && item.pages"
-          >
-            <SvgIcon icon="reset" :color="isDarkMode ? 'baige-900' : 'black-600'"
-          /></f7-swipeout-button>
+          <f7-swipeout-button close @click="resetItem(item)" v-if="item.progress && item.pages">
+            <SvgIcon icon="reset" :color="isDarkMode ? 'baige-900' : 'black-600'" />
+          </f7-swipeout-button>
           <f7-swipeout-button @click="deleteItem(item)">
             <SvgIcon icon="delete" color="primary-accent-50" />
           </f7-swipeout-button>
@@ -53,7 +48,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watchEffect, computed, useTemplateRef, ComponentPublicInstance } from "vue";
+import { ref, watchEffect, watch, computed, useTemplateRef, ComponentPublicInstance } from "vue";
 import { storeToRefs } from "pinia";
 import { f7 } from "framework7-vue";
 import { useTheme } from "@/composables/useTheme";
@@ -83,16 +78,18 @@ const {
   sortable = false,
   sortableEnabled = false,
   cssClass = "",
+  isLoading = false,
 } = defineProps<{
   favorites: FavoriteListItem[];
   sortable?: boolean;
   sortableEnabled?: boolean;
   cssClass?: string;
+  isLoading?: boolean;
 }>();
 
 // Events
 const emit = defineEmits<{
-  deleteItem: [id: string ];
+  deleteItem: [id: string];
   undoDeleteItem: [];
   resetItemProgress: [id: string];
   undoResetItemProgress: [];
@@ -100,6 +97,22 @@ const emit = defineEmits<{
 }>();
 
 const { isDarkMode } = useTheme();
+
+const skeletonItems = Array(5).fill(null).map((_, index) => ({
+  id: `loading-${index}`,
+  name: "________________________________",
+  url: "javascript:void(0)",
+  progress: 0.5,
+  pages: 10,
+  lang: [],
+}));
+
+const localItems = computed(() => {
+  if (isLoading) {
+    return skeletonItems;
+  }
+  return items;
+});
 
 const isSortableMode = computed(() => {
   return sortable && sortableEnabled;
@@ -116,13 +129,13 @@ const deleteItem = (item: FavoriteListItem) => {
   showUndoDeleteToast();
 };
 
-const onSortableSort = ({ from, to, el }: { from: number; to: number; el: HTMLElement   }) => {
+const onSortableSort = ({ from, to, el }: { from: number; to: number; el: HTMLElement }) => {
   // console.log("onSortableSort", from, to, el);
   const id = el.dataset.id as string;
   emit("sorted", id, from, to);
 };
 
-const { getComponent }  = useComponentsStore();
+const { getComponent } = useComponentsStore();
 
 const listRef = useTemplateRef<ComponentPublicInstance>("list");
 useSwipeoutEdgeGuard(() => listRef.value?.$el);
@@ -158,7 +171,7 @@ watchEffect(() => {
 const resetItem = (item: FavoriteListItem) => {
 
   if (!listRef.value) return;
-  
+
   listRef.value.$el.addEventListener("swipeout:closed", (e: Event) => {
     const swipeoutEl = e.target as HTMLElement;
     swipeoutClearCache(swipeoutEl);
@@ -174,7 +187,7 @@ const shareItem = (item: FavoriteListItem, $event: Event) => {
   const targetEl = ($event.target as HTMLElement)
     ?.closest("li")
     ?.querySelector(".item-title") as HTMLElement;
-  
+
   sharePopover.open({
     title: item.name,
     url: item.url,

@@ -30,6 +30,10 @@ export const useCalendarStore = defineStore("calendar", () => {
     },
   ]);
 
+  const initStore = async () => {
+    console.log("Calendar store initialized");
+  }
+
   // Getters
   const getDays = () => days.value;
   
@@ -42,5 +46,7 @@ export const useCalendarStore = defineStore("calendar", () => {
     // Getters
     getDays,
     getDayById,
+    // Actions
+    initStore,
   };
 });

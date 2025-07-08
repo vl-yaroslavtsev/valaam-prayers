@@ -2,8 +2,17 @@ import { defineStore } from "pinia";
 import { ref, shallowRef } from "vue";
 import type { Lang } from "@/types/common";
 import { prayersApi } from "@/services/api";
-import type { PrayerApiElement, PrayerApiSection, PrayerTextApiResponse } from "@/services/api";
-import { prayersIndexStorage, prayerDetailsStorage, sectionsStorage } from "@/services/storage";
+import type {
+  PrayerApiElement,
+  PrayerApiSection,
+  PrayerTextApiResponse,
+} from "@/services/api";
+import {
+  prayersIndexStorage,
+  prayerDetailsStorage,
+  sectionsStorage,
+} from "@/services/storage";
+import { PrayersApiResponse } from "@/services/api/PrayersApi";
 
 export interface PrayerElement {
   id: string;
@@ -32,8 +41,12 @@ export const usePrayersStore = defineStore("prayers", () => {
   // State
   const elements = shallowRef<PrayerElement[]>([]);
   const sections = shallowRef<PrayerSection[]>([]);
-  const isInitialized = ref<boolean>(false);
-  const isInitializing = ref<boolean>(false);
+
+  const isInitialized = shallowRef<boolean>(false);
+  const isInitializing = shallowRef<boolean>(false);
+
+  const isLoading = shallowRef(false);
+  const error = shallowRef<string | null>(null);
 
   /**
    * Преобразует API элемент в локальный формат
@@ -54,9 +67,6 @@ export const usePrayersStore = defineStore("prayers", () => {
       url: "/prayers/" + s.id,
     };
   };
-  // State
-  const isLoading = shallowRef(false);
-  const error = shallowRef<string | null>(null);
 
   /**
    * Инициализация store с загрузкой из кэша
@@ -68,56 +78,76 @@ export const usePrayersStore = defineStore("prayers", () => {
     try {
       // Пытаемся загрузить данные из кэша
       console.time("Prayers initStore");
-      const cachedPrayers = await prayersIndexStorage?.getAll();
-      const cachedSections = await sectionsStorage?.getAll();
+      const [cachedPrayers, cachedSections] = await Promise.all([
+        prayersIndexStorage?.getAll(),
+        sectionsStorage?.getAll(),
+      ]);
 
       if (cachedPrayers && cachedSections) {
-        elements.value = cachedPrayers.map(transformApiElement);  
+        elements.value = cachedPrayers.map(transformApiElement);
         sections.value = cachedSections.map(transformApiSection);
-        console.log('Loaded prayers from cache');
+        console.log("Loaded prayers from cache");
       }
       console.timeEnd("Prayers initStore");
-      
     } catch (err) {
-      console.warn('Failed to load from cache, will fetch from API');
+      console.warn("Failed to load from cache, will fetch from API");
     }
-
-    await fetchPrayers();
 
     isInitialized.value = true;
     isInitializing.value = false;
+
+    fetchPrayers()
+    .then(savePrayersToCache);
   };
 
   /**
    * Загружает данные с сервера и сохраняет в кэш
    */
   const fetchPrayers = async () => {
-    console.time("Prayers fetchPrayers");
-    try {
+    if (elements.value.length === 0) {
       isLoading.value = true;
+    }
+    try {
       error.value = null;
-
+      console.time("Prayers fetchPrayers");
       const response = await prayersApi.getPrayers();
-      
-      elements.value = response.e.map(transformApiElement);
-      sections.value = response.s.map(transformApiSection);
 
-      console.time("Prayers cache elements and sections");
-      // Сохраняем в кэш
-      await prayersIndexStorage?.putAll(elements.value);
-      await sectionsStorage?.putAll(sections.value);
-      console.timeEnd("Prayers cache elements and sections");
+      if (elements.value.length === 0) {
+        elements.value = response.e.map(transformApiElement);
+        sections.value = response.s.map(transformApiSection);
+      }
 
-      console.log("Prayers data loaded and cached successfully");
+      console.timeEnd("Prayers fetchPrayers");
+      console.log("Prayers data loaded successfully");
+      return response;
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Unknown error';
+      const errorMessage = err instanceof Error ? err.message : "Unknown error";
       error.value = errorMessage;
       console.error("Failed to load prayers data:", errorMessage);
-      throw err;
     } finally {
       isLoading.value = false;
     }
-    console.timeEnd("Prayers fetchPrayers");
+
+    return {e: [], s: []};
+  };
+
+  const savePrayersToCache = async (response: PrayersApiResponse) => {
+    try {
+      console.time("Prayers cache elements and sections");
+      const {e, s} = response;
+      // Сохраняем в кэш
+      if (e.length > 0) {
+        await prayersIndexStorage?.putAll(e.map(transformApiElement));
+      }
+      if (s.length > 0) {
+        await sectionsStorage?.putAll(s.map(transformApiSection));
+      }
+            
+      console.log("Prayers data cached successfully");
+      console.timeEnd("Prayers cache elements and sections");
+    } catch (err) {
+      console.error("Failed to save prayers to cache:", err);
+    }
   };
 
   /**
@@ -135,7 +165,7 @@ export const usePrayersStore = defineStore("prayers", () => {
       const response = await prayersApi.getPrayerText(id);
       // Сохраняем в кэш
       await prayerDetailsStorage?.put(response);
-      
+
       return response;
     } catch (err) {
       console.error(`Failed to get prayer text for ID ${id}:`, err);
@@ -213,12 +243,12 @@ export const usePrayersStore = defineStore("prayers", () => {
     return !!sections.value.find((s) => s.id === id);
   };
 
-  initStore();
 
   return {
     // State
     elements,
     sections,
+    isInitialized,
     isLoading,
     error,
     // Getters

@@ -214,7 +214,7 @@ import App from "../components/App.vue";
 import { pinia } from "../stores";
 
 // Import storage initialization
-import { initStorage } from "@/services/storage";
+import { initStores } from "@/stores";
 
 // Init Framework7-Vue Plugin
 Framework7.use(Framework7Vue);
@@ -232,12 +232,12 @@ registerComponents(app);
 (async () => {
   try {
     // Initialize IndexedDB
-    console.time('Storage init');
-    await initStorage();
-    console.timeEnd('Storage init');
-    console.log('Storage initialized successfully');
+    console.time('Stores init');
+    await initStores();
+    console.timeEnd('Stores init');
+    console.log('Stores initialized successfully');
   } catch (error) {
-    console.error('Failed to initialize storage:', error);
+    console.error('Failed to initialize stores:', error);
   } finally {
     // Mount the app regardless of initialization success/failure
     app.mount("#app");

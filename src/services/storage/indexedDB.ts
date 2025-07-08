@@ -119,6 +119,7 @@ const DB_NAME: string = 'valaam-prayers';
 const DB_VERSION: number = 1;
 
 let db: IDBPDatabase<ValaamDB> | null = null;
+let initPromise: Promise<void> | null = null;
 
 async function initIndexedDB() {
   db = await openDB<ValaamDB>(DB_NAME, DB_VERSION, {
@@ -226,8 +227,12 @@ async function initDB() {
   if (db) {
     return;
   }
+  
+  if (!initPromise) {
+    initPromise = initIndexedDB();
+  }
 
-  await initIndexedDB();
+  await initPromise;
 }
 
 /**

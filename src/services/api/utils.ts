@@ -86,6 +86,11 @@ export async function fetchJson<T = any>(
 
       clearTimeout(timeoutId);
 
+
+      if (response.status === 404) {
+        throw new Error('Not found');
+      }
+
       // Проверяем статус ответа
       if (!response.ok) {
         throw new Error(`HTTP Error: ${response.status} ${response.statusText}`);
@@ -125,7 +130,7 @@ export async function fetchJson<T = any>(
   }
 
   // Выбрасываем последнюю ошибку
-  throw new Error(`Failed to fetch JSON after ${retries + 1} attempts: ${lastError?.message || "Unknown error"}`);
+  throw lastError;
 }
 
 /**

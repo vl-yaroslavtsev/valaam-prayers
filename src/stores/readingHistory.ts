@@ -1,6 +1,7 @@
 // stores/readingHistory.ts
 import { defineStore } from "pinia";
 import historyData from "../../test-data/reading-history.json";
+import { readingHistoryStorage } from "../services/storage";
 
 type ReadingType = "prayers" | "books" | "saints";
 
@@ -14,9 +15,7 @@ interface ReadingHistoryItem {
 
 export const useReadingHistoryStore = defineStore("readingHistory", {
   state: () => ({
-    history: historyData.map((e) => {
-      return { ...e, lastReadAt: new Date(e.lastReadAt) };
-    }) as ReadingHistoryItem[],
+    history: [] as ReadingHistoryItem[],
     snapshot: {
       id: "",
       progress: 0,
@@ -24,6 +23,8 @@ export const useReadingHistoryStore = defineStore("readingHistory", {
       type: "prayers",
       lastReadAt: new Date(),
     } as ReadingHistoryItem,
+    isInitialized: false,
+    isInitializing: false,
   }),
 
   getters: {
@@ -46,6 +47,23 @@ export const useReadingHistoryStore = defineStore("readingHistory", {
   },
 
   actions: {
+    async initStore() {
+      if (this.isInitialized || this.isInitializing) return;
+      this.isInitializing = true;
+
+      try {
+        const cachedHistory = await readingHistoryStorage?.getAll();
+        if (cachedHistory) {
+          this.history = cachedHistory;
+        }
+      } catch (error) {
+        console.error('Failed to load reading history from cache:', error);
+      } finally {
+        this.isInitialized = true;
+        this.isInitializing = false;
+      }
+    },
+
     updateProgress(
       id: string,
       progress: number,

@@ -1,6 +1,7 @@
 import { defineStore } from "pinia";
 import { ref, shallowRef } from "vue";
 import { saintsIndexStorage, saintDetailsStorage } from "@/services/storage";
+import { saintsApi } from "@/services/api/SaintsApi";
 
 export interface SaintIndex {
   id: string;
@@ -19,7 +20,7 @@ export interface SaintDetails {
 
 export const useSaintsStore = defineStore("saints", () => {
   // State
-  const saintsIndex = shallowRef<SaintIndex[]>([]);
+  const saints = shallowRef<SaintIndex[]>([]);
   const isInitialized = ref<boolean>(false);
   const isInitializing = ref<boolean>(false);
   const isLoading = shallowRef(false);
@@ -37,12 +38,9 @@ export const useSaintsStore = defineStore("saints", () => {
       const cachedSaints = await saintsIndexStorage?.getAll();
       
       if (cachedSaints) {
-        saintsIndex.value = cachedSaints as SaintIndex[];
+        saints.value = cachedSaints as SaintIndex[];
         console.log('Loaded saints index from cache');
-      } else {
-        // TODO: Загрузить с сервера, если нет в кэше
-        console.log('No saints cache found, need to fetch from API');
-      }
+      } 
       console.timeEnd("Saints initStore");
       
     } catch (err) {
@@ -51,13 +49,54 @@ export const useSaintsStore = defineStore("saints", () => {
       isInitialized.value = true;
       isInitializing.value = false;
     }
+
+    fetchSaintIndex().then(saveSaintIndexToCache);
   };
+
+  const fetchSaintIndex = async () => {
+    if (saints.value.length === 0) {
+      isLoading.value = true;
+    }
+    try {
+      console.time("Saints fetchSaintIndex");
+      const saintsIndex = await saintsApi.getSaintsIndex();
+
+      if (saints.value.length === 0) {
+        saints.value = saintsIndex;
+      }
+
+      console.timeEnd("Saints fetchSaintIndex");
+      console.log("Saints index loaded successfully");
+      return saintsIndex;
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : "Unknown error";
+      error.value = errorMessage;
+      console.error('Failed to load saints index:', err);
+    } finally {
+      isLoading.value = false;
+    }
+
+    return [];
+  }
+
+  const saveSaintIndexToCache = async (saintsIndex: SaintIndex[]) => {
+    try {
+      console.time("Saints saveSaintIndexToCache");
+      if (saintsIndex.length > 0) {
+        await saintsIndexStorage?.putAll(saintsIndex);
+      }
+      console.timeEnd("Saints saveSaintIndexToCache");
+      console.log("Saints index saved to cache");
+    } catch (err) { 
+      console.error('Failed to save saints index to cache:', err);
+    }
+  }
 
   /**
    * Получает святого по ID из индекса
    */
   const getSaintById = (id: string): SaintIndex | undefined => {
-    return saintsIndex.value.find((saint) => saint.id === id);
+    return saints.value.find((saint) => saint.id === id);
   };
 
   /**
@@ -80,11 +119,9 @@ export const useSaintsStore = defineStore("saints", () => {
     }
   };
 
-  initStore();
-
   return {
     // State
-    saintsIndex,
+    saints,
     isInitialized,
     isLoading,
     error,
