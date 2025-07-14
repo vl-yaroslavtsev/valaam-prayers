@@ -39,7 +39,7 @@
           >Отметьте звездочкой молитвы, книги, святые, мысли и они появятся здесь.</f7-block
         >
         <FavoritesList
-          :isLoading="isLoading"
+          :isLoading="tab.isLoading"
           sortable
           :sortable-enabled="sortableEnabled"
           :favorites="getFavoritesByType(tab.type)"
@@ -59,7 +59,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watchEffect, computed } from "vue";
+import { ref, watchEffect, computed, type Ref } from "vue";
 import { useTheme } from "@/composables/useTheme";
 import { useFavoritesStore, type FavoriteType, type FavoritesItem } from "@/stores/favorites";
 import { usePrayersStore } from "@/stores/prayers";
@@ -88,19 +88,30 @@ const tabs = ref<
     id: number;
     title: string;
     type: TabType;
+    isLoading: Ref<boolean>;
   }[]
 >([
-  { id: 1, title: "Молитвы", type: "prayers" },
-  { id: 2, title: "Книги", type: "books" },
-  { id: 3, title: "Календарь", type: "calendar" },
+  { 
+    id: 1, 
+    title: "Молитвы", 
+    type: "prayers", 
+    isLoading: computed(() => prayersStore.isLoading) 
+  },
+  { 
+    id: 2, 
+    title: "Книги", 
+    type: "books", 
+    isLoading: computed(() => prayersStore.isLoading) },
+  { 
+    id: 3, 
+    title: "Календарь", 
+    type: "calendar", 
+    isLoading: computed(() => saintsStore.isLoading || thoughtsStore.isLoading),
+  },
 ]);
 
-const isLoading = computed(() => {
-  return prayersStore.isLoading || saintsStore.isLoading || thoughtsStore.isLoading;
-});
-
 const isEmptyList = (type: TabType) => {
-  return !isLoading.value && getFavoritesByType(type).length === 0;
+  return !tabs.value.find((tab) => tab.type === type)?.isLoading && getFavoritesByType(type).length === 0;
 };
 
 const showErrorToast = useErrorToast({
@@ -136,7 +147,7 @@ const getFavoritesByType = (tabType: TabType) => {
   }
   return favorites.map((f) => {
     const type = f.type;
-    const history = historyStore.getItemProgress(f.id);
+    const history = historyStore.getItem(f.id);
     let extra = {
       name: "",
       url: "",

@@ -28,7 +28,7 @@ export const useReadingHistoryStore = defineStore("readingHistory", {
   }),
 
   getters: {
-    getItemProgress: (state) => (id: string) => {
+    getItem: (state) => (id: string) => {
       return state.history.find((item) => item.id === id);
     },
     getLastItems:

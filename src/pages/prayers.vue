@@ -82,7 +82,7 @@ console.log("page prayers with sectionId = " + sectionId);
 
 const prayers = computed(() =>
   prayersStore.getItemsBySection(sectionId).map((p) => {
-    const history = historyStore.getItemProgress(p.id) ?? {
+    const history = historyStore.getItem(p.id) ?? {
       progress: 0,
       pages: 0,
     };

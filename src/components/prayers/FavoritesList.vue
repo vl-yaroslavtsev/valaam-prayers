@@ -8,7 +8,7 @@
     @touchend.passive="onTouchEnd" 
     @contextmenu="handleContextMenu">
     <TransitionGroup 
-      :name="showListAnimation ? 'favorite-item' : ''" 
+      name="favorite-item"
       tag="ul" 
       :key="isLoading ? 'loading' : 'loaded'">
       <f7-list-item 
@@ -118,12 +118,12 @@ const isSortableMode = computed(() => {
   return sortable && sortableEnabled;
 });
 
-const showListAnimation = ref(false);
+const showListAnimation = ref(0);
 
 const deleteItem = (item: FavoriteListItem) => {
-  showListAnimation.value = true;
+  showListAnimation.value = 1;
   setTimeout(() => {
-    showListAnimation.value = false;
+    showListAnimation.value = 0;
   }, 600);
   emit("deleteItem", item.id);
   showUndoDeleteToast();
@@ -197,9 +197,9 @@ const shareItem = (item: FavoriteListItem, $event: Event) => {
 const { showUndoToast: showUndoDeleteToast } = useUndoToast({
   text: "Элемент удален",
   onUndo: () => {
-    showListAnimation.value = true;
+    showListAnimation.value = 1;
     setTimeout(() => {
-      showListAnimation.value = false;
+      showListAnimation.value = 0;
     }, 600);
     emit("undoDeleteItem");
   },
@@ -226,7 +226,8 @@ const handleContextMenu = (e: Event) => {
 .favorite-item-move,
 .favorite-item-enter-active,
 .favorite-item-leave-active {
-  transition: all 600ms ease;
+  transition: all ease;
+  transition-duration: calc(600ms * v-bind(showListAnimation));
 }
 
 .favorite-item-enter-from,
