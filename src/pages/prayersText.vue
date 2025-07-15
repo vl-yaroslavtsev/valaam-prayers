@@ -7,7 +7,19 @@
         <f7-link icon-only>
           <SvgIcon icon="menu" color="baige-900" :size="24" />
         </f7-link>
-        <f7-link icon-only>
+        <f7-link icon-only 
+          smart-select 
+          :smart-select-params="{
+            openIn: 'popover',
+            closeOnSelect: true,
+            cssClass: 'simple-select',
+            popoverArrow: false,
+          }">
+          <select name="language">
+            <option value="cs" selected>Церковнославянский</option>
+            <option value="cs-cf">Церковнослав. (гражданский)</option>
+            <option value="ru">Русский</option>
+          </select>
           <SvgIcon icon="language" color="baige-900" :size="24" />
         </f7-link>
         <f7-link icon-only>
@@ -39,6 +51,17 @@
     </f7-page-content>
   </f7-page>
 </template>
+
+<!--
+<f7-list menu-list strong-ios outline-ios>
+  <f7-list-item
+    link
+    title="Home"
+    :selected="selected === 'home'"
+    @click="() => (selected = 'home')"
+  > </f7-list-item>
+</f7-list>
+-->
 
 <script setup lang="ts">
 import { ref, computed, watchEffect, useTemplateRef, ComponentPublicInstance, watch } from "vue";

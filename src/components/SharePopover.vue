@@ -200,6 +200,10 @@ onUnmounted(() => {
   color: var(--content-color-baige-1000);
 }
 
+:global(.share-popover.modal-in ~ .popover-backdrop) {
+  --popover-backdrop-color: rgba(0, 0, 0, 0.4);
+}
+
 .share-title {
   font-weight: 700;
 }
