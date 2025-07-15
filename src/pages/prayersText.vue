@@ -8,14 +8,14 @@
           <SvgIcon icon="menu" color="baige-900" :size="24" />
         </f7-link>
         <f7-link icon-only>
-          <SvgIcon icon="language" color="baige-900" :size="30" />
+          <SvgIcon icon="language" color="baige-900" :size="24" />
         </f7-link>
         <f7-link icon-only>
           <SvgIcon :icon="isElementFavorite ? 'favorite-filled' : 'favorite'" color="baige-900" :size="24"
             @click="toggleFavorite" />
         </f7-link>
         <f7-link icon-only>
-          <SvgIcon icon="settings-2" color="baige-900" :size="30" />
+          <SvgIcon icon="settings-2" color="baige-900" :size="24" />
         </f7-link>
         <f7-link icon-only>
           <SvgIcon icon="share" color="baige-900" :size="24" @click="shareItem" />
