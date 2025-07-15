@@ -27,7 +27,15 @@
       <f7-nav-title-large>{{ title }}</f7-nav-title-large>
     </f7-navbar>
     <f7-page-content class="">
-      <TextPaginator :isLoading="isLoading" :mode="'horizontal'" :text="text" :theme="theme" ref="textPaginator" @tap="onTextPaginatorTap" />
+      <TextPaginator 
+        :isLoading="isLoading" 
+        :mode="'horizontal'" 
+        :text="text" 
+        :theme="theme" 
+        :initialProgress="initialProgress"
+        ref="textPaginator" 
+        @tap="onTextPaginatorTap" 
+        @progress="onTextPaginatorProgress" />
     </f7-page-content>
   </f7-page>
 </template>
@@ -36,6 +44,7 @@
 import { ref, computed, watchEffect, useTemplateRef, ComponentPublicInstance, watch } from "vue";
 import type { Router } from "framework7/types";
 import { f7 } from "framework7-vue";
+import type { Swiper } from "swiper";
 
 import { useTheme } from "@/composables/useTheme";
 import { usePrayersStore, BOOKS_SECTION_ID } from "@/stores/prayers";
@@ -73,6 +82,8 @@ watch(data, async () => {
   if (!data.value) return;
   text.value = `<h1>${title.value}</h1>\n\n${data.value.text_cs_cf}`;
 });
+
+const initialProgress = computed(() => historyStore.getItem(elementId)?.progress || 0);
 
 watch(error, async () => {
   if (!error.value) return;
@@ -114,11 +125,18 @@ const toggleNavbar = () => {
 
 const textPaginator = useTemplateRef("textPaginator");
 
-const onTextPaginatorTap = (type: "center" | "left" | "right" | "top" | "bottom", x: number, y: number) => {
+const onTextPaginatorTap = (payload: { type: "center" | "left" | "right" | "top" | "bottom"; x: number; y: number }) => {
+  const { type, x, y } = payload;
   console.log("onTextPaginatorTap", type, x, y);
   if (type === "center") {
     toggleNavbar();
   }
+};
+
+const onTextPaginatorProgress = (payload: { progress: number; pages: number }) => {
+  const { progress, pages } = payload;
+  console.log("onTextPaginatorProgress", progress, pages);
+  historyStore.updateProgress(elementId, progress, pages, "prayers");
 };
 
 const shareItem = (e: Event) => {

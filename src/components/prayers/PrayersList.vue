@@ -1,16 +1,26 @@
 <template>
   <!-- searchAll,-->
   <f7-list
-    :class="`prayers ${cssClass}`"
+    :class="['prayers', cssClass, {'skeleton-text skeleton-effect-wave': isLoading}]"
     ref="list"
     virtual-list
     :virtual-list-params="{
-      items,
+      items: isLoading ? skeletonItems : items,
       renderExternal,
       height: getRowHeight,
     }"
   >
     <f7-list-item
+      v-if="isLoading"
+      v-for="item in vlData.items"
+      :key="item"
+      title="__________________________________________"
+      link="#"
+      :style="`top: ${vlData.topPosition}px`"
+      class="no-ripple"
+    ></f7-list-item>
+    <f7-list-item
+      v-if="!isLoading"
       :class="{ 'has-progress': !!item.progress }"
       swipeout
       v-for="item in vlData.items"
@@ -90,10 +100,12 @@ const {
   prayers: items,
   cssClass = "",
   query = "",
+  isLoading = false,
 } = defineProps<{
   prayers: PrayerListItem[];
   query: string;
   cssClass?: string;
+  isLoading?: boolean;
 }>();
 
 // Events
@@ -117,11 +129,17 @@ const renderExternal = (vl: VirtualList.VirtualList, data: VirtualListData) => {
   vlData.value = data;
 };
 
+const skeletonItems = [1,2,3];
+
 watch(
-  () => items,
+  [() => items, () => isLoading],
   () => {
-    // console.log("watch items", items);
+    console.log("watch items", items, isLoading);
     if (f7VirtualList) {
+      if (isLoading) {
+        f7VirtualList.replaceAllItems(skeletonItems);
+        return;
+      }
       f7VirtualList.replaceAllItems(items);
       if (query) {
         f7VirtualList.filterItems(searchAll(query, items));
@@ -131,6 +149,10 @@ watch(
 );
 
 const getRowHeight = (item: PrayerListItem) => {
+  if (isLoading) {
+    return 62;
+  }
+
   const longName = item.name.length > 26;
   const hasProgress = !!item.progress;
 

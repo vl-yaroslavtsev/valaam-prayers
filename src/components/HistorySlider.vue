@@ -5,26 +5,60 @@
     :freeMode="true"
     :pagination="false"
     :navigation="false"
-    class="history-swiper"
+    :class="['history-swiper', {'skeleton-text skeleton-effect-wave': isLoading}]"
+    ref="swiper"
   >
-    <swiper-slide v-for="item in items" :key="item.id">
-      <f7-link :href="item.url">
-      <div class="slide-main">
-        <div class="slide-header">{{ item.name }}</div>
-        <div class="slide-info">
-          Прочитано {{ Math.floor(item.progress * item.pages) }} из
-            {{ item.pages }} страниц
+    <swiper-slide v-if="items.length === 0 && !isLoading" key="empty">
+      <div class="slide-main link no-ripple">
+        <div class="slide-footer">
+          Начните читать, и данные появятся здесь
         </div>
       </div>
-      <div class="slide-footer">
-        <span>{{ formatDay(item.lastReadAt) }}</span
-        ><span>{{ formatTime(item.lastReadAt) }}</span>
-      </div>
-    </f7-link>
+    </swiper-slide>
+    <swiper-slide 
+      v-if="isLoading"
+      v-for="item in skeletonItems" 
+      :key="item.id"
+    >
+      <f7-link href="#" class="no-ripple">
+        <div class="slide-main">
+          <div class="slide-header">______________________</div>
+          <div class="slide-info">
+            _________________________
+          </div>
+        </div>
+        <div class="slide-footer">
+          <span>___________</span
+          ><span>___________</span>
+        </div>
+      </f7-link>
+    </swiper-slide>
+    <swiper-slide 
+      v-if="!isLoading"
+      v-for="item in items" 
+      :key="item.id" 
+    >
+      <f7-link :href="item.url">
+        <div class="slide-main">
+          <div class="slide-header">{{ item.name }}</div>
+          <div class="slide-info">
+            Страница {{ Math.ceil(item.progress * item.pages) || 1 }} из
+              {{ item.pages }}
+          </div>
+        </div>
+        <div class="slide-footer">
+          <span>{{ formatDay(item.lastReadAt) }}</span
+          ><span>{{ formatTime(item.lastReadAt) }}</span>
+        </div>
+      </f7-link>
     </swiper-slide>
   </swiper-container>
 </template>
 <script setup lang="ts">
+import { watch, useTemplateRef } from "vue";
+import { formatDate } from "@/js/utils";
+import type { SwiperContainer } from "swiper/element";
+
 interface HistoryItem {
   id: string;
   name: string;
@@ -34,11 +68,25 @@ interface HistoryItem {
   lastReadAt: Date;
 }
 
-const { items } = defineProps<{
+const { items, isLoading } = defineProps<{
   items: HistoryItem[];
+  isLoading: boolean;
 }>();
 
-import { formatDate } from "@/js/utils";
+const skeletonItems = Array.from({ length: 2 }, (_, index) => ({
+  id: `loading-${index}`,
+}));
+
+const swiperRef = useTemplateRef<SwiperContainer>("swiper");
+
+
+watch(
+  [() => items, () => isLoading],
+  () => {
+    swiperRef.value?.swiper.update();
+    console.log("watch items for swiper update", items, isLoading, swiperRef.value);
+  }
+);
 
 const formatDay = (date: Date) => formatDate(date, "d MMMM yyyy");
 const formatTime = (date: Date) => formatDate(date, "HH:mm");

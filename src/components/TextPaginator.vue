@@ -21,7 +21,8 @@
       },
     }"
     @tap="handleTap"
-    @slidechange="handleSlideChange">
+    @slidechange="handleSlideChange"
+    @progress="handleProgress">
   </swiper-container>
   <div v-if="isLoading || isCalculating" :class="`text-paginator text-page reading-text prayer-text theme-${theme}`" style="z-index: 1000;">
     <h1 class="skeleton-text skeleton-effect-wave">__________ ___________</h1>
@@ -40,9 +41,16 @@ import {
   paginateText,
 } from "@/text-processing";
 
-const { text, mode = "horizontal", theme = "grey", lang = "cs-cf", isLoading = false } = defineProps<{
+const { 
+  text, mode = "horizontal", 
+  theme = "grey", 
+  lang = "cs-cf", 
+  isLoading = false, 
+  initialProgress = 0
+} = defineProps<{
   mode?: "vertical" | "horizontal";
   text: string;
+  initialProgress?: number;
   theme?: TextTheme;
   lang?: Lang;
   isLoading?: boolean;
@@ -50,7 +58,8 @@ const { text, mode = "horizontal", theme = "grey", lang = "cs-cf", isLoading = f
 
 // Events
 const emit = defineEmits<{
-  tap: [type: "center" | "left" | "right" | "top" | "bottom", x: number, y: number];
+  tap: [payload: { type: "center" | "left" | "right" | "top" | "bottom"; x: number; y: number }];
+  progress: [payload: { progress: number, pages: number }];
 }>();
 
 const swiperRef = useTemplateRef<SwiperContainer>("swiper");
@@ -118,26 +127,26 @@ const handleTap = (e: CustomEvent<[swiper: Swiper, event: PointerEvent]>) => {
 
     if (x < leftZone) {
       // Левая область - предыдущая страница
-      emit("tap", "left", x, y);
+      emit("tap", { type: "left", x, y });
       swiper.slidePrev();
     } else if (x > rightZone) {
       // Правая область - следующая страница
-      emit("tap", "right", x, y);
+      emit("tap", { type: "right", x, y });
       swiper.slideNext();
     } else {
       // Находимся в центральной горизонтальной зоне
       if (y >= topCenterZone && y <= bottomCenterZone) {
         // Центральная область - показать меню
-        emit("tap", "center", x, y);
+        emit("tap", { type: "center", x, y });
       } else {
         // В nav top или nav bottom - определяем по половинам
         if (x < centerX) {
           // Левая половина nav области
-          emit("tap", "left", x, y);
+          emit("tap", { type: "left", x, y });
           swiper.slidePrev();
         } else {
           // Правая половина nav области
-          emit("tap", "right", x, y);
+          emit("tap", { type: "right", x, y });
           swiper.slideNext();
         }
       }
@@ -154,28 +163,28 @@ const handleTap = (e: CustomEvent<[swiper: Swiper, event: PointerEvent]>) => {
 
     if (y < topZone) {
       // Верхняя область - предыдущая страница
-      emit("tap", "top", x, y);
+      emit("tap", { type: "top", x, y });
       // swiper.slidePrev();
       swiper.translateTo(swiper.translate + swiperRect.height, swiper.params.speed || 300);
     } else if (y > bottomZone) {
       // Нижняя область - следующая страница
-      emit("tap", "bottom", x, y);
+      emit("tap", { type: "bottom", x, y });
       // swiper.slideNext();
       swiper.translateTo(swiper.translate - swiperRect.height, swiper.params.speed || 300);
     } else {
       // Находимся в центральной вертикальной зоне
       if (x >= leftCenterZone && x <= rightCenterZone) {
         // Центральная область - показать меню
-        emit("tap", "center", x, y);
+        emit("tap", { type: "center", x, y });
       } else {
         // В left или right nav области - определяем по половинам
         if (y < centerY) {
           // Верхняя половина nav области
-          emit("tap", "top", x, y);
+          emit("tap", { type: "top", x, y });
           swiper.slidePrev();
         } else {
           // Нижняя половина nav области
-          emit("tap", "bottom", x, y);
+          emit("tap", { type: "bottom", x, y });
           swiper.slideNext();
         }
       }
@@ -184,11 +193,25 @@ const handleTap = (e: CustomEvent<[swiper: Swiper, event: PointerEvent]>) => {
 };
 
 const handleSlideChange = (e: CustomEvent<[swiper: Swiper]>) => {
-  // const [swiper] = e.detail;
+  const [swiper] = e.detail;
   if (isSelected.value) {
     clearSelection();
+  }
+};
+
+const handleProgress = (e: CustomEvent<[swiper: Swiper, progress: number]>) => {
+  const [swiper, progress] = e.detail;
+
+  if (isLoading || isCalculating.value) {
     return;
   }
+
+  console.log("TextPaginator handleProgress", progress);
+
+  emit("progress", { 
+    progress: progress, 
+    pages: swiper.virtual.slides.length,
+  });
 };
 
 watchEffect(async () => {
@@ -200,6 +223,13 @@ watchEffect(async () => {
     
     const pages = await paginateText(text, container, cssClasses);
     updateSlides(pages);
+
+    console.log("TextPaginator initialProgress", initialProgress);
+
+    if (initialProgress) {
+      swiperRef.value.swiper.setProgress(initialProgress);
+    }
+
     isCalculating.value = false;
   }
 });
@@ -213,14 +243,11 @@ watchEffect(() => {
 // Expose swiper instance for parent component
 defineExpose({
   swiper: swiperRef,
-  goToSlide: (index: number) => {
+  goToPage: (page: number) => {
     if (swiperRef.value?.swiper) {
-      swiperRef.value.swiper.slideTo(index);
+      swiperRef.value.swiper.slideTo(page - 1);
     }
-  },
-  getCurrentSlide: () => {
-    return swiperRef.value?.swiper?.activeIndex || 0;
-  },
+  }
 });
 </script>
 

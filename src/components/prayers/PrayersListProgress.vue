@@ -6,7 +6,7 @@
         _____________________
       </div>
       <div class="progress-text" v-else>
-        {{ Math.floor(progress * pages) }} из
+        {{ Math.ceil(progress * pages) || 1 }} из
         {{ pages }} страниц
       </div>
     </div>

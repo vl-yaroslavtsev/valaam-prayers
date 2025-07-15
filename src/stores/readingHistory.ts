@@ -1,6 +1,5 @@
 // stores/readingHistory.ts
 import { defineStore } from "pinia";
-import historyData from "../../test-data/reading-history.json";
 import { readingHistoryStorage } from "../services/storage";
 
 type ReadingType = "prayers" | "books" | "saints";
@@ -64,28 +63,30 @@ export const useReadingHistoryStore = defineStore("readingHistory", {
       }
     },
 
-    updateProgress(
+    async updateProgress(
       id: string,
       progress: number,
       pages?: number,
       type: ReadingType = "prayers"
     ) {
-      const existingItem = this.history.find((item) => item.id === id);
+      let item = this.history.find((item) => item.id === id);
 
-      if (existingItem) {
-        this.snapshot = { ...existingItem };
-        existingItem.progress = progress;
-        if (pages !== undefined) existingItem.pages = pages;
-        existingItem.lastReadAt = new Date();
+      if (item) {
+        this.snapshot = { ...item };
+        item.progress = progress;
+        if (pages !== undefined) item.pages = pages;
+        item.lastReadAt = new Date();
       } else {
-        this.history.push({
+        item = {
           id,
           progress,
           pages: pages ?? 0,
           type,
           lastReadAt: new Date(),
-        });
+        };
+        this.history.push(item);
       }
+      await readingHistoryStorage?.put(item);
     },
 
     resetProgress(id: string) {

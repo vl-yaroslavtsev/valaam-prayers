@@ -31,12 +31,16 @@
         </template>
       </f7-searchbar>
     </f7-navbar>
-    <HistorySlider v-if="isFirstPage" :items="lastReadings"></HistorySlider>
-    <f7-block-title v-if="isFirstPage" class="block-title">
+    <HistorySlider v-if="isFirstPage" :items="lastReadings" :isLoading="isLoading"></HistorySlider>
+    <f7-block-title v-if="isFirstPage && isLoading" class="block-title skeleton-text skeleton-effect-wave">
+      ______________________
+    </f7-block-title>
+    <f7-block-title v-if="isFirstPage && !isLoading" class="block-title">
       {{ title }}
     </f7-block-title>
     <PrayersList
       :cssClass="`${isFirstPage ? 'no-margin-top' : ''}`"
+      :isLoading="isLoading"
       :prayers="prayers"
       :query="searchQuery"
       @reset-item-progress="onResetItemProgress"
@@ -74,8 +78,8 @@ const { isDarkMode } = useTheme();
 
 const prayersStore = usePrayersStore();
 const historyStore = useReadingHistoryStore();
+const isLoading = computed(() => prayersStore.isLoading);
 
-// isFirstPage.value ? "Молитвослов" :
 const title = computed(() => prayersStore.getItemById(sectionId)?.name);
 
 console.log("page prayers with sectionId = " + sectionId);
@@ -95,7 +99,7 @@ const prayers = computed(() =>
 );
 
 const readingsType = sectionId == BOOKS_SECTION_ID ? "books" : "prayers";
-const lastReadings = computed(() =>
+const lastReadings = computed(() => 
   historyStore.getLastItems(readingsType, 10).map((r) => {
     const p = prayersStore.getItemById(r.id) ?? { name: "", url: "" };
     return {

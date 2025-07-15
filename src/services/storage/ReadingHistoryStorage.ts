@@ -23,23 +23,4 @@ export class ReadingHistoryStorage extends BaseStorage<"reading-history"> {
     
     return histories;
   }
-
-
-  /**
-   * Обновить позицию чтения
-   */
-  async updateProgress(id: string, progress: number, pages: number = 0): Promise<void> {
-    const existingHistory = await this.get(id);
-    const now = new Date();
-    
-    if (existingHistory) {
-      // Обновляем существующую запись
-      existingHistory.progress = progress;
-      if (pages) {
-        existingHistory.pages = pages;
-      }
-      existingHistory.lastReadAt = now;
-      await this.put(existingHistory);
-    }
-  }
 }
