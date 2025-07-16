@@ -7,21 +7,9 @@
         <f7-link icon-only>
           <SvgIcon icon="menu" color="baige-900" :size="24" />
         </f7-link>
-        <f7-link icon-only 
-          smart-select 
-          :smart-select-params="{
-            openIn: 'popover',
-            closeOnSelect: true,
-            cssClass: 'simple-select',
-            popoverArrow: false,
-          }">
-          <select name="language">
-            <option value="cs" selected>Церковнославянский</option>
-            <option value="cs-cf">Церковнослав. (гражданский)</option>
-            <option value="ru">Русский</option>
-          </select>
-          <SvgIcon icon="language" color="baige-900" :size="24" />
-        </f7-link>
+        <LanguageSelector 
+          v-model="currentLanguage" 
+          :available-languages="availableLanguages" />
         <f7-link icon-only>
           <SvgIcon :icon="isElementFavorite ? 'favorite-filled' : 'favorite'" color="baige-900" :size="24"
             @click="toggleFavorite" />
@@ -43,8 +31,8 @@
         :isLoading="isLoading" 
         :mode="'horizontal'" 
         :text="text" 
-        :theme="theme" 
         :initialProgress="initialProgress"
+        :lang="currentLanguage"
         ref="textPaginator" 
         @tap="onTextPaginatorTap" 
         @progress="onTextPaginatorProgress" />
@@ -68,13 +56,16 @@ import { ref, computed, watchEffect, useTemplateRef, ComponentPublicInstance, wa
 import type { Router } from "framework7/types";
 import { f7 } from "framework7-vue";
 import type { Swiper } from "swiper";
+import type { Language } from "@/types/common";
 
 import { useTheme } from "@/composables/useTheme";
-import { usePrayersStore, BOOKS_SECTION_ID } from "@/stores/prayers";
+import { usePrayersStore, BOOKS_SECTION_ID, type PrayerElement } from "@/stores/prayers";
 import { useReadingHistoryStore } from "@/stores/readingHistory";
 import { useComponentsStore } from "@/stores/components";
+import { useSettingsStore } from "@/stores/settings";
 import TextPaginator from "@/components/TextPaginator.vue"
 import SvgIcon from "@/components/SvgIcon.vue";
+import LanguageSelector from "@/components/LanguageSelector.vue";
 import { useFavoritesStore } from "@/stores/favorites";
 import { useInfoToast } from "@/composables/useInfoToast";
 import { useApiState } from "@/composables/useApiState";
@@ -86,25 +77,67 @@ const { elementId, f7router } = defineProps<{
 
 const { isDarkMode } = useTheme();
 const navbarRef = useTemplateRef<ComponentPublicInstance>("navbar");
-const theme = ref<"light" | "dark" | "grey" | "sepia" | "sepia-contrast" | "cream" | "yellow">("grey");
 
 const prayersStore = usePrayersStore();
 const historyStore = useReadingHistoryStore();
+const settingsStore = useSettingsStore();
 const { getComponent } = useComponentsStore();
 
-const prayer = computed(() => prayersStore.getItemById(elementId));
+const prayer = prayersStore.getItemById(elementId) as PrayerElement;
 const subtitle = computed(
-  () => prayer.value && prayersStore.getItemById(prayer.value.parent)?.name
+  () => prayer && prayersStore.getItemById(prayer.parent)?.name
 );
-const title = computed(() => prayer.value?.name);
+const title = prayer.name;
 const text = ref<string>("");
+
+console.log("prayer", prayer);
+
+// Языковые настройки из store
+const currentLanguage = ref<Language>(settingsStore.currentLanguage);
+const availableLanguages = ref<Language[]>([]);
 
 const { isLoading, isError, error, data } = useApiState(null, prayersStore.getPrayerText(elementId));
 
 watch(data, async () => {
   if (!data.value) return;
-  text.value = `<h1>${title.value}</h1>\n\n${data.value.text_cs_cf}`;
+   
+  // Обновляем доступные языки
+  availableLanguages.value = data.value.lang;
+  
+  // Получаем подходящий язык из доступных
+  currentLanguage.value = settingsStore.getLanguageFromAvailable(availableLanguages.value);
+
+  console.log("currentLanguage", currentLanguage.value);
+  console.log("availableLanguages", availableLanguages.value);
+
+  updatePrayerText(currentLanguage.value);
 });
+
+// Функция для обновления текста молитвы
+const updatePrayerText = (language: Language) => {
+  if (!data.value) return;
+
+  console.log("updatePrayerText language",language);
+  
+  let prayerText = '';
+  switch (language) {
+    case 'cs-cf':
+      prayerText = data.value.text_cs_cf || '';
+      break;
+    case 'cs':
+      prayerText = data.value.text_cs || '';
+      break;
+    case 'ru':
+      prayerText = data.value.text_ru || '';
+      break;
+    default:
+      prayerText = data.value.text_cs_cf || '';
+  }
+
+  console.log("updatePrayerText prayerText",prayerText);
+  
+  text.value = `<h1>${title}</h1>\n\n${prayerText}`;
+};
 
 const initialProgress = computed(() => historyStore.getItem(elementId)?.progress || 0);
 
@@ -114,8 +147,13 @@ watch(error, async () => {
   text.value = `Данные не найдены`;
 });
 
-watchEffect(() => {
-  theme.value = isDarkMode.value ? "dark" : "grey";
+// Тема текста теперь управляется через settings store
+
+// Отслеживание изменений языка
+watch(currentLanguage, (newLanguage) => {
+  console.log('Language changed to:', newLanguage);
+  updatePrayerText(newLanguage);
+  settingsStore.setLanguage(newLanguage);
 });
 
 let isNavbarHidden = true;
@@ -169,8 +207,8 @@ const shareItem = (e: Event) => {
   if (!sharePopover) return;
 
   sharePopover.open({
-    title: title.value || "",
-    url: prayer.value?.url || "",
+    title: title || "",
+    url: prayer.url || "",
   }, target);
 };
 
@@ -200,5 +238,7 @@ const toggleFavorite = async () => {
     showAddedToFavoritesToast();
   }
 };
+
+
 </script>
 <style scoped lang="less"></style>
