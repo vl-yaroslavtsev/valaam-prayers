@@ -8,6 +8,8 @@
   --reading-text-font-size: var(--mobile-main-text-regular-b2);
   --reading-text-line-height: var(--mobile-main-text-regular-b2-line-height);
 
+  --font-family-cs: 'Triodion Unicode';
+
   font-size: var(--reading-text-font-size);
   line-height: var(--reading-text-line-height);
   background-color: var(--reading-text-background-color);
@@ -51,6 +53,11 @@
   }
 
   &.prayer-text {
+
+    &.lang-cs {
+      font-family: var(--font-family-cs);
+    }
+
     .subtitle {
       font-size: var(--mobile-main-text-regular-b3);
       line-height: var(--mobile-main-text-regular-b3-line-height);
