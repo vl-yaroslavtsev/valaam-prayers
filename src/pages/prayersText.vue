@@ -127,7 +127,16 @@ const updatePrayerText = (language: Language) => {
       prayerText = data.value.text_cs_cf || '';
   }
 
-  text.value = `<h1>${title}</h1>\n\n${prayerText}`;
+  // Проверяем наличие заголовков h1 или h2 в начале текста
+  const hasExistingHeader = /^\s*<h[12]/.test(prayerText);
+  
+  if (hasExistingHeader) {
+    // Заменяем h2 на h1 если есть
+    prayerText = prayerText.replace(/^(\s*)<h2([^>]*)>/i, '$1<h1$2>').replace(/<\/h2>/i, '</h1>');
+    text.value = prayerText;
+  } else {
+    text.value = `<h1>${title}</h1>\n\n${prayerText}`;
+  }
 };
 
 const initialProgress = computed(() => historyStore.getItem(elementId)?.progress || 0);

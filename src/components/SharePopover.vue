@@ -110,10 +110,6 @@ const getShareUrl = (url: string) => {
 
 const { isDarkMode } = useTheme();
 
-watch(isDarkMode, (newVal, oldVal) => {
-  console.log("SharePopover isDarkMode changed:", oldVal, "->", newVal);
-}, { immediate: true });
-
 const onOpen = (popover: Popover.Popover) => {
   if (targetEl.value) {
     popover.$targetEl = $$(targetEl.value);
