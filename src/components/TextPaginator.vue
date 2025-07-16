@@ -24,7 +24,11 @@
     @slidechange="handleSlideChange"
     @progress="handleProgress">
   </swiper-container>
-  <div v-if="isLoading || isCalculating" :class="`text-paginator text-page reading-text prayer-text theme-${theme}`" style="z-index: 1000;">
+  <div 
+    v-if="isLoading || isCalculating" 
+    :class="`text-paginator text-page reading-text prayer-text theme-${theme} lang-${lang}`" 
+    style="z-index: 1000;"
+  >
     <h1 class="skeleton-text skeleton-effect-wave">__________ ___________</h1>
     <f7-skeleton-block class="skeleton-text-line skeleton-effect-wave" />
     <f7-skeleton-block class="skeleton-text-line skeleton-effect-wave" />
@@ -32,8 +36,9 @@
   </div>
 </template>
 <script setup lang="ts">
-import { useTemplateRef, watchEffect, ref, watch } from "vue";
+import { useTemplateRef, watchEffect, ref, watch, computed } from "vue";
 import { useTextSelection } from "@/composables/useTextSelection";
+import { useSettingsStore } from "@/stores/settings";
 import type { SwiperContainer } from "swiper/element";
 import type { Swiper } from "swiper";
 import type { TextTheme, Language } from "@/types/common";
@@ -42,8 +47,8 @@ import {
 } from "@/text-processing";
 
 const { 
-  text, mode = "horizontal", 
-  theme = "grey", 
+  text, 
+  mode = "horizontal", 
   lang = "cs-cf", 
   isLoading = false, 
   initialProgress = 0
@@ -51,10 +56,14 @@ const {
   mode?: "vertical" | "horizontal";
   text: string;
   initialProgress?: number;
-  theme?: TextTheme;
   lang?: Language;
   isLoading?: boolean;
 }>();
+
+const settingsStore = useSettingsStore();
+
+// Используем настройки из store
+const theme = computed(() => settingsStore.textTheme);
 
 // Events
 const emit = defineEmits<{
@@ -72,20 +81,21 @@ let swiperRect = {
   height: 0,
 };
 
-watch(() => isLoading, (newVal) => {
-  console.log("isLoading", newVal);
-}, { immediate: true });
-
 const isCalculating = ref<boolean>(false);
 
 const updateSlides = (slides: string[]) => {
-  const template = `<div class="text-page reading-text prayer-text theme-${theme} lang-${lang}">$content</div>`;
+  const template = `<div class="text-page reading-text prayer-text theme-${theme.value} lang-${lang}">$content</div>`;
+
+
+  console.log("TextPaginator updateSlides slides", slides);
+  console.log("TextPaginator updateSlides swiperRef", swiperRef.value);
+  console.log("TextPaginator updateSlides swiper", swiperRef.value?.swiper);
 
   const swiper = swiperRef.value?.swiper;
   if (!swiper) {
     return;
-  }
-
+  }  
+  swiper.virtual.removeAllSlides();
   swiper.virtual.slides = slides.map((slide) =>
     template.replace("$content", slide)
   );
@@ -214,20 +224,27 @@ const handleProgress = (e: CustomEvent<[swiper: Swiper, progress: number]>) => {
   });
 };
 
-watchEffect(async () => {
-  if (text && swiperRef.value) {
+watch(() => text, async (newText) => {
+  console.log("TextPaginator watch", newText);
+  if (newText && swiperRef.value) {
+    const swiper = swiperRef.value.swiper;
     isCalculating.value = true;
 
     const container = swiperRef.value;
-    const cssClasses = "text-page reading-text prayer-text";
+    const cssClasses = `text-page reading-text prayer-text theme-${theme.value} lang-${lang}`;
     
-    const pages = await paginateText(text, container, cssClasses);
+    const pages = await paginateText(newText, container, cssClasses);
+    console.log("TextPaginator pages", pages);
     updateSlides(pages);
 
     console.log("TextPaginator initialProgress", initialProgress);
 
     if (initialProgress) {
-      swiperRef.value.swiper.setProgress(initialProgress);
+      if (mode === "horizontal") {
+        swiper.slideTo(Math.floor(initialProgress * swiper.virtual.slides.length), 0);
+      } else {
+        swiper.setProgress(initialProgress);
+      }
     }
 
     isCalculating.value = false;

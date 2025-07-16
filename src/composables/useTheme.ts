@@ -1,25 +1,29 @@
-import { ref, onMounted } from 'vue'
+import { ref, computed } from 'vue'
 import { f7, f7ready } from 'framework7-vue'
 import { device } from '@/js/device'
-import { useEventListener } from './useEventListener'
-export type Theme = 'light' | 'dark' | 'auto'
+import { useEventListener } from '@/composables/useEventListener'
+import { useSettingsStore } from '@/stores/settings'
 
-const currentTheme = ref<Theme>('light')
-const isDarkMode = ref<boolean >(false)
+type Theme = 'light' | 'dark' | 'auto'
+
 const isF7Ready = ref<boolean>(false)
 
 export function useTheme() {
-  // Инициализация темы из localStorage
+  const settingsStore = useSettingsStore()
+  
+  // Используем настройки из store
+  const currentTheme = computed(() => settingsStore.appTheme)
+  const isDarkMode = ref<boolean>(false)
+
+  // Инициализация темы из settings store
   const initTheme = () => {
-    const theme = (localStorage.getItem('app-theme') as Theme) || 'auto';
-    setTheme(theme);
-    useEventListener(mediaQuery, 'change', handleMediaQueryChange as EventListener);
+    setTheme(currentTheme.value)
+    useEventListener(mediaQuery, 'change', handleMediaQueryChange as EventListener)
   }
 
   // Установка темы
   const setTheme = async (theme: Theme) => {
-    currentTheme.value = theme
-    localStorage.setItem('app-theme', theme)
+    settingsStore.setAppTheme(theme)
     
     let shouldBeDark = false  
     
@@ -72,29 +76,25 @@ export function useTheme() {
   }
 
   const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)')
- 
-  const handleMediaQueryChange = (e: MediaQueryListEvent) => {
+  
+  // Обработчик изменения системной темы
+  const handleMediaQueryChange = async () => {
     if (currentTheme.value === 'auto') {
-      applyTheme(e.matches)
+      const shouldBeDark = mediaQuery.matches
+      applyTheme(shouldBeDark)
     }
   }
 
-  onMounted(() => {
-    // Инициализируем тему сразу
-    // initTheme()
-    // setupSystemThemeListener()
-    
-    // Отмечаем, что F7 готов
-    f7ready(() => {
-      isF7Ready.value = true
-    })
+  // Отмечаем, что F7 готов
+  f7ready(() => {
+    isF7Ready.value = true
   })
 
   return {
-    initTheme,
     currentTheme,
     isDarkMode,
+    initTheme,
     setTheme,
-    toggleTheme
+    toggleTheme,
   }
 }

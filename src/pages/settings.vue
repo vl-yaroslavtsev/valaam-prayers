@@ -37,6 +37,8 @@
         </f7-list-item>
       </f7-list>
 
+      <TextThemeSelector />
+
       <f7-block-title>Браузерное API</f7-block-title>
       <f7-block strong-ios outline-ios class="grid grid-cols-2 grid-gap">
         <f7-button fill @click="testBrowserFitures">Проверить API</f7-button>
@@ -219,25 +221,38 @@ import { device } from "@/js/device";
 import type { CalendarEvent } from "@/js/device/types";
 import { testBrowser } from "../js/device/browser-test";
 import { useTheme } from "@/composables/useTheme";
+import { useSettingsStore } from "@/stores/settings";
+import TextThemeSelector from "@/components/TextThemeSelector.vue";
 
 const { currentTheme, setTheme } = useTheme();
+const settingsStore = useSettingsStore();
 
-const currentBrightness = ref(0);
+const currentBrightness = ref(settingsStore.readingBrightness);
 
+// Инициализация яркости при загрузке
 device
   .getBrightness()
-  .then((brightness) => (currentBrightness.value = brightness));
+  .then((brightness) => {
+    if (settingsStore.readingBrightness === 50) {
+      // Если значение по умолчанию, используем системную яркость
+      currentBrightness.value = brightness;
+      settingsStore.setReadingBrightness(brightness);
+    }
+  });
 
 const onBrightnessChange = (newVal: number) => {
   console.log("onBrightnessChange = ", newVal);
   device.setBrightness(newVal);
+  settingsStore.setReadingBrightness(newVal);
 };
 
 const resetBrightness = () => {
   device.resetBrightness();
 
   setTimeout(async () => {
-    currentBrightness.value = await device.getBrightness();
+    const brightness = await device.getBrightness();
+    currentBrightness.value = brightness;
+    settingsStore.setReadingBrightness(brightness);
   }, 0);
 };
 
@@ -246,21 +261,24 @@ const showThemeAlert = async () => {
   f7.dialog.alert(`Тема устройства: ${theme}`);
 };
 
-const isStatusBarShown = ref(true);
+const isStatusBarShown = ref(settingsStore.settings.showStatusBar);
 watch(isStatusBarShown, (newVal) => {
   device.showStatusBar(newVal);
+  settingsStore.setShowStatusBar(newVal);
   console.log("isStatusBarShown", newVal);
 });
 
-const isFullscreen = ref(false);
+const isFullscreen = ref(settingsStore.settings.fullScreen);
 watch(isFullscreen, (newVal) => {
   device.setFullScreen(newVal);
+  settingsStore.setFullScreen(newVal);
   console.log("isFullscreen", newVal);
 });
 
-const isKeepScreenOn = ref(false);
+const isKeepScreenOn = ref(settingsStore.settings.keepScreenOn);
 watch(isKeepScreenOn, (newVal) => {
   device.keepScreenOn(newVal);
+  settingsStore.setKeepScreenOn(newVal);
   console.log("isKeepScreenOn", newVal);
 });
 
@@ -271,7 +289,7 @@ const setStatusBarColor = () => {
 };
 
 const сontentRef = ref<typeof f7PageContent | null>(null);
-const isVolumeButtonsScroll = ref(false);
+const isVolumeButtonsScroll = ref(settingsStore.settings.volumeButtonsScroll);
 
 watch(isVolumeButtonsScroll, (newVal) => {
   //console.log("watch: pageContentRef", сontentRef.value);
@@ -294,6 +312,8 @@ watch(isVolumeButtonsScroll, (newVal) => {
   } else {
     device.offVolumeKey();
   }
+  
+  settingsStore.setVolumeButtonsScroll(newVal);
 });
 
 const getUID = () => {
