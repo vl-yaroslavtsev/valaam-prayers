@@ -86,11 +86,6 @@ const isCalculating = ref<boolean>(false);
 const updateSlides = (slides: string[]) => {
   const template = `<div class="text-page reading-text prayer-text theme-${theme.value} lang-${lang}">$content</div>`;
 
-
-  console.log("TextPaginator updateSlides slides", slides);
-  console.log("TextPaginator updateSlides swiperRef", swiperRef.value);
-  console.log("TextPaginator updateSlides swiper", swiperRef.value?.swiper);
-
   const swiper = swiperRef.value?.swiper;
   if (!swiper) {
     return;
@@ -216,8 +211,6 @@ const handleProgress = (e: CustomEvent<[swiper: Swiper, progress: number]>) => {
     return;
   }
 
-  console.log("TextPaginator handleProgress", progress);
-
   emit("progress", { 
     progress: progress, 
     pages: swiper.virtual.slides.length,
@@ -225,7 +218,6 @@ const handleProgress = (e: CustomEvent<[swiper: Swiper, progress: number]>) => {
 };
 
 watch(() => text, async (newText) => {
-  console.log("TextPaginator watch", newText);
   if (newText && swiperRef.value) {
     const swiper = swiperRef.value.swiper;
     isCalculating.value = true;
@@ -234,10 +226,7 @@ watch(() => text, async (newText) => {
     const cssClasses = `text-page reading-text prayer-text theme-${theme.value} lang-${lang}`;
     
     const pages = await paginateText(newText, container, cssClasses);
-    console.log("TextPaginator pages", pages);
     updateSlides(pages);
-
-    console.log("TextPaginator initialProgress", initialProgress);
 
     if (initialProgress) {
       if (mode === "horizontal") {

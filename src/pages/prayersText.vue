@@ -90,8 +90,6 @@ const subtitle = computed(
 const title = prayer.name;
 const text = ref<string>("");
 
-console.log("prayer", prayer);
-
 // Языковые настройки из store
 const currentLanguage = ref<Language>(settingsStore.currentLanguage);
 const availableLanguages = ref<Language[]>([]);
@@ -107,9 +105,6 @@ watch(data, async () => {
   // Получаем подходящий язык из доступных
   currentLanguage.value = settingsStore.getLanguageFromAvailable(availableLanguages.value);
 
-  console.log("currentLanguage", currentLanguage.value);
-  console.log("availableLanguages", availableLanguages.value);
-
   updatePrayerText(currentLanguage.value);
 });
 
@@ -117,8 +112,6 @@ watch(data, async () => {
 const updatePrayerText = (language: Language) => {
   if (!data.value) return;
 
-  console.log("updatePrayerText language",language);
-  
   let prayerText = '';
   switch (language) {
     case 'cs-cf':
@@ -134,8 +127,6 @@ const updatePrayerText = (language: Language) => {
       prayerText = data.value.text_cs_cf || '';
   }
 
-  console.log("updatePrayerText prayerText",prayerText);
-  
   text.value = `<h1>${title}</h1>\n\n${prayerText}`;
 };
 
@@ -151,7 +142,6 @@ watch(error, async () => {
 
 // Отслеживание изменений языка
 watch(currentLanguage, (newLanguage) => {
-  console.log('Language changed to:', newLanguage);
   updatePrayerText(newLanguage);
   settingsStore.setLanguage(newLanguage);
 });
@@ -188,7 +178,6 @@ const textPaginator = useTemplateRef("textPaginator");
 
 const onTextPaginatorTap = (payload: { type: "center" | "left" | "right" | "top" | "bottom"; x: number; y: number }) => {
   const { type, x, y } = payload;
-  console.log("onTextPaginatorTap", type, x, y);
   if (type === "center") {
     toggleNavbar();
   }

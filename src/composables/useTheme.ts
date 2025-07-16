@@ -1,4 +1,4 @@
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { f7, f7ready } from 'framework7-vue'
 import { device } from '@/js/device'
 import { useEventListener } from '@/composables/useEventListener'
@@ -6,19 +6,28 @@ import { useSettingsStore } from '@/stores/settings'
 
 type Theme = 'light' | 'dark' | 'auto'
 
-const isF7Ready = ref<boolean>(false)
+// Создаем глобальное состояние для темы
+const isDarkMode = ref<boolean>(false)
+let mediaQuery: MediaQueryList | null = null
+let isInitialized = false
 
 export function useTheme() {
   const settingsStore = useSettingsStore()
   
   // Используем настройки из store
   const currentTheme = computed(() => settingsStore.appTheme)
-  const isDarkMode = ref<boolean>(false)
 
   // Инициализация темы из settings store
   const initTheme = () => {
+    if (isInitialized) return;
+
+    console.log("initTheme", currentTheme.value);
     setTheme(currentTheme.value)
+    
+    mediaQuery = window.matchMedia('(prefers-color-scheme: dark)')
     useEventListener(mediaQuery, 'change', handleMediaQueryChange as EventListener)
+    
+    isInitialized = true
   }
 
   // Установка темы
@@ -40,22 +49,10 @@ export function useTheme() {
 
   // Применение темы
   const applyTheme = (dark: boolean) => {
+    console.log("applyTheme", dark);
     isDarkMode.value = dark
     
-    // Framework7 тема
-    const setF7Theme = () => {
-      if (f7 && f7.setDarkMode) {
-        f7.setDarkMode(dark)
-      }
-    }
-    
-    if (isF7Ready.value) {
-      setF7Theme()
-    } else {
-      f7ready(() => {
-        setF7Theme()
-      })
-    }
+    f7.setDarkMode(dark);
     
     // Настройки для мобильных устройств
     device.setStatusBarTextColor('light')
@@ -75,20 +72,13 @@ export function useTheme() {
     setTheme(newTheme)
   }
 
-  const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)')
-  
   // Обработчик изменения системной темы
-  const handleMediaQueryChange = async () => {
+  const handleMediaQueryChange = () => {
     if (currentTheme.value === 'auto') {
-      const shouldBeDark = mediaQuery.matches
+      const shouldBeDark = mediaQuery?.matches || false
       applyTheme(shouldBeDark)
     }
   }
-
-  // Отмечаем, что F7 готов
-  f7ready(() => {
-    isF7Ready.value = true
-  })
 
   return {
     currentTheme,

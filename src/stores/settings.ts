@@ -145,8 +145,8 @@ export const useSettingsStore = defineStore("settings", () => {
   };
 
   const initStore = async () => {
-    console.log("Settings store initialized");
     loadSettings();
+    console.log("Settings store initialized");
   };
 
   return {

@@ -68,7 +68,7 @@
 </template>
 
 <script setup lang="ts">
-import { onUnmounted, ref } from "vue";
+import { onUnmounted, ref,watch } from "vue";
 import { Dom7 as $$ } from "framework7";
 import { Popover, Toast } from "framework7/types";
 import { f7 } from "framework7-vue";
@@ -109,6 +109,10 @@ const getShareUrl = (url: string) => {
 };
 
 const { isDarkMode } = useTheme();
+
+watch(isDarkMode, (newVal, oldVal) => {
+  console.log("SharePopover isDarkMode changed:", oldVal, "->", newVal);
+}, { immediate: true });
 
 const onOpen = (popover: Popover.Popover) => {
   if (targetEl.value) {

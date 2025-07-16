@@ -108,7 +108,7 @@ const f7params = {
 } as const;
 
 const { initTheme } = useTheme();
-initTheme();
+
 
 const activeView = ref<string>("home");
 const onTabShow = (view: HTMLElement & { f7View: View.View }) => {
@@ -117,8 +117,11 @@ const onTabShow = (view: HTMLElement & { f7View: View.View }) => {
 
 onMounted(() => {
   f7ready(async () => {
+
+    initTheme();
+
     registerComponent('sharePopover', sharePopover.value);
-    registerComponent('bottomTabBar', bottomTabBar.value);
+    registerComponent('bottomTabBar', bottomTabBar.value);  
 
     if (initStorageError) {
       f7.toast.show({
