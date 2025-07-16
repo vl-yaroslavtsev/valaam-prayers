@@ -1,15 +1,18 @@
 .md {
-  --popover-backdrop-color: rgba(217, 217, 217, 0.1);
+  --popover-backdrop-color: rgba(0, 0, 0, 0.4);
+  
 
   .smart-select-popover {
-    --f7-popover-bg-color: var(--content-color-black-primary);
+    --f7-popover-bg-color: var(--content-color-baige-1000);
     --f7-popover-width: 300px;
     --f7-popover-border-radius: 8px;
     --f7-list-item-min-height: 42px;
     --f7-list-item-padding-horizontal: 8px;
     --f7-list-item-title-font-size: var(--mobile-main-text-regular-b2);
     --f7-list-item-title-line-height: var(--mobile-main-text-regular-b2-line-height);
-    
+
+    --selected-item-bg-color: var(--content-color-black-100);
+
     margin-top: -13px;
 
     .popover-arrow {
@@ -35,7 +38,18 @@
     }
 
     input[type='radio']:checked ~ .item-inner {
-      background: var(--content-color-baige-100);
+      background: var(--selected-item-bg-color);
+    }
+
+
+  }
+
+  &.dark, & .dark {
+    --popover-backdrop-color: rgba(217, 217, 217, 0.1);
+
+    .smart-select-popover {
+      --f7-popover-bg-color: var(--content-color-black-primary);
+      --selected-item-bg-color: var(--content-color-baige-100);
     }
   }
 }

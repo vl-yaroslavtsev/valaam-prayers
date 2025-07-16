@@ -239,4 +239,8 @@ const toggleFavorite = async () => {
 
 
 </script>
-<style scoped lang="less"></style>
+<style scoped lang="less">
+.dark .page {
+  --f7-bars-bg-color: var(--content-color-baige-50-no-opacity);
+}
+</style>
