@@ -39,7 +39,7 @@ export const useSaintsStore = defineStore("saints", () => {
       
       if (cachedSaints) {
         saints.value = cachedSaints as SaintIndex[];
-        console.log('Loaded saints index from cache', saints.value);
+        console.log('Loaded saints index from cache');
       } 
       console.timeEnd("Saints initStore");
       

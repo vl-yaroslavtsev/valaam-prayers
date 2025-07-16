@@ -1,6 +1,6 @@
 import { openDB, DBSchema, IDBPDatabase } from 'idb';
 import defaultFavorites from './data/defaultFavorites.json';
-import type { Lang } from '@/types/common';
+import type { Language } from '@/types/common';
 
 /**
  * Схема базы данных
@@ -13,7 +13,7 @@ interface ValaamDB extends DBSchema {
       name: string;
       parent: string;
       parents: string[];
-      lang: Lang[];
+      lang: Language[];
       sort: number;
     };
     indexes: {

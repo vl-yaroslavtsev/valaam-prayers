@@ -36,7 +36,7 @@ import { useTemplateRef, watchEffect, ref, watch } from "vue";
 import { useTextSelection } from "@/composables/useTextSelection";
 import type { SwiperContainer } from "swiper/element";
 import type { Swiper } from "swiper";
-import type { TextTheme, Lang } from "@/types/common";
+import type { TextTheme, Language } from "@/types/common";
 import {
   paginateText,
 } from "@/text-processing";
@@ -52,7 +52,7 @@ const {
   text: string;
   initialProgress?: number;
   theme?: TextTheme;
-  lang?: Lang;
+  lang?: Language;
   isLoading?: boolean;
 }>();
 

@@ -1,5 +1,5 @@
 import { ApiClient } from '@/services/api/ApiClient';
-import type { Lang } from '@/types/common';
+import type { Language } from '@/types/common';
 
 /**
  * Интерфейсы для API ответов

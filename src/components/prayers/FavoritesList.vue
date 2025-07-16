@@ -55,7 +55,7 @@ import { useTheme } from "@/composables/useTheme";
 import { useUndoToast } from "@/composables/useUndoToast";
 import { device } from "@/js/device";
 
-import type { Lang } from "@/types/common";
+import type { Language } from "@/types/common";
 
 import SvgIcon from "@/components/SvgIcon.vue";
 import LanguageBadges from "./LanguageBadges.vue";
@@ -68,7 +68,7 @@ interface FavoriteListItem {
   id: string;
   name: string;
   url: string;
-  lang?: Lang[];
+  lang?: Language[];
   progress?: number;
   pages?: number;
 }

@@ -67,7 +67,7 @@ import { storeToRefs } from "pinia";
 import { useTheme } from "@/composables/useTheme";
 import { useUndoToast } from "@/composables/useUndoToast";
 
-import type { Lang } from "@/types/common";
+import type { Language } from "@/types/common";
 
 import LanguageBadges from "./LanguageBadges.vue";
 import PrayersListProgress from "./PrayersListProgress.vue";
@@ -83,7 +83,7 @@ interface PrayerListItem {
   id: string;
   name: string;
   url: string;
-  lang?: Lang[];
+  lang?: Language[];
   progress?: number;
   pages?: number;
 }

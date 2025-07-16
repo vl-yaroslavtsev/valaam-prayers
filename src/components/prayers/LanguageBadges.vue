@@ -7,14 +7,14 @@
 </template>
 
 <script setup lang="ts">
-import type { Lang } from "@/types/common"; 
+import type { Language } from "@/types/common"; 
 
-const translateLang = (lang: Lang): string => {
+const translateLang = (lang: Language): string => {
   switch (lang) {
     case "cs":
       return "цс";
     case "cs-cf":
-      return "цг";
+      return "гр";
     case "ru":
       return "ру";
     default:
@@ -23,7 +23,7 @@ const translateLang = (lang: Lang): string => {
 };
 
 defineProps<{
-  languages?: Array<Lang>;
+  languages?: Array<Language>;
 }>();
 </script>
 

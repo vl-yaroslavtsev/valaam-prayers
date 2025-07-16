@@ -1,6 +1,6 @@
 import { defineStore } from "pinia";
 import { ref, shallowRef } from "vue";
-import type { Lang } from "@/types/common";
+import type { Language } from "@/types/common";
 import { prayersApi } from "@/services/api";
 import type {
   PrayerApiElement,
@@ -19,7 +19,7 @@ export interface PrayerElement {
   name: string;
   parent: string;
   parents: string[];
-  lang: Lang[];
+  lang: Language[];
   sort: number;
   url: string;
 }
@@ -30,6 +30,10 @@ export interface PrayerSection {
   parent: string;
   sort: number;
   url: string;
+}
+
+export interface PrayerText extends PrayerTextApiResponse {
+  lang: Language[];
 }
 
 const BIBLE_SECTION_ID = "1078";
@@ -47,6 +51,25 @@ export const usePrayersStore = defineStore("prayers", () => {
 
   const isLoading = shallowRef(false);
   const error = shallowRef<string | null>(null);
+
+  const transformApiPrayerText = (e: PrayerTextApiResponse): PrayerText => {
+    const lang: Language[] = [];
+
+    if (e.text_cs) {
+      lang.push("cs");
+    }
+    if (e.text_cs_cf) {
+      lang.push("cs-cf");
+    }
+    if (e.text_ru) {
+      lang.push("ru");
+    }
+
+    return {
+      ...e,
+      lang
+    };
+  };
 
   /**
    * Преобразует API элемент в локальный формат
@@ -153,20 +176,20 @@ export const usePrayersStore = defineStore("prayers", () => {
   /**
    * Получает текст молитвы (сначала из кэша, потом с сервера)
    */
-  const getPrayerText = async (id: string): Promise<PrayerTextApiResponse> => {
+  const getPrayerText = async (id: string): Promise<PrayerText> => {
     try {
       // Сначала проверяем кэш
-      const cached = await prayerDetailsStorage?.get(id);
-      if (cached) {
-        return cached;
-      }
+      // const cached = await prayerDetailsStorage?.get(id);
+      // if (cached) {
+      //   return transformApiPrayerText(cached);
+      // }
 
       // Загружаем с сервера
       const response = await prayersApi.getPrayerText(id);
       // Сохраняем в кэш
-      await prayerDetailsStorage?.put(response);
+      prayerDetailsStorage?.put(response);
 
-      return response;
+      return transformApiPrayerText(response);
     } catch (err) {
       console.error(`Failed to get prayer text for ID ${id}:`, err);
       throw err;

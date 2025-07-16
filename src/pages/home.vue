@@ -67,6 +67,7 @@ import { useSaintsStore } from "@/stores/saints";
 import { useThoughtsStore } from "@/stores/thoughts";
 import { useReadingHistoryStore } from "@/stores/readingHistory";
 import { useErrorToast } from "@/composables/useErrorToast";
+import type { Language } from "@/types/common";
 
 import SvgIcon from "@/components/SvgIcon.vue";
 import SeparatorLine from "@/components/SeparatorLine.vue";
@@ -148,9 +149,14 @@ const getFavoritesByType = (tabType: TabType) => {
   return favorites.map((f) => {
     const type = f.type;
     const history = historyStore.getItem(f.id);
-    let extra = {
+    let extra: {
+      name: string;
+      url: string;
+      lang: Language[];
+    } = {
       name: "",
       url: "",
+      lang: [],
     };
 
     if (["books", "prayers"].includes(type)) {
@@ -158,6 +164,7 @@ const getFavoritesByType = (tabType: TabType) => {
       if (item) {
         extra.name = item.name;
         extra.url = item.url;
+        extra.lang = 'lang' in item ? item.lang : [];
       }
     } else if (type === "saints") {
       const saint = saintsStore.getSaintById(f.id);

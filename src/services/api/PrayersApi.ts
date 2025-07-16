@@ -1,5 +1,5 @@
 import { ApiClient } from '@/services/api/ApiClient';
-import type { Lang } from '@/types/common';
+import type { Language } from '@/types/common';
 
 /**
  * Интерфейсы для API ответов
@@ -9,7 +9,7 @@ export interface PrayerApiElement {
   name: string;
   parent: string;
   parents: string[];
-  lang: Lang[];
+  lang: Language[];
   sort: number;
 }
 
