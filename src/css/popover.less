@@ -2,10 +2,21 @@
   --f7-popover-bg-color: var(--content-color-white-100);
   --f7-popover-border-radius: 12px;
 
-  --popover-backdrop-color: rgba(0, 0, 0, 0.4);
+  --popover-backdrop-bg-color: rgba(0, 0, 0, 0.4);
+  --popover-backdrop-before-bg-color: transparent;
 
   .popover-backdrop {
-    background: var(--popover-backdrop-color);
+    background: var(--popover-backdrop-bg-color);
+  }
+
+  .popover-backdrop:before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: var(--popover-backdrop-before-bg-color);
   }
 
   &.dark, & .dark {

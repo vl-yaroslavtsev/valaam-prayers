@@ -1,6 +1,6 @@
 .md {
-  --popover-backdrop-color: rgba(0, 0, 0, 0.4);
-  
+  // --popover-backdrop-bg-color: rgba(217, 217, 217, 0.4);
+  // --popover-backdrop-before-bg-color: transparent;
 
   .smart-select-popover {
     --f7-popover-bg-color: var(--content-color-baige-1000);
@@ -23,13 +23,13 @@
       padding: 2px 8px;
     }
 
-    .item-content {
+    .list li label.item-content {
       padding: 0;
       margin: 6px 0;
+      border-radius: var(--f7-popover-border-radius); 
     }
 
     .item-inner {      
-      border-radius: 8px;      
       padding: var(--f7-list-item-padding-horizontal);
     }
 
@@ -45,7 +45,8 @@
   }
 
   &.dark, & .dark {
-    --popover-backdrop-color: rgba(217, 217, 217, 0.1);
+    --popover-backdrop-bg-color: rgba(217, 217, 217, 0.1);
+    --popover-backdrop-before-bg-color: var(--content-color-black-primary-500);
 
     .smart-select-popover {
       --f7-popover-bg-color: var(--content-color-black-primary);

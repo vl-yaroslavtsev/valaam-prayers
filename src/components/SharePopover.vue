@@ -201,7 +201,8 @@ onUnmounted(() => {
 }
 
 :global(.share-popover.modal-in ~ .popover-backdrop) {
-  --popover-backdrop-color: rgba(0, 0, 0, 0.4);
+  --popover-backdrop-bg-color: rgba(0, 0, 0, 0.4);
+  --popover-backdrop-before-bg-color: transparent;
 }
 
 .share-title {
