@@ -96,8 +96,8 @@ const formatTime = (date: Date) => formatDate(date, "HH:mm");
   --history-swiper-bg-color: var(--content-color-white-100);
 
   --history-swiper-header-text-color: var(--content-color-black-primary);
-  --history-swiper-info-text-color: var(--content-color-black-400);
-  --history-swiper-footer-text-color: var(--content-color-black-600);
+  --history-swiper-info-text-color: var(--content-color-black-40);
+  --history-swiper-footer-text-color: var(--content-color-black-60);
 }
 
 swiper-slide {
@@ -197,8 +197,8 @@ swiper-slide {
     --history-swiper-bg-color: var(--content-color-black-secondary);
 
     --history-swiper-header-text-color: var(--content-color-white-100);
-    --history-swiper-info-text-color: var(--content-color-baige-400);
-    --history-swiper-footer-text-color: var(--content-color-baige-600);
+    --history-swiper-info-text-color: var(--content-color-baige-40);
+    --history-swiper-footer-text-color: var(--content-color-baige-60);
   }
 }
 </style>

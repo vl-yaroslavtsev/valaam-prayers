@@ -12,7 +12,7 @@
         <f7-link @click="toggleSortable"
           ><SvgIcon
             icon="pencil"
-            :color="sortableEnabled ? 'primary-accent-50' : 'baige-900'"
+            :color="sortableEnabled ? 'primary-accent-50' : 'baige-90'"
             :size="24"
         /></f7-link>
       </f7-nav-right>
@@ -51,7 +51,7 @@
         />
         <SeparatorLine
           class="separator"
-          :color="isDarkMode ? 'baige-100' : 'black-100'"
+          :color="isDarkMode ? 'baige-10' : 'black-10'"
         />
       </f7-tab>
     </f7-tabs>

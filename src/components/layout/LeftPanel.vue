@@ -39,8 +39,8 @@
             </template>
           </f7-list-item>
         </f7-list>
-        <SeparatorLine :color="isDarkMode ? 'baige-100' : 'black-100'" />
-        <!--<SeparatorLine :color="'baige-100'" />-->
+        <SeparatorLine :color="isDarkMode ? 'baige-10' : 'black-10'" />
+        <!--<SeparatorLine :color="'baige-10'" />-->
         <div class="logo">
           <SvgIcon icon="valaam-logo" :size="42" :color="iconColor" />
         </div>
@@ -77,8 +77,8 @@ const updateApp = (): void => {
 
 const { isDarkMode } = useTheme();
 const iconColor = computed(() => {
-  // return "baige-900";
-  return isDarkMode.value ? "baige-900" : "black-600";
+  // return "baige-90";
+  return isDarkMode.value ? "baige-90" : "black-60";
 });
 
 const { version } = useSettingsStore();
@@ -118,16 +118,16 @@ const { version } = useSettingsStore();
   font-size: 12px;
   margin-bottom: 8px;
 
-  color: var(--content-color-black-600);
+  color: var(--content-color-black-60);
 }
 
 .dark {
   .app-version {
-    color: var(--content-color-baige-600);
+    color: var(--content-color-baige-60);
   }
 
   .page-left-panel {
-    --f7-list-item-title-text-color: var(--content-color-baige-900);
+    --f7-list-item-title-text-color: var(--content-color-baige-90);
   }
 }
 </style>

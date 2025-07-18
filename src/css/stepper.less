@@ -1,0 +1,33 @@
+.stepper {
+
+  &.stepper-tiny {
+    --f7-stepper-height: 24px;
+    
+  }
+
+  &.stepper-minimal {
+    --f7-stepper-border-radius: var(--f7-stepper-height);
+
+    .stepper-button-minus,
+    .stepper-button-plus {
+      border-radius: var(--f7-stepper-border-radius);
+      width: 24px;
+    }
+
+    .stepper-value {
+      font-size: 16px;
+      border: 0 none;
+    }
+
+    .stepper-button-plus:after, 
+    .stepper-button-minus:after {
+      width: 13px;
+      height: 1px;
+    }
+
+    .stepper-button-plus:before {
+      height: 13px;
+      width: 1px;
+  }
+  }
+}

@@ -37,14 +37,14 @@
       </template>
       <f7-swipeout-actions right>
         <f7-swipeout-button close @click="shareItem(item, $event)">
-          <SvgIcon icon="share" :color="isDarkMode ? 'baige-900' : 'black-600'" />
+          <SvgIcon icon="share" :color="isDarkMode ? 'baige-90' : 'black-60'" />
         </f7-swipeout-button>
         <f7-swipeout-button
           close
           v-if="item.progress && item.pages"
           @click="resetItem(item)"
         >
-          <SvgIcon :color="isDarkMode ? 'baige-900' : 'black-600'" icon="reset" />
+          <SvgIcon :color="isDarkMode ? 'baige-90' : 'black-60'" icon="reset" />
         </f7-swipeout-button>
         <f7-swipeout-button
           close

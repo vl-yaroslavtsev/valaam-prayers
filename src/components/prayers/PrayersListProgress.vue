@@ -25,7 +25,7 @@ defineProps<Props>();
 
 <style scoped lang="less">
 .item-progress {
-  --list-item-progress-color: var(--content-color-black-400);
+  --list-item-progress-color: var(--content-color-black-40);
   
   --f7-progressbar-height: 1px;
   --f7-progressbar-progress-color:  var(--list-item-progress-color);
@@ -51,7 +51,7 @@ defineProps<Props>();
 
 .dark {
   .item-progress {
-    --list-item-progress-color: var(--content-color-baige-400);
+    --list-item-progress-color: var(--content-color-baige-40);
   }
 }
 

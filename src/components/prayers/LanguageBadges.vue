@@ -29,7 +29,7 @@ defineProps<{
 
 <style scoped>
 .lang-badges {
-  --list-item-lang-color: var(--content-color-black-600);
+  --list-item-lang-color: var(--content-color-black-60);
 
   display: flex;
   gap: 18px;
@@ -55,7 +55,7 @@ defineProps<{
 
 .dark {
   .lang-badges {
-    --list-item-lang-color: var(--content-color-baige-900);
+    --list-item-lang-color: var(--content-color-baige-90);
   }
 }
 </style>

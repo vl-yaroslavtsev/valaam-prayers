@@ -26,7 +26,7 @@
       >
         <template #input-wrap-end>
           <span class="input-clear-button custom-button">
-            <SvgIcon icon="cancel" color="baige-300" />
+            <SvgIcon icon="cancel" color="baige-30" />
           </span>
         </template>
       </f7-searchbar>
@@ -48,7 +48,7 @@
     />
     <SeparatorLine
       class="separator"
-      :color="isDarkMode ? 'baige-100' : 'black-100'"
+              :color="isDarkMode ? 'baige-10' : 'black-10'"
     />
   </f7-page>
 </template>

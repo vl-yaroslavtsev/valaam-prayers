@@ -1,0 +1,44 @@
+.sheet-modal {
+  --f7-sheet-bg-color: var(--content-color-baige-100); //var(--content-color-white-100);
+--swipe-handler-bg-color: var(--content-color-black-5-no-opacity); //var(--f7-sheet-bg-color); //
+
+  .swipe-handler {
+    height: 16px;
+    position: absolute;
+    left: 0;
+    width: 100%;
+    top: 0;
+    background: var(--swipe-handler-bg-color);
+    cursor: pointer;
+    z-index: 10;
+
+    &:after {
+      content: '';
+      width: 36px;
+      height: 6px;
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      margin-left: -18px;
+      margin-top: -3px;
+      border-radius: 3px;
+      background: #666;
+    }
+  }
+
+  &.sheet-modal-top {
+    .swipe-handler {
+      top: auto;
+      bottom: 0;
+    }
+  }
+
+  .dark & {
+    --f7-sheet-bg-color: var(--content-color-black-primary);//var(--content-color-black-secondary);
+    --swipe-handler-bg-color: var(--content-color-black-secondary);//var(--content-color-baige-5-no-opacity);
+  }
+}
+
+.text-settings-sheet-backdrop {
+  background: transparent;
+}

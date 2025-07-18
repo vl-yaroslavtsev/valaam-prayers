@@ -33,10 +33,10 @@
         </template>
         <f7-swipeout-actions right v-if="!isSortableMode && !isSortingByTapHold">
           <f7-swipeout-button close @click="shareItem(item, $event)">
-            <SvgIcon icon="share" :color="isDarkMode ? 'baige-900' : 'black-600'" />
+            <SvgIcon icon="share" :color="isDarkMode ? 'baige-90' : 'black-60'" />
           </f7-swipeout-button>
           <f7-swipeout-button close @click="resetItem(item)" v-if="item.progress && item.pages">
-            <SvgIcon icon="reset" :color="isDarkMode ? 'baige-900' : 'black-600'" />
+            <SvgIcon icon="reset" :color="isDarkMode ? 'baige-90' : 'black-60'" />
           </f7-swipeout-button>
           <f7-swipeout-button @click="deleteItem(item)">
             <SvgIcon icon="delete" color="primary-accent-50" />

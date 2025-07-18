@@ -1,176 +1,36 @@
 .md {
   --f7-list-item-min-height: 56px;
-  --f7-list-font-size: 16px;
+
+  --f7-list-font-size: var(--mobile-main-text-regular-b2);
+
+  --f7-list-item-header-text-color: var(--content-color-black-60);
+  --f7-list-item-header-font-size: var(--mobile-main-text-regular-b2);
+  --f7-list-item-header-line-height: var(--mobile-main-text-regular-b2-line-height);
+  --f7-list-item-header-font-weight: 400;
+
+  --f7-list-item-after-font-size: var(--mobile-main-text-regular-b3);
+  --f7-list-item-after-font-weight: 400;
+  // --f7-list-item-after-text-color: var(--content-color-black-60);
+  --f7-list-item-after-line-height: var(--mobile-main-text-regular-b3-line-height);
 
   --f7-sortable-handler-color: var(--brand-color-primary-accent-50);
-  --sortable-item-bg-color: var(--content-color-black-50-no-opacity);
+  --sortable-item-bg-color: var(--content-color-black-5-no-opacity);
   --f7-sortable-sorting-item-bg-color: #dddbdb;
   --f7-sortable-sorting-item-box-shadow: 0px 2px 8px rgba(0, 0, 0, 0.6);
 
-  --f7-list-strong-bg-color: var(--content-color-black-50);
-}
-
-.list.prayers {
-  --f7-list-margin-vertical: 0;
-  --f7-sortable-handler-width: 50px;
-  --f7-list-chevron-icon-area: 34px;
-  // --f7-swipeout-button-padding-horizontal: 16px;
-
-  --f7-list-item-title-font-size: var(--mobile-detail-regular-d1);
-  --f7-list-item-title-line-height: var(--mobile-detail-regular-d1-line-height);
-
-  --f7-list-item-title-text-color: var(--content-color-black-secondary);
-  --f7-list-item-padding-vertical: 10px;
-  
-  --delete-handler-width: var(--f7-sortable-handler-width);
-
-  margin-top: 30px;
-
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-
-  li {
-    margin-bottom: 6px;
-
-    &.swipeout {
-      background: var(--f7-page-bg-color);
-
-      &.sorting {
-        background: var(--f7-sortable-sorting-item-bg-color);
-        --f7-touch-ripple-color: transparent;
-      }
-    }
-  }
-
-  .item-title {
-    display: -webkit-box;
-    -webkit-box-orient: vertical;
-    -webkit-line-clamp: 2;
-    line-clamp: 2;
-    white-space: normal;
-    max-height: calc(var(--f7-list-item-title-line-height) * 2);
-    overflow: hidden;
-
-    transition-property: transform;
-    transition-duration: 300ms;
-  }
-
-  .has-progress .item-inner {
-    padding-bottom: 40px;
-
-    &:before {
-      top: auto;
-      margin-top: auto;
-    }
-  }
-
-  .item-inner {
-    transition-property: padding;
-  }
-
-  .delete-handler {
-    position: absolute;
-    top: 0;
-    left: var(--f7-safe-area-left);
-    height: 100%;
-    width: var(--delete-handler-width);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-
-    pointer-events: none;
-    opacity: 0;
-
-    transition-duration: 300ms;
-    transition-property: opacity, transform;
-    transform: translateX(-15px);
-  }
-
-  .swipeout-actions-right {
-    a:nth-last-child(3) {
-      --f7-swipeout-button-bg-color: var(--content-color-black-50);
-    }
-    a:nth-last-child(2) {
-      --f7-swipeout-button-bg-color: var(--content-color-black-100);
-    }
-    a:last-child {
-      --f7-swipeout-button-bg-color: var(--content-color-black-200);
-    }
-  }
-
-  &.sortable-enabled {
-    .delete-handler {
-      opacity: 1;
-      pointer-events: auto;
-      transform: translateX(0);
-      z-index: 20;
-    }
-
-    .item-after {
-      position: relative;
-      align-self: stretch;
-      align-items: center;
-      background: var(--sortable-item-bg-color);
-    }
-
-    .item-title {
-      transform: translateX(calc(var(--delete-handler-width) - var(--f7-list-item-padding-horizontal)));
-    }
-
-    .item-progress {
-      transform: translateX(calc(var(--delete-handler-width) - var(--f7-list-item-padding-horizontal)));
-    }
-
-    li {
-      background: var(--sortable-item-bg-color);
-
-      &.sorting {
-        background: var(--f7-sortable-sorting-item-bg-color);
-
-        .item-after {
-          background: var(--f7-sortable-sorting-item-bg-color);
-        }
-      }
-    }
-
-    .item-inner:after {
-      content: "";
-      position: absolute;
-      right: 0;
-      top: 0;
-      bottom: 0;
-      width: calc(var(--f7-sortable-handler-width) + var(--f7-safe-area-right));
-      background: var(--sortable-item-bg-color);
-      z-index: 1;
-    }
-  }
+  --f7-list-strong-bg-color: var(--content-color-black-5);
 }
 
 .md {
   &.dark,
   & .dark {
-    --f7-list-strong-bg-color: var(--content-color-baige-50);
+    --f7-list-strong-bg-color: var(--content-color-baige-5);
+
+    --f7-list-item-header-text-color: var(--content-color-baige-40);
+    // --f7-list-item-after-text-color: var(--content-color-baige-40);
 
     --f7-sortable-handler-color: var(--brand-color-primary-accent-50);
     --f7-sortable-sorting-item-bg-color: rgb(51, 47, 46);
-    --sortable-item-bg-color: var(--content-color-baige-50-no-opacity);
-
-    .list.prayers {
-      --f7-list-item-title-text-color: var(--content-color-baige-900);
-      //Или var(--content-color-white-100); 
-    
-
-      .swipeout-actions-right {
-        a:nth-last-child(3) {
-          --f7-swipeout-button-bg-color: var(--content-color-baige-50);
-        }
-        a:nth-last-child(2) {
-          --f7-swipeout-button-bg-color: var(--content-color-baige-100);
-        }
-        a:last-child {
-          --f7-swipeout-button-bg-color: var(--content-color-baige-300);
-        }
-      }
-    }
+    --sortable-item-bg-color: var(--content-color-baige-5-no-opacity);
   }
 }

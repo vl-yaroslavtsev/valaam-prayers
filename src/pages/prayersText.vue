@@ -5,23 +5,30 @@
       <f7-nav-title sliding></f7-nav-title>
       <f7-nav-right>
         <f7-link icon-only>
-          <SvgIcon icon="menu" color="baige-900" :size="24" />
+          <SvgIcon icon="menu" color="baige-90" :size="24" />
         </f7-link>
         <LanguageSelector 
           v-model="currentLanguage" 
           :available-languages="availableLanguages" />
         <f7-link icon-only>
-          <SvgIcon :icon="isElementFavorite ? 'favorite-filled' : 'favorite'" color="baige-900" :size="24"
+          <SvgIcon 
+            :icon="isElementFavorite ? 'favorite-filled' : 'favorite'" 
+            color="baige-90" 
+            :size="24"
             @click="toggleFavorite" />
         </f7-link>
         <f7-link icon-only>
-          <SvgIcon icon="settings-2" color="baige-900" :size="24" />
+          <SvgIcon 
+            icon="settings-2" 
+            color="baige-90" 
+            :size="24" 
+            @click="toggleTextSettingsSheet()" />
         </f7-link>
         <f7-link icon-only>
-          <SvgIcon icon="share" color="baige-900" :size="24" @click="shareItem" />
+          <SvgIcon icon="share" color="baige-90" :size="24" @click="shareItem" />
         </f7-link>
         <f7-link icon-only>
-          <SvgIcon icon="search" color="baige-900" :size="24" />
+          <SvgIcon icon="search" color="baige-90" :size="24" />
         </f7-link>
       </f7-nav-right>
       <f7-nav-title-large>{{ title }}</f7-nav-title-large>
@@ -36,7 +43,9 @@
         ref="textPaginator" 
         @tap="onTextPaginatorTap" 
         @progress="onTextPaginatorProgress" />
+       
     </f7-page-content>
+    <TextSettingsSelector v-model:isOpened="isTextSettingsSheetOpened" />
   </f7-page>
 </template>
 
@@ -64,6 +73,7 @@ import { useReadingHistoryStore } from "@/stores/readingHistory";
 import { useComponentsStore } from "@/stores/components";
 import { useSettingsStore } from "@/stores/settings";
 import TextPaginator from "@/components/TextPaginator.vue"
+import TextSettingsSelector from "@/components/TextSettingsSelector.vue";
 import SvgIcon from "@/components/SvgIcon.vue";
 import LanguageSelector from "@/components/LanguageSelector.vue";
 import { useFavoritesStore } from "@/stores/favorites";
@@ -89,6 +99,11 @@ const subtitle = computed(
 );
 const title = prayer.name;
 const text = ref<string>("");
+
+const isTextSettingsSheetOpened = ref(false);
+const toggleTextSettingsSheet = () => {
+  isTextSettingsSheetOpened.value = !isTextSettingsSheetOpened.value;
+};
 
 // Языковые настройки из store
 const currentLanguage = ref<Language>(settingsStore.currentLanguage);
@@ -207,7 +222,7 @@ const shareItem = (e: Event) => {
   sharePopover.open({
     title: title || "",
     url: prayer.url || "",
-  }, target);
+  }, target, false);
 };
 
 
@@ -241,6 +256,6 @@ const toggleFavorite = async () => {
 </script>
 <style scoped lang="less">
 .dark .page {
-  --f7-bars-bg-color: var(--content-color-baige-50-no-opacity);
+  --f7-bars-bg-color: var(--content-color-baige-5-no-opacity);
 }
 </style>

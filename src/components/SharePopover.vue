@@ -11,8 +11,8 @@
           <SvgIcon
             icon="vk"
             :size="32"
-            :color="isDarkMode ? 'baige-1000' : 'black-primary'"
-            :border-color="isDarkMode ? 'baige-300' : 'black-200'"
+            :color="isDarkMode ? 'baige-100' : 'black-primary'"
+            :border-color="isDarkMode ? 'baige-30' : 'black-20'"
           />
         </template>
       </f7-list-item>
@@ -21,8 +21,8 @@
           <SvgIcon
             icon="odnoklassniki"
             :size="32"
-            :color="isDarkMode ? 'baige-1000' : 'black-primary'"
-            :border-color="isDarkMode ? 'baige-300' : 'black-200'"
+            :color="isDarkMode ? 'baige-100' : 'black-primary'"
+            :border-color="isDarkMode ? 'baige-30' : 'black-20'"
           />
         </template>
       </f7-list-item>
@@ -31,8 +31,8 @@
           <SvgIcon
             icon="whatsapp"
             :size="32"
-            :color="isDarkMode ? 'baige-1000' : 'black-primary'"
-            :border-color="isDarkMode ? 'baige-300' : 'black-200'"
+            :color="isDarkMode ? 'baige-100' : 'black-primary'"
+            :border-color="isDarkMode ? 'baige-30' : 'black-20'"
           />
         </template>
       </f7-list-item>
@@ -41,8 +41,8 @@
           <SvgIcon
             icon="telegram"
             :size="32"
-            :color="isDarkMode ? 'baige-1000' : 'black-primary'"
-            :border-color="isDarkMode ? 'baige-300' : 'black-200'"
+            :color="isDarkMode ? 'baige-100' : 'black-primary'"
+            :border-color="isDarkMode ? 'baige-30' : 'black-20'"
           />
         </template>
       </f7-list-item>
@@ -58,8 +58,8 @@
           <SvgIcon
             icon="chain"
             :size="32"
-            :color="isDarkMode ? 'baige-1000' : 'black-primary'"
-            :border-color="isDarkMode ? 'baige-300' : 'black-200'"
+            :color="isDarkMode ? 'baige-100' : 'black-primary'"
+            :border-color="isDarkMode ? 'baige-30' : 'black-20'"
           />
         </template>
       </f7-list-item>
@@ -83,11 +83,12 @@ interface ShareItem {
 const isOpened = defineModel<boolean>();
 const shareItem = ref<ShareItem | null>(null);
 const targetEl = ref<Element | null>(null);
+const hasArrow = ref(true);
 
-const open = (item: ShareItem, target?: Element) => {
+const open = (item: ShareItem, target?: Element, isArrow: boolean = true) => {
   shareItem.value = item;
   targetEl.value = target || null;
-
+  hasArrow.value = isArrow;
   isOpened.value = true;
 };
 
@@ -95,6 +96,7 @@ const close = () => {
   shareItem.value = null;
   targetEl.value = null;
   isOpened.value = false;
+  hasArrow.value = true;
 };
 
 defineExpose({
@@ -113,6 +115,11 @@ const { isDarkMode } = useTheme();
 const onOpen = (popover: Popover.Popover) => {
   if (targetEl.value) {
     popover.$targetEl = $$(targetEl.value);
+  }
+  if (!hasArrow.value) {
+    popover.el.classList.add('no-arrow');
+  } else {
+    popover.el.classList.remove('no-arrow');
   }
 };
 
@@ -190,14 +197,24 @@ onUnmounted(() => {
   --f7-list-item-min-height: 40px;
   --f7-list-item-media-margin: 8px;
 
+  --f7-list-font-size: var(--mobile-main-text-regular-b3);
+
   --f7-block-title-font-size: var(--mobile-detail-regular-d1);
   --f7-block-title-line-height: var(--mobile-detail-regular-d1-line-height);
 
-  --separator-color: var(--content-color-black-200);
+  --separator-color: var(--content-color-black-20);
 
   font-size: var(--mobile-detail-regular-d1);
   line-height: var(--mobile-detail-regular-d1-line-height);
-  color: var(--content-color-baige-1000);
+  color: var(--content-color-baige-100);
+
+  &.no-arrow {
+    margin-top: -13px;
+
+    :deep(.popover-arrow) {
+      display: none;
+    }
+  }
 }
 
 :global(.share-popover.modal-in ~ .popover-backdrop) {
@@ -221,7 +238,7 @@ onUnmounted(() => {
 
 .dark {
   .share-popover {
-    --separator-color: var(--content-color-baige-300);
+    --separator-color: var(--content-color-baige-30);
   }
 }
 </style>
