@@ -1,6 +1,8 @@
 import { defineStore } from "pinia";
 import { computed, ref, readonly } from "vue";
 import type { Language } from "@/types/common";
+import { device } from "@/js/device";
+import { useTheme } from "@/composables/useTheme";
 
 // Единый префикс для всех настроек
 const SETTINGS_PREFIX = 'valaam-prayers-';
@@ -15,8 +17,8 @@ const SETTINGS_KEYS = {
   LINE_HEIGHT: `${SETTINGS_PREFIX}line-height`,
   READING_BRIGHTNESS: `${SETTINGS_PREFIX}reading-brightness`,
   KEEP_SCREEN_ON: `${SETTINGS_PREFIX}keep-screen-on`,
-  SHOW_STATUS_BAR: `${SETTINGS_PREFIX}show-status-bar`,
-  FULL_SCREEN: `${SETTINGS_PREFIX}full-screen`,
+  IS_STATUS_BAR_VISIBLE: `${SETTINGS_PREFIX}is-status-bar-visible`,
+  PAGE_MODE: `${SETTINGS_PREFIX}page-mode`,
   VOLUME_BUTTONS_SCROLL: `${SETTINGS_PREFIX}volume-buttons-scroll`,
 } as const;
 
@@ -37,13 +39,13 @@ interface AppSettings {
   // Режим чтения
   readingBrightness: number;
   keepScreenOn: boolean;
+  pageMode: 'horizontal' | 'vertical';
   
   // Интерфейс
-  showStatusBar: boolean;
-  fullScreen: boolean;
+  isStatusBarVisible: boolean;
   
   // Другие настройки
-  volumeButtonsScroll: boolean;
+  isVolumeButtonsScrollEnabled: boolean;
 }
 
 // Настройки по умолчанию
@@ -56,14 +58,15 @@ const DEFAULT_SETTINGS: AppSettings = {
   lineHeight: 1.5,
   readingBrightness: 50,
   keepScreenOn: false,
-  showStatusBar: true,
-  fullScreen: false,
-  volumeButtonsScroll: false,
+  pageMode: 'horizontal',
+  isStatusBarVisible: true,
+  isVolumeButtonsScrollEnabled: false,
 };
 
 export const useSettingsStore = defineStore("settings", () => {
   const version = import.meta.env.VITE_APP_VER;
   const settings = ref<AppSettings>({ ...DEFAULT_SETTINGS });
+  const { setTheme } = useTheme();
 
   // Загрузка всех настроек из localStorage
   const loadSettings = () => {
@@ -94,9 +97,9 @@ export const useSettingsStore = defineStore("settings", () => {
       lineHeight: SETTINGS_KEYS.LINE_HEIGHT,
       readingBrightness: SETTINGS_KEYS.READING_BRIGHTNESS,
       keepScreenOn: SETTINGS_KEYS.KEEP_SCREEN_ON,
-      showStatusBar: SETTINGS_KEYS.SHOW_STATUS_BAR,
-      fullScreen: SETTINGS_KEYS.FULL_SCREEN,
-      volumeButtonsScroll: SETTINGS_KEYS.VOLUME_BUTTONS_SCROLL,
+      pageMode: SETTINGS_KEYS.PAGE_MODE,
+      isStatusBarVisible: SETTINGS_KEYS.IS_STATUS_BAR_VISIBLE,
+      isVolumeButtonsScrollEnabled: SETTINGS_KEYS.VOLUME_BUTTONS_SCROLL,
     };
     return keyMap[key];
   };
@@ -115,9 +118,12 @@ export const useSettingsStore = defineStore("settings", () => {
   const currentLanguage = computed(() => settings.value.language);
   const appTheme = computed(() => settings.value.appTheme);
   const textTheme = computed(() => settings.value.textTheme);
+  const fontFamily = computed(() => settings.value.fontFamily);
   const fontSize = computed(() => settings.value.fontSize);
   const lineHeight = computed(() => settings.value.lineHeight);
   const readingBrightness = computed(() => settings.value.readingBrightness);
+  const pageMode = computed(() => settings.value.pageMode);
+  const isStatusBarVisible = computed(() => settings.value.isStatusBarVisible);
 
   // Получение языка с приоритетом из доступных языков
   const getLanguageFromAvailable = (availableLanguages: Language[]): Language => {
@@ -157,9 +163,12 @@ export const useSettingsStore = defineStore("settings", () => {
     currentLanguage,
     appTheme,
     textTheme,
+    fontFamily,
     fontSize,
     lineHeight,
     readingBrightness,
+    pageMode,
+    isStatusBarVisible,
     
     // Универсальный метод
     setSetting,
@@ -167,14 +176,38 @@ export const useSettingsStore = defineStore("settings", () => {
     // Специфичные методы для удобства
     setLanguage: (lang: Language) => setSetting('language', lang),
     setAppTheme: (theme: AppSettings['appTheme']) => setSetting('appTheme', theme),
-    setTextTheme: (theme: AppSettings['textTheme']) => setSetting('textTheme', theme),
+    setTextTheme: (theme: AppSettings['textTheme']) => {
+      setSetting('textTheme', theme);
+      if (theme === 'dark') {
+        setTheme('dark');
+      } else {
+        setTheme('light');
+      }
+    },
+    setFontFamily: (family: string) => setSetting('fontFamily', family),
     setFontSize: (size: number) => setSetting('fontSize', size),
     setLineHeight: (height: number) => setSetting('lineHeight', height),
-    setReadingBrightness: (brightness: number) => setSetting('readingBrightness', brightness),
-    setKeepScreenOn: (keepOn: boolean) => setSetting('keepScreenOn', keepOn),
-    setShowStatusBar: (show: boolean) => setSetting('showStatusBar', show),
-    setFullScreen: (fullScreen: boolean) => setSetting('fullScreen', fullScreen),
-    setVolumeButtonsScroll: (enabled: boolean) => setSetting('volumeButtonsScroll', enabled),
+    setReadingBrightness: (brightness: number) => {
+      setSetting('readingBrightness', brightness);
+      device.setBrightness(brightness);
+    },
+    setKeepScreenOn: (keepOn: boolean) => {
+      setSetting('keepScreenOn', keepOn);
+      device.keepScreenOn(keepOn);
+    },
+    setIsStatusBarVisible: (visible: boolean) => {
+      setSetting('isStatusBarVisible', visible);
+      device.showStatusBar(visible);
+    },
+    setIsVolumeButtonsScrollEnabled: (enabled: boolean, callback: (keyCode: number, event: any) => void) => {
+      setSetting('isVolumeButtonsScrollEnabled', enabled);
+      if (enabled) {
+        device.onVolumeKey(callback);
+      } else {
+        device.offVolumeKey();
+      }
+    },
+    setPageMode: (mode: AppSettings['pageMode']) => setSetting('pageMode', mode),
     
     // Утилиты
     getLanguageFromAvailable,

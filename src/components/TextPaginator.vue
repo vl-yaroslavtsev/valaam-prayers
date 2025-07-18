@@ -1,5 +1,7 @@
 <template>
-  <swiper-container :class="`text-paginator mode-${mode}`" 
+  <swiper-container 
+    :key="`swiper-${mode}`"
+    :class="`text-paginator mode-${mode} reading-text prayer-text lang-${lang} theme-${theme}`" 
     ref="swiper" 
     :touchStartPreventDefault="false"
     :virtual="{
@@ -26,17 +28,17 @@
   </swiper-container>
   <div 
     v-if="isLoading || isCalculating" 
-    :class="`text-paginator text-page reading-text prayer-text theme-${theme} lang-${lang}`" 
+    :class="`text-paginator text-page reading-text prayer-text theme-${theme}`" 
     style="z-index: 1000;"
   >
-    <h1 class="skeleton-text skeleton-effect-wave">__________ ___________</h1>
+    <h1 class="skeleton-text skeleton-effect-wave">___________________</h1>
     <f7-skeleton-block class="skeleton-text-line skeleton-effect-wave" />
     <f7-skeleton-block class="skeleton-text-line skeleton-effect-wave" />
     <f7-skeleton-block class="skeleton-text-line skeleton-effect-wave" />
   </div>
 </template>
 <script setup lang="ts">
-import { useTemplateRef, watchEffect, ref, watch, computed } from "vue";
+import { useTemplateRef, watchEffect, ref, watch, computed, nextTick } from "vue";
 import { useTextSelection } from "@/composables/useTextSelection";
 import { useSettingsStore } from "@/stores/settings";
 import type { SwiperContainer } from "swiper/element";
@@ -48,12 +50,10 @@ import {
 
 const { 
   text, 
-  mode = "horizontal", 
   lang = "cs-cf", 
   isLoading = false, 
   initialProgress = 0
 } = defineProps<{
-  mode?: "vertical" | "horizontal";
   text: string;
   initialProgress?: number;
   lang?: Language;
@@ -61,6 +61,8 @@ const {
 }>();
 
 const settingsStore = useSettingsStore();
+
+const mode = computed(() => settingsStore.pageMode);
 
 // Используем настройки из store
 const theme = computed(() => settingsStore.textTheme);
@@ -82,9 +84,10 @@ let swiperRect = {
 };
 
 const isCalculating = ref<boolean>(false);
+const currentProgress = ref<number>(initialProgress);
 
 const updateSlides = (slides: string[]) => {
-  const template = `<div class="text-page reading-text prayer-text theme-${theme.value} lang-${lang}">$content</div>`;
+  const template = `<div class="text-page">$content</div>`;
 
   const swiper = swiperRef.value?.swiper;
   if (!swiper) {
@@ -120,7 +123,7 @@ const handleTap = (e: CustomEvent<[swiper: Swiper, event: PointerEvent]>) => {
   const y = clientY - swiperRect.top;
 
   // Определяем область касания в зависимости от режима
-  if (mode === "horizontal") {
+  if (mode.value === "horizontal") {
     // Горизонтальный режим
     const leftZone = swiperRect.width * 0.25; // 25% слева
     const rightZone = swiperRect.width * 0.75; // 75% от левого края (25% справа)
@@ -204,6 +207,22 @@ const handleSlideChange = (e: CustomEvent<[swiper: Swiper]>) => {
   }
 };
 
+const restoreProgress = () => {
+  const progress = currentProgress.value;
+
+  if (!progress || !swiperRef.value) {
+    return;
+  }
+  
+  const swiper = swiperRef.value.swiper;
+
+  if (mode.value === "horizontal") {
+    swiper.slideTo(Math.floor(progress * swiper.virtual.slides.length), 0);
+  } else {
+    swiper.setProgress(progress);
+  }
+};
+
 const handleProgress = (e: CustomEvent<[swiper: Swiper, progress: number]>) => {
   const [swiper, progress] = e.detail;
 
@@ -211,33 +230,55 @@ const handleProgress = (e: CustomEvent<[swiper: Swiper, progress: number]>) => {
     return;
   }
 
+  currentProgress.value = progress;
+  
   emit("progress", { 
     progress: progress, 
     pages: swiper.virtual.slides.length,
   });
 };
 
-watch(() => text, async (newText) => {
-  if (newText && swiperRef.value) {
-    const swiper = swiperRef.value.swiper;
+let pages: string[] = [];
+
+watch(() => text,async (newText) => {
+  const container = swiperRef.value;
+
+  if (newText && container) {
+    
     isCalculating.value = true;
 
-    const container = swiperRef.value;
+    
     const cssClasses = `text-page reading-text prayer-text theme-${theme.value} lang-${lang}`;
     
-    const pages = await paginateText(newText, container, cssClasses);
+    pages = await paginateText(newText, container, cssClasses);
     updateSlides(pages);
 
-    if (initialProgress) {
-      if (mode === "horizontal") {
-        swiper.slideTo(Math.floor(initialProgress * swiper.virtual.slides.length), 0);
-      } else {
-        swiper.setProgress(initialProgress);
-      }
-    }
+    restoreProgress();
 
     isCalculating.value = false;
   }
+});
+
+watch(mode, async (newMode) => {
+
+  isCalculating.value = true;
+  // При смене режима компонент пересоздается благодаря key
+  // Нужно только дождаться пересоздания и обновить слайды
+  await nextTick();
+  
+  const swiper = swiperRef.value?.swiper;
+  if (!swiper || pages.length === 0) {
+    isCalculating.value = false;
+    return;
+  }  
+  
+  // Обновляем слайды в новом swiper
+  updateSlides(pages);
+  
+  // Восстанавливаем позицию используя сохраненный прогресс или initialProgress
+  restoreProgress();
+  
+  isCalculating.value = false;
 });
 
 watchEffect(() => {

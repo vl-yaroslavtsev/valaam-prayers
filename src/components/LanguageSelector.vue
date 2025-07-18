@@ -5,8 +5,7 @@
     :smart-select-params="{
       openIn: 'popover',
       closeOnSelect: true,
-      cssClass: 'simple-select',
-      popoverArrow: false,
+      cssClass: 'simple-select'
     }">
     <select name="language" v-model="currentLanguage">
       <option 
@@ -17,7 +16,7 @@
         {{ getLanguageLabel(lang) }}
       </option>
     </select>
-    <SvgIcon icon="language" color="baige-900" :size="24" />
+    <SvgIcon icon="language" color="baige-90" :size="24" />
   </f7-link>
 </template>
 

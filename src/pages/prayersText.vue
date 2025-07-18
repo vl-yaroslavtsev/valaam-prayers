@@ -36,7 +36,6 @@
     <f7-page-content class="">
       <TextPaginator 
         :isLoading="isLoading" 
-        :mode="'horizontal'" 
         :text="text" 
         :initialProgress="initialProgress"
         :lang="currentLanguage"
@@ -104,6 +103,12 @@ const isTextSettingsSheetOpened = ref(false);
 const toggleTextSettingsSheet = () => {
   isTextSettingsSheetOpened.value = !isTextSettingsSheetOpened.value;
 };
+
+watch(isTextSettingsSheetOpened, (isOpen) => {
+  if (isOpen) {
+    toggleNavbar();
+  }
+});
 
 // Языковые настройки из store
 const currentLanguage = ref<Language>(settingsStore.currentLanguage);

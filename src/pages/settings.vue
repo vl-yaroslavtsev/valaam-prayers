@@ -37,8 +37,6 @@
         </f7-list-item>
       </f7-list>
 
-      <TextThemeSelector />
-
       <f7-block-title>Браузерное API</f7-block-title>
       <f7-block strong-ios outline-ios class="grid grid-cols-2 grid-gap">
         <f7-button fill @click="testBrowserFitures">Проверить API</f7-button>
@@ -222,7 +220,6 @@ import type { CalendarEvent } from "@/js/device/types";
 import { testBrowser } from "../js/device/browser-test";
 import { useTheme } from "@/composables/useTheme";
 import { useSettingsStore } from "@/stores/settings";
-import TextThemeSelector from "@/components/TextThemeSelector.vue";
 
 const { currentTheme, setTheme } = useTheme();
 const settingsStore = useSettingsStore();
@@ -261,17 +258,16 @@ const showThemeAlert = async () => {
   f7.dialog.alert(`Тема устройства: ${theme}`);
 };
 
-const isStatusBarShown = ref(settingsStore.settings.showStatusBar);
+const isStatusBarShown = ref(settingsStore.settings.isStatusBarVisible);
 watch(isStatusBarShown, (newVal) => {
   device.showStatusBar(newVal);
-  settingsStore.setShowStatusBar(newVal);
+  settingsStore.setIsStatusBarVisible(newVal);
   console.log("isStatusBarShown", newVal);
 });
 
-const isFullscreen = ref(settingsStore.settings.fullScreen);
+const isFullscreen = ref(false);
 watch(isFullscreen, (newVal) => {
   device.setFullScreen(newVal);
-  settingsStore.setFullScreen(newVal);
   console.log("isFullscreen", newVal);
 });
 
@@ -289,7 +285,7 @@ const setStatusBarColor = () => {
 };
 
 const сontentRef = ref<typeof f7PageContent | null>(null);
-const isVolumeButtonsScroll = ref(settingsStore.settings.volumeButtonsScroll);
+const isVolumeButtonsScroll = ref(settingsStore.settings.isVolumeButtonsScrollEnabled);
 
 watch(isVolumeButtonsScroll, (newVal) => {
   //console.log("watch: pageContentRef", сontentRef.value);
@@ -297,8 +293,8 @@ watch(isVolumeButtonsScroll, (newVal) => {
 
   console.log(сontentRef.value.$el);
   const $сontent = $(сontentRef.value.$el);
-  if (newVal) {
-    device.onVolumeKey((keyCode, event) => {
+  
+  settingsStore.setIsVolumeButtonsScrollEnabled(newVal, (keyCode, event) => {
       switch (keyCode) {
         case device.KEYCODE_VOLUME_UP:
           $сontent.scrollTop($сontent.scrollTop() - 50, 200);
@@ -309,11 +305,6 @@ watch(isVolumeButtonsScroll, (newVal) => {
           break;
       }
     });
-  } else {
-    device.offVolumeKey();
-  }
-  
-  settingsStore.setVolumeButtonsScroll(newVal);
 });
 
 const getUID = () => {
