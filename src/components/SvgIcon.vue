@@ -9,6 +9,8 @@
 import { computed } from 'vue';
 
 type IconName =
+  | "arrow-right-left"
+  | "arrow-up-down"
   | "burger"
   | "pencil"
   | "favorite"
@@ -37,7 +39,40 @@ type IconName =
   | "vk"
   | "whatsapp"
   | "odnoklassniki"
-  | "valaam-logo";
+  | "valaam-logo"
+  | "align-center"
+  | "color-theme"
+  | "double-arrow"
+  | "fullscreen"
+  | "letter-a"
+  | "letter-b"
+  | "letter-tt"
+  | "line-height"
+  | "sun"
+  | "wrap-text";
+
+type IconColor = 
+  | "white"
+  | "baige-5"
+  | "baige-10"
+  | "baige-30"
+  | "baige-40"
+  | "baige-60"
+  | "baige-90"
+  | "baige-100"
+  | "black-primary"
+  | "black-5"
+  | "black-10"
+  | "black-20"
+  | "black-40"
+  | "black-60"
+  | "primary-accent-50";
+
+type IconBorderColor = 
+  | "black-primary"
+  | "white"
+  | "baige-30"
+  | "black-20";
 
 const {
   icon,
@@ -46,11 +81,13 @@ const {
   borderColor,
 } = defineProps<{
   icon: IconName;
-  color?: string;
+  color?: IconColor;
   size?: number;
-  borderColor?: string;
+  borderColor?: IconBorderColor;
 }>();
 
+import arrowRightLeftIcon from "@/assets/icons/arrow-right-left.svg?raw";
+import arrowUpDownIcon from "@/assets/icons/arrow-up-down.svg?raw";
 import burgerIcon from "@/assets/icons/burger.svg?raw";
 import pencilIcon from "@/assets/icons/pencil.svg?raw";
 import favoriteIcon from "@/assets/icons/favorite.svg?raw";
@@ -80,10 +117,24 @@ import odnoklassnikiIcon from "@/assets/icons/odnoklassniki.svg?raw";
 import valaamLogoIcon from "@/assets/icons/valaam-logo.svg?raw";
 import languageIcon from "@/assets/icons/language.svg?raw";
 import menuIcon from "@/assets/icons/menu.svg?raw";
+import alignCenterIcon from "@/assets/icons/align-center.svg?raw";
+import colorThemeIcon from "@/assets/icons/color-theme.svg?raw";
+import doubleArrowIcon from "@/assets/icons/double-arrow.svg?raw";
+import fullscreenIcon from "@/assets/icons/fullscreen.svg?raw";
+import letterAIcon from "@/assets/icons/letter-a.svg?raw";
+import letterBIcon from "@/assets/icons/letter-b.svg?raw";
+import letterTtIcon from "@/assets/icons/letter-tt.svg?raw";
+import lineHeightIcon from "@/assets/icons/line-height.svg?raw";
+import sunIcon from "@/assets/icons/sun.svg?raw";
+import wrapTextIcon from "@/assets/icons/wrap-text.svg?raw";
 
 // Используем computed для реактивности
 const svgIcon = computed(() => {
   switch (icon) {
+    case "arrow-right-left":
+      return arrowRightLeftIcon;
+    case "arrow-up-down":
+      return arrowUpDownIcon;
     case "burger":
       return burgerIcon;
     case "pencil":
@@ -142,6 +193,26 @@ const svgIcon = computed(() => {
       return languageIcon;
     case "menu":
       return menuIcon;
+    case "align-center":
+      return alignCenterIcon;
+    case "color-theme":
+      return colorThemeIcon;
+    case "double-arrow":
+      return doubleArrowIcon;
+    case "fullscreen":
+      return fullscreenIcon;
+    case "letter-a":
+      return letterAIcon;
+    case "letter-b":
+      return letterBIcon;
+    case "letter-tt":
+      return letterTtIcon;
+    case "line-height":
+      return lineHeightIcon;
+    case "sun":
+      return sunIcon;
+    case "wrap-text":
+      return wrapTextIcon;
     default:
       return "";
   }
