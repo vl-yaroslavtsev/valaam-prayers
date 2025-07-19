@@ -305,6 +305,14 @@ defineExpose({
   left: 0;
   bottom: 0;
   width: 100%;
+
+  --skeleton-color: #ccc;
+  --skeleton-icon-color: rgba(0, 0, 0, 0.25);
+
+  &.theme-dark {
+    --skeleton-color: #515151;
+    --skeleton-icon-color: rgba(255, 255, 255, 0.25);
+  }
 }
 .skeleton-text-line {
   margin-bottom: 0.3em;
