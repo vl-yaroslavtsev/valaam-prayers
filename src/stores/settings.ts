@@ -2,7 +2,6 @@ import { defineStore } from "pinia";
 import { computed, ref, readonly } from "vue";
 import type { Language } from "@/types/common";
 import { device } from "@/js/device";
-import { useTheme } from "@/composables/useTheme";
 
 // Единый префикс для всех настроек
 const SETTINGS_PREFIX = 'valaam-prayers-';
@@ -66,7 +65,6 @@ const DEFAULT_SETTINGS: AppSettings = {
 export const useSettingsStore = defineStore("settings", () => {
   const version = import.meta.env.VITE_APP_VER;
   const settings = ref<AppSettings>({ ...DEFAULT_SETTINGS });
-  const { setTheme } = useTheme();
 
   // Загрузка всех настроек из localStorage
   const loadSettings = () => {
@@ -178,11 +176,6 @@ export const useSettingsStore = defineStore("settings", () => {
     setAppTheme: (theme: AppSettings['appTheme']) => setSetting('appTheme', theme),
     setTextTheme: (theme: AppSettings['textTheme']) => {
       setSetting('textTheme', theme);
-      if (theme === 'dark') {
-        setTheme('dark');
-      } else {
-        setTheme('light');
-      }
     },
     setFontFamily: (family: string) => setSetting('fontFamily', family),
     setFontSize: (size: number) => setSetting('fontSize', size),

@@ -43,6 +43,14 @@ export function useTheme() {
     } else {
       shouldBeDark = theme === 'dark'
     }
+
+    // автоматически переключаем textTheme
+    const currentTextTheme = settingsStore.textTheme
+    if (shouldBeDark && !['dark'].includes(currentTextTheme)) {
+      settingsStore.setTextTheme('dark')
+    } else if (!shouldBeDark && currentTextTheme === 'dark') {
+      settingsStore.setTextTheme('grey')
+    }
     
     applyTheme(shouldBeDark)
   }
