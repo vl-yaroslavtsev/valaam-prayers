@@ -61,6 +61,17 @@ export default async () => {
             if (id.includes('node_modules/vue')) {
               return 'vue';
             }
+
+            // Framework7
+            if (id.includes('node_modules/swiper')) {
+              return 'swiper';
+            }
+
+            // Framework7-Vue
+            if (id.includes('node_modules/framework7-vue')) {
+              return 'f7-vue';
+            }
+
             // Framework7
             if (id.includes('node_modules/framework7')) {
               return 'f7';
