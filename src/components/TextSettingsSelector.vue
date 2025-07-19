@@ -237,7 +237,7 @@ const showStatusBar = computed({
 
 const currentFontFamily = computed({
   get: () => settingsStore.fontFamily,
-  set: (value: string) => settingsStore.setFontFamily(value)
+  set: (value: AppSettings['fontFamily']) => settingsStore.setFontFamily(value)
 });
 
 const fontFamilyLabels = [
@@ -250,10 +250,25 @@ const fontFamilyLabels = [
   'Roboto',
 ];
 
-const isTextAlignJustified = ref(true);
-const isTextWordsBreak= ref(true);
-const isTextPagePadding = ref(true);
-const isTextBold = ref(false);
+const isTextAlignJustified = computed({
+  get: () => settingsStore.isTextAlignJustified,
+  set: (value: boolean) => settingsStore.setIsTextAlignJustified(value)
+});
+
+const isTextWordsBreak = computed({
+  get: () => settingsStore.isTextWordsBreak,
+  set: (value: boolean) => settingsStore.setIsTextWordsBreak(value)
+});
+
+const isTextPagePadding = computed({
+  get: () => settingsStore.isTextPagePadding,
+  set: (value: boolean) => settingsStore.setIsTextPagePadding(value)
+});
+
+const isTextBold = computed({
+  get: () => settingsStore.isTextBold,
+  set: (value: boolean) => settingsStore.setIsTextBold(value)
+});
 
 const iconColor = computed(() => isDarkMode.value ? 'baige-60' : 'black-40');
 

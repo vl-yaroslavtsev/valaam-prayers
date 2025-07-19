@@ -73,6 +73,7 @@ import viewsManager from "../js/viewsManager";
 import { initStorageError } from "@/services/storage";
 import { device } from "@/js/device";
 import { useTheme } from "@/composables/useTheme";
+import { useTextSettings } from "@/composables/useTextSettings";
 import SharePopover from "./SharePopover.vue";
 import BottomTabBar from "./layout/BottomTabBar.vue";
 import LeftPanel from "./layout/LeftPanel.vue";
@@ -108,7 +109,6 @@ const f7params = {
 } as const;
 
 const { initTheme } = useTheme();
-
 
 const activeView = ref<string>("home");
 const onTabShow = (view: HTMLElement & { f7View: View.View }) => {

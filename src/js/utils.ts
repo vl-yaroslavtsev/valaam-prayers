@@ -6,7 +6,7 @@ import { ru } from "date-fns/locale";
  */
 export function formatDate(date: Date, formatStr = "P") {
   return format(date, formatStr, {
-    locale: ru, 
+    locale: ru,
   });
 }
 
@@ -18,23 +18,31 @@ export async function waitForFontsLoaded(): Promise<void> {
     await document.fonts.ready;
   } else {
     // Fallback для старых браузеров
-    await new Promise(resolve => setTimeout(resolve, 100));
+    await new Promise((resolve) => setTimeout(resolve, 100));
   }
-};
+}
 
 /**
  * Получаем значение CSS переменной
  */
-export function getCSSVariable(variableName: string, element: HTMLElement = document.documentElement): string {
+export function getCSSVariable(
+  variableName: string,
+  element: HTMLElement = document.documentElement
+): string {
   const targetElement = element;
-  return getComputedStyle(targetElement)
-    .getPropertyValue(variableName)
-    .trim();
-};
+  return getComputedStyle(targetElement).getPropertyValue(variableName).trim();
+}
 
 /**
  * Устанавливаем значение CSS переменной
  */
-export function setCSSVariable(variableName: string, value: string, element: HTMLElement = document.documentElement): void {
+export function setCSSVariable(
+  variableName: string,
+  value: string,
+  element: HTMLElement | null = document.documentElement
+): void {
+  if (!element) {
+    element = document.documentElement;
+  }
   element.style.setProperty(variableName, value);
-};
+}

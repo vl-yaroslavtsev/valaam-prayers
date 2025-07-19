@@ -41,6 +41,7 @@
 import { useTemplateRef, watchEffect, ref, watch, computed, nextTick } from "vue";
 import { useTextSelection } from "@/composables/useTextSelection";
 import { useSettingsStore } from "@/stores/settings";
+import { useTextSettings } from "@/composables/useTextSettings";
 import type { SwiperContainer } from "swiper/element";
 import type { Swiper } from "swiper";
 import type { TextTheme, Language } from "@/types/common";
@@ -60,7 +61,10 @@ const {
   isLoading?: boolean;
 }>();
 
+const swiperRef = useTemplateRef<SwiperContainer>("swiper");
+
 const settingsStore = useSettingsStore();
+const { } = useTextSettings(); // Инициализируем синхронизацию настроек текста глобально
 
 const mode = computed(() => settingsStore.pageMode);
 
@@ -73,7 +77,6 @@ const emit = defineEmits<{
   progress: [payload: { progress: number, pages: number }];
 }>();
 
-const swiperRef = useTemplateRef<SwiperContainer>("swiper");
 let swiperRect = {
   top: 0,
   bottom: 0,
@@ -240,17 +243,27 @@ const handleProgress = (e: CustomEvent<[swiper: Swiper, progress: number]>) => {
 
 let pages: string[] = [];
 
-watch(() => text,async (newText) => {
+watch([
+  () => text, 
+  () => settingsStore.fontFamily, 
+  () => settingsStore.fontSize, 
+  () => settingsStore.lineHeight,
+  () => settingsStore.isTextAlignJustified,
+  () => settingsStore.isTextWordsBreak,
+  () => settingsStore.isTextPagePadding,
+  () => settingsStore.isTextBold,
+], 
+async () => {
   const container = swiperRef.value;
 
-  if (newText && container) {
-    
-    isCalculating.value = true;
+  console.log("TextPaginator watch", settingsStore.fontFamily, settingsStore.fontSize, settingsStore.lineHeight);
 
+  if (text && container) {
     
+    isCalculating.value = true;    
     const cssClasses = `text-page reading-text prayer-text theme-${theme.value} lang-${lang}`;
     
-    pages = await paginateText(newText, container, cssClasses);
+    pages = await paginateText(text, container, cssClasses);
     updateSlides(pages);
 
     restoreProgress();

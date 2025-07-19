@@ -6,18 +6,26 @@
   --reading-text-subtitle-color: rgba(51, 51, 51, 0.6);
 
 
-  --reading-text-font-family: var(--font-family);
-  --reading-text-font-size: var(--mobile-main-text-regular-b2);
-  --reading-text-line-height: var(--mobile-main-text-regular-b2-line-height);
+  --text-font-family: var(--reading-text-font-family, var(--font-family));
+  --text-font-size: var(--reading-text-font-size, var(--mobile-main-text-regular-b2));
+  --text-line-height: var(--reading-text-line-height, var(--mobile-main-text-regular-b2-line-height));
+  --text-align: var(--reading-text-align, justify)  ;
+  --text-hyphens: var(--reading-text-hyphens, manual);
+  --text-font-weight: var(--reading-text-font-weight, 400);
+  --text-page-padding: var(--reading-text-page-padding, 16px 24px calc(16px + var(--f7-safe-area-bottom)) 24px);
 
-  --font-family-cs: 'Triodion Unicode';
+  --text-font-family-cs: var(--reading-text-font-family-cs, 'Triodion Unicode');
+  --text-font-size-cs: var(--reading-text-font-size-cs, '22px');
+  --text-line-height-cs: var(--reading-text-line-height-cs, '120%');
 
-  font-size: var(--reading-text-font-size);
-  line-height: var(--reading-text-line-height);
+  font-family: var(--text-font-family);
+  font-size: var(--text-font-size);
+  font-weight: var(--text-font-weight);
+  line-height: var(--text-line-height);
   background-color: var(--reading-text-background-color);
   color: var(--reading-text-text-color);
-  text-align: justify;
-  hyphens: manual;
+  text-align: var(--text-align);
+  hyphens: var(--text-hyphens);
 
   h1,
   h2,
@@ -45,8 +53,8 @@
 
   h3 {
     font-weight: 700;
-    font-size: var(--reading-text-font-size);
-    line-height: var(--reading-text-line-height);
+    font-size: var(--text-font-size);
+    line-height: var(--text-line-height);
     margin: 15px 0;
   }
 
@@ -57,7 +65,9 @@
   &.prayer-text {
 
     &.lang-cs {
-      font-family: var(--font-family-cs);
+      font-family: var(--text-font-family-cs);
+      font-size: var(--text-font-size-cs);
+      line-height: var(--text-line-height-cs);
     }
 
     .subtitle {
@@ -87,8 +97,8 @@
 
     h4,
     h5 {
-      font-size: var(--reading-text-font-size);
-      line-height: var(--reading-text-line-height);
+      font-size: var(--text-font-size);
+      line-height: var(--text-line-height);
     }
 
     h6 {
@@ -176,7 +186,7 @@
 
   background-color: var(--reading-text-background-color);
 
-  padding: 16px 24px calc(16px + var(--f7-safe-area-bottom)) 24px;
+  padding: var(--text-page-padding);
   height: 100%;
   box-sizing: border-box;
   border-bottom: 1px solid var(--page-border-color);
