@@ -1,5 +1,5 @@
 import { watch, onMounted, onUnmounted, Ref, toValue } from 'vue';
-import { useSettingsStore } from '@/stores/settings';
+import { AppSettings, useSettingsStore } from '@/stores/settings';
 import { setCSSVariable } from '@/js/utils';
 
 /**
@@ -10,7 +10,7 @@ export function useTextSettings() {
   const settingsStore = useSettingsStore();
 
   // Мапинг семейств шрифтов на CSS значения
-  const fontFamilyMap: Record<string, string> = {
+  const fontFamilyMap: Record<AppSettings['fontFamily'], string> = {
     'PT Sans': '"PT Sans", sans-serif',
     'PT Serif': '"PT Serif", serif', 
     'Circe': '"Circe", sans-serif',
@@ -18,8 +18,19 @@ export function useTextSettings() {
     'Noto Sans': '"Noto Sans", sans-serif',
     'Noto Serif': '"Noto Serif", serif',
     'Roboto': '"Roboto", sans-serif',
-    'system': 'system-ui, -apple-system, sans-serif'
+    'Системный': 'system-ui, -apple-system, sans-serif'
   };
+
+    // Мапинг семейств шрифтов на CSS значения
+    const fontFamilyCsMap: Record<AppSettings['fontFamilyCs'], string> = {
+      'Triodion': '"Triodion Unicode"',
+      'Ponomar': '"Ponomar Unicode"', 
+      'Acathist': '"Acathist"',
+      'Fedorovsk': '"Fedorovsk Unicode"',
+      'Monomakh': '"Monomakh Unicode"',
+      'Pochaevsk': '"Pochaevsk Unicode"',
+      'Vilnius': '"Vilnius"'
+    };
 
   /**
    * Обновляет CSS переменные для настроек текста
@@ -35,6 +46,17 @@ export function useTextSettings() {
 
     // Обновляем высоту строки
     setCSSVariable('--reading-text-line-height', settingsStore.lineHeight.toString());
+
+    // Обновляем семейство шрифта
+    const fontFamilyCs = fontFamilyCsMap[settingsStore.fontFamilyCs] || fontFamilyCsMap['Triodion'];
+    setCSSVariable('--reading-text-font-family-cs', fontFamilyCs  );
+
+    // Обновляем размер шрифта
+    setCSSVariable('--reading-text-font-size-cs', `${settingsStore.fontSizeCs}px`);
+
+    // Обновляем высоту строки
+    setCSSVariable('--reading-text-line-height-cs', settingsStore.lineHeightCs.toString());
+
 
     // Обновляем выравнивание текста
     setCSSVariable('--reading-text-align', settingsStore.isTextAlignJustified ? 'justify' : 'left');
@@ -54,6 +76,9 @@ export function useTextSettings() {
   let unwatchFontFamily: (() => void) | undefined;
   let unwatchFontSize: (() => void) | undefined; 
   let unwatchLineHeight: (() => void) | undefined;
+  let unwatchFontFamilyCs: (() => void) | undefined;
+  let unwatchFontSizeCs: (() => void) | undefined; 
+  let unwatchLineHeightCs: (() => void) | undefined;
   let unwatchTextAlign: (() => void) | undefined;
   let unwatchWordsBreak: (() => void) | undefined;
   let unwatchPagePadding: (() => void) | undefined;
@@ -88,6 +113,32 @@ export function useTextSettings() {
       () => settingsStore.lineHeight,
       (newLineHeight) => {
         setCSSVariable('--reading-text-line-height', newLineHeight.toString());
+      }
+    );
+
+
+    // Отслеживаем изменения семейства шрифта
+    unwatchFontFamilyCs = watch(
+      () => settingsStore.fontFamilyCs,
+      (newFontFamily) => {
+        const fontFamily = fontFamilyCsMap[newFontFamily] || fontFamilyCsMap['Triodion'];
+        setCSSVariable('--reading-text-font-family-cs', fontFamily);
+      }
+    );
+
+    // Отслеживаем изменения размера шрифта  
+    unwatchFontSizeCs = watch(
+      () => settingsStore.fontSizeCs,
+      (newFontSize) => {
+        setCSSVariable('--reading-text-font-size-cs', `${newFontSize}px`);
+      }
+    );
+
+    // Отслеживаем изменения высоты строки
+    unwatchLineHeightCs = watch(
+      () => settingsStore.lineHeightCs,
+      (newLineHeight) => {
+        setCSSVariable('--reading-text-line-height-cs', newLineHeight.toString());
       }
     );
 
@@ -165,6 +216,9 @@ export function useTextSettings() {
     unwatchFontFamily?.();
     unwatchFontSize?.();
     unwatchLineHeight?.();
+    unwatchFontFamilyCs?.();
+    unwatchFontSizeCs?.();
+    unwatchLineHeightCs?.();
     unwatchTextAlign?.();
     unwatchWordsBreak?.();
     unwatchPagePadding?.();

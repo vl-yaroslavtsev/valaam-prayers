@@ -47,6 +47,7 @@
     <TextSettingsSelector 
       v-model:isOpened="isTextSettingsSheetOpened"
       :disabled="isTextCalculating"
+      :language="currentLanguage"
     />
   </f7-page>
 </template>

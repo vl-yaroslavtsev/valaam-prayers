@@ -14,6 +14,9 @@ const SETTINGS_KEYS = {
   FONT_FAMILY: `${SETTINGS_PREFIX}font-family`,
   FONT_SIZE: `${SETTINGS_PREFIX}font-size`,
   LINE_HEIGHT: `${SETTINGS_PREFIX}line-height`,
+  FONT_FAMILY_CS: `${SETTINGS_PREFIX}font-family-cs`,
+  FONT_SIZE_CS: `${SETTINGS_PREFIX}font-size-cs`,
+  LINE_HEIGHT_CS: `${SETTINGS_PREFIX}line-height-cs`,
   TEXT_ALIGN_JUSTIFIED: `${SETTINGS_PREFIX}text-align-justified`,
   TEXT_WORDS_BREAK: `${SETTINGS_PREFIX}text-words-break`,
   TEXT_PAGE_PADDING: `${SETTINGS_PREFIX}text-page-padding`,
@@ -50,10 +53,23 @@ interface AppSettings {
     | "Noto Sans"
     | "Noto Serif"
     | "Roboto"
-    | "system";
+    | "Системный";
+
+   // Шрифты ЦС
+   fontFamilyCs:
+   | "Triodion"
+   | "Ponomar"
+   | "Acathist"
+   | "Fedorovsk"
+   | "Monomakh"
+   | "Pochaevsk"
+   | "Vilnius";
 
   fontSize: number;
   lineHeight: number;
+
+  fontSizeCs: number;
+  lineHeightCs: number;
 
   // Настройки отображения текста
   isTextAlignJustified: boolean;
@@ -79,8 +95,11 @@ const DEFAULT_SETTINGS: AppSettings = {
   appTheme: "auto",
   textTheme: "grey",
   fontFamily: "PT Sans",
-  fontSize: 16,
+  fontSize: 20,
   lineHeight: 1.3,
+  fontFamilyCs: "Triodion",
+  fontSizeCs: 22,
+  lineHeightCs: 1.25,
   isTextAlignJustified: true,
   isTextWordsBreak: true,
   isTextPagePadding: true,
@@ -123,6 +142,9 @@ export const useSettingsStore = defineStore("settings", () => {
       fontFamily: SETTINGS_KEYS.FONT_FAMILY,
       fontSize: SETTINGS_KEYS.FONT_SIZE,
       lineHeight: SETTINGS_KEYS.LINE_HEIGHT,
+      fontFamilyCs: SETTINGS_KEYS.FONT_FAMILY_CS,
+      fontSizeCs: SETTINGS_KEYS.FONT_SIZE_CS,
+      lineHeightCs: SETTINGS_KEYS.LINE_HEIGHT_CS,
       isTextAlignJustified: SETTINGS_KEYS.TEXT_ALIGN_JUSTIFIED,
       isTextWordsBreak: SETTINGS_KEYS.TEXT_WORDS_BREAK,
       isTextPagePadding: SETTINGS_KEYS.TEXT_PAGE_PADDING,
@@ -153,6 +175,9 @@ export const useSettingsStore = defineStore("settings", () => {
   const fontFamily = computed(() => settings.value.fontFamily);
   const fontSize = computed(() => settings.value.fontSize);
   const lineHeight = computed(() => settings.value.lineHeight);
+  const fontFamilyCs = computed(() => settings.value.fontFamilyCs);
+  const fontSizeCs = computed(() => settings.value.fontSizeCs);
+  const lineHeightCs = computed(() => settings.value.lineHeightCs);
   const isTextAlignJustified = computed(() => settings.value.isTextAlignJustified);
   const isTextWordsBreak = computed(() => settings.value.isTextWordsBreak);
   const isTextPagePadding = computed(() => settings.value.isTextPagePadding);
@@ -204,6 +229,9 @@ export const useSettingsStore = defineStore("settings", () => {
     fontFamily,
     fontSize,
     lineHeight,
+    fontFamilyCs,
+    fontSizeCs,
+    lineHeightCs,
     isTextAlignJustified,
     isTextWordsBreak,
     isTextPagePadding,
@@ -226,6 +254,10 @@ export const useSettingsStore = defineStore("settings", () => {
       setSetting("fontFamily", family),
     setFontSize: (size: number) => setSetting("fontSize", size),
     setLineHeight: (height: number) => setSetting("lineHeight", height),
+    setFontFamilyCs: (family: AppSettings["fontFamilyCs"]) =>
+      setSetting("fontFamilyCs", family),
+    setFontSizeCs: (size: number) => setSetting("fontSizeCs", size),
+    setLineHeightCs: (height: number) => setSetting("lineHeightCs", height),
     setIsTextAlignJustified: (justified: boolean) => setSetting("isTextAlignJustified", justified),
     setIsTextWordsBreak: (wordsBreak: boolean) => setSetting("isTextWordsBreak", wordsBreak),
     setIsTextPagePadding: (pagePadding: boolean) => setSetting("isTextPagePadding", pagePadding),

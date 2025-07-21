@@ -248,6 +248,9 @@ watch([
   () => settingsStore.fontFamily, 
   () => settingsStore.fontSize, 
   () => settingsStore.lineHeight,
+  () => settingsStore.fontFamilyCs, 
+  () => settingsStore.fontSizeCs, 
+  () => settingsStore.lineHeightCs,
   () => settingsStore.isTextAlignJustified,
   () => settingsStore.isTextWordsBreak,
   () => settingsStore.isTextPagePadding,
@@ -261,6 +264,7 @@ async () => {
   const container = swiperRef.value;
 
   console.log("TextPaginator watch", settingsStore.fontFamily, settingsStore.fontSize, settingsStore.lineHeight);
+  console.log("TextPaginator watch", settingsStore.fontFamilyCs, settingsStore.fontSizeCs, settingsStore.lineHeightCs);
 
 
   if (text && container) {

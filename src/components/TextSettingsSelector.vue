@@ -78,6 +78,7 @@
           </template>
         </f7-list-item>
         <f7-list-item 
+          v-if="language == 'cs'"
           title="Шрифт"
           class="font-family-select"
           :disabled="disabled"
@@ -89,8 +90,31 @@
           }">
           <template #default>
             <select name="fontFamily" 
-                    v-model="currentFontFamily"
-                    :disabled="disabled">
+                    v-model="currentFontFamilyCs">
+              <option 
+                v-for="label in fontFamilyCsLabels" 
+                :value="label"
+                :key="label">{{ label }}</option>
+            </select>
+          </template>
+          <template #media>
+            <SvgIcon icon="letter-a" :color="iconColor" :size="24" />
+          </template>
+        </f7-list-item>
+        <f7-list-item 
+          v-else
+          title="Шрифт"
+          class="font-family-select"
+          :disabled="disabled"
+          smart-select
+          :smart-select-params="{
+            openIn: 'popover',
+            closeOnSelect: true,
+            cssClass: 'simple-select',        
+          }">
+          <template #default>
+            <select name="fontFamily" 
+                    v-model="currentFontFamily">
               <option 
                 v-for="label in fontFamilyLabels" 
                 :value="label"
@@ -163,6 +187,7 @@
           </template>
         </f7-list-item>
         <f7-list-item 
+          v-if="language != 'cs'"
           title="Жирный"
           :disabled="disabled"
         >
@@ -198,14 +223,16 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from 'vue';
+import { computed, ref, watch } from 'vue';
 import { useSettingsStore, type AppSettings } from '@/stores/settings';
 import SvgIcon from '@/components/SvgIcon.vue';
 import { useTheme } from '@/composables/useTheme';
+import { Language } from '@/types/common';
 
 const isOpened = defineModel<boolean>('isOpened');
 
-const { disabled = false } = defineProps<{
+const { disabled = false, language } = defineProps<{
+  language: Language;
   disabled?: boolean;
 }>();
 
@@ -238,15 +265,21 @@ const currentTextTheme = computed({
 });
 
 const fontSize = computed({
-  get: () => settingsStore.fontSize,
-  set: (value: number) => settingsStore.setFontSize(value)
+  get: () => language == 'cs' ? settingsStore.fontSizeCs : settingsStore.fontSize,
+  set: (value: number) => language == 'cs' ? settingsStore.setFontSizeCs(value) : settingsStore.setFontSize(value)
 });
 
-const lineHeight = ref(settingsStore.lineHeight);
+const lineHeight = ref(language == 'cs' ? settingsStore.lineHeightCs : settingsStore.lineHeight);
+
+watch(() => language, () => {
+  lineHeight.value = language == 'cs' ? settingsStore.lineHeightCs : settingsStore.lineHeight;
+});
 
 const onLineHeightChange = (value: number) => {
   console.log(value);
-  settingsStore.setLineHeight(Number(value.toFixed(2)));
+  language == 'cs' ? 
+    settingsStore.setLineHeightCs(Number(value.toFixed(2))) :
+    settingsStore.setLineHeight(Number(value.toFixed(2)));
 };
 
 const showStatusBar = computed({
@@ -259,7 +292,7 @@ const currentFontFamily = computed({
   set: (value: AppSettings['fontFamily']) => settingsStore.setFontFamily(value)
 });
 
-const fontFamilyLabels = [
+const fontFamilyLabels: AppSettings['fontFamily'][] = [
   'PT Sans',
   'PT Serif',
   'Circe',
@@ -267,6 +300,23 @@ const fontFamilyLabels = [
   'Noto Sans',
   'Noto Serif',
   'Roboto',
+  'Системный'
+];
+
+
+const currentFontFamilyCs = computed({
+  get: () => settingsStore.fontFamilyCs,
+  set: (value: AppSettings['fontFamilyCs']) => settingsStore.setFontFamilyCs(value)
+});
+
+const fontFamilyCsLabels: AppSettings['fontFamilyCs'][] = [
+  "Triodion",
+  "Ponomar",
+  "Acathist",
+  "Fedorovsk",
+  "Monomakh",
+  "Pochaevsk",
+  "Vilnius"
 ];
 
 const isTextAlignJustified = computed({
