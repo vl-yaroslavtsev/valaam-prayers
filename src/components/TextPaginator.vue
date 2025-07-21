@@ -38,7 +38,7 @@
   </div>
 </template>
 <script setup lang="ts">
-import { useTemplateRef, watchEffect, ref, watch, computed, nextTick } from "vue";
+import { useTemplateRef, watchEffect, ref, watch, computed, nextTick, readonly } from "vue";
 import { useTextSelection } from "@/composables/useTextSelection";
 import { useSettingsStore } from "@/stores/settings";
 import { useTextSettings } from "@/composables/useTextSettings";
@@ -254,9 +254,14 @@ watch([
   () => settingsStore.isTextBold,
 ], 
 async () => {
+  if (isCalculating.value) {
+    return;
+  }
+
   const container = swiperRef.value;
 
   console.log("TextPaginator watch", settingsStore.fontFamily, settingsStore.fontSize, settingsStore.lineHeight);
+
 
   if (text && container) {
     
@@ -303,6 +308,7 @@ watchEffect(() => {
 // Expose swiper instance for parent component
 defineExpose({
   swiper: swiperRef,
+  isCalculating: readonly(isCalculating),
   goToPage: (page: number) => {
     if (swiperRef.value?.swiper) {
       swiperRef.value.swiper.slideTo(page - 1);

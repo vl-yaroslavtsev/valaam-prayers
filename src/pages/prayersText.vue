@@ -44,7 +44,10 @@
         @progress="onTextPaginatorProgress" />
        
     </f7-page-content>
-    <TextSettingsSelector v-model:isOpened="isTextSettingsSheetOpened" />
+    <TextSettingsSelector 
+      v-model:isOpened="isTextSettingsSheetOpened"
+      :disabled="isTextCalculating"
+    />
   </f7-page>
 </template>
 
@@ -203,7 +206,11 @@ const toggleNavbar = () => {
   isNavbarHidden = !isNavbarHidden;
 };
 
-const textPaginator = useTemplateRef("textPaginator");
+const textPaginator = useTemplateRef<InstanceType<typeof TextPaginator>>("textPaginator");
+
+const isTextCalculating = computed(() => {
+  return textPaginator.value?.isCalculating || false;
+});
 
 const onTextPaginatorTap = (payload: { type: "center" | "left" | "right" | "top" | "bottom"; x: number; y: number }) => {
   const { type, x, y } = payload;

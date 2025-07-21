@@ -13,16 +13,18 @@
       <f7-list dividers>
         <f7-list-item 
           title="Листать стр."
-          smart-select
           class="text-theme-select"
+          :disabled="disabled"
+          smart-select
           :smart-select-params="{
             openIn: 'popover',
             closeOnSelect: true,
-            cssClass: 'simple-select', 
-                     
+            cssClass: 'simple-select',
           }">
           <template #default>
-            <select name="textPageMode" v-model="currentTextPageMode">
+            <select name="textPageMode" 
+                    v-model="currentTextPageMode"
+                    :disabled="disabled">
               <option 
                 v-for="(label, mode) in textPageModeLabels" 
                 :value="mode"
@@ -35,16 +37,18 @@
         </f7-list-item>
         <f7-list-item 
           title="Тема"
-          smart-select
           class="text-theme-select"
+          :disabled="disabled"
+          smart-select          
           :smart-select-params="{
             openIn: 'popover',
             closeOnSelect: true,
             cssClass: 'simple-select', 
-                     
           }">
           <template #default>
-            <select name="textTheme" v-model="currentTextTheme">
+            <select name="textTheme" 
+                    v-model="currentTextTheme"
+            >
               <option 
                 v-for="(label, theme) in textThemeLabels" 
                 :value="theme"
@@ -57,6 +61,7 @@
         </f7-list-item>
         <f7-list-item 
           title="Размер шрифта"
+          :disabled="disabled"
         >
           <template #after>
             <f7-stepper 
@@ -65,7 +70,8 @@
               :min="10"
               :max="35"
               :step="1"
-              v-model:value="fontSize" />
+              v-model:value="fontSize"
+            />
           </template>
           <template #media>
             <SvgIcon icon="letter-tt" :color="iconColor" :size="24" />
@@ -73,15 +79,18 @@
         </f7-list-item>
         <f7-list-item 
           title="Шрифт"
-          smart-select
           class="font-family-select"
+          :disabled="disabled"
+          smart-select
           :smart-select-params="{
             openIn: 'popover',
             closeOnSelect: true,
             cssClass: 'simple-select',        
           }">
           <template #default>
-            <select name="fontFamily" v-model="currentFontFamily">
+            <select name="fontFamily" 
+                    v-model="currentFontFamily"
+                    :disabled="disabled">
               <option 
                 v-for="label in fontFamilyLabels" 
                 :value="label"
@@ -94,6 +103,7 @@
         </f7-list-item>
         <f7-list-item 
           title="Высота строки"
+          :disabled="disabled"
         >
           <template #after>
             <f7-stepper 
@@ -112,6 +122,7 @@
         </f7-list-item>
         <f7-list-item 
           title="Выравнивание по ширине"
+          :disabled="disabled"
         >
           <template #after>
             <f7-toggle 
@@ -125,6 +136,7 @@
         </f7-list-item>
         <f7-list-item 
           title="Переносы слов"
+          :disabled="disabled"
         >
           <template #after>
             <f7-toggle 
@@ -138,6 +150,7 @@
         </f7-list-item>
         <f7-list-item 
           title="Поля страницы"
+          :disabled="disabled"
         >
           <template #after>
             <f7-toggle 
@@ -151,6 +164,7 @@
         </f7-list-item>
         <f7-list-item 
           title="Жирный"
+          :disabled="disabled"
         >
           <template #after>
             <f7-toggle 
@@ -164,6 +178,7 @@
         </f7-list-item>
         <f7-list-item 
           title="Верхнее меню"
+          :disabled="disabled"
         >
           <template #after>
             <f7-toggle 
@@ -189,6 +204,10 @@ import SvgIcon from '@/components/SvgIcon.vue';
 import { useTheme } from '@/composables/useTheme';
 
 const isOpened = defineModel<boolean>('isOpened');
+
+const { disabled = false } = defineProps<{
+  disabled?: boolean;
+}>();
 
 const settingsStore = useSettingsStore();
 const { isDarkMode } = useTheme();
@@ -280,5 +299,9 @@ const iconColor = computed(() => isDarkMode.value ? 'baige-60' : 'black-40');
   --f7-block-title-margin-bottom: 5px;
   --f7-list-item-padding-vertical: 12px;
   --f7-list-item-min-height: 64px;
+
+  .disabled {
+    opacity: 1 !important;
+  }
 }
 </style> 
