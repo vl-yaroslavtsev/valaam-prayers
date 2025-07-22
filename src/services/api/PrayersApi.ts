@@ -21,8 +21,10 @@ export interface PrayerApiSection {
 }
 
 export interface PrayersApiResponse {
-  e: PrayerApiElement[];
-  s: PrayerApiSection[];
+  elements: PrayerApiElement[];
+  sections: PrayerApiSection[];
+  all_element_ids: string[];
+  all_section_ids: string[];
 }
 
 export interface PrayerTextApiResponse {
@@ -42,8 +44,12 @@ class PrayersApi extends ApiClient {
   /**
    * Получает список всех молитв и секций
    */
-  async getPrayers(): Promise<PrayersApiResponse> {
-    return this.get<PrayersApiResponse>('/prayers/');
+  async getPrayers(since?: Date): Promise<PrayersApiResponse> {
+    let url = '/prayers/';
+    if (since) {
+      url += `?since=${since.toISOString()}`;
+    }
+    return this.get<PrayersApiResponse>(url);
   }
 
   /**

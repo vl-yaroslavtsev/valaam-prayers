@@ -11,6 +11,7 @@ import {
   prayersIndexStorage,
   prayerDetailsStorage,
   sectionsStorage,
+  metadataStorage,
 } from "@/services/storage";
 import { PrayersApiResponse } from "@/services/api/PrayersApi";
 
@@ -133,11 +134,16 @@ export const usePrayersStore = defineStore("prayers", () => {
     try {
       error.value = null;
       console.time("Prayers fetchPrayers");
-      const response = await prayersApi.getPrayers();
+      
+      // Получаем время последней синхронизации
+      const lastSyncTime = await metadataStorage?.getLastSyncTime('prayers');
+      console.log('Last prayers sync time:', lastSyncTime);
+      
+      const response = await prayersApi.getPrayers(lastSyncTime || undefined);
 
       if (elements.value.length === 0) {
-        elements.value = response.e.map(transformApiElement);
-        sections.value = response.s.map(transformApiSection);
+        elements.value = response.elements.map(transformApiElement);
+        sections.value = response.sections.map(transformApiSection);
       }
 
       console.timeEnd("Prayers fetchPrayers");
@@ -151,25 +157,68 @@ export const usePrayersStore = defineStore("prayers", () => {
       isLoading.value = false;
     }
 
-    return {e: [], s: []};
+    return {elements: [], sections: [], all_element_ids: [], all_section_ids: []};
   };
 
   const savePrayersToCache = async (response: PrayersApiResponse) => {
     try {
       console.time("Prayers cache elements and sections");
-      const {e, s} = response;
+      const lastSyncTime = await metadataStorage?.getLastSyncTime('prayers');
+      const isFullSync = lastSyncTime === null;
       // Сохраняем в кэш
-      if (e.length > 0) {
-        await prayersIndexStorage?.putAll(e.map(transformApiElement));
+      if (isFullSync) {
+        await Promise.all([
+          prayersIndexStorage?.clear(),
+          sectionsStorage?.clear(),
+        ]);
+        await Promise.all([
+          prayersIndexStorage?.putAll(response.elements),
+          sectionsStorage?.putAll(response.sections),
+        ]);
+      } else {
+        await performIncrementalSync(response);
       }
-      if (s.length > 0) {
-        await sectionsStorage?.putAll(s.map(transformApiSection));
-      }
-            
+      
+      // Сохраняем время последней синхронизации
+      await metadataStorage?.setLastSyncTime('prayers');
+      console.log("Prayers sync time saved");
+      
       console.log("Prayers data cached successfully");
       console.timeEnd("Prayers cache elements and sections");
     } catch (err) {
       console.error("Failed to save prayers to cache:", err);
+    }
+  };
+
+   /**
+   * Выполняет инкрементальную синхронизацию
+   */
+   const performIncrementalSync = async (response: PrayersApiResponse): Promise<void> => {
+    // Обновляем измененные элементы и секции
+    for (const element of response.elements) {
+      // Обновляем в кэше
+      await prayersIndexStorage?.put(element);
+    }
+
+    for (const section of response.sections) {
+      // Обновляем в кэше
+      await sectionsStorage?.put(section);
+    }
+
+    // Удаляем элементы, которых больше нет на сервере
+    const elementsToDelete = elements.value.filter(e => !response.all_element_ids.includes(e.id));
+    const sectionsToDelete = sections.value.filter(s => !response.all_section_ids.includes(s.id));
+
+    // Удаляем из кэша
+    for (const element of elementsToDelete) {
+      await prayersIndexStorage?.delete(element.id);
+    }
+    for (const section of sectionsToDelete) {
+      await sectionsStorage?.delete(section.id);
+    }
+
+    if (elementsToDelete.length > 0 || sectionsToDelete.length > 0) {
+      console.log(`Deleted ${elementsToDelete.length} elements and ${sectionsToDelete.length} sections`);
     }
   };
 
@@ -267,6 +316,35 @@ export const usePrayersStore = defineStore("prayers", () => {
   };
 
 
+  /**
+   * Принудительно обновляет данные с сервера (игнорирует время последней синхронизации)
+   */
+  const forceRefresh = async () => {
+    try {
+      console.log("Force refreshing prayers data...");
+      const response = await prayersApi.getPrayers(); // Без параметра since
+      
+      // Полная замена данных
+      elements.value = response.elements.map(transformApiElement);
+      sections.value = response.sections.map(transformApiSection);
+      
+      await savePrayersToCache(response);
+      console.log("Force refresh completed successfully");
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : "Unknown error";
+      error.value = errorMessage;
+      console.error("Failed to force refresh prayers data:", errorMessage);
+      throw err;
+    }
+  };
+
+  /**
+   * Получает время последней синхронизации
+   */
+  const getLastSyncTime = async (): Promise<Date | null> => {
+    return await metadataStorage?.getLastSyncTime('prayers') || null;
+  };
+
   return {
     // State
     elements,
@@ -282,5 +360,7 @@ export const usePrayersStore = defineStore("prayers", () => {
     initStore,
     fetchPrayers,
     getPrayerText,
+    forceRefresh,
+    getLastSyncTime,
   };
 });
