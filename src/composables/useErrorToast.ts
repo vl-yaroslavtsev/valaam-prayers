@@ -26,6 +26,7 @@ export function useErrorToast({
 
   onUnmounted(() => {
     if (errorToast) {
+      errorToast.close();
       errorToast.destroy();
     }
   });

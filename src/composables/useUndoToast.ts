@@ -1,4 +1,4 @@
-import { onUnmounted } from "vue";
+import { onUnmounted, watch } from "vue";
 import { f7 } from "framework7-vue";
 import type { Toast } from "framework7/types";
 
@@ -27,12 +27,17 @@ export function useUndoToast({
           },
         },
       });
+
+      f7.once('pageBeforeOut', () => {
+        undoToast.close();
+      })
     }
     undoToast.open();
   };
 
   onUnmounted(() => {
     if (undoToast) {
+      undoToast.close();
       undoToast.destroy();
     }
   });
