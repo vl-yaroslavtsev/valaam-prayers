@@ -8,6 +8,7 @@
           <SvgIcon icon="menu" color="baige-90" :size="24" />
         </f7-link>
         <LanguageSelector 
+          v-if="currentLanguage && availableLanguages.length > 1"
           v-model="currentLanguage" 
           :available-languages="availableLanguages" />
         <f7-link icon-only>
@@ -71,7 +72,11 @@ import type { Swiper } from "swiper";
 import type { Language } from "@/types/common";
 
 import { useTheme } from "@/composables/useTheme";
-import { usePrayersStore, BOOKS_SECTION_ID, type PrayerElement } from "@/stores/prayers";
+import { 
+  usePrayersStore, 
+  BOOKS_SECTION_ID,
+  type PrayerElement 
+} from "@/stores/prayers";
 import { useReadingHistoryStore } from "@/stores/readingHistory";
 import { useComponentsStore } from "@/stores/components";
 import { useSettingsStore } from "@/stores/settings";
@@ -83,8 +88,9 @@ import { useFavoritesStore } from "@/stores/favorites";
 import { useInfoToast } from "@/composables/useInfoToast";
 import { useApiState } from "@/composables/useApiState";
 
-const { elementId, f7router } = defineProps<{
-  elementId: string;
+const { elementId, sectionId, f7router } = defineProps<{
+  elementId?: string;
+  sectionId?: string;
   f7router: Router.Router;
 }>();
 
@@ -96,11 +102,20 @@ const historyStore = useReadingHistoryStore();
 const settingsStore = useSettingsStore();
 const { getComponent } = useComponentsStore();
 
-const prayer = prayersStore.getItemById(elementId) as PrayerElement;
-const subtitle = computed(
-  () => prayer && prayersStore.getItemById(prayer.parent)?.name
-);
-const title = prayer.name;
+// Определяем ID и тип элемента
+const itemId = elementId || sectionId;
+const isSection = !!sectionId;
+
+if (!itemId) {
+  throw new Error("Neither elementId nor sectionId provided");
+}
+
+const item = prayersStore.getItemById(itemId);
+const subtitle = computed(() => {
+  if (!item || isSection) return '';
+  return 'parent' in item ? prayersStore.getItemById(item.parent)?.name : '';
+});
+const title = item?.name || '';
 const text = ref<string>("");
 
 const isTextSettingsSheetOpened = ref(false);
@@ -115,10 +130,15 @@ watch(isTextSettingsSheetOpened, (isOpen) => {
 });
 
 // Языковые настройки из store
-const currentLanguage = ref<Language>(settingsStore.currentLanguage);
+const currentLanguage = ref<Language | null>(settingsStore.currentLanguage);
 const availableLanguages = ref<Language[]>([]);
 
-const { isLoading, isError, error, data } = useApiState(null, prayersStore.getPrayerText(elementId));
+// Выбираем подходящий метод API в зависимости от типа
+const apiCall = isSection 
+  ? prayersStore.getComposedPrayerText(itemId)
+  : prayersStore.getPrayerText(itemId);
+
+const { isLoading, isError, error, data } = useApiState(null, apiCall);
 
 watch(data, async () => {
   if (!data.value) return;
@@ -133,10 +153,14 @@ watch(data, async () => {
 });
 
 // Функция для обновления текста молитвы
-const updatePrayerText = (language: Language) => {
+const updatePrayerText = (language: Language | null) => {
   if (!data.value) return;
 
+  console.log("updatePrayerText", data.value);
+
   let prayerText = '';
+  
+  // Теперь оба типа возвращают одинаковую структуру
   switch (language) {
     case 'cs-cf':
       prayerText = data.value.text_cs_cf || '';
@@ -148,22 +172,32 @@ const updatePrayerText = (language: Language) => {
       prayerText = data.value.text_ru || '';
       break;
     default:
-      prayerText = data.value.text_cs_cf || '';
+      prayerText = data.value.text || '';
   }
 
-  // Проверяем наличие заголовков h1 или h2 в начале текста
-  const hasExistingHeader = /^\s*<h[12]/.test(prayerText);
-  
-  if (hasExistingHeader) {
-    // Заменяем h2 на h1 если есть
-    prayerText = prayerText.replace(/^(\s*)<h2([^>]*)>/i, '$1<h1$2>').replace(/<\/h2>/i, '</h1>');
-    text.value = prayerText;
+  if (isSection) {
+    // Для разделов добавляем главный заголовок h1 если его нет
+    const hasExistingHeader = /^\s*<h1/.test(prayerText);
+    if (!hasExistingHeader) {
+      text.value = `<h1>${title}</h1>\n\n${prayerText}`;
+    } else {
+      text.value = prayerText;
+    }
   } else {
-    text.value = `<h1>${title}</h1>\n\n${prayerText}`;
+    // Для отдельных молитв
+    const hasExistingHeader = /^\s*<h[12]/.test(prayerText);
+    
+    if (hasExistingHeader) {
+      // Заменяем h2 на h1 если есть
+      prayerText = prayerText.replace(/^(\s*)<h2([^>]*)>/i, '$1<h1$2>').replace(/<\/h2>/i, '</h1>');
+      text.value = prayerText;
+    } else {
+      text.value = `<h1>${title}</h1>\n\n${prayerText}`;
+    }
   }
 };
 
-const initialProgress = computed(() => historyStore.getItem(elementId)?.progress || 0);
+const initialProgress = computed(() => historyStore.getItem(itemId)?.progress || 0);
 
 watch(error, async () => {
   if (!error.value) return;
@@ -176,7 +210,9 @@ watch(error, async () => {
 // Отслеживание изменений языка
 watch(currentLanguage, (newLanguage) => {
   updatePrayerText(newLanguage);
-  settingsStore.setLanguage(newLanguage);
+  if (newLanguage) {
+    settingsStore.setLanguage(newLanguage);
+  }
 });
 
 let isNavbarHidden = true;
@@ -223,7 +259,7 @@ const onTextPaginatorTap = (payload: { type: "center" | "left" | "right" | "top"
 const onTextPaginatorProgress = (payload: { progress: number; pages: number }) => {
   const { progress, pages } = payload;
   console.log("onTextPaginatorProgress", progress, pages);
-  historyStore.updateProgress(elementId, progress, pages, "prayers");
+  historyStore.updateProgress(itemId, progress, pages, "prayers");
 };
 
 const shareItem = (e: Event) => {
@@ -234,7 +270,7 @@ const shareItem = (e: Event) => {
 
   sharePopover.open({
     title: title || "",
-    url: prayer.url || "",
+    url: item?.url || "",
   }, target, false);
 };
 
@@ -249,18 +285,22 @@ const { showInfoToast: showRemovedFromFavoritesToast } = useInfoToast({
   text: "Удалено с главного экрана",
 });
 
-const isElementFavorite = computed(() => isFavorite(elementId));
+const isElementFavorite = computed(() => isFavorite(itemId));
 
 watchEffect(() => {
   console.log("isElementFavorite", isElementFavorite.value);
 });
 
 const toggleFavorite = async () => {
-  if (isFavorite(elementId)) {
-    await deleteFavorite(elementId);
+
+  const type = prayersStore.isItemInSection(itemId, BOOKS_SECTION_ID) 
+                            ? "books" : "prayers";
+
+  if (isFavorite(itemId)) {
+    await deleteFavorite(itemId);
     showRemovedFromFavoritesToast();
   } else {
-    await addFavorite(elementId, "prayers");
+    await addFavorite(itemId, type);
     showAddedToFavoritesToast();
   }
 };

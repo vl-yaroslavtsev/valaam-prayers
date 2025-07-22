@@ -1,7 +1,7 @@
 <template>
   <swiper-container 
     :key="`swiper-${mode}`"
-    :class="`text-paginator mode-${mode} reading-text prayer-text lang-${lang} theme-${theme}`" 
+    :class="`text-paginator mode-${mode} reading-text ${lang ? 'prayer-text lang-' + lang : ''} theme-${theme}`" 
     ref="swiper" 
     :touchStartPreventDefault="false"
     :virtual="{
@@ -51,13 +51,13 @@ import {
 
 const { 
   text, 
-  lang = "cs-cf", 
+  lang = null, 
   isLoading = false, 
   initialProgress = 0
 } = defineProps<{
   text: string;
   initialProgress?: number;
-  lang?: Language;
+  lang?: Language | null;
   isLoading?: boolean;
 }>();
 
@@ -270,7 +270,7 @@ async () => {
   if (text && container) {
     
     isCalculating.value = true;    
-    const cssClasses = `text-page reading-text prayer-text theme-${theme.value} lang-${lang}`;
+    const cssClasses = `text-page reading-text ${lang ? 'prayer-text lang-' + lang : ''} theme-${theme.value}`;
     
     pages = await paginateText(text, container, cssClasses);
     updateSlides(pages);

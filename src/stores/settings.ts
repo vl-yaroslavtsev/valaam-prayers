@@ -189,7 +189,7 @@ export const useSettingsStore = defineStore("settings", () => {
   // Получение языка с приоритетом из доступных языков
   const getLanguageFromAvailable = (
     availableLanguages: Language[]
-  ): Language => {
+  ): Language | null => {
     const priority: Language[] = ["cs-cf", "cs", "ru"];
 
     // Проверяем, есть ли текущий язык в доступных
@@ -210,7 +210,7 @@ export const useSettingsStore = defineStore("settings", () => {
     }
 
     // Если доступных языков нет, возвращаем по умолчанию
-    return "cs-cf";
+    return null;
   };
 
   const initStore = async () => {

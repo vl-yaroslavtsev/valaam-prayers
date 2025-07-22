@@ -40,6 +40,13 @@ const routes: Router.RouteParameters[] = [
     },
   },
   {
+    path: "/prayers/composed-text/:sectionId",
+    component: PrayersTextPage,
+    options: {
+      transition: "fade-slide",
+    },
+  },
+  {
     path: "/calendar/",
     component: CalendarPage,
     options: {

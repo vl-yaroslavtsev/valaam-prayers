@@ -18,6 +18,7 @@ export interface PrayerApiSection {
   name: string;
   parent: string;
   sort: number;
+  book_root: boolean;
 }
 
 export interface PrayersApiResponse {
@@ -35,6 +36,17 @@ export interface PrayerTextApiResponse {
   text_cs: string;
   text_cs_cf: string;
   text_ru: string;
+}
+
+export interface PrayerTextsApiResponse {
+  data: PrayerTextApiResponse[];
+  nav: {
+    "page_count": number,
+    "page_num": number,
+    "page_size": number,
+    "record_count": number,
+    "nav_num": number
+  }
 }
 
 /**
@@ -57,6 +69,13 @@ class PrayersApi extends ApiClient {
    */
   async getPrayerText(id: string): Promise<PrayerTextApiResponse> {
     return this.get<PrayerTextApiResponse>(`/prayers/${id}`);
+  }
+
+  /**
+   * Получает текст конкретной молитвы
+   */
+  async getPrayerTextsBySection(sectionId: string): Promise<PrayerTextsApiResponse> {
+    return this.get<PrayerTextsApiResponse>(`prayers/list/?section_id=${sectionId}&page_size=300`);
   }
 }
 

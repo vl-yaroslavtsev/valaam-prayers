@@ -48,7 +48,7 @@
     />
     <SeparatorLine
       class="separator"
-              :color="isDarkMode ? 'baige-10' : 'black-10'"
+      :color="isDarkMode ? 'baige-10' : 'black-10'"
     />
   </f7-page>
 </template>
@@ -81,8 +81,6 @@ const historyStore = useReadingHistoryStore();
 const isLoading = computed(() => prayersStore.isLoading);
 
 const title = computed(() => prayersStore.getItemById(sectionId)?.name);
-
-console.log("page prayers with sectionId = " + sectionId);
 
 const prayers = computed(() =>
   prayersStore.getItemsBySection(sectionId).map((p) => {

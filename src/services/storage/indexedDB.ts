@@ -27,6 +27,7 @@ interface ValaamDB extends DBSchema {
       name: string;
       parent: string;
       sort: number;
+      book_root: boolean;
     };
     indexes: {
       'by-parent': string;

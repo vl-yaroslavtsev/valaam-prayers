@@ -15,21 +15,11 @@ import {
 } from "@/services/storage";
 import { PrayersApiResponse } from "@/services/api/PrayersApi";
 
-export interface PrayerElement {
-  id: string;
-  name: string;
-  parent: string;
-  parents: string[];
-  lang: Language[];
-  sort: number;
+export interface PrayerElement extends PrayerApiElement {
   url: string;
 }
 
-export interface PrayerSection {
-  id: string;
-  name: string;
-  parent: string;
-  sort: number;
+export interface PrayerSection extends PrayerApiSection {
   url: string;
 }
 
@@ -86,6 +76,12 @@ export const usePrayersStore = defineStore("prayers", () => {
    * Преобразует API секцию в локальный формат
    */
   const transformApiSection = (s: PrayerApiSection): PrayerSection => {
+    if (s.book_root) {
+      return {
+        ...s,
+        url: "/prayers/composed-text/" + s.id,
+      };
+    }
     return {
       ...s,
       url: "/prayers/" + s.id,
@@ -245,6 +241,115 @@ export const usePrayersStore = defineStore("prayers", () => {
     }
   };
 
+  /**
+   * Получает тексты всех молитв в разделе (рекурсивно)
+   */
+  const getComposedPrayerText = async (sectionId: string): Promise<PrayerText> => {
+    try {
+      // Получаем все тексты молитв в разделе с сервера
+      const response = await prayersApi.getPrayerTextsBySection(sectionId);
+      
+      // Получаем информацию о самом разделе
+      const section = getItemById(sectionId) as PrayerSection;
+      const sectionName = section?.name || '';
+      
+      // Собираем все доступные языки
+      const allLanguages = new Set<Language>();
+      let hasCommonText = false;
+      response.data.forEach(prayer => {
+        if (prayer.text && !hasCommonText)  hasCommonText = true;
+        if (prayer.text_cs) allLanguages.add('cs');
+        if (prayer.text_cs_cf) allLanguages.add('cs-cf');
+        if (prayer.text_ru) allLanguages.add('ru');
+      });
+      
+      const text = hasCommonText ? buildSectionText(sectionId, response.data, 2, '') : '';
+
+      // Строим тексты для каждого языка
+      const text_cs_cf = allLanguages.has('cs-cf') ? buildSectionText(sectionId, response.data, 2, 'cs-cf') : '';
+      const text_cs = allLanguages.has('cs') ? buildSectionText(sectionId, response.data, 2, 'cs') : '';
+      const text_ru = allLanguages.has('ru') ? buildSectionText(sectionId, response.data, 2, 'ru') : '';
+      
+      // Возвращаем в том же формате, что и getPrayerText
+      return {
+        id: sectionId,
+        name: sectionName,
+        parent: section?.parent || '',
+        text,
+        text_cs,
+        text_cs_cf,
+        text_ru,
+        lang: Array.from(allLanguages)
+      };
+    } catch (err) {
+      console.error(`Failed to get prayer texts for section ${sectionId}:`, err);
+      throw err;
+    }
+  };
+
+  /**
+   * Строит текст для раздела на основе уже полученных данных
+   */
+  const buildSectionText = (
+    sectionId: string, 
+    prayerTexts: PrayerTextApiResponse[], 
+    headerLevel: number = 2,
+    language: Language | '' = 'cs-cf'
+  ): string => {
+    let result = '';
+    const maxHeaderLevel = 6;
+    
+    // Получаем элементы текущего раздела
+    const items = getItemsBySection(sectionId);
+    
+    for (const item of items) {
+      if ('parent' in item && 'parents' in item) {
+        // Это элемент (молитва) - ищем его в полученных данных
+        const prayerText = prayerTexts.find(p => p.id === item.id);
+        if (prayerText) {
+          const currentHeaderLevel = Math.min(headerLevel, maxHeaderLevel);
+          const headerTag = `h${currentHeaderLevel}`;
+          result += `<${headerTag}>${item.name}</${headerTag}>\n\n`;
+          
+          // Выбираем текст в зависимости от языка
+          let text = '';
+          switch (language) {
+            case '':
+              text = prayerText.text || '';
+              break;
+            case 'cs-cf':
+              text = prayerText.text_cs_cf || '';
+              break;
+            case 'cs':
+              text = prayerText.text_cs || '';
+              break;
+            case 'ru':
+              text = prayerText.text_ru || '';
+              break;
+            default:
+              text = prayerText.text_cs_cf || '';
+          }
+          
+          // Удаляем существующие заголовки h1-h6 из начала текста
+          text = text.replace(/^\s*<h[1-6][^>]*>.*?<\/h[1-6]>\s*/i, '');
+          
+          result += text + '\n\n';
+        }
+      } else {
+        // Это подраздел - добавляем заголовок и рекурсивно обрабатываем
+        const currentHeaderLevel = Math.min(headerLevel, maxHeaderLevel);
+        const headerTag = `h${currentHeaderLevel}`;
+        result += `<${headerTag}>${item.name}</${headerTag}>\n\n`;
+        
+        // Рекурсивно обрабатываем подраздел с теми же полученными данными
+        const subsectionText = buildSectionText(item.id, prayerTexts, headerLevel + 1, language);
+        result += subsectionText;
+      }
+    }
+    
+    return result;
+  };
+
   const getItemsBySection = (sectionId: string) => {
     let items: Array<PrayerElement | PrayerSection> = [];
 
@@ -290,6 +395,32 @@ export const usePrayersStore = defineStore("prayers", () => {
     }
 
     return items;
+  };
+
+  const isItemInSection = (itemId: string, sectionId: string) => {
+    const isMolitvoslov = sectionId === MOLITVOSLOV_SECTION_ID;
+    const isBooks = sectionId === BOOKS_SECTION_ID;
+
+    let item = getItemById(itemId);
+    while (item) {
+      if (item.id === sectionId || item.parent === sectionId) {
+        return true;
+      }
+
+      // В книгах выводим в начале Библию
+      if (isBooks && item.id === BIBLE_SECTION_ID) {
+        return true;
+      }
+  
+      // В молитвослове добавляем Богослужебные книги
+      if (isMolitvoslov && item.id === BOOKS_LITURGY_SECTION_ID) {
+        return true;
+      }
+      
+      item = getItemById(item.parent);
+    }
+
+    return false;
   };
 
   const getItemById = (
@@ -356,10 +487,12 @@ export const usePrayersStore = defineStore("prayers", () => {
     getItemsBySection,
     getItemById,
     isSection,
+    isItemInSection,
     // Actions
     initStore,
     fetchPrayers,
     getPrayerText,
+    getComposedPrayerText,
     forceRefresh,
     getLastSyncTime,
   };

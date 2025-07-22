@@ -232,7 +232,7 @@ import { Language } from '@/types/common';
 const isOpened = defineModel<boolean>('isOpened');
 
 const { disabled = false, language } = defineProps<{
-  language: Language;
+  language: Language | null;
   disabled?: boolean;
 }>();
 
