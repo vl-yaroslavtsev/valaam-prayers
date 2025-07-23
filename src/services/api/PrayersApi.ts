@@ -19,6 +19,7 @@ export interface PrayerApiSection {
   parent: string;
   sort: number;
   book_root: boolean;
+  compose: boolean;
 }
 
 export interface PrayersApiResponse {
@@ -75,7 +76,7 @@ class PrayersApi extends ApiClient {
    * Получает текст конкретной молитвы
    */
   async getPrayerTextsBySection(sectionId: string): Promise<PrayerTextsApiResponse> {
-    return this.get<PrayerTextsApiResponse>(`prayers/list/?section_id=${sectionId}&page_size=300`);
+    return this.get<PrayerTextsApiResponse>(`prayers/list/?section_id=${sectionId}&page_size=1300`);
   }
 }
 

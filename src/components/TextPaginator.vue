@@ -42,6 +42,7 @@ import { useTemplateRef, watchEffect, ref, watch, computed, nextTick, readonly }
 import { useTextSelection } from "@/composables/useTextSelection";
 import { useSettingsStore } from "@/stores/settings";
 import { useTextSettings } from "@/composables/useTextSettings";
+import { usePaginationCache } from "@/composables/usePaginationCache";
 import type { SwiperContainer } from "swiper/element";
 import type { Swiper } from "swiper";
 import type { TextTheme, Language } from "@/types/common";
@@ -53,18 +54,21 @@ const {
   text, 
   lang = null, 
   isLoading = false, 
-  initialProgress = 0
+  initialProgress = 0,
+  itemId = null
 } = defineProps<{
   text: string;
   initialProgress?: number;
   lang?: Language | null;
   isLoading?: boolean;
+  itemId?: string | null;
 }>();
 
 const swiperRef = useTemplateRef<SwiperContainer>("swiper");
 
 const settingsStore = useSettingsStore();
 const { } = useTextSettings(); // Инициализируем синхронизацию настроек текста глобально
+const { getPaginatedText } = usePaginationCache();
 
 const mode = computed(() => settingsStore.pageMode);
 
@@ -272,7 +276,14 @@ async () => {
     isCalculating.value = true;    
     const cssClasses = `text-page reading-text ${lang ? 'prayer-text lang-' + lang : ''} theme-${theme.value}`;
     
-    pages = await paginateText(text, container, cssClasses);
+    // Используем кэш если доступен itemId
+    if (itemId) {
+      pages = await getPaginatedText(itemId, lang, text, container, cssClasses);
+    } else {
+      // Fallback к прямой пагинации
+      pages = await paginateText(text, container, cssClasses);
+    }
+    
     updateSlides(pages);
 
     restoreProgress();

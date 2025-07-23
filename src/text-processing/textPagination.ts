@@ -506,8 +506,15 @@ const splitElement = (
  */
 const yieldToMainThread = (): Promise<void> => {
   return new Promise(resolve => {
-    setTimeout(resolve, 0);
+    // setTimeout(resolve, 0);
+    if ('requestIdleCallback' in window) {
+      requestIdleCallback(() => resolve(), { timeout: 50 });
+    } else {
+      setTimeout(resolve, 0);
+    }
   });
+
+ 
 };
 
 /**
@@ -685,7 +692,7 @@ export const paginateText = async (
       } else if (element.nodeType === Node.ELEMENT_NODE) {
         let remainingElement: HTMLElement | null = element as HTMLElement;
         let elementIterations = 0;
-        const maxElementIterations = 50; // Уменьшили лимит
+        const maxElementIterations = 500;
 
         while (remainingElement && elementIterations < maxElementIterations) {
           elementIterations++;

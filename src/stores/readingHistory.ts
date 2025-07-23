@@ -74,6 +74,7 @@ export const useReadingHistoryStore = defineStore("readingHistory", {
       if (item) {
         this.snapshot = { ...item };
         item.progress = progress;
+        item.type = type;
         if (pages !== undefined) item.pages = pages;
         item.lastReadAt = new Date();
       } else {

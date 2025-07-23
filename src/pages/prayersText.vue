@@ -40,6 +40,7 @@
         :text="text" 
         :initialProgress="initialProgress"
         :lang="currentLanguage"
+        :itemId="itemId"
         ref="textPaginator" 
         @tap="onTextPaginatorTap" 
         @progress="onTextPaginatorProgress" />
@@ -175,25 +176,15 @@ const updatePrayerText = (language: Language | null) => {
       prayerText = data.value.text || '';
   }
 
-  if (isSection) {
-    // Для разделов добавляем главный заголовок h1 если его нет
-    const hasExistingHeader = /^\s*<h1/.test(prayerText);
-    if (!hasExistingHeader) {
-      text.value = `<h1>${title}</h1>\n\n${prayerText}`;
-    } else {
-      text.value = prayerText;
-    }
+  // Для отдельных молитв
+  const hasExistingHeader = /^\s*<h[12]/.test(prayerText);
+  
+  if (hasExistingHeader) {
+    // Заменяем h2 на h1 если есть
+    prayerText = prayerText.replace(/^(\s*)<h2([^>]*)>/i, '$1<h1$2>').replace(/<\/h2>/i, '</h1>');
+    text.value = prayerText;
   } else {
-    // Для отдельных молитв
-    const hasExistingHeader = /^\s*<h[12]/.test(prayerText);
-    
-    if (hasExistingHeader) {
-      // Заменяем h2 на h1 если есть
-      prayerText = prayerText.replace(/^(\s*)<h2([^>]*)>/i, '$1<h1$2>').replace(/<\/h2>/i, '</h1>');
-      text.value = prayerText;
-    } else {
-      text.value = `<h1>${title}</h1>\n\n${prayerText}`;
-    }
+    text.value = `<h1>${title}</h1>\n\n${prayerText}`;
   }
 };
 
@@ -259,7 +250,8 @@ const onTextPaginatorTap = (payload: { type: "center" | "left" | "right" | "top"
 const onTextPaginatorProgress = (payload: { progress: number; pages: number }) => {
   const { progress, pages } = payload;
   console.log("onTextPaginatorProgress", progress, pages);
-  historyStore.updateProgress(itemId, progress, pages, "prayers");
+  const type = prayersStore.isBook(itemId) ? "books" : "prayers";
+  historyStore.updateProgress(itemId, progress, pages, type);
 };
 
 const shareItem = (e: Event) => {
@@ -293,8 +285,7 @@ watchEffect(() => {
 
 const toggleFavorite = async () => {
 
-  const type = prayersStore.isItemInSection(itemId, BOOKS_SECTION_ID) 
-                            ? "books" : "prayers";
+  const type = prayersStore.isBook(itemId) ? "books" : "prayers";
 
   if (isFavorite(itemId)) {
     await deleteFavorite(itemId);

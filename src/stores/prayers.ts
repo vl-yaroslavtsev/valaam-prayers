@@ -30,7 +30,6 @@ export interface PrayerText extends PrayerTextApiResponse {
 const BIBLE_SECTION_ID = "1078";
 const MOLITVOSLOV_SECTION_ID = "842";
 export const BOOKS_SECTION_ID = "1983";
-const BOOKS_LITURGY_SECTION_ID = "937";
 
 export const usePrayersStore = defineStore("prayers", () => {
   // State
@@ -76,7 +75,7 @@ export const usePrayersStore = defineStore("prayers", () => {
    * Преобразует API секцию в локальный формат
    */
   const transformApiSection = (s: PrayerApiSection): PrayerSection => {
-    if (s.book_root) {
+    if (s.compose) {
       return {
         ...s,
         url: "/prayers/composed-text/" + s.id,
@@ -149,11 +148,11 @@ export const usePrayersStore = defineStore("prayers", () => {
       const errorMessage = err instanceof Error ? err.message : "Unknown error";
       error.value = errorMessage;
       console.error("Failed to load prayers data:", errorMessage);
+      throw err;
     } finally {
       isLoading.value = false;
     }
 
-    return {elements: [], sections: [], all_element_ids: [], all_section_ids: []};
   };
 
   const savePrayersToCache = async (response: PrayersApiResponse) => {
@@ -242,7 +241,7 @@ export const usePrayersStore = defineStore("prayers", () => {
   };
 
   /**
-   * Получает тексты всех молитв в разделе (рекурсивно)
+   * Получает тексты всех элементов в разделе (рекурсивно)
    */
   const getComposedPrayerText = async (sectionId: string): Promise<PrayerText> => {
     try {
@@ -252,6 +251,7 @@ export const usePrayersStore = defineStore("prayers", () => {
       // Получаем информацию о самом разделе
       const section = getItemById(sectionId) as PrayerSection;
       const sectionName = section?.name || '';
+      const header = `<h1>${sectionName}</h1>\n\n`;
       
       // Собираем все доступные языки
       const allLanguages = new Set<Language>();
@@ -263,12 +263,12 @@ export const usePrayersStore = defineStore("prayers", () => {
         if (prayer.text_ru) allLanguages.add('ru');
       });
       
-      const text = hasCommonText ? buildSectionText(sectionId, response.data, 2, '') : '';
+      const text = hasCommonText ? header + buildSectionText(sectionId, response.data, 2, '') : '';
 
       // Строим тексты для каждого языка
-      const text_cs_cf = allLanguages.has('cs-cf') ? buildSectionText(sectionId, response.data, 2, 'cs-cf') : '';
-      const text_cs = allLanguages.has('cs') ? buildSectionText(sectionId, response.data, 2, 'cs') : '';
-      const text_ru = allLanguages.has('ru') ? buildSectionText(sectionId, response.data, 2, 'ru') : '';
+      const text_cs_cf = allLanguages.has('cs-cf') ? header + buildSectionText(sectionId, response.data, 2, 'cs-cf') : '';
+      const text_cs = allLanguages.has('cs') ? header + buildSectionText(sectionId, response.data, 2, 'cs') : '';
+      const text_ru = allLanguages.has('ru') ? header + buildSectionText(sectionId, response.data, 2, 'ru') : '';
       
       // Возвращаем в том же формате, что и getPrayerText
       return {
@@ -330,8 +330,15 @@ export const usePrayersStore = defineStore("prayers", () => {
               text = prayerText.text_cs_cf || '';
           }
           
-          // Удаляем существующие заголовки h1-h6 из начала текста
-          text = text.replace(/^\s*<h[1-6][^>]*>.*?<\/h[1-6]>\s*/i, '');
+          // Понижаем существующие заголовки на один уровень
+          text = text.replace(/<h([1-6])([^>]*>.*?<\/h)[1-6]>/g, (match, level, content) => {
+            const currentLevel = parseInt(level);
+            if (currentLevel >= currentHeaderLevel) {
+              const newLevel = Math.min(currentLevel + 1, 6);
+              return `<h${newLevel}${content}${newLevel}>`;
+            }
+            return match;
+          });
           
           result += text + '\n\n';
         }
@@ -362,16 +369,6 @@ export const usePrayersStore = defineStore("prayers", () => {
         return false;
       }
 
-      // В молитвослове добавляем Богослужебные книги
-      if (isMolitvoslov && s.id === BOOKS_LITURGY_SECTION_ID) {
-        return true;
-      }
-
-      // В книгах Богослужебные книги не выводим.
-      if (isBooks && s.id === BOOKS_LITURGY_SECTION_ID) {
-        return false;
-      }
-
       return s.parent === sectionId;
     });
 
@@ -397,8 +394,11 @@ export const usePrayersStore = defineStore("prayers", () => {
     return items;
   };
 
+  const isBook = (itemId: string) => {
+    return isItemInSection(itemId, BOOKS_SECTION_ID);
+  };
+
   const isItemInSection = (itemId: string, sectionId: string) => {
-    const isMolitvoslov = sectionId === MOLITVOSLOV_SECTION_ID;
     const isBooks = sectionId === BOOKS_SECTION_ID;
 
     let item = getItemById(itemId);
@@ -409,11 +409,6 @@ export const usePrayersStore = defineStore("prayers", () => {
 
       // В книгах выводим в начале Библию
       if (isBooks && item.id === BIBLE_SECTION_ID) {
-        return true;
-      }
-  
-      // В молитвослове добавляем Богослужебные книги
-      if (isMolitvoslov && item.id === BOOKS_LITURGY_SECTION_ID) {
         return true;
       }
       
@@ -488,6 +483,7 @@ export const usePrayersStore = defineStore("prayers", () => {
     getItemById,
     isSection,
     isItemInSection,
+    isBook,
     // Actions
     initStore,
     fetchPrayers,

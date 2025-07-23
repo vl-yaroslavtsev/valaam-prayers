@@ -28,6 +28,7 @@ interface ValaamDB extends DBSchema {
       parent: string;
       sort: number;
       book_root: boolean;
+      compose: boolean;
     };
     indexes: {
       'by-parent': string;
@@ -114,10 +115,23 @@ interface ValaamDB extends DBSchema {
       'by-last-read': Date;
     };
   };
+  'pagination-cache': {
+    key: string;
+    value: {
+      id: string;
+      language: Language | 'default';
+      hash: string;
+      pages: string[];
+      accessedAt: Date;
+    };
+    indexes: {
+      'by-accessed': Date;
+    };
+  };
 }
 
 const DB_NAME: string = 'valaam-prayers';
-const DB_VERSION: number = 1;
+const DB_VERSION: number = 2;
 
 let db: IDBPDatabase<ValaamDB> | null = null;
 let initPromise: Promise<void> | null = null;
@@ -202,6 +216,14 @@ async function initIndexedDB() {
           keyPath: 'id'
         });
         historyStore.createIndex('by-last-read', 'lastReadAt');
+      }
+
+      // Создаем хранилище кэша пагинации
+      if (!db.objectStoreNames.contains('pagination-cache')) {
+        const cacheStore = db.createObjectStore('pagination-cache', {
+          keyPath: 'id'
+        });
+        cacheStore.createIndex('by-accessed', 'accessedAt');
       }
     },
     blocked() {

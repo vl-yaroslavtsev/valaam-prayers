@@ -206,6 +206,34 @@
           >Внешняя ссылка vue</a
         >
       </f7-block>
+
+      <f7-block-title>Кэш пагинации</f7-block-title>
+      <f7-list strong-ios dividers-ios outline-ios>
+        <f7-list-item title="Размер кэша">
+          <template #after>
+            <span>{{ cacheStats.totalItems }} / {{ cacheStats.maxSize }}</span>
+          </template>
+        </f7-list-item>
+        <f7-list-item 
+          v-if="cacheStats.oldestAccess"
+          title="Самый старый доступ">
+          <template #after>
+            <span>{{ formatCacheDate(cacheStats.oldestAccess) }}</span>
+          </template>
+        </f7-list-item>
+        <f7-list-item 
+          v-if="cacheStats.newestAccess"
+          title="Последний доступ">
+          <template #after>
+            <span>{{ formatCacheDate(cacheStats.newestAccess) }}</span>
+          </template>
+        </f7-list-item>
+      </f7-list>
+
+      <f7-block strong-ios outline-ios class="grid grid-cols-2 grid-gap">
+        <f7-button fill @click="refreshCacheStats">Обновить статистику</f7-button>
+        <f7-button fill color="red" @click="clearPaginationCache">Очистить кэш</f7-button>
+      </f7-block>
     </f7-page-content>
   </f7-page>
 </template>
@@ -220,9 +248,11 @@ import type { CalendarEvent } from "@/js/device/types";
 import { testBrowser } from "../js/device/browser-test";
 import { useTheme } from "@/composables/useTheme";
 import { useSettingsStore } from "@/stores/settings";
+import { usePaginationCache } from "@/composables/usePaginationCache";
 
 const { currentTheme, setTheme } = useTheme();
 const settingsStore = useSettingsStore();
+const { getCacheStats, clearAllCache } = usePaginationCache();
 
 const currentBrightness = ref(settingsStore.readingBrightness);
 
@@ -604,6 +634,39 @@ const openNotificationsSettings = () => {
 const openCalendarSettings = () => {
   device.openCalendarSettings();
 };
+
+// Кэш пагинации
+const cacheStats = ref({
+  totalItems: 0,
+  maxSize: 0,
+  oldestAccess: null as Date | null,
+  newestAccess: null as Date | null,
+});
+
+const refreshCacheStats = async () => {
+  const stats = await getCacheStats();
+  cacheStats.value = stats;
+};
+
+const clearPaginationCache = async () => {
+  await clearAllCache();
+  await refreshCacheStats();
+  f7.dialog.alert('Кэш пагинации очищен');
+};
+
+const formatCacheDate = (date: Date) => {
+  return date.toLocaleString('ru-RU', { 
+    day: '2-digit', 
+    month: '2-digit', 
+    hour: '2-digit', 
+    minute: '2-digit' 
+  });
+};
+
+// Загружаем статистику кэша при монтировании
+onMounted(() => {
+  refreshCacheStats();
+});
 
 console.log(f7);
 </script>
