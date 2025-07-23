@@ -26,6 +26,12 @@
     @slidechange="handleSlideChange"
     @progress="handleProgress">
   </swiper-container>
+  <div :class="`text-paginator-progress reading-text theme-${theme}`"
+       v-if="!isLoading && !isCalculating" >
+    <f7-progressbar 
+      :progress="Math.round(currentProgress * 10000) / 100"       
+    />
+  </div>  
   <div 
     v-if="isLoading || isCalculating" 
     :class="`text-paginator text-page reading-text prayer-text theme-${theme}`" 
@@ -350,5 +356,24 @@ defineExpose({
 }
 .skeleton-text-line {
   margin-bottom: 0.3em;
+}
+
+.text-paginator-progress {
+  --f7-progressbar-bg-color: var(--content-color-black-10);
+  --f7-progressbar-progress-color: var(--content-color-black-20);
+  --f7-progressbar-height: 2px;
+
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: calc(var(--f7-safe-area-bottom) + var(--f7-progressbar-height) + 4px);
+  z-index: 1;
+  padding: 4px 16px 0 16px;
+
+  &.theme-dark {
+    --f7-progressbar-bg-color: var(--content-color-baige-10);
+    --f7-progressbar-progress-color: var(--content-color-baige-10);
+  }
 }
 </style>
