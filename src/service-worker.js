@@ -1,5 +1,5 @@
 import { registerRoute } from "workbox-routing";
-import { CacheFirst } from "workbox-strategies";
+import { CacheFirst, StaleWhileRevalidate } from "workbox-strategies";
 import { ExpirationPlugin } from "workbox-expiration";
 import { precacheAndRoute, cleanupOutdatedCaches } from "workbox-precaching";
 
@@ -27,35 +27,40 @@ registerRoute(
   }),
 );
 
+registerRoute(
+  ({ url }) => /^\/rest\/prayers\/\d+/.test(url.pathname),
+  // Use a cache-first strategy with the following config:
+  new StaleWhileRevalidate({
+    // You need to provide a cache name when using expiration.
+    cacheName: "prayer-texts",
+    plugins: [
+      new ExpirationPlugin({
+        // Keep at most 100 entries.
+        maxEntries: 100,
+        // Automatically cleanup if quota is exceeded.
+        purgeOnQuotaError: true,
+      }),
+    ],
+  }),
+);
+
+registerRoute(
+  ({ url }) => url.pathname === '/rest/prayers/list/' && url.searchParams.get('section_id'),
+  // Use a cache-first strategy with the following config:
+  new StaleWhileRevalidate({
+    // You need to provide a cache name when using expiration.
+    cacheName: "prayer-composed-texts",
+    plugins: [
+      new ExpirationPlugin({
+        // Keep at most 100 entries.
+        maxEntries: 100,
+        // Automatically cleanup if quota is exceeded.
+        purgeOnQuotaError: true,
+      }),
+    ],
+  }),
+);
+
 self.addEventListener("message", (event) => {
   if (event.data && event.data.type === "SKIP_WAITING") self.skipWaiting();
 });
-
-// Перехватываем все запросы
-// self.addEventListener('fetch', (event) => {
-
-//   if (event.request.mode === 'navigate') {
-//     const url = new URL(event.request.url);
-
-//     console.log('fetch navigate', url);
-    
-//     // Проверяем, соответствует ли домен разрешенному
-//     if (!ALLOWED_DOMAIN.includes(url.hostname)) {
-//       console.log('fetch navigate', url, 'blocked');
-//       // Если домен не разрешен, блокируем запрос
-//       event.respondWith(
-//         new Response('Доступ к внешним ресурсам заблокирован', {
-//           status: 403,
-//           statusText: 'Forbidden',
-//           headers: {
-//             'Content-Type': 'text/plain'
-//           }
-//         })
-//       );
-//       return;
-//     }
-//   }
-  
-//   // Для разрешенного домена пропускаем запрос как обычно
-//   // Workbox обработает его согласно другим правилам кэширования
-// });

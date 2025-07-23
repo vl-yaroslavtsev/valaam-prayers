@@ -43,7 +43,7 @@ const routes: Router.RouteParameters[] = [
     path: "/prayers/composed-text/:sectionId",
     component: PrayersTextPage,
     options: {
-      transition: "fade-slide",
+      // transition: "fade-slide",
     },
   },
   {

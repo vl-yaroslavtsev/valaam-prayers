@@ -223,10 +223,10 @@ export const usePrayersStore = defineStore("prayers", () => {
   const getPrayerText = async (id: string): Promise<PrayerText> => {
     try {
       // Сначала проверяем кэш
-      const cached = await prayerDetailsStorage?.get(id);
-      if (cached) {
-        return transformApiPrayerText(cached);
-      }
+      // const cached = await prayerDetailsStorage?.get(id);
+      // if (cached) {
+      //   return transformApiPrayerText(cached);
+      // }
 
       // Загружаем с сервера
       const response = await prayersApi.getPrayerText(id);
@@ -329,7 +329,7 @@ export const usePrayersStore = defineStore("prayers", () => {
             default:
               text = prayerText.text_cs_cf || '';
           }
-          
+
           // Понижаем существующие заголовки на один уровень
           text = text.replace(/<h([1-6])([^>]*>.*?<\/h)[1-6]>/g, (match, level, content) => {
             const currentLevel = parseInt(level);

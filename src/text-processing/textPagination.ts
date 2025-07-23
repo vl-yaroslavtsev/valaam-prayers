@@ -79,7 +79,8 @@ const createMeasureElement = (
     boxSizing: "border-box",
     overflow: "hidden",
     whiteSpace: "normal",
-    // contain: "layout style", // Оптимизация для браузера
+    contain: "layout style size", // Оптимизация для браузера
+    willChange: "contents",
   });
 
   document.body.appendChild(element);
