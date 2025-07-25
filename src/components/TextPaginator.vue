@@ -1,9 +1,9 @@
 <template>
+  <!-- :touchStartPreventDefault="false" -->
   <swiper-container 
     :key="`swiper-${mode}`"
     :class="`text-paginator mode-${mode} reading-text ${lang ? 'prayer-text lang-' + lang : ''} theme-${theme}`" 
-    ref="swiper" 
-    :touchStartPreventDefault="false"
+    ref="swiper"     
     :virtual="{
       slides: [],
       addSlidesAfter: 1,
@@ -44,7 +44,7 @@
   </div>
 </template>
 <script setup lang="ts">
-import { useTemplateRef, watchEffect, ref, watch, computed, nextTick, readonly } from "vue";
+import { useTemplateRef, watchEffect, ref, shallowRef, watch, computed, nextTick, readonly } from "vue";
 import { useTextSelection } from "@/composables/useTextSelection";
 import { useSettingsStore } from "@/stores/settings";
 import { useTextSettings } from "@/composables/useTextSettings";
@@ -149,11 +149,11 @@ const handleTap = (e: CustomEvent<[swiper: Swiper, event: PointerEvent]>) => {
     if (x < leftZone) {
       // Левая область - предыдущая страница
       emit("tap", { type: "left", x, y });
-      swiper.slidePrev();
+      // swiper.slidePrev();
     } else if (x > rightZone) {
       // Правая область - следующая страница
       emit("tap", { type: "right", x, y });
-      swiper.slideNext();
+      // swiper.slideNext();
     } else {
       // Находимся в центральной горизонтальной зоне
       if (y >= topCenterZone && y <= bottomCenterZone) {
@@ -164,11 +164,11 @@ const handleTap = (e: CustomEvent<[swiper: Swiper, event: PointerEvent]>) => {
         if (x < centerX) {
           // Левая половина nav области
           emit("tap", { type: "left", x, y });
-          swiper.slidePrev();
+          // swiper.slidePrev();
         } else {
           // Правая половина nav области
           emit("tap", { type: "right", x, y });
-          swiper.slideNext();
+          // swiper.slideNext();
         }
       }
     }
@@ -186,12 +186,12 @@ const handleTap = (e: CustomEvent<[swiper: Swiper, event: PointerEvent]>) => {
       // Верхняя область - предыдущая страница
       emit("tap", { type: "top", x, y });
       // swiper.slidePrev();
-      swiper.translateTo(swiper.translate + swiperRect.height, swiper.params.speed || 300);
+      // swiper.translateTo(swiper.translate + swiperRect.height, swiper.params.speed || 300);
     } else if (y > bottomZone) {
       // Нижняя область - следующая страница
       emit("tap", { type: "bottom", x, y });
       // swiper.slideNext();
-      swiper.translateTo(swiper.translate - swiperRect.height, swiper.params.speed || 300);
+      // swiper.translateTo(swiper.translate - swiperRect.height, swiper.params.speed || 300);
     } else {
       // Находимся в центральной вертикальной зоне
       if (x >= leftCenterZone && x <= rightCenterZone) {
@@ -202,11 +202,9 @@ const handleTap = (e: CustomEvent<[swiper: Swiper, event: PointerEvent]>) => {
         if (y < centerY) {
           // Верхняя половина nav области
           emit("tap", { type: "top", x, y });
-          swiper.slidePrev();
         } else {
           // Нижняя половина nav области
           emit("tap", { type: "bottom", x, y });
-          swiper.slideNext();
         }
       }
     }
@@ -251,7 +249,7 @@ const handleProgress = (e: CustomEvent<[swiper: Swiper, progress: number]>) => {
   });
 };
 
-let pages: string[] = [];
+const pages = shallowRef<string[]>([]);
 
 watch([
   () => text, 
@@ -284,13 +282,13 @@ async () => {
     
     // Используем кэш если доступен itemId
     if (itemId) {
-      pages = await getPaginatedText(itemId, lang, text, container, cssClasses);
+      pages.value = await getPaginatedText(itemId, lang, text, container, cssClasses);
     } else {
       // Fallback к прямой пагинации
-      pages = await paginateText(text, container, cssClasses);
+      pages.value = await paginateText(text, container, cssClasses);
     }
     
-    updateSlides(pages);
+    updateSlides(pages.value);
 
     restoreProgress();
 
@@ -306,13 +304,13 @@ watch(mode, async (newMode) => {
   await nextTick();
   
   const swiper = swiperRef.value?.swiper;
-  if (!swiper || pages.length === 0) {
+  if (!swiper || pages.value.length === 0) {
     isCalculating.value = false;
     return;
   }  
   
   // Обновляем слайды в новом swiper
-  updateSlides(pages);
+  updateSlides(pages.value);
   
   // Восстанавливаем позицию используя сохраненный прогресс или initialProgress
   restoreProgress();
@@ -330,11 +328,37 @@ watchEffect(() => {
 defineExpose({
   swiper: swiperRef,
   isCalculating: readonly(isCalculating),
-  goToPage: (page: number) => {
+  mode: readonly(mode),
+  progress: readonly(currentProgress),
+  pagesCount: computed(() => pages.value.length),
+  goToPage: (page: number, animate: boolean = true) => {
     if (swiperRef.value?.swiper) {
-      swiperRef.value.swiper.slideTo(page - 1);
+      swiperRef.value.swiper.slideTo(page - 1, animate ? 300 : 0);
     }
-  }
+  },
+  slidePrev: () => {
+    const swiper = swiperRef.value?.swiper;
+    if (!swiper) {
+      return;
+    }
+    if (mode.value === "horizontal") {
+      swiper.slidePrev();
+    } else {
+      swiper.translateTo(swiper.translate + swiperRect.height, swiper.params.speed || 300);
+    }
+  },
+  slideNext: () => {
+    const swiper = swiperRef.value?.swiper;
+    if (!swiper) {
+      return;
+    }
+
+    if (mode.value === "horizontal") {
+      swiper.slideNext();
+    } else {
+      swiper.translateTo(swiper.translate - swiperRect.height, swiper.params.speed || 300);
+    }
+  },
 });
 </script>
 

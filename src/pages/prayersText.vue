@@ -42,8 +42,7 @@
         :lang="currentLanguage"
         :itemId="itemId"
         ref="textPaginator" 
-        @tap="onTextPaginatorTap" 
-        @progress="onTextPaginatorProgress" />
+        @tap="onTextPaginatorTap" />
        
     </f7-page-content>
     <TextSettingsSelector 
@@ -51,19 +50,38 @@
       :disabled="isTextCalculating"
       :language="currentLanguage"
     />
+    
+    <!-- Всплывающий тулбар для навигации по страницам -->
+     
+    <f7-toolbar 
+      ref="page-nav-toolbar"
+      class="page-navigation-toolbar"
+      bottom
+      hidden
+    >
+      <div class="header">
+        <f7-link class="reset-link" icon-only href="#">
+          <SvgIcon  icon="reset" color="baige-60" />
+        </f7-link>
+        
+        <div class="page-counter">
+          {{ currentPage }} из {{ totalPages }}
+        </div>
+      </div>
+        
+      <f7-range
+        v-if="!isPageNavHidden"
+        class="page-range-slider"
+        :min="1"
+        :max="totalPages"
+        :step="1"
+        @range:change="onPageSliderChange"
+        :value="currentPage"          
+      />
+    </f7-toolbar>
+
   </f7-page>
 </template>
-
-<!--
-<f7-list menu-list strong-ios outline-ios>
-  <f7-list-item
-    link
-    title="Home"
-    :selected="selected === 'home'"
-    @click="() => (selected = 'home')"
-  > </f7-list-item>
-</f7-list>
--->
 
 <script setup lang="ts">
 import { ref, computed, watchEffect, useTemplateRef, ComponentPublicInstance, watch } from "vue";
@@ -97,6 +115,7 @@ const { elementId, sectionId, f7router } = defineProps<{
 
 const { isDarkMode } = useTheme();
 const navbarRef = useTemplateRef<ComponentPublicInstance>("navbar");
+const pageNavToolbarRef = useTemplateRef<ComponentPublicInstance>("page-nav-toolbar");
 
 const prayersStore = usePrayersStore();
 const historyStore = useReadingHistoryStore();
@@ -126,7 +145,8 @@ const toggleTextSettingsSheet = () => {
 
 watch(isTextSettingsSheetOpened, (isOpen) => {
   if (isOpen) {
-    toggleNavbar();
+    isNavbarHidden.value = true;
+    isPageNavHidden.value = true;
   }
 });
 
@@ -206,7 +226,7 @@ watch(currentLanguage, (newLanguage) => {
   }
 });
 
-let isNavbarHidden = true;
+const isNavbarHidden = ref(true);
 
 const onPageBeforeIn = () => {
   const bottomTabBar = getComponent("bottomTabBar");
@@ -219,20 +239,21 @@ const onPageAfterOut = () => {
 };
 
 const toggleNavbar = () => {
-  if (!navbarRef.value) return;
-  console.log("toggleNavbar", navbarRef.value);
+  isNavbarHidden.value = !isNavbarHidden.value;
+};
 
+watch(isNavbarHidden, (isHidden) => {
+  if (!navbarRef.value) return;
   const navbarEl = navbarRef.value.$el;
 
-  if (isNavbarHidden) {
-    f7.navbar.show(navbarEl, true);
-    f7.navbar.expandLargeTitle(navbarEl);
-  } else {
+  if (isHidden) {
     f7.navbar.hide(navbarEl, true);
     f7.navbar.collapseLargeTitle(navbarEl);
+  } else {
+    f7.navbar.show(navbarEl, true);
+    f7.navbar.expandLargeTitle(navbarEl);
   }
-  isNavbarHidden = !isNavbarHidden;
-};
+});
 
 const textPaginator = useTemplateRef<InstanceType<typeof TextPaginator>>("textPaginator");
 
@@ -240,18 +261,63 @@ const isTextCalculating = computed(() => {
   return textPaginator.value?.isCalculating || false;
 });
 
+const textMode = computed(() => {
+  return textPaginator.value?.mode || "horizontal";
+});
+
 const onTextPaginatorTap = (payload: { type: "center" | "left" | "right" | "top" | "bottom"; x: number; y: number }) => {
   const { type, x, y } = payload;
-  if (type === "center") {
+  if (!isNavbarHidden.value || !isPageNavHidden.value) {
+    isNavbarHidden.value = true;
+    isPageNavHidden.value = true;
+
+  } else if (type === "center") {
+    togglePageNavigation();
     toggleNavbar();
+
+  } else if (type === "left" || type === "top") {
+    textPaginator.value?.slidePrev();
+
+  } else if (type === "right" || type === "bottom") {
+    textPaginator.value?.slideNext();
   }
 };
 
-const onTextPaginatorProgress = (payload: { progress: number; pages: number }) => {
-  const { progress, pages } = payload;
-  console.log("onTextPaginatorProgress", progress, pages);
+// Состояние навигации по страницам
+const totalPages = computed(() => textPaginator.value?.pagesCount || 0);
+const progress = computed(() => textPaginator.value?.progress || 0);
+const currentPage = computed(() => Math.min(Math.floor(progress.value * totalPages.value) + 1, totalPages.value));
+
+watch(progress, () => {
+  if (!textPaginator.value || !totalPages.value) return;
+  console.log("watch progress", progress.value, totalPages.value);
   const type = prayersStore.isBook(itemId) ? "books" : "prayers";
-  historyStore.updateProgress(itemId, progress, pages, type);
+  historyStore.updateProgress(itemId, progress.value, totalPages.value, type);
+});
+
+const isPageNavHidden = ref(true);
+
+// Показать/скрыть навигацию по страницам
+const togglePageNavigation = () => {
+  isPageNavHidden.value = !isPageNavHidden.value;
+};
+
+watch(isPageNavHidden, (isHidden) => {
+  if (!pageNavToolbarRef.value) return;
+  const pageNavToolbarEl = pageNavToolbarRef.value.$el;
+  if (isHidden) {
+    f7.toolbar.hide(pageNavToolbarEl, true);
+  } else {
+    f7.toolbar.show(pageNavToolbarEl, true);
+  }
+});
+
+// Обработчик изменения слайдера страниц
+const onPageSliderChange = (value: number) => {
+  if (isNavbarHidden.value) {
+    return;
+  }
+  textPaginator.value?.goToPage(value, textMode.value === "vertical");
 };
 
 const shareItem = (e: Event) => {
@@ -301,5 +367,62 @@ const toggleFavorite = async () => {
 <style scoped lang="less">
 .dark .page {
   --f7-bars-bg-color: var(--content-color-baige-5-no-opacity);
+}
+
+.page-navigation-toolbar {
+  --f7-toolbar-height: calc(70px + var(--f7-safe-area-bottom));
+  --f7-toolbar-bg-color: var(--f7-bars-bg-color);
+  --f7-toolbar-border-color: var(--f7-bars-border-color);
+  --f7-link-touch-ripple-color: rgba(255, 255, 255, 0.15);
+  
+  :deep(.toolbar-inner) {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: start;
+    padding: 8px 16px;
+    gap: 8px;
+  }
+
+  .header {
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
+    align-items: center;
+    gap: 10px;
+    height: 24px;
+    width: 100%;
+    position: relative;
+  }
+
+  .reset-link {
+    position: absolute;
+    right: 0;
+    left: 0;
+    width: 24px;
+    height: 24px;
+    padding: 0;
+  }
+  
+  .page-counter {
+    font-size: 14px;
+    line-height: 130%;
+    letter-spacing: 0.05em;
+    color: var(--content-color-baige-60);
+    text-align: center;
+  }
+  
+  .page-range-slider {
+    width: 100%;
+    --f7-range-bar-bg-color: var(--content-color-baige-30);
+    --f7-range-bar-active-bg-color: var(--brand-color-primary-accent-50);
+    --f7-range-knob-color: var(--brand-color-primary-accent-50);
+  }
+  
+  &.theme-dark {
+    .page-counter {
+      color: var(--content-color-baige-90);
+    }
+  }
 }
 </style>
