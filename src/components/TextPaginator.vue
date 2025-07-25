@@ -241,12 +241,14 @@ const handleProgress = (e: CustomEvent<[swiper: Swiper, progress: number]>) => {
     return;
   }
 
+  console.log("handleProgress progress = ", progress);
+
   currentProgress.value = progress;
   
-  emit("progress", { 
-    progress: progress, 
-    pages: swiper.virtual.slides.length,
-  });
+  // emit("progress", { 
+  //   progress: progress, 
+  //   pages: swiper.virtual.slides.length,
+  // });
 };
 
 const pages = shallowRef<string[]>([]);
@@ -326,7 +328,6 @@ watchEffect(() => {
 
 // Expose swiper instance for parent component
 defineExpose({
-  swiper: swiperRef,
   isCalculating: readonly(isCalculating),
   mode: readonly(mode),
   progress: readonly(currentProgress),
@@ -336,6 +337,7 @@ defineExpose({
       swiperRef.value.swiper.slideTo(page - 1, animate ? 300 : 0);
     }
   },
+  setProgress: (progress: number) => swiperRef.value?.swiper.setProgress(progress),
   slidePrev: () => {
     const swiper = swiperRef.value?.swiper;
     if (!swiper) {

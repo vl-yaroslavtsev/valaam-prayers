@@ -60,7 +60,12 @@
       hidden
     >
       <div class="header">
-        <f7-link class="reset-link" icon-only href="#">
+        <f7-link 
+          class="reset-link" 
+          icon-only 
+          href="#"
+          @click="resetProgress"
+        >
           <SvgIcon  icon="reset" color="baige-60" />
         </f7-link>
         
@@ -76,6 +81,8 @@
         :max="totalPages"
         :step="1"
         @range:change="onPageSliderChange"
+        @touchstart.passive="onPageSliderTouchStart"
+        @touchend.passive="onPageSliderTouchEnd"
         :value="currentPage"          
       />
     </f7-toolbar>
@@ -99,6 +106,8 @@ import {
 import { useReadingHistoryStore } from "@/stores/readingHistory";
 import { useComponentsStore } from "@/stores/components";
 import { useSettingsStore } from "@/stores/settings";
+import { useUndoToast } from "@/composables/useUndoToast";
+
 import TextPaginator from "@/components/TextPaginator.vue"
 import TextSettingsSelector from "@/components/TextSettingsSelector.vue";
 import SvgIcon from "@/components/SvgIcon.vue";
@@ -312,11 +321,23 @@ watch(isPageNavHidden, (isHidden) => {
   }
 });
 
+let pageSliderTouching = false;
+
+const onPageSliderTouchStart = (event: TouchEvent) => {
+  pageSliderTouching = true;
+};
+
+const onPageSliderTouchEnd = (event: TouchEvent) => {
+  pageSliderTouching = false;
+};
+
 // Обработчик изменения слайдера страниц
 const onPageSliderChange = (value: number) => {
-  if (isNavbarHidden.value) {
+  if (!pageSliderTouching) {
     return;
   }
+
+  isNavbarHidden.value = true;
   textPaginator.value?.goToPage(value, textMode.value === "vertical");
 };
 
@@ -362,6 +383,27 @@ const toggleFavorite = async () => {
   }
 };
 
+const { showUndoToast: showUndoResetToast } = useUndoToast({
+  text: "Прогресс сброшен",
+  onUndo: () => {    
+    historyStore.undoResetProgress();
+    const { progress } = historyStore.getItem(itemId) || {};
+
+    console.log("showUndoResetToast onUndo, progress = ", progress);
+    if (progress) {
+      textPaginator.value?.setProgress(progress);
+    }
+  },
+});
+
+const resetProgress = () => {
+  if (!itemId) {
+    return;
+  }
+
+  textPaginator.value?.goToPage(1);
+  showUndoResetToast();
+}
 
 </script>
 <style scoped lang="less">
