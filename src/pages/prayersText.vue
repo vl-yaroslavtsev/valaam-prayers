@@ -42,7 +42,8 @@
         :lang="currentLanguage"
         :itemId="itemId"
         ref="textPaginator" 
-        @tap="onTextPaginatorTap" />
+        @tap="onTextPaginatorTap"
+        @touchstart="onTextPaginatorTouchStart" />
        
     </f7-page-content>
     <TextSettingsSelector 
@@ -276,11 +277,13 @@ const textMode = computed(() => {
 
 const onTextPaginatorTap = (payload: { type: "center" | "left" | "right" | "top" | "bottom"; x: number; y: number }) => {
   const { type, x, y } = payload;
-  if (!isNavbarHidden.value || !isPageNavHidden.value) {
-    isNavbarHidden.value = true;
-    isPageNavHidden.value = true;
 
-  } else if (type === "center") {
+  console.log("onTextPaginatorTap", payload);
+
+  if (!isNavbarHidden.value || !isPageNavHidden.value) {
+    return;
+
+  } else if (type === "center" && !textPaginator.value?.isTransitioning) {
     togglePageNavigation();
     toggleNavbar();
 
@@ -289,6 +292,16 @@ const onTextPaginatorTap = (payload: { type: "center" | "left" | "right" | "top"
 
   } else if (type === "right" || type === "bottom") {
     textPaginator.value?.slideNext();
+  }
+};
+
+const onTextPaginatorTouchStart = (payload: { swiper: Swiper, event: PointerEvent }) => {
+  console.log("onTextPaginatorTouchStart", payload);
+  if (!isNavbarHidden.value || !isPageNavHidden.value) {
+    setTimeout(() => {
+      isNavbarHidden.value = true;
+      isPageNavHidden.value = true;
+    }, 0);
   }
 };
 

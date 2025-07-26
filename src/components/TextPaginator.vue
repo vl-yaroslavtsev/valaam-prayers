@@ -22,9 +22,13 @@
         translate: ['100%', 0, 0],
       },
     }"
+    :touchRatio="1"
+    :threshold="3"
     @tap="handleTap"
     @slidechange="handleSlideChange"
-    @progress="handleProgress">
+    @touchstart="handleTouchStart"
+    @progress="handleProgress"
+    @settransition="handleSetTransition" >
   </swiper-container>
   <div :class="`text-paginator-progress reading-text theme-${theme}`"
        v-if="!isLoading && !isCalculating" >
@@ -85,6 +89,7 @@ const theme = computed(() => settingsStore.textTheme);
 const emit = defineEmits<{
   tap: [payload: { type: "center" | "left" | "right" | "top" | "bottom"; x: number; y: number }];
   progress: [payload: { progress: number, pages: number }];
+  touchstart: [payload: { swiper: Swiper, event: PointerEvent }];
 }>();
 
 let swiperRect = {
@@ -244,11 +249,6 @@ const handleProgress = (e: CustomEvent<[swiper: Swiper, progress: number]>) => {
   console.log("handleProgress progress = ", progress);
 
   currentProgress.value = progress;
-  
-  // emit("progress", { 
-  //   progress: progress, 
-  //   pages: swiper.virtual.slides.length,
-  // });
 };
 
 const pages = shallowRef<string[]>([]);
@@ -272,9 +272,6 @@ async () => {
   }
 
   const container = swiperRef.value;
-
-  console.log("TextPaginator watch", settingsStore.fontFamily, settingsStore.fontSize, settingsStore.lineHeight);
-  console.log("TextPaginator watch", settingsStore.fontFamilyCs, settingsStore.fontSizeCs, settingsStore.lineHeightCs);
 
 
   if (text && container) {
@@ -326,9 +323,52 @@ watchEffect(() => {
   }
 });
 
+const handleTouchStart = (e: CustomEvent<[swiper: Swiper, event: PointerEvent]>) => {
+  if (!e.detail || !e.detail[0]) {
+    return;
+  }
+  const [swiper, event] = e.detail;
+  emit("touchstart", { swiper, event });
+};
+
+let transtionTimeout: ReturnType<typeof setTimeout> | null = null;
+const isTransitioning = ref(false);
+
+const handleSetTransition = (e: CustomEvent<[swiper: Swiper, transition: number]>) => {
+  const [swiper, transition] = e.detail;
+ 
+  if (transtionTimeout) {
+    clearTimeout(transtionTimeout);
+    transtionTimeout = null;
+  }
+
+  if (transition === 0) {
+    setTimeout(() => {
+      isTransitioning.value = false;
+      console.log("handleSetTransition transition end", swiper, transition);
+    }, 0);
+    return;
+  } 
+
+  console.log("handleSetTransition transition start", swiper, transition);
+  
+
+  isTransitioning.value = true;
+  transtionTimeout = setTimeout(() => {
+    transtionTimeout = null;
+    isTransitioning.value = false;
+    console.log("handleSetTransition transition end", swiper, transition);
+  }, transition);
+};
+
+
+let lastTranslatePosition = 0;
+let lastTranslatePositionTimeout: ReturnType<typeof setTimeout> | null = null;
+
 // Expose swiper instance for parent component
 defineExpose({
   isCalculating: readonly(isCalculating),
+  isTransitioning: readonly(isTransitioning),
   mode: readonly(mode),
   progress: readonly(currentProgress),
   pagesCount: computed(() => pages.value.length),
@@ -346,7 +386,27 @@ defineExpose({
     if (mode.value === "horizontal") {
       swiper.slidePrev();
     } else {
-      swiper.translateTo(swiper.translate + swiperRect.height, swiper.params.speed || 300);
+
+      const speed = swiper.params.speed || 300;
+
+      if (lastTranslatePosition === 0) {
+        lastTranslatePosition = swiper.translate + swiperRect.height;
+        
+      } else {
+        lastTranslatePosition = lastTranslatePosition + swiperRect.height;
+      }
+
+      if (lastTranslatePositionTimeout) {
+        clearTimeout(lastTranslatePositionTimeout);
+        lastTranslatePositionTimeout = null;
+      }
+
+      lastTranslatePositionTimeout = setTimeout(() => {
+        lastTranslatePosition = 0;
+        lastTranslatePositionTimeout = null;
+      }, speed);
+
+      swiper.translateTo(lastTranslatePosition, speed);
     }
   },
   slideNext: () => {
@@ -358,7 +418,26 @@ defineExpose({
     if (mode.value === "horizontal") {
       swiper.slideNext();
     } else {
-      swiper.translateTo(swiper.translate - swiperRect.height, swiper.params.speed || 300);
+
+      const speed = swiper.params.speed || 300;
+      if (lastTranslatePosition === 0) {
+        lastTranslatePosition = swiper.translate - swiperRect.height;
+        
+      } else {
+        lastTranslatePosition = lastTranslatePosition - swiperRect.height;
+      }
+
+      if (lastTranslatePositionTimeout) {
+        clearTimeout(lastTranslatePositionTimeout);
+        lastTranslatePositionTimeout = null;
+      }
+
+      lastTranslatePositionTimeout = setTimeout(() => {
+        lastTranslatePosition = 0;
+        lastTranslatePositionTimeout = null;
+      }, speed);
+
+      swiper.translateTo(lastTranslatePosition, speed);
     }
   },
 });
