@@ -54,39 +54,14 @@
     
     <!-- Всплывающий тулбар для навигации по страницам -->
      
-    <f7-toolbar 
+    <PageNavigationToolbar 
       ref="page-nav-toolbar"
-      class="page-navigation-toolbar"
-      bottom
-      hidden
-    >
-      <div class="header">
-        <f7-link 
-          class="reset-link" 
-          icon-only 
-          href="#"
-          @click="resetProgress"
-        >
-          <SvgIcon  icon="reset" color="baige-60" />
-        </f7-link>
-        
-        <div class="page-counter">
-          {{ currentPage }} из {{ totalPages }}
-        </div>
-      </div>
-        
-      <f7-range
-        v-if="!isPageNavHidden"
-        class="page-range-slider"
-        :min="1"
-        :max="totalPages"
-        :step="1"
-        @range:change="onPageSliderChange"
-        @touchstart.passive="onPageSliderTouchStart"
-        @touchend.passive="onPageSliderTouchEnd"
-        :value="currentPage"          
-      />
-    </f7-toolbar>
+      :current-page="currentPage"
+      :total-pages="totalPages"
+      :is-hidden="isPageNavHidden"
+      @reset-progress="resetProgress"
+      @page-change="onPageSliderChange"
+    />
 
   </f7-page>
 </template>
@@ -113,6 +88,7 @@ import TextPaginator from "@/components/TextPaginator.vue"
 import TextSettingsSelector from "@/components/TextSettingsSelector.vue";
 import SvgIcon from "@/components/SvgIcon.vue";
 import LanguageSelector from "@/components/LanguageSelector.vue";
+import PageNavigationToolbar from "@/components/PageNavigationToolbar.vue";
 import { useFavoritesStore } from "@/stores/favorites";
 import { useInfoToast } from "@/composables/useInfoToast";
 import { useApiState } from "@/composables/useApiState";
@@ -125,7 +101,6 @@ const { elementId, sectionId, f7router } = defineProps<{
 
 const { isDarkMode } = useTheme();
 const navbarRef = useTemplateRef<ComponentPublicInstance>("navbar");
-const pageNavToolbarRef = useTemplateRef<ComponentPublicInstance>("page-nav-toolbar");
 
 const prayersStore = usePrayersStore();
 const historyStore = useReadingHistoryStore();
@@ -324,32 +299,7 @@ const togglePageNavigation = () => {
   isPageNavHidden.value = !isPageNavHidden.value;
 };
 
-watch(isPageNavHidden, (isHidden) => {
-  if (!pageNavToolbarRef.value) return;
-  const pageNavToolbarEl = pageNavToolbarRef.value.$el;
-  if (isHidden) {
-    f7.toolbar.hide(pageNavToolbarEl, true);
-  } else {
-    f7.toolbar.show(pageNavToolbarEl, true);
-  }
-});
-
-let pageSliderTouching = false;
-
-const onPageSliderTouchStart = (event: TouchEvent) => {
-  pageSliderTouching = true;
-};
-
-const onPageSliderTouchEnd = (event: TouchEvent) => {
-  pageSliderTouching = false;
-};
-
-// Обработчик изменения слайдера страниц
 const onPageSliderChange = (value: number) => {
-  if (!pageSliderTouching) {
-    return;
-  }
-
   isNavbarHidden.value = true;
   textPaginator.value?.goToPage(value, textMode.value === "vertical");
 };
@@ -422,62 +372,5 @@ const resetProgress = () => {
 <style scoped lang="less">
 .dark .page {
   --f7-bars-bg-color: var(--content-color-baige-5-no-opacity);
-}
-
-.page-navigation-toolbar {
-  --f7-toolbar-height: calc(70px + var(--f7-safe-area-bottom));
-  --f7-toolbar-bg-color: var(--f7-bars-bg-color);
-  --f7-toolbar-border-color: var(--f7-bars-border-color);
-  --f7-link-touch-ripple-color: rgba(255, 255, 255, 0.15);
-  
-  :deep(.toolbar-inner) {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: start;
-    padding: 8px 16px;
-    gap: 8px;
-  }
-
-  .header {
-    display: flex;
-    flex-direction: row;
-    justify-content: center;
-    align-items: center;
-    gap: 10px;
-    height: 24px;
-    width: 100%;
-    position: relative;
-  }
-
-  .reset-link {
-    position: absolute;
-    right: 0;
-    left: 0;
-    width: 24px;
-    height: 24px;
-    padding: 0;
-  }
-  
-  .page-counter {
-    font-size: 14px;
-    line-height: 130%;
-    letter-spacing: 0.05em;
-    color: var(--content-color-baige-60);
-    text-align: center;
-  }
-  
-  .page-range-slider {
-    width: 100%;
-    --f7-range-bar-bg-color: var(--content-color-baige-30);
-    --f7-range-bar-active-bg-color: var(--brand-color-primary-accent-50);
-    --f7-range-knob-color: var(--brand-color-primary-accent-50);
-  }
-  
-  &.theme-dark {
-    .page-counter {
-      color: var(--content-color-baige-90);
-    }
-  }
 }
 </style>

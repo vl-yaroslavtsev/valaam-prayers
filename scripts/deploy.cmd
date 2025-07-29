@@ -3,7 +3,6 @@ chcp 65001
 
 set KEY="C:\Users\Владимир\.ssh\id_rsa_valaam"
 set USER="valaam_vladimir.ya@valaam.ru"
-set EXCLUDE="index.html service-worker.js icons/* assets/*"
 set REMOTE_FOLDER="/pub/home/valaam/htdocs.molitvoslov"
 
 
