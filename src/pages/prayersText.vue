@@ -4,15 +4,12 @@
       ref="navbar"
       :title="title"
       :item-id="itemId"
-      :item="item"
+      :item-url="item?.url || ''"
       v-model:current-language="currentLanguage"
       :available-languages="availableLanguages"
       :text-theme="textTheme"
       v-model:is-hidden="isNavbarHidden"
-      v-model:is-brightness-touching="isBrightnessTouching"
       @toggle-text-settings="toggleTextSettingsSheet"
-      @brightness-touch-start="onBrightnessTouchStart"
-      @brightness-touch-end="onBrightnessTouchEnd"
     />
     <f7-page-content class="">
       <TextPaginator 
@@ -78,7 +75,7 @@ const { elementId, sectionId, f7router } = defineProps<{
 }>();
 
 const { isDarkMode } = useTheme();
-const navbarRef = useTemplateRef<ComponentPublicInstance>("navbar");
+const navbarRef = useTemplateRef<InstanceType<typeof PrayersTextNavbar>>("navbar");
 
 const prayersStore = usePrayersStore();
 const historyStore = useReadingHistoryStore();
@@ -300,15 +297,7 @@ const resetProgress = () => {
 }
 
 // Управление яркостью
-let isBrightnessTouching = ref(false);
-
-const onBrightnessTouchStart = () => {
-  isBrightnessTouching.value = true;
-};
-
-const onBrightnessTouchEnd = () => {
-  isBrightnessTouching.value = false;
-};
+const isBrightnessTouching = computed(() => navbarRef.value?.isBrightnessTouching || false);
 
 </script>
 <style scoped lang="less">

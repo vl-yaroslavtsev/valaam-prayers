@@ -59,7 +59,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch, useTemplateRef, watchEffect, ComponentPublicInstance } from "vue";
+import { ref, computed, watch, useTemplateRef, watchEffect, ComponentPublicInstance, readonly } from "vue";
 import { f7 } from "framework7-vue";
 import type { Language } from "@/types/common";
 
@@ -76,20 +76,14 @@ import LanguageSelector from "@/components/LanguageSelector.vue";
 interface Props {
   title: string;
   itemId: string;
-  item: any;
-  currentLanguage: Language | null;
+  itemUrl: string;
   availableLanguages: Language[];
   textTheme: string;
   isHidden: boolean;
-  isBrightnessTouching: boolean;
 }
 
 interface Emits {
-  (e: 'update:currentLanguage', value: Language | null): void;
-  (e: 'update:isBrightnessTouching', value: boolean): void;
   (e: 'toggle-text-settings'): void;
-  (e: 'brightness-touch-start'): void;
-  (e: 'brightness-touch-end'): void;
 }
 
 const props = defineProps<Props>();
@@ -102,11 +96,7 @@ const settingsStore = useSettingsStore();
 const { getComponent } = useComponentsStore();
 const { addFavorite, deleteFavorite, isFavorite } = useFavoritesStore();
 
-// Локальные computed для v-model
-const currentLanguage = computed({
-  get: () => props.currentLanguage,
-  set: (value) => emit('update:currentLanguage', value)
-});
+const currentLanguage = defineModel<Language | null>();
 
 // Управление видимостью navbar
 watch(() => props.isHidden, (isHidden) => {
@@ -153,8 +143,8 @@ const shareItem = (e: Event) => {
   if (!sharePopover) return;
 
   sharePopover.open({
-    title: props.title || "",
-    url: props.item?.url || "",
+    title: props.title,
+    url: props.itemUrl,
   }, target, false);
 };
 
@@ -174,8 +164,10 @@ watchEffect(async () => {
   currentBrightness.value = brightness;
 });
 
+const isBrightnessTouching = ref(false);
+
 const onBrightnessChange = (value: number) => {
-  if (!props.isBrightnessTouching) {
+  if (!isBrightnessTouching.value) {
     return;
   }
 
@@ -184,15 +176,15 @@ const onBrightnessChange = (value: number) => {
 };
 
 const onBrightnessTouchStart = () => {
-  emit('brightness-touch-start');
+  isBrightnessTouching.value = true;
 };
 
 const onBrightnessTouchEnd = () => {
-  emit('brightness-touch-end');
+  isBrightnessTouching.value = false;
 };
 
 // Управление классами при касании яркости
-watch(() => props.isBrightnessTouching, (isTouching) => {
+watch(() => isBrightnessTouching, (isTouching) => {
   const navbarEl = navbarRef.value?.$el;
   if (!navbarEl) return;
 
@@ -205,7 +197,7 @@ watch(() => props.isBrightnessTouching, (isTouching) => {
 
 // Экспортируем ref для внешнего доступа
 defineExpose({
-  navbarRef
+  isBrightnessTouching: readonly(isBrightnessTouching)
 });
 </script>
 
