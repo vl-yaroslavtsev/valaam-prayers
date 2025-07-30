@@ -30,7 +30,7 @@
     @progress="handleProgress"
     @settransition="handleSetTransition" >
   </swiper-container>
-  <div :class="`text-paginator-progress reading-text theme-${theme}`"
+  <div :class="`text-paginator-progress theme-${theme}`"
        v-if="!isLoading && !isCalculating" >
     <f7-progressbar 
       :progress="Math.round(currentProgress * 10000) / 100"       
@@ -369,6 +369,7 @@ let lastTranslatePositionTimeout: ReturnType<typeof setTimeout> | null = null;
 defineExpose({
   isCalculating: readonly(isCalculating),
   isTransitioning: readonly(isTransitioning),
+  theme: readonly(theme),
   mode: readonly(mode),
   progress: readonly(currentProgress),
   pagesCount: computed(() => pages.value.length),

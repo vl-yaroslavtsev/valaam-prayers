@@ -43,7 +43,7 @@
           :smart-select-params="{
             openIn: 'popover',
             closeOnSelect: true,
-            cssClass: 'simple-select', 
+            cssClass: 'simple-select',
           }">
           <template #default>
             <select name="textTheme" 
@@ -52,6 +52,7 @@
               <option 
                 v-for="(label, theme) in textThemeLabels" 
                 :value="theme"
+                :class="`theme-${theme}`"
                 :key="theme">{{ label }}</option>
             </select>
           </template>

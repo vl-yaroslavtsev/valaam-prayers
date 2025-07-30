@@ -104,7 +104,7 @@ const DEFAULT_SETTINGS: AppSettings = {
   isTextWordsBreak: true,
   isTextPagePadding: true,
   isTextBold: false,
-  readingBrightness: 50,
+  readingBrightness: -1,
   keepScreenOn: false,
   pageMode: "horizontal",
   isStatusBarVisible: true,

@@ -1,39 +1,19 @@
 <template>
   <f7-page :page-content="false" @page:beforein="onPageBeforeIn" @page:afterout="onPageAfterOut">
-    <f7-navbar ref="navbar" large hidden class="navbar-large-collapsed">
-      <f7-nav-left :back-link="true"></f7-nav-left>
-      <f7-nav-title sliding></f7-nav-title>
-      <f7-nav-right>
-        <f7-link icon-only>
-          <SvgIcon icon="menu" color="baige-90" :size="24" />
-        </f7-link>
-        <LanguageSelector 
-          v-if="currentLanguage && availableLanguages.length > 1"
-          v-model="currentLanguage" 
-          :available-languages="availableLanguages" />
-        <f7-link icon-only>
-          <SvgIcon 
-            :icon="isElementFavorite ? 'favorite-filled' : 'favorite'" 
-            color="baige-90" 
-            :size="24"
-            @click="toggleFavorite" />
-        </f7-link>
-        <f7-link icon-only>
-          <SvgIcon 
-            icon="settings-2" 
-            color="baige-90" 
-            :size="24" 
-            @click="toggleTextSettingsSheet()" />
-        </f7-link>
-        <f7-link icon-only>
-          <SvgIcon icon="share" color="baige-90" :size="24" @click="shareItem" />
-        </f7-link>
-        <f7-link icon-only>
-          <SvgIcon icon="search" color="baige-90" :size="24" />
-        </f7-link>
-      </f7-nav-right>
-      <f7-nav-title-large>{{ title }}</f7-nav-title-large>
-    </f7-navbar>
+    <PrayersTextNavbar
+      ref="navbar"
+      :title="title"
+      :item-id="itemId"
+      :item="item"
+      v-model:current-language="currentLanguage"
+      :available-languages="availableLanguages"
+      :text-theme="textTheme"
+      v-model:is-hidden="isNavbarHidden"
+      v-model:is-brightness-touching="isBrightnessTouching"
+      @toggle-text-settings="toggleTextSettingsSheet"
+      @brightness-touch-start="onBrightnessTouchStart"
+      @brightness-touch-end="onBrightnessTouchEnd"
+    />
     <f7-page-content class="">
       <TextPaginator 
         :isLoading="isLoading" 
@@ -54,8 +34,8 @@
     
     <!-- Всплывающий тулбар для навигации по страницам -->
      
-    <PageNavigationToolbar 
-      ref="page-nav-toolbar"
+    <PageNavigationToolbar
+      v-show="!isBrightnessTouching"
       :current-page="currentPage"
       :total-pages="totalPages"
       :is-hidden="isPageNavHidden"
@@ -86,12 +66,10 @@ import { useUndoToast } from "@/composables/useUndoToast";
 
 import TextPaginator from "@/components/TextPaginator.vue"
 import TextSettingsSelector from "@/components/TextSettingsSelector.vue";
-import SvgIcon from "@/components/SvgIcon.vue";
-import LanguageSelector from "@/components/LanguageSelector.vue";
+import PrayersTextNavbar from "@/components/PrayersTextNavbar.vue";
 import PageNavigationToolbar from "@/components/PageNavigationToolbar.vue";
-import { useFavoritesStore } from "@/stores/favorites";
-import { useInfoToast } from "@/composables/useInfoToast";
 import { useApiState } from "@/composables/useApiState";
+import { device } from "@/js/device";
 
 const { elementId, sectionId, f7router } = defineProps<{
   elementId?: string;
@@ -201,8 +179,6 @@ watch(error, async () => {
   text.value = `Данные не найдены`;
 });
 
-// Тема текста теперь управляется через settings store
-
 // Отслеживание изменений языка
 watch(currentLanguage, (newLanguage) => {
   updatePrayerText(newLanguage);
@@ -216,34 +192,31 @@ const isNavbarHidden = ref(true);
 const onPageBeforeIn = () => {
   const bottomTabBar = getComponent("bottomTabBar");
   bottomTabBar?.hide(true);
+
+  if (settingsStore.readingBrightness !== -1) {
+    device.setBrightness(settingsStore.readingBrightness);
+    return;
+  }
 };
 
 const onPageAfterOut = () => {
   const bottomTabBar = getComponent("bottomTabBar");
   bottomTabBar?.show(true);
+  device.resetBrightness();
 };
 
 const toggleNavbar = () => {
   isNavbarHidden.value = !isNavbarHidden.value;
 };
 
-watch(isNavbarHidden, (isHidden) => {
-  if (!navbarRef.value) return;
-  const navbarEl = navbarRef.value.$el;
-
-  if (isHidden) {
-    f7.navbar.hide(navbarEl, true);
-    f7.navbar.collapseLargeTitle(navbarEl);
-  } else {
-    f7.navbar.show(navbarEl, true);
-    f7.navbar.expandLargeTitle(navbarEl);
-  }
-});
-
 const textPaginator = useTemplateRef<InstanceType<typeof TextPaginator>>("textPaginator");
 
 const isTextCalculating = computed(() => {
   return textPaginator.value?.isCalculating || false;
+});
+
+const textTheme = computed(() => {
+  return textPaginator.value?.theme || "light";
 });
 
 const textMode = computed(() => {
@@ -304,48 +277,6 @@ const onPageSliderChange = (value: number) => {
   textPaginator.value?.goToPage(value, textMode.value === "vertical");
 };
 
-const shareItem = (e: Event) => {
-  const target = (e.target as HTMLElement).closest("a") as HTMLElement;
-
-  const sharePopover = getComponent("sharePopover");
-  if (!sharePopover) return;
-
-  sharePopover.open({
-    title: title || "",
-    url: item?.url || "",
-  }, target, false);
-};
-
-
-const { addFavorite, deleteFavorite, isFavorite } = useFavoritesStore();
-
-const { showInfoToast: showAddedToFavoritesToast } = useInfoToast({
-  text: "Добавлено на главный экран",
-});
-
-const { showInfoToast: showRemovedFromFavoritesToast } = useInfoToast({
-  text: "Удалено с главного экрана",
-});
-
-const isElementFavorite = computed(() => isFavorite(itemId));
-
-watchEffect(() => {
-  console.log("isElementFavorite", isElementFavorite.value);
-});
-
-const toggleFavorite = async () => {
-
-  const type = prayersStore.isBook(itemId) ? "books" : "prayers";
-
-  if (isFavorite(itemId)) {
-    await deleteFavorite(itemId);
-    showRemovedFromFavoritesToast();
-  } else {
-    await addFavorite(itemId, type);
-    showAddedToFavoritesToast();
-  }
-};
-
 const { showUndoToast: showUndoResetToast } = useUndoToast({
   text: "Прогресс сброшен",
   onUndo: () => {    
@@ -368,8 +299,20 @@ const resetProgress = () => {
   showUndoResetToast();
 }
 
+// Управление яркостью
+let isBrightnessTouching = ref(false);
+
+const onBrightnessTouchStart = () => {
+  isBrightnessTouching.value = true;
+};
+
+const onBrightnessTouchEnd = () => {
+  isBrightnessTouching.value = false;
+};
+
 </script>
 <style scoped lang="less">
+// Стили перенесены в компонент PrayersTextNavbar
 .dark .page {
   --f7-bars-bg-color: var(--content-color-baige-5-no-opacity);
 }
