@@ -43,8 +43,10 @@
           :smart-select-params="{
             openIn: 'popover',
             closeOnSelect: true,
-            cssClass: 'simple-select',
-          }">
+            cssClass: 'text-theme-smart-select',
+            scrollToSelectedItem: true,
+          }"
+          @smartselect:open="onTextThemeSmartSelectOpen">
           <template #default>
             <select name="textTheme" 
                     v-model="currentTextTheme"
@@ -52,7 +54,6 @@
               <option 
                 v-for="(label, theme) in textThemeLabels" 
                 :value="theme"
-                :class="`theme-${theme}`"
                 :key="theme">{{ label }}</option>
             </select>
           </template>
@@ -265,6 +266,7 @@ const currentTextTheme = computed({
   set: (value: AppSettings['textTheme']) => settingsStore.setTextTheme(value)
 });
 
+
 const fontSize = computed({
   get: () => language == 'cs' ? settingsStore.fontSizeCs : settingsStore.fontSize,
   set: (value: number) => language == 'cs' ? settingsStore.setFontSizeCs(value) : settingsStore.setFontSize(value)
@@ -342,6 +344,23 @@ const isTextBold = computed({
 
 const iconColor = computed(() => isDarkMode.value ? 'baige-60' : 'black-40');
 
+const onTextThemeSmartSelectOpen = (e: Event) => {
+  console.log(e);
+  const smartSelectEl = e.target as HTMLElement;
+  console.log(smartSelectEl);
+  const smartSelect = smartSelectEl.f7SmartSelect;
+  const popoverEl = smartSelect.$containerEl[0];
+ 
+  popoverEl.querySelectorAll('.list .item-inner').forEach((item) => {
+    
+    const input = item.parentElement?.querySelector('input[type="radio"]');
+    if (input && input.value) {
+      item.classList.add('theme-' + input.value);
+    }
+    
+  });
+};
+
 </script>
 
 <style scoped lang="less">
@@ -353,6 +372,15 @@ const iconColor = computed(() => isDarkMode.value ? 'baige-60' : 'black-40');
 
   .disabled {
     opacity: 1 !important;
+  }
+
+  :global(.text-theme-smart-select .item-inner) {
+    --f7-list-item-title-text-color: var(--reading-text-text-color);
+    --selected-item-bg-color: var(--reading-text-background-color);
+  }
+
+  :global(.md .smart-select-popover input[type='radio']:checked ~ .item-inner) {
+    border: 3px solid var(--brand-color-primary-accent-50);
   }
 }
 </style> 
