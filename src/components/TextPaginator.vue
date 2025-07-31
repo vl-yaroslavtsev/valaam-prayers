@@ -9,8 +9,13 @@
       addSlidesAfter: 1,
       addSlidesBefore: 1,
     }" 
-    :direction="mode" 
-    :freeMode="mode === 'vertical'" 
+    :direction="mode"
+    :momentumVelocityRatio="1"
+    :freeMode="mode === 'horizontal' ? false : {
+      enabled: true,
+      momentumRatio: 0.75,
+      momentumVelocityRatio: 1.2,
+    }" 
     :speed="300"
     :effect="mode === 'horizontal' ? 'creative' : 'slide'" 
     :creativeEffect="{
@@ -23,10 +28,11 @@
       },
     }"
     :touchRatio="1"
-    :threshold="3"
+    :threshold="5"
     @tap="handleTap"
     @slidechange="handleSlideChange"
     @touchstart="handleTouchStart"
+    @touchend="handleTouchEnd"
     @progress="handleProgress"
     @settransition="handleSetTransition" >
   </swiper-container>
@@ -90,6 +96,7 @@ const emit = defineEmits<{
   tap: [payload: { type: "center" | "left" | "right" | "top" | "bottom"; x: number; y: number }];
   progress: [payload: { progress: number, pages: number }];
   touchstart: [payload: { swiper: Swiper, event: PointerEvent }];
+  touchend: [event: TouchEvent];
 }>();
 
 let swiperRect = {
@@ -123,6 +130,7 @@ const { clearSelection, isSelected } = useTextSelection();
 
 const handleTap = (e: CustomEvent<[swiper: Swiper, event: PointerEvent]>) => {
 
+  console.log("handleTap", swiperRef.value?.swiper.animating);
   if (isSelected.value) {
     clearSelection();
     return;
@@ -246,7 +254,7 @@ const handleProgress = (e: CustomEvent<[swiper: Swiper, progress: number]>) => {
     return;
   }
 
-  console.log("handleProgress progress = ", progress);
+  // console.log("handleProgress progress = ", progress, "animating = ", swiperRef.value?.swiper.animating);
 
   currentProgress.value = progress;
 };
@@ -331,8 +339,22 @@ const handleTouchStart = (e: CustomEvent<[swiper: Swiper, event: PointerEvent]>)
   emit("touchstart", { swiper, event });
 };
 
+const handleTouchEnd = (event: TouchEvent) => {
+
+  console.log("handleTouchEnd", event);
+
+  // CustomEvent вызывает ошибку в progressbar
+  if (!event.isTrusted) {
+    event.stopPropagation();
+  }
+
+  emit("touchend", event);
+};
+
+
 let transtionTimeout: ReturnType<typeof setTimeout> | null = null;
 const isTransitioning = ref(false);
+const isMomentumTransitioning = ref(false);
 
 const handleSetTransition = (e: CustomEvent<[swiper: Swiper, transition: number]>) => {
   const [swiper, transition] = e.detail;
@@ -340,11 +362,16 @@ const handleSetTransition = (e: CustomEvent<[swiper: Swiper, transition: number]
   if (transtionTimeout) {
     clearTimeout(transtionTimeout);
     transtionTimeout = null;
-  }
+  }  
 
+  const momentumTimeout = typeof swiper.params.freeMode === 'object' && 
+                                 swiper.params.freeMode.momentumRatio ? 
+                                 swiper.params.freeMode.momentumRatio * 1000 : 750;
+  
   if (transition === 0) {
-    setTimeout(() => {
+    transtionTimeout = setTimeout(() => {
       isTransitioning.value = false;
+      isMomentumTransitioning.value = false;
       console.log("handleSetTransition transition end", swiper, transition);
     }, 0);
     return;
@@ -352,11 +379,15 @@ const handleSetTransition = (e: CustomEvent<[swiper: Swiper, transition: number]
 
   console.log("handleSetTransition transition start", swiper, transition);
   
-
   isTransitioning.value = true;
+  if (Math.round(transition) === momentumTimeout) {
+    isMomentumTransitioning.value = true;
+  }
+
   transtionTimeout = setTimeout(() => {
     transtionTimeout = null;
     isTransitioning.value = false;
+    isMomentumTransitioning.value = false;
     console.log("handleSetTransition transition end", swiper, transition);
   }, transition);
 };
@@ -369,6 +400,7 @@ let lastTranslatePositionTimeout: ReturnType<typeof setTimeout> | null = null;
 defineExpose({
   isCalculating: readonly(isCalculating),
   isTransitioning: readonly(isTransitioning),
+  isMomentumTransitioning: readonly(isMomentumTransitioning),
   theme: readonly(theme),
   mode: readonly(mode),
   progress: readonly(currentProgress),

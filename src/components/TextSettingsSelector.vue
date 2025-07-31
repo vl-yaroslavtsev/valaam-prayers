@@ -13,7 +13,7 @@
       <f7-list dividers>
         <f7-list-item 
           title="Листать стр."
-          class="text-theme-select"
+          class="page-mode-select"
           :disabled="disabled"
           smart-select
           :smart-select-params="{
@@ -230,6 +230,8 @@ import { useSettingsStore, type AppSettings } from '@/stores/settings';
 import SvgIcon from '@/components/SvgIcon.vue';
 import { useTheme } from '@/composables/useTheme';
 import { Language } from '@/types/common';
+import type { SmartSelect } from 'framework7/types';
+import type { Dom7Array } from 'dom7';
 
 const isOpened = defineModel<boolean>('isOpened');
 
@@ -346,14 +348,18 @@ const iconColor = computed(() => isDarkMode.value ? 'baige-60' : 'black-40');
 
 const onTextThemeSmartSelectOpen = (e: Event) => {
   console.log(e);
-  const smartSelectEl = e.target as HTMLElement;
+  const smartSelectEl = e.target as HTMLElement & { 
+    f7SmartSelect: SmartSelect.SmartSelect & { 
+      $containerEl: Dom7Array;
+    };
+  };
   console.log(smartSelectEl);
   const smartSelect = smartSelectEl.f7SmartSelect;
   const popoverEl = smartSelect.$containerEl[0];
  
-  popoverEl.querySelectorAll('.list .item-inner').forEach((item) => {
+  popoverEl.querySelectorAll('.list .item-inner').forEach((item: Element) => {
     
-    const input = item.parentElement?.querySelector('input[type="radio"]');
+    const input = item.parentElement?.querySelector('input[type="radio"]') as HTMLInputElement;
     if (input && input.value) {
       item.classList.add('theme-' + input.value);
     }

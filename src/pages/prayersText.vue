@@ -20,7 +20,8 @@
         :itemId="itemId"
         ref="textPaginator" 
         @tap="onTextPaginatorTap"
-        @touchstart="onTextPaginatorTouchStart" />
+        @touchstart="onTextPaginatorTouchStart"
+        @touchend="onTextPaginatorTouchEnd" />
        
     </f7-page-content>
     <TextSettingsSelector 
@@ -202,10 +203,6 @@ const onPageAfterOut = () => {
   device.resetBrightness();
 };
 
-const toggleNavbar = () => {
-  isNavbarHidden.value = !isNavbarHidden.value;
-};
-
 const textPaginator = useTemplateRef<InstanceType<typeof TextPaginator>>("textPaginator");
 
 const isTextCalculating = computed(() => {
@@ -220,17 +217,36 @@ const textMode = computed(() => {
   return textPaginator.value?.mode || "horizontal";
 });
 
+
+const isMomentumTransitioning = computed(() => {
+  return textPaginator.value?.isMomentumTransitioning;
+});
+
 const onTextPaginatorTap = (payload: { type: "center" | "left" | "right" | "top" | "bottom"; x: number; y: number }) => {
   const { type, x, y } = payload;
 
   console.log("onTextPaginatorTap", payload);
 
+  if (isNavbarHiding || isPageNavHiding) {
+    return;
+  }
+
   if (!isNavbarHidden.value || !isPageNavHidden.value) {
     return;
+  }
 
-  } else if (type === "center" && !textPaginator.value?.isTransitioning) {
-    togglePageNavigation();
-    toggleNavbar();
+  if (isMomentumTransitioning.value || isMomentumTransitionStopping) {
+    return;
+  }
+
+  if (type === "center") {
+    if (!isNavbarHiding) {
+      isNavbarHidden.value = false;
+    }
+    
+    if (!isPageNavHiding) {
+      isPageNavHidden.value = false;
+    }
 
   } else if (type === "left" || type === "top") {
     textPaginator.value?.slidePrev();
@@ -240,15 +256,38 @@ const onTextPaginatorTap = (payload: { type: "center" | "left" | "right" | "top"
   }
 };
 
+let isNavbarHiding = false;
+let isPageNavHiding = false;
+let isMomentumTransitionStopping = false;
+
 const onTextPaginatorTouchStart = (payload: { swiper: Swiper, event: PointerEvent }) => {
   console.log("onTextPaginatorTouchStart", payload);
-  if (!isNavbarHidden.value || !isPageNavHidden.value) {
-    setTimeout(() => {
-      isNavbarHidden.value = true;
-      isPageNavHidden.value = true;
-    }, 0);
+  if (!isNavbarHidden.value) {
+    isNavbarHidden.value = true;
+    isNavbarHiding = true;
+  }
+
+  if (!isPageNavHidden.value) {
+    isPageNavHidden.value = true;
+    isPageNavHiding = true;
+  }
+
+  if (isMomentumTransitioning.value) {
+    isMomentumTransitionStopping = true;
   }
 };
+
+const onTextPaginatorTouchEnd = (event: TouchEvent) => {
+  console.log("onTextPaginatorTouchEnd", event);
+  if (!event.isTrusted) {
+    return;
+  }
+  isNavbarHiding = false;
+  isPageNavHiding = false;
+  isMomentumTransitionStopping = false;
+};
+
+
 
 // Состояние навигации по страницам
 const totalPages = computed(() => textPaginator.value?.pagesCount || 0);
@@ -263,11 +302,6 @@ watch(progress, () => {
 });
 
 const isPageNavHidden = ref(true);
-
-// Показать/скрыть навигацию по страницам
-const togglePageNavigation = () => {
-  isPageNavHidden.value = !isPageNavHidden.value;
-};
 
 const onPageSliderChange = (value: number) => {
   isNavbarHidden.value = true;
