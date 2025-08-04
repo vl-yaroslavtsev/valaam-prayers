@@ -185,6 +185,7 @@ export const useSettingsStore = defineStore("settings", () => {
   const readingBrightness = computed(() => settings.value.readingBrightness);
   const pageMode = computed(() => settings.value.pageMode);
   const isStatusBarVisible = computed(() => settings.value.isStatusBarVisible);
+  const keepScreenOn = computed(() => settings.value.keepScreenOn);
 
   // Получение языка с приоритетом из доступных языков
   const getLanguageFromAvailable = (
@@ -239,6 +240,7 @@ export const useSettingsStore = defineStore("settings", () => {
     readingBrightness,
     pageMode,
     isStatusBarVisible,
+    keepScreenOn,
 
     // Универсальный метод
     setSetting,
@@ -268,11 +270,9 @@ export const useSettingsStore = defineStore("settings", () => {
     },
     setKeepScreenOn: (keepOn: boolean) => {
       setSetting("keepScreenOn", keepOn);
-      device.keepScreenOn(keepOn);
     },
     setIsStatusBarVisible: (visible: boolean) => {
       setSetting("isStatusBarVisible", visible);
-      device.showStatusBar(visible);
     },
     setIsVolumeButtonsScrollEnabled: (
       enabled: boolean,

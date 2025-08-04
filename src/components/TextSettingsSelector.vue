@@ -204,7 +204,7 @@
           </template>
         </f7-list-item>
         <f7-list-item 
-          title="Верхнее меню"
+          title="Строка состояния"
           :disabled="disabled"
         >
           <template #after>
@@ -232,6 +232,7 @@ import { useTheme } from '@/composables/useTheme';
 import { Language } from '@/types/common';
 import type { SmartSelect } from 'framework7/types';
 import type { Dom7Array } from 'dom7';
+import { device } from '@/js/device';
 
 const isOpened = defineModel<boolean>('isOpened');
 
@@ -289,7 +290,10 @@ const onLineHeightChange = (value: number) => {
 
 const showStatusBar = computed({
   get: () => settingsStore.isStatusBarVisible,
-  set: (value: boolean) => settingsStore.setIsStatusBarVisible(value)
+  set: (value: boolean) => {
+    settingsStore.setIsStatusBarVisible(value);
+    device.showStatusBar(value);
+  }
 });
 
 const currentFontFamily = computed({
@@ -347,13 +351,12 @@ const isTextBold = computed({
 const iconColor = computed(() => isDarkMode.value ? 'baige-60' : 'black-40');
 
 const onTextThemeSmartSelectOpen = (e: Event) => {
-  console.log(e);
+  // console.log(e);
   const smartSelectEl = e.target as HTMLElement & { 
     f7SmartSelect: SmartSelect.SmartSelect & { 
       $containerEl: Dom7Array;
     };
   };
-  console.log(smartSelectEl);
   const smartSelect = smartSelectEl.f7SmartSelect;
   const popoverEl = smartSelect.$containerEl[0];
  

@@ -290,7 +290,7 @@ const showThemeAlert = async () => {
 
 const isStatusBarShown = ref(settingsStore.settings.isStatusBarVisible);
 watch(isStatusBarShown, (newVal) => {
-  device.showStatusBar(newVal);
+  //device.showStatusBar(newVal);
   settingsStore.setIsStatusBarVisible(newVal);
   console.log("isStatusBarShown", newVal);
 });
@@ -303,7 +303,7 @@ watch(isFullscreen, (newVal) => {
 
 const isKeepScreenOn = ref(settingsStore.settings.keepScreenOn);
 watch(isKeepScreenOn, (newVal) => {
-  device.keepScreenOn(newVal);
+  // device.keepScreenOn(newVal);
   settingsStore.setKeepScreenOn(newVal);
   console.log("isKeepScreenOn", newVal);
 });

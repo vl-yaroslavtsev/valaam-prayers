@@ -193,7 +193,14 @@ const onPageBeforeIn = () => {
 
   if (settingsStore.readingBrightness !== -1) {
     device.setBrightness(settingsStore.readingBrightness);
-    return;
+  }
+
+  if (!settingsStore.isStatusBarVisible) {
+    device.showStatusBar(false);
+  }
+
+  if (settingsStore.keepScreenOn) {
+    device.keepScreenOn(true);
   }
 };
 
@@ -201,6 +208,8 @@ const onPageAfterOut = () => {
   const bottomTabBar = getComponent("bottomTabBar");
   bottomTabBar?.show(true);
   device.resetBrightness();
+  device.showStatusBar(true);
+  device.keepScreenOn(false);
 };
 
 const textPaginator = useTemplateRef<InstanceType<typeof TextPaginator>>("textPaginator");
@@ -296,7 +305,7 @@ const currentPage = computed(() => Math.min(Math.floor(progress.value * totalPag
 
 watch(progress, () => {
   if (!textPaginator.value || !totalPages.value) return;
-  console.log("watch progress", progress.value, totalPages.value);
+  //console.log("watch progress", progress.value, totalPages.value);
   const type = prayersStore.isBook(itemId) ? "books" : "prayers";
   historyStore.updateProgress(itemId, progress.value, totalPages.value, type);
 });
