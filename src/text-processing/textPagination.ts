@@ -25,7 +25,7 @@ import {
   moveLastWordBetweenElements,
 } from "./textUtils";
 
-import { waitForFontsLoaded} from "@/js/utils";
+import { waitForFontsLoaded } from "@/js/utils";
 
 // Кэш для хранения вычисленных значений
 interface PaginationCache {
@@ -529,20 +529,21 @@ const yieldToMainThread = (): Promise<void> => {
 export const paginateText = async (
   html: string,
   container?: HTMLElement,
-  cssClasses?: string
+  cssClasses?: string,
+  progressCb?: (progress: number) => void
 ): Promise<string[]> => {
   const startTime = performance.now();
 
   // Проверяем кэш
   const cacheKey = createCacheKey(container, cssClasses);
-  console.log("paginateText: cacheKey", cacheKey);
+  // console.log("paginateText: cacheKey", cacheKey);
   let cache = paginationCache.get(cacheKey);
 
   const pageWidth = getPageWidth(container);
   const pageHeight = getPageHeight(container);
 
-  console.log("paginateText: pageWidth", pageWidth);
-  console.log("paginateText: pageHeight", pageHeight);
+  // console.log("paginateText: pageWidth", pageWidth);
+  // console.log("paginateText: pageHeight", pageHeight);
 
   // Обновляем или создаем кэш
   if (
@@ -569,6 +570,11 @@ export const paginateText = async (
   const measureEl = createMeasureElement(pageWidth, cssClasses);
   const maxAllowedHeight = cache.pageHeight;
 
+  console.time('paginateText: estimatePageCount');
+  const totalHtmlLength = html.length;
+  let currentHtmlLength = 0;
+  console.timeEnd('paginateText: estimatePageCount');
+
   await loadFonts(measureEl);
 
   try {
@@ -594,6 +600,8 @@ export const paginateText = async (
         const pageDiv = document.createElement("div");
         pageDiv.appendChild(fragment);
 
+        currentHtmlLength += pageDiv.innerHTML.length;
+
         pages.push(pageDiv.innerHTML);
         currentPageContent = [];
 
@@ -603,7 +611,7 @@ export const paginateText = async (
         if (pagesProcessedSinceYield >= maxPagesPerYield) {
           await yieldToMainThread();
           pagesProcessedSinceYield = 0;
-          
+          progressCb?.(currentHtmlLength / totalHtmlLength);
           if (process.env.NODE_ENV === "development") {
             console.log(`Processed ${pages.length} pages, yielding to main thread`);
           }
@@ -886,8 +894,11 @@ export const estimatePageCount = (
     tempDiv.className = cssClasses;
   }
 
+  console.time('paginateText: estimatePageCount: tempDiv.scrollHeight');
   document.body.appendChild(tempDiv);
   const totalHeight = tempDiv.scrollHeight;
+  console.timeEnd('paginateText: estimatePageCount: tempDiv.scrollHeight');
+
   document.body.removeChild(tempDiv);
 
   return Math.ceil(totalHeight / cache.availableHeight);

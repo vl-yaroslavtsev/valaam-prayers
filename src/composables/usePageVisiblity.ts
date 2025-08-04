@@ -1,6 +1,5 @@
 import { ref, onMounted, onUnmounted } from "vue";
 import { f7ready, f7 } from "framework7-vue";
-import type { Router } from "framework7/types";
 
 export function usePageVisiblility() {
   const isPageVisible = ref(false);

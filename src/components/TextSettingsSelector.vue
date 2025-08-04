@@ -388,7 +388,7 @@ const onTextThemeSmartSelectOpen = (e: Event) => {
     --selected-item-bg-color: var(--reading-text-background-color);
   }
 
-  :global(.md .smart-select-popover input[type='radio']:checked ~ .item-inner) {
+  :global(.md .text-theme-smart-select input[type='radio']:checked ~ .item-inner) {
     border: 3px solid var(--brand-color-primary-accent-50);
   }
 }

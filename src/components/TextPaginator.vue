@@ -1,7 +1,6 @@
 <template>
-  <!-- :touchStartPreventDefault="false" -->
   <swiper-container 
-    :key="`swiper-${mode}`"
+    :key="`swiper-${mode}`"    
     :class="`text-paginator mode-${mode} reading-text ${lang ? 'prayer-text lang-' + lang : ''} theme-${theme}`" 
     ref="swiper"     
     :virtual="{
@@ -10,7 +9,6 @@
       addSlidesBefore: 1,
     }" 
     :direction="mode"
-    :momentumVelocityRatio="1"
     :freeMode="mode === 'horizontal' ? false : {
       enabled: true,
       momentumRatio: 0.75,
@@ -41,7 +39,24 @@
     <f7-progressbar 
       :progress="Math.round(currentProgress * 10000) / 100"       
     />
+  </div>
+  <div v-if="isShowLoading" :class="`text-paginator-loading-overlay theme-${theme}`">
+    <div class="text-paginator-loading">
+      <p>Загрузка данных...</p>
+      <p>
+        <f7-progressbar infinite />
+      </p>    
+    </div>
   </div>  
+  <div v-if="isShowCalculating" :class="`text-paginator-loading-overlay theme-${theme}`">
+    <div class="text-paginator-loading">
+      <p>Обработка текста...</p>
+      <p>
+        <f7-progressbar :progress="Math.round(calculatingProgress * 100000) / 1000" />
+      </p>    
+    </div>
+  </div>  
+  <!--
   <div 
     v-if="isLoading || isCalculating" 
     :class="`text-paginator text-page reading-text prayer-text theme-${theme}`" 
@@ -52,6 +67,7 @@
     <f7-skeleton-block class="skeleton-text-line skeleton-effect-wave" />
     <f7-skeleton-block class="skeleton-text-line skeleton-effect-wave" />
   </div>
+  -->
 </template>
 <script setup lang="ts">
 import { useTemplateRef, watchEffect, ref, shallowRef, watch, computed, nextTick, readonly } from "vue";
@@ -59,11 +75,12 @@ import { useTextSelection } from "@/composables/useTextSelection";
 import { useSettingsStore } from "@/stores/settings";
 import { useTextSettings } from "@/composables/useTextSettings";
 import { usePaginationCache } from "@/composables/usePaginationCache";
+import { useDelayed } from "@/composables/useDelayed";
 import type { SwiperContainer } from "swiper/element";
 import type { Swiper } from "swiper";
 import type { TextTheme, Language } from "@/types/common";
 import {
-  paginateText,
+  paginateText
 } from "@/text-processing";
 
 const { 
@@ -71,20 +88,22 @@ const {
   lang = null, 
   isLoading = false, 
   initialProgress = 0,
-  itemId = null
+  itemId = ""
 } = defineProps<{
   text: string;
   initialProgress?: number;
   lang?: Language | null;
   isLoading?: boolean;
-  itemId?: string | null;
+  itemId: string;
 }>();
+
+
 
 const swiperRef = useTemplateRef<SwiperContainer>("swiper");
 
 const settingsStore = useSettingsStore();
 const { } = useTextSettings(); // Инициализируем синхронизацию настроек текста глобально
-const { getPaginatedText } = usePaginationCache();
+const { getCachedText, setCachedText } = usePaginationCache();
 
 const mode = computed(() => settingsStore.pageMode);
 
@@ -109,7 +128,13 @@ let swiperRect = {
 };
 
 const isCalculating = ref<boolean>(false);
+const isShowCalculating = ref<boolean>(false);
+
+// Используем композабл для отложенного отображения загрузки
+const { delayed: isShowLoading } = useDelayed<boolean>(() => isLoading, false, 100);
+
 const currentProgress = ref<number>(initialProgress);
+const calculatingProgress = ref<number>(0);
 
 const updateSlides = (slides: string[]) => {
   const template = `<div class="text-page">$content</div>`;
@@ -129,6 +154,10 @@ const updateSlides = (slides: string[]) => {
 const { clearSelection, isSelected } = useTextSelection();
 
 const handleTap = (e: CustomEvent<[swiper: Swiper, event: PointerEvent]>) => {
+
+  if (isLoading || isCalculating.value) {
+    return;
+  }
 
   console.log("handleTap", swiperRef.value?.swiper.animating);
   if (isSelected.value) {
@@ -233,6 +262,7 @@ const handleSlideChange = (e: CustomEvent<[swiper: Swiper]>) => {
 
 const restoreProgress = () => {
   const progress = currentProgress.value;
+  console.log("restoreProgress", progress);
 
   if (!progress || !swiperRef.value) {
     return;
@@ -254,7 +284,7 @@ const handleProgress = (e: CustomEvent<[swiper: Swiper, progress: number]>) => {
     return;
   }
 
-  // console.log("handleProgress progress = ", progress, "animating = ", swiperRef.value?.swiper.animating);
+  console.log("handleProgress progress = ", progress);
 
   currentProgress.value = progress;
 };
@@ -284,21 +314,32 @@ async () => {
 
   if (text && container) {
     
-    isCalculating.value = true;    
+    isCalculating.value = true;
+    calculatingProgress.value = 0;    
     const cssClasses = `text-page reading-text ${lang ? 'prayer-text lang-' + lang : ''} theme-${theme.value}`;
     
     // Используем кэш если доступен itemId
-    if (itemId) {
-      pages.value = await getPaginatedText(itemId, lang, text, container, cssClasses);
+    const cachedPages = await getCachedText(itemId, lang); 
+    if (cachedPages) {
+      pages.value = cachedPages;
     } else {
-      // Fallback к прямой пагинации
-      pages.value = await paginateText(text, container, cssClasses);
+
+      if (text.length > 38000) {
+        isShowCalculating.value = true;
+      }
+
+      console.log("paginateText: text.length", text.length);
+      pages.value = await paginateText(text, container, cssClasses, (progress) => {
+        calculatingProgress.value = progress;
+      });
+      setCachedText(itemId, lang, pages.value);
     }
     
     updateSlides(pages.value);
 
     restoreProgress();
 
+    isShowCalculating.value = false;
     isCalculating.value = false;
   }
 });
@@ -332,6 +373,11 @@ watchEffect(() => {
 });
 
 const handleTouchStart = (e: CustomEvent<[swiper: Swiper, event: PointerEvent]>) => {
+
+  if (isLoading || isCalculating.value) {
+    return;
+  }
+
   if (!e.detail || !e.detail[0]) {
     return;
   }
@@ -340,6 +386,10 @@ const handleTouchStart = (e: CustomEvent<[swiper: Swiper, event: PointerEvent]>)
 };
 
 const handleTouchEnd = (event: TouchEvent) => {
+
+  if (isLoading || isCalculating.value) {
+    return;
+  }
 
   console.log("handleTouchEnd", event);
 
@@ -494,6 +544,27 @@ defineExpose({
 }
 .skeleton-text-line {
   margin-bottom: 0.3em;
+}
+
+.text-paginator-loading-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  text-align: center;
+  z-index: 1;
+  padding: 16px 16px 0 16px;
+
+  display: flex;
+  justify-content: center;
+  align-items: center;
+
+  pointer-events: none !important;
+}
+
+.text-paginator-loading {
+  width: 100%;
 }
 
 .text-paginator-progress {

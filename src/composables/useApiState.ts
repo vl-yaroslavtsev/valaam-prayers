@@ -4,7 +4,7 @@ import type { ApiState, ApiError, LoadingState } from '@/services/api/types';
 /**
  * Композабл для управления состоянием API запросов
  */
-export function useApiState<T>(initialData: T | null = null, dataPromise: Promise<T> | null = null) {
+export function useApiState<T>(dataPromise: Promise<T>, initialData: T | null = null) {
   const data = ref<T | null>(initialData);
   const loading = ref<LoadingState>('idle');
   const error = ref<ApiError | null>(null);
@@ -50,10 +50,7 @@ export function useApiState<T>(initialData: T | null = null, dataPromise: Promis
     }
   }
 
-  if (dataPromise) {
-    init();
-  }
-  
+  init();  
  
   return {
     // State

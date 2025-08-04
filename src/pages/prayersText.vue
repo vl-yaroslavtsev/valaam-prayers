@@ -120,11 +120,13 @@ const apiCall = isSection
   ? prayersStore.getComposedPrayerText(itemId)
   : prayersStore.getPrayerText(itemId);
 
-const { isLoading, isError, error, data } = useApiState(null, apiCall);
+console.time('prayersText: apiCall');
+
+const { isLoading, isError, error, data } = useApiState(apiCall);
 
 watch(data, async () => {
   if (!data.value) return;
-   
+  console.timeEnd('prayersText: apiCall');
   // Обновляем доступные языки
   availableLanguages.value = data.value.lang;
   

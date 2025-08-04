@@ -3,7 +3,6 @@ import { useSettingsStore } from "@/stores/settings";
 import { paginationCacheStorage } from "@/services/storage";
 import type { Language } from "@/types/common";
 import type { PaginationHashSettings } from "@/services/storage/PaginationCacheStorage";
-import { paginateText } from "@/text-processing";
 
 /**
  * Композабл для работы с кэшем пагинации
@@ -32,16 +31,13 @@ export function usePaginationCache() {
   /**
    * Получает кэшированные страницы или создает новые
    */
-  const getPaginatedText = async (
+  const getCachedText = async (
     id: string,
-    language: Language | null,
-    text: string,
-    container?: HTMLElement,
-    cssClasses?: string
-  ): Promise<string[]> => {
+    language: Language | null
+  ): Promise<string[] | null> => {
     if (!paginationCacheStorage) {
       console.warn('PaginationCacheStorage не инициализирован, используем прямую пагинацию');
-      return paginateText(text, container, cssClasses);
+      return null;
     }
 
     // Используем 'default' если язык не указан
@@ -54,26 +50,33 @@ export function usePaginationCache() {
       
       if (cachedPages) {
         console.log(`Загружены кэшированные страницы для ${id}_${cacheLanguage}`);
-        return cachedPages;
       }
 
-      // Если кэша нет, создаем страницы
-      console.log(`Создаем новые страницы для ${id}_${cacheLanguage}`);
-      const pages = await paginateText(text, container, cssClasses);
-
-              // Сохраняем в кэш только если страниц больше 100
-        if (pages.length > 100) {
-          console.log(`Сохраняем в кэш ${pages.length} страниц для ${id}_${cacheLanguage}`);
-          await paginationCacheStorage.setCachedPages(id, cacheLanguage, settings, pages);
-        } else {
-          console.log(`Не сохраняем в кэш: только ${pages.length} страниц (требуется >100)`);
-        }
-      
-      return pages;
+      return cachedPages;
     } catch (error) {
       console.error('Ошибка при работе с кэшем пагинации:', error);
       // В случае ошибки возвращаемся к прямой пагинации
-      return paginateText(text, container, cssClasses);
+      return null;
+    }
+  };
+
+
+  const setCachedText = async (id: string, language: Language | null, pages: string []): Promise<boolean> => {
+    if (!paginationCacheStorage) {
+      console.warn('PaginationCacheStorage не инициализирован, используем прямую пагинацию');
+      return false;
+    }
+    
+    const cacheLanguage: Language | 'default' = language || 'default';
+    const settings = getCurrentTextSettings();
+
+    if (pages.length > 100) {
+      console.log(`Сохраняем в кэш ${pages.length} страниц для ${id}_${cacheLanguage}`);
+      await paginationCacheStorage.setCachedPages(id, cacheLanguage, settings, pages);
+      return true;
+    } else {
+      console.log(`Не сохраняем в кэш: только ${pages.length} страниц (требуется >100)`);
+      return false;
     }
   };
 
@@ -168,7 +171,8 @@ export function usePaginationCache() {
 
   return {
     // Основные функции
-    getPaginatedText,
+    getCachedText,
+    setCachedText,
     clearItemCache,
     clearAllCache,
     

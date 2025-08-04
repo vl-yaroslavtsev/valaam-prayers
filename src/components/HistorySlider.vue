@@ -84,7 +84,6 @@ watch(
   [() => items, () => isLoading],
   () => {
     swiperRef.value?.swiper.update();
-    console.log("watch items for swiper update", items, isLoading, swiperRef.value);
   }
 );
 
