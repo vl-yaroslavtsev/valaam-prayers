@@ -7,6 +7,7 @@ type RefOrGetter<T> = Ref<T> | ShallowRef<T> | WritableComputedRef<T> | Computed
 /**
  * Композабл для отложенного отображения любого реактивного значения
  * @param source - реактивное значение (ref, computed, getter или примитив)
+ * @param initValue - начальное значение
  * @param delay - задержка в миллисекундах (по умолчанию 100)
  * @returns объект с реактивным значением delayed
  */

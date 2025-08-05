@@ -8,7 +8,7 @@
       v-model:current-language="currentLanguage"
       :available-languages="availableLanguages"
       :text-theme="textTheme"
-      v-model:is-hidden="isNavbarHidden"
+      :is-hidden="isNavbarHidden"
       @toggle-text-settings="toggleTextSettingsSheet"
     />
     <f7-page-content class="">
@@ -127,11 +127,15 @@ const { isLoading, isError, error, data } = useApiState(apiCall);
 watch(data, async () => {
   if (!data.value) return;
   console.timeEnd('prayersText: apiCall');
+  console.log("data.value", data.value);
   // Обновляем доступные языки
   availableLanguages.value = data.value.lang;
   
   // Получаем подходящий язык из доступных
   currentLanguage.value = settingsStore.getLanguageFromAvailable(availableLanguages.value);
+
+
+  console.log("currentLanguage.value ", currentLanguage.value );
 
   updatePrayerText(currentLanguage.value);
 });

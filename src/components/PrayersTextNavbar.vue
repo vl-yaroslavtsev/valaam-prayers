@@ -96,7 +96,7 @@ const settingsStore = useSettingsStore();
 const { getComponent } = useComponentsStore();
 const { addFavorite, deleteFavorite, isFavorite } = useFavoritesStore();
 
-const currentLanguage = defineModel<Language | null>();
+const currentLanguage = defineModel<Language | null>('current-language');
 
 // Управление видимостью navbar
 watch(() => props.isHidden, (isHidden) => {
@@ -184,8 +184,9 @@ const onBrightnessTouchEnd = () => {
 };
 
 // Управление классами при касании яркости
-watch(() => isBrightnessTouching, (isTouching) => {
+watch(isBrightnessTouching, (isTouching) => {
   const navbarEl = navbarRef.value?.$el;
+
   if (!navbarEl) return;
 
   if (isTouching) {
