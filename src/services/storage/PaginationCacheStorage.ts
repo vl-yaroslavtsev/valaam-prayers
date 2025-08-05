@@ -1,6 +1,11 @@
 import { BaseStorage } from "./BaseStorage";
-import type { ValaamDB } from "./indexedDB";
 import type { Language } from "@/types/common";
+
+export interface  PaginationCacheItemHeader {
+  tag: string;
+  text: string;
+  page: number;
+}
 
 /**
  * Интерфейс для элемента кэша пагинации
@@ -10,6 +15,7 @@ export interface PaginationCacheItem {
   language: Language | 'default';
   hash: string;
   pages: string[];
+  headers: PaginationCacheItemHeader[];
   accessedAt: Date;
 }
 
@@ -91,7 +97,7 @@ export class PaginationCacheStorage extends BaseStorage<"pagination-cache"> {
     id: string,
     language: Language | 'default',
     settings: PaginationHashSettings
-  ): Promise<string[] | null> {
+  ): Promise<{pages: string[], headers: PaginationCacheItemHeader[]} | null> {
     const cacheKey = this.createCacheKey(id, language);
     const settingsHash = this.createSettingsHash(settings, language);
 
@@ -112,7 +118,7 @@ export class PaginationCacheStorage extends BaseStorage<"pagination-cache"> {
       // Обновляем время последнего доступа
       await this.updateAccessTime(cacheKey);
 
-      return cachedItem.pages;
+      return {pages: cachedItem.pages, headers: cachedItem.headers};
     } catch (error) {
       console.error('Ошибка при получении кэшированных страниц:', error);
       return null;
@@ -126,7 +132,8 @@ export class PaginationCacheStorage extends BaseStorage<"pagination-cache"> {
     id: string,
     language: Language | 'default',
     settings: PaginationHashSettings,
-    pages: string[]
+    pages: string[],
+    headers: PaginationCacheItemHeader[]
   ): Promise<void> {
     const cacheKey = this.createCacheKey(id, language);
     const settingsHash = this.createSettingsHash(settings, language);
@@ -138,6 +145,7 @@ export class PaginationCacheStorage extends BaseStorage<"pagination-cache"> {
         language,
         hash: settingsHash,
         pages,
+        headers,
         accessedAt: now,
       };
 

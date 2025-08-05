@@ -290,6 +290,7 @@ const handleProgress = (e: CustomEvent<[swiper: Swiper, progress: number]>) => {
 };
 
 const pages = shallowRef<string[]>([]);
+const headers = shallowRef<Array<{tag: string, text: string, page: number}>>([]);
 
 watch([
   () => text, 
@@ -319,9 +320,10 @@ async () => {
     const cssClasses = `text-page reading-text ${lang ? 'prayer-text lang-' + lang : ''} theme-${theme.value}`;
     
     // Используем кэш если доступен itemId
-    const cachedPages = await getCachedText(itemId, lang); 
-    if (cachedPages) {
-      pages.value = cachedPages;
+    const cached = await getCachedText(itemId, lang); 
+    if (cached) {
+      pages.value = cached.pages;
+      headers.value = cached.headers;
     } else {
 
       if (text.length > 38000) {
@@ -329,10 +331,13 @@ async () => {
       }
 
       console.log("paginateText: text.length", text.length);
-      pages.value = await paginateText(text, container, cssClasses, (progress) => {
+      const result = await paginateText(text, container, cssClasses, (progress) => {
         calculatingProgress.value = progress;
       });
-      setCachedText(itemId, lang, pages.value);
+      pages.value = result.pages;
+      headers.value = result.headers;
+      console.log("headers", headers.value);
+      setCachedText(itemId, lang, pages.value, headers.value);
     }
     
     updateSlides(pages.value);
@@ -455,6 +460,7 @@ defineExpose({
   mode: readonly(mode),
   progress: readonly(currentProgress),
   pagesCount: computed(() => pages.value.length),
+  headers: readonly(headers),
   goToPage: (page: number, animate: boolean = true) => {
     if (swiperRef.value?.swiper) {
       swiperRef.value.swiper.slideTo(page - 1, animate ? 300 : 0);

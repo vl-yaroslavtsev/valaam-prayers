@@ -11,10 +11,14 @@
  * const htmlText = '<h2>Заголовок</h2><p>Длинный текст...</p>';
  * const container = document.querySelector('.reader-container');
  * const cssClasses = 'text-page reading-text prayer-text theme-grey';
- * const pages = paginateText(htmlText, container, cssClasses);
+ * const result = await paginateText(htmlText, container, cssClasses);
  *
- * pages.forEach((page, index) => {
- *   console.log(`Страница ${index + 1}:`, page.content);
+ * result.pages.forEach((page, index) => {
+ *   console.log(`Страница ${index + 1}:`, page);
+ * });
+ *
+ * result.headers.forEach((header) => {
+ *   console.log(`${header.tag}: ${header.text} на странице ${header.page + 1}`);
  * });
  * ```
  */
@@ -363,7 +367,6 @@ const splitElement = (
 
   if (nonSplittableTags.includes(tagName)) {
     // Быстрая проверка без клонирования
-    const originalHeight = measureEl.scrollHeight;
     container.appendChild(element);
     const newHeight = measureEl.scrollHeight;
     container.removeChild(element);
@@ -375,7 +378,6 @@ const splitElement = (
 
   // Для небольших элементов сначала пытаемся поместить целиком
   if (smallTags.includes(tagName)) {
-    const originalHeight = measureEl.scrollHeight;
     container.appendChild(element);
     const newHeight = measureEl.scrollHeight;
     container.removeChild(element);
@@ -484,7 +486,6 @@ const splitElement = (
 
   // Если ничего не поместилось, но элемент небольшой, принудительно помещаем его
   if (!hasContent && !hasRemaining) {
-    const originalHeight = measureEl.scrollHeight;
     container.appendChild(cloneElement(element));
     const elementHeight = measureEl.scrollHeight;
     container.removeChild(container.lastChild!);
@@ -518,20 +519,45 @@ const yieldToMainThread = (): Promise<void> => {
  
 };
 
+interface Header {
+  tag: string;
+  text: string;
+  page: number;
+}
+
+interface PaginationResult {
+  pages: string[];
+  headers: Header[];
+}
+
+// Функция-помощник для добавления заголовка в массив headers
+const addHeaderIfNeeded = (element: HTMLElement, headers: Header[], pageIndex: number) => {
+  if (element.tagName === 'H2' || element.tagName === 'H3') {
+    const headerText = element.textContent?.trim() || '';
+    if (headerText) {
+      headers.push({
+        tag: element.tagName.toLowerCase(),
+        text: headerText,
+        page: pageIndex + 1
+      });
+    }
+  }
+};
+
 /**
  * Основная функция для разбиения HTML-текста на страницы
  *
  * @param html - HTML-строка для разбиения на страницы
  * @param container - Контейнер для определения размера страницы (опционально)
  * @param cssClasses - CSS-классы для применения к страницам (опционально)
- * @returns Массив слайдов с разбитым по страницам контентом
+ * @returns Объект с массивом страниц и структурой содержания
  */
 export const paginateText = async (
   html: string,
   container?: HTMLElement,
   cssClasses?: string,
   progressCb?: (progress: number) => void
-): Promise<string[]> => {
+): Promise<PaginationResult> => {
   const startTime = performance.now();
 
   // Проверяем кэш
@@ -567,13 +593,12 @@ export const paginateText = async (
   }
 
   const pages: string[] = [];
+  const headers: Header[] = [];
   const measureEl = createMeasureElement(pageWidth, cssClasses);
   const maxAllowedHeight = cache.pageHeight;
 
-  console.time('paginateText: estimatePageCount');
   const totalHtmlLength = html.length;
   let currentHtmlLength = 0;
-  console.timeEnd('paginateText: estimatePageCount');
 
   await loadFonts(measureEl);
 
@@ -721,6 +746,8 @@ export const paginateText = async (
           measureEl.removeChild(testElement);
 
           if (wouldFit) {
+            addHeaderIfNeeded(remainingElement, headers, pages.length);
+            
             currentPageContent.push(remainingElement);
             remainingElement = null;
             continue;
@@ -758,12 +785,17 @@ export const paginateText = async (
                 `No split possible for ${remainingElement.tagName}, forcing on empty page`
               );
             }
+            
+            addHeaderIfNeeded(remainingElement, headers, pages.length);
+            
             currentPageContent.push(remainingElement);
             remainingElement = null;
             continue;
           }
 
           if (fitted) {
+            addHeaderIfNeeded(fitted, headers, pages.length);
+            
             currentPageContent.push(fitted);
           }
 
@@ -798,7 +830,10 @@ export const paginateText = async (
     );
   }
 
-  return pages.length > 0 ? pages : [""];
+  return {
+    pages: pages.length > 0 ? pages : [""],
+    headers
+  };
 };
 
 /**

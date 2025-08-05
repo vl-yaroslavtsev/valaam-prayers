@@ -25,11 +25,16 @@ const htmlText = `
 `;
 
 const container = document.querySelector('.reader-container') as HTMLElement;
-const pages = paginateText(htmlText, container);
+const result = await paginateText(htmlText, container);
 
-console.log(`Текст разбит на ${pages.length} страниц`);
-pages.forEach((page, index) => {
-  console.log(`Страница ${index + 1}:`, page.content);
+console.log(`Текст разбит на ${result.pages.length} страниц`);
+result.pages.forEach((page, index) => {
+  console.log(`Страница ${index + 1}:`, page);
+});
+
+console.log(`Найдено ${result.headers.length} заголовков:`);
+result.headers.forEach((header) => {
+  console.log(`${header.tag}: ${header.text} на странице ${header.page + 1}`);
 });
 ```
 
@@ -60,10 +65,12 @@ const currentIndex = ref(0);
 
 const currentPage = computed(() => pages.value[currentIndex.value] || { content: '' });
 
-watchEffect(() => {
+watchEffect(async () => {
   if (props.text) {
     const container = document.querySelector('.reader') as HTMLElement;
-    pages.value = paginateText(props.text, container);
+    const result = await paginateText(props.text, container);
+    pages.value = result.pages;
+    headers.value = result.headers;
     currentIndex.value = 0;
   }
 });
@@ -86,9 +93,24 @@ const prevPage = () => {
 
 ### Функции пагинации
 
-#### `paginateText(html: string, container?: HTMLElement): Slide[]`
+#### `paginateText(html: string, container?: HTMLElement, cssClasses?: string, progressCb?: (progress: number) => void): Promise<PaginationResult>`
 
 Основная функция для разбиения HTML-текста на страницы.
+
+**Возвращает:** `Promise<PaginationResult>` - объект с массивом страниц и структурой содержания
+
+```typescript
+interface PaginationResult {
+  pages: string[];           // Массив HTML-страниц
+  headers: Header[];         // Структура содержания с заголовками h2, h3
+}
+
+interface Header {
+  tag: string;              // Тип заголовка: 'h2' или 'h3'
+  text: string;             // Текст заголовка
+  page: number;             // Номер страницы (начиная с 0)
+}
+```
 
 **Параметры:**
 - `html` - HTML-строка для разбиения на страницы
@@ -233,7 +255,9 @@ import {
 } from '@/text-processing/textPagination';
 
 // Базовое использование
-const pages = paginateText(htmlContent, container, cssClasses);
+const result = await paginateText(htmlContent, container, cssClasses);
+const pages = result.pages;
+const headers = result.headers;
 
 // Инициализация автоочистки кэша
 const cleanup = initPaginationCacheAutoCleanup();
@@ -255,11 +279,12 @@ cleanup();
 
 #### API
 
-**paginateText(html, container?, cssClasses?)**
+**paginateText(html, container?, cssClasses?, progressCb?): Promise<PaginationResult>**
 - `html`: HTML-строка для разбиения
 - `container`: Контейнер для определения размеров (опционально)
 - `cssClasses`: CSS-классы для применения к страницам (опционально)
-- Возвращает: `Slide[]` - массив страниц
+- `progressCb`: Callback для отслеживания прогресса (опционально)
+- **Возвращает**: Объект с массивом страниц и структурой содержания
 
 **clearPaginationCache()**
 - Очищает весь кэш пагинации

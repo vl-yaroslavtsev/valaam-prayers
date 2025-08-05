@@ -1,6 +1,7 @@
 import { openDB, DBSchema, IDBPDatabase } from 'idb';
 import defaultFavorites from './data/defaultFavorites.json';
 import type { Language } from '@/types/common';
+import type { PaginationCacheItemHeader } from './PaginationCacheStorage';
 
 /**
  * Схема базы данных
@@ -122,6 +123,7 @@ interface ValaamDB extends DBSchema {
       language: Language | 'default';
       hash: string;
       pages: string[];
+      headers: PaginationCacheItemHeader[];
       accessedAt: Date;
     };
     indexes: {
