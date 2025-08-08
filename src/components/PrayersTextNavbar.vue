@@ -7,7 +7,7 @@
     <f7-nav-left :back-link="true"></f7-nav-left>
     <f7-nav-title sliding></f7-nav-title>
     <f7-nav-right>
-      <f7-link icon-only>
+      <f7-link icon-only @click="emit('open-content-popup')">
         <SvgIcon icon="menu" color="baige-90" :size="24" />
       </f7-link>
       <LanguageSelector 
@@ -61,6 +61,7 @@
 <script setup lang="ts">
 import { ref, computed, watch, useTemplateRef, watchEffect, ComponentPublicInstance, readonly } from "vue";
 import { f7 } from "framework7-vue";
+import type { Router } from "framework7/types";
 import type { Language } from "@/types/common";
 
 import { usePrayersStore } from "@/stores/prayers";
@@ -84,6 +85,7 @@ interface Props {
 
 interface Emits {
   (e: 'toggle-text-settings'): void;
+  (e: 'open-content-popup'): void;
 }
 
 const props = defineProps<Props>();

@@ -520,7 +520,7 @@ const yieldToMainThread = (): Promise<void> => {
 };
 
 interface Header {
-  tag: string;
+  level: number;
   text: string;
   page: number;
 }
@@ -536,7 +536,7 @@ const addHeaderIfNeeded = (element: HTMLElement, headers: Header[], pageIndex: n
     const headerText = element.textContent?.trim() || '';
     if (headerText) {
       headers.push({
-        tag: element.tagName.toLowerCase(),
+        level: element.tagName === 'H2' ? 2 : 3,
         text: headerText,
         page: pageIndex + 1
       });

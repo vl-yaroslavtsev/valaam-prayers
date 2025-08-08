@@ -2,7 +2,7 @@ import { BaseStorage } from "./BaseStorage";
 import type { Language } from "@/types/common";
 
 export interface  PaginationCacheItemHeader {
-  tag: string;
+  level: number;
   text: string;
   page: number;
 }

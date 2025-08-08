@@ -29,8 +29,8 @@
     :threshold="5"
     @tap="handleTap"
     @slidechange="handleSlideChange"
-    @touchstart="handleTouchStart"
-    @touchend="handleTouchEnd"
+    @touchstart.passive="handleTouchStart"
+    @touchend.passive="handleTouchEnd"
     @progress="handleProgress"
     @settransition="handleSetTransition" >
   </swiper-container>
@@ -76,6 +76,8 @@ import { useSettingsStore } from "@/stores/settings";
 import { useTextSettings } from "@/composables/useTextSettings";
 import { usePaginationCache } from "@/composables/usePaginationCache";
 import { useDelayed } from "@/composables/useDelayed";
+
+import type { PaginationCacheItemHeader } from "@/services/storage/PaginationCacheStorage";
 import type { SwiperContainer } from "swiper/element";
 import type { Swiper } from "swiper";
 import type { TextTheme, Language } from "@/types/common";
@@ -290,7 +292,7 @@ const handleProgress = (e: CustomEvent<[swiper: Swiper, progress: number]>) => {
 };
 
 const pages = shallowRef<string[]>([]);
-const headers = shallowRef<Array<{tag: string, text: string, page: number}>>([]);
+const headers = shallowRef<PaginationCacheItemHeader[]>([]);
 
 watch([
   () => text, 
@@ -396,7 +398,7 @@ const handleTouchEnd = (event: TouchEvent) => {
     return;
   }
 
-  console.log("handleTouchEnd", event);
+  console.log("TextPaginator: handleTouchEnd", event);
 
   // CustomEvent вызывает ошибку в progressbar
   if (!event.isTrusted) {

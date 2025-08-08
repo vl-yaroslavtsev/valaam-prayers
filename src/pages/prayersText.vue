@@ -10,6 +10,7 @@
       :text-theme="textTheme"
       :is-hidden="isNavbarHidden"
       @toggle-text-settings="toggleTextSettingsSheet"
+      @open-content-popup="openContentPopup"
     />
     <f7-page-content class="">
       <TextPaginator 
@@ -40,7 +41,14 @@
       @reset-progress="resetProgress"
       @page-change="onPageSliderChange"
     />
-
+    <PrayersTextContentPopup
+      v-model:isOpened="isContentPopupOpened"
+      :itemId="itemId"
+      :title="title"
+      :headers="headers"
+      :page="currentPage"
+      @goToPage="onGoToPageFromPopup"
+    />
   </f7-page>
 </template>
 
@@ -62,10 +70,12 @@ import { useComponentsStore } from "@/stores/components";
 import { useSettingsStore } from "@/stores/settings";
 import { useUndoToast } from "@/composables/useUndoToast";
 
+import PrayersTextContentPopup from "@/components/PrayersTextContentPopup.vue";
 import TextPaginator from "@/components/TextPaginator.vue"
 import TextSettingsSelector from "@/components/TextSettingsSelector.vue";
 import PrayersTextNavbar from "@/components/PrayersTextNavbar.vue";
 import PageNavigationToolbar from "@/components/PageNavigationToolbar.vue";
+
 import { useApiState } from "@/composables/useApiState";
 import { device } from "@/js/device";
 
@@ -98,6 +108,28 @@ const subtitle = computed(() => {
 });
 const title = item?.name || '';
 const text = ref<string>("");
+
+const isContentPopupOpened = ref(false);
+
+// Получение headers из TextPaginator
+const headers = computed(() => {
+  const headersData = textPaginator.value?.headers || [];
+  // Преобразуем readonly массив в мутабельный для совместимости типов
+  return [...headersData];
+});
+
+// Функция для открытия попапа с содержанием
+const openContentPopup = () => {
+  isContentPopupOpened.value = true;
+};
+
+// Функция для перехода к странице из попапа
+const onGoToPageFromPopup = (page: number) => {
+  textPaginator.value?.goToPage(page, true);
+  // Скрываем навигацию после перехода
+  isNavbarHidden.value = true;
+  isPageNavHidden.value = true;
+};
 
 const isTextSettingsSheetOpened = ref(false);
 const toggleTextSettingsSheet = () => {

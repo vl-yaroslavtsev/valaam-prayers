@@ -1,0 +1,51 @@
+:root {
+  --f7-treeview-item-height: 56px;
+  --f7-treeview-label-font-size: var(--mobile-main-text-regular-b2);
+  --f7-treeview-selectable-selected-bg-color: var(--content-color-black-10-no-opacity);
+
+  --treeview-children-label-text-color: var(--content-color-black-60);
+  --treeview-item-border-color: var(--content-color-black-10);
+} 
+
+.treeview-item {
+  margin-bottom: 10px;
+}
+
+.treeview-item-root {
+  position: sticky;
+  top: 0;
+  background-color: var(--f7-page-bg-color);
+
+  // border-bottom: 1px solid var(--treeview-item-border-color);
+
+  padding-top: 8px;
+  padding-bottom: 8px;
+
+  box-sizing: border-box;
+}
+
+.treeview-item-children {
+  --f7-treeview-item-height: 40px;
+  --f7-treeview-label-font-size: var(--mobile-main-text-regular-b3);
+  --f7-treeview-label-text-color: var(--treeview-children-label-text-color);
+
+  .treeview-item {
+    margin-bottom: 0;
+  }
+  
+  .treeview-item-root {
+    position: static;
+  }
+
+  .treeview-item-root {
+    border-bottom: none;
+  }
+}
+
+
+
+.dark {
+  --f7-treeview-selectable-selected-bg-color: var(--content-color-baige-10-no-opacity);
+  --treeview-children-label-text-color: var(--content-color-baige-60);
+  --treeview-item-border-color: var(--content-color-baige-10);
+}
