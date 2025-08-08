@@ -35,7 +35,14 @@
         <SvgIcon icon="search" color="baige-90" :size="24" />
       </f7-link>
     </f7-nav-right>
-    <f7-nav-title-large>{{ title }}</f7-nav-title-large>
+    <f7-nav-title-large>{{ title }}
+      <div class="subtitle-large">
+        <div class="subtitle-large-item"
+          v-for="item in subtitle">
+          {{ item }}
+        </div>
+      </div>
+    </f7-nav-title-large>
     <div :class="`navbar-footer theme-${textTheme}`">
       <SvgIcon
         icon="sun" 
@@ -76,6 +83,7 @@ import LanguageSelector from "@/components/LanguageSelector.vue";
 
 interface Props {
   title: string;
+  subtitle: string[];
   itemId: string;
   itemUrl: string;
   availableLanguages: Language[];
@@ -205,6 +213,10 @@ defineExpose({
 </script>
 
 <style scoped lang="less">
+.prayers-text-navbar {
+  --f7-navbar-large-title-height: 80px;
+}
+
 .navbar-hidden-with-brightness {
   :deep(.navbar-bg), 
   :deep(.navbar-inner > *) {
@@ -213,6 +225,39 @@ defineExpose({
 
   .navbar-footer {
     opacity: 1;
+  }
+}
+
+.subtitle-large {
+  display: flex;
+
+  flex-direction: row;
+  gap: 20px;
+  justify-content: left;
+  align-items: center;
+
+  font-size: 16px;
+  font-weight: 400;
+  color: var(--content-color-baige-40);
+}
+
+.subtitle-large-item {
+  position: relative;
+
+  &:after {
+    content: "";
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    right: -12.5px;
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background-color: var(--content-color-baige-40);
+  }
+
+  &:last-child:after {
+    background-color: transparent;
   }
 }
 

@@ -3,6 +3,7 @@
     <PrayersTextNavbar
       ref="navbar"
       :title="title"
+      :subtitle="subtitle"
       :item-id="itemId"
       :item-url="item?.url || ''"
       v-model:current-language="currentLanguage"
@@ -102,10 +103,38 @@ if (!itemId) {
 }
 
 const item = prayersStore.getItemById(itemId);
-const subtitle = computed(() => {
-  if (!item || isSection) return '';
-  return 'parent' in item ? prayersStore.getItemById(item.parent)?.name : '';
+const subtitle = computed<string[]>(() => {
+
+  const result: string[] = [];
+
+  // Находим индекс последнего заголовка, страница которого <= текущей
+  let currentFlatIndex = -1;
+  for (let i = 0; i < headers.value.length; i++) {
+    if (headers.value[i].page <= currentPage.value) {
+      currentFlatIndex = i;
+    } else {
+      break;
+    }
+  }
+
+  for (let i = currentFlatIndex; i >= 0; i--) {
+    const h = headers.value[i];
+    if (i === currentFlatIndex) {
+      result.unshift(h.text);
+      if (h.level === 2) {
+        break;
+      }
+    }
+
+    if (h.level === 2) {
+      result.unshift(h.text);
+      break;
+    }
+  }
+
+  return result;
 });
+
 const title = item?.name || '';
 const text = ref<string>("");
 
