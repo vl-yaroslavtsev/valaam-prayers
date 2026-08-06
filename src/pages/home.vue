@@ -7,7 +7,7 @@
           <SvgIcon icon="burger" :size="32" />
         </f7-link>
       </f7-nav-left>
-      <f7-nav-title></f7-nav-title>
+      <f7-nav-title sliding>Избранное</f7-nav-title>
       <f7-nav-right>
         <f7-link @click="toggleSortable"
           ><SvgIcon
@@ -16,52 +16,46 @@
             :size="24"
         /></f7-link>
       </f7-nav-right>
+      <f7-nav-title-large>
+        Сейчас читаю
+      </f7-nav-title-large>
     </f7-navbar>
-    <f7-toolbar position="top" tabbar>
-      <f7-link
-        v-for="(tab, index) in tabs"
-        :key="tab.id"
-        :tab-link="`#tab-${tab.id}`"
-        :tab-link-active="index === 0"
-      >
-        {{ tab.title }}
-      </f7-link>
-    </f7-toolbar>
-    <f7-tabs animated>
-      <f7-tab
-        v-for="tab in tabs"
-        :key="`${tab.id}`"
-        :id="`tab-${tab.id}`"
-        class="page-content"
-        :tab-active="tab.id === 1"
-      >
-        <f7-block v-if="isEmptyList(tab.type)"
-          >Отметьте звездочкой молитвы, книги, святые, мысли и они появятся здесь.</f7-block
-        >
-        <FavoritesList
-          :isLoading="tab.isLoading"
-          sortable
-          :sortable-enabled="sortableEnabled"
-          :favorites="getFavoritesByType(tab.type)"
-          @delete-item="onDeleteItem"
-          @undo-delete-item="onUndoDeleteItem"
-          @reset-item-progress="onResetItemProgress"
-          @undo-reset-item-progress="onUndoResetItemProgress"
-          @sorted="onSorted"
-        />
-        <SeparatorLine
-          class="separator"
-          :color="isDarkMode ? 'baige-10' : 'black-10'"
-        />
-      </f7-tab>
-    </f7-tabs>
+    <HistorySlider :items="lastReadings" :isLoading="isHistoryLoading" />
+    <f7-block-title>Избранное</f7-block-title>
+    <f7-block class="chips-block">
+      <f7-chip
+        v-for="chip in chips"
+        :key="chip.id"
+        :text="chip.title"
+        :class="{ 'chip-selected': selectedFilter === chip.id }"
+        @click="selectedFilter = chip.id"
+      />
+    </f7-block>
+    <f7-block v-if="isEmptyList"
+      >Отметьте звездочкой молитвы, книги, святые, мысли и они появятся здесь.</f7-block
+    >
+    <FavoritesList
+      :isLoading="isLoading"
+      sortable
+      :sortable-enabled="sortableEnabled"
+      :favorites="currentFavorites"
+      @delete-item="onDeleteItem"
+      @undo-delete-item="onUndoDeleteItem"
+      @reset-item-progress="onResetItemProgress"
+      @undo-reset-item-progress="onUndoResetItemProgress"
+      @sorted="onSorted"
+    />
+    <SeparatorLine
+      class="separator"
+      :color="isDarkMode ? 'baige-10' : 'black-10'"
+    />
   </f7-page>
 </template>
 
 <script setup lang="ts">
-import { ref, watchEffect, computed, type Ref } from "vue";
+import { ref, watchEffect, computed } from "vue";
 import { useTheme } from "@/composables/useTheme";
-import { useFavoritesStore, type FavoriteType, type FavoritesItem } from "@/stores/favorites";
+import { useFavoritesStore, type FavoritesItem } from "@/stores/favorites";
 import { usePrayersStore } from "@/stores/prayers";
 import { useSaintsStore } from "@/stores/saints";
 import { useThoughtsStore } from "@/stores/thoughts";
@@ -71,6 +65,7 @@ import type { Language } from "@/types/common";
 
 import SvgIcon from "@/components/SvgIcon.vue";
 import SeparatorLine from "@/components/SeparatorLine.vue";
+import HistorySlider from "@/components/HistorySlider.vue";
 import { FavoritesList } from "@/components/prayers";
 
 const { isDarkMode } = useTheme();
@@ -82,38 +77,79 @@ const saintsStore = useSaintsStore();
 const thoughtsStore = useThoughtsStore();
 const historyStore = useReadingHistoryStore();
 
-type TabType = "prayers" | "books" | "calendar";
+type FilterType = "all" | "prayers" | "books" | "calendar";
 
-const tabs = ref<
-  {
-    id: number;
-    title: string;
-    type: TabType;
-    isLoading: Ref<boolean>;
-  }[]
->([
-  { 
-    id: 1, 
-    title: "Молитвы", 
-    type: "prayers", 
-    isLoading: computed(() => prayersStore.isLoading) 
-  },
-  { 
-    id: 2, 
-    title: "Книги", 
-    type: "books", 
-    isLoading: computed(() => prayersStore.isLoading) },
-  { 
-    id: 3, 
-    title: "Календарь", 
-    type: "calendar", 
-    isLoading: computed(() => saintsStore.isLoading || thoughtsStore.isLoading),
-  },
-]);
+const chips: { id: FilterType; title: string }[] = [
+  { id: "all", title: "Все" },
+  { id: "prayers", title: "Молитвы" },
+  { id: "books", title: "Книги" },
+  { id: "calendar", title: "Календарь" },
+];
 
-const isEmptyList = (type: TabType) => {
-  return !tabs.value.find((tab) => tab.type === type)?.isLoading && getFavoritesByType(type).length === 0;
-};
+const selectedFilter = ref<FilterType>("all");
+
+const isLoading = computed(() => {
+  if (selectedFilter.value === "prayers" || selectedFilter.value === "books") {
+    return prayersStore.isLoading;
+  }
+  if (selectedFilter.value === "calendar") {
+    return saintsStore.isLoading || thoughtsStore.isLoading;
+  }
+  return (
+    prayersStore.isLoading ||
+    saintsStore.isLoading ||
+    thoughtsStore.isLoading
+  );
+});
+
+const isHistoryLoading = computed(
+  () =>
+    prayersStore.isLoading ||
+    saintsStore.isLoading ||
+    thoughtsStore.isLoading
+);
+
+const lastReadings = computed(() =>
+  historyStore.getLastItems("all", 10).map((r) => {
+    let name = "";
+    let url = "";
+
+    if (r.type === "prayers" || r.type === "books") {
+      const item = prayersStore.getItemById(r.id);
+      if (item) {
+        name = item.name;
+        url = item.url;
+      }
+    } else if (r.type === "saints") {
+      const saint = saintsStore.getSaintById(r.id);
+      if (saint) {
+        name = saint.name;
+      }
+      url = "/saints/" + r.id;
+    }
+
+    return {
+      name,
+      url,
+      ...r,
+    };
+  })
+);
+
+const currentFavorites = computed(() => {
+  if (selectedFilter.value === "all") {
+    return [
+      ...getFavoritesByType("prayers"),
+      ...getFavoritesByType("books"),
+      ...getFavoritesByType("calendar"),
+    ];
+  }
+  return getFavoritesByType(selectedFilter.value);
+});
+
+const isEmptyList = computed(
+  () => !isLoading.value && currentFavorites.value.length === 0
+);
 
 const showErrorToast = useErrorToast({
   text: "Ошибка при загрузке данных. Пожалуйста, проверьте интернет соединение.",
@@ -133,15 +169,15 @@ watchEffect(() => {
 
 
 // Используем методы из store
-const getFavoritesByType = (tabType: TabType) => {
+const getFavoritesByType = (filterType: Exclude<FilterType, "all">) => {
   let favorites: FavoritesItem[] = [];
-  if (tabType === "books") {
+  if (filterType === "books") {
     favorites = favoritesStore.getFavoritesByType("books");
 
-  } else if (tabType === "prayers") {
+  } else if (filterType === "prayers") {
     favorites = favoritesStore.getFavoritesByType("prayers");
 
-  } else if (tabType === "calendar") {
+  } else if (filterType === "calendar") {
     favorites = favoritesStore.getFavoritesByType("saints");
     favorites = favorites.concat(favoritesStore.getFavoritesByType("thoughts"));
 
@@ -208,6 +244,30 @@ const onSorted = (id: string, from: number, to: number) => {
 </script>
 
 <style scoped lang="less">
+.chips-block {
+  --filter-chip-selected-border: var(--brand-color-primary-accent-50);
+  --filter-chip-bg-color: var(--content-color-black-10);
+
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 0;
+
+  :deep(.chip) {
+    background-color: var( --filter-chip-bg-color);
+    border: 2px solid transparent;
+  }
+
+  :deep(.chip-selected) {
+    border-color: var(--filter-chip-selected-border);
+  }
+}
+
+:global(.dark .chips-block) {
+  // --filter-chip-selected-border: var(--content-color-white-100);
+  --filter-chip-bg-color: var(--content-color-baige-5);
+}
+
 .separator {
   margin-top: 30px;
 }

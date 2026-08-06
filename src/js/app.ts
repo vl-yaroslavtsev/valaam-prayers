@@ -26,7 +26,7 @@ import VirtualList from "framework7/components/virtual-list";
 import Tabs from "framework7/components/tabs";
 import Panel from "framework7/components/panel";
 import Card from "framework7/components/card";
-//import Chip from "framework7/components/chip";
+import Chip from "framework7/components/chip";
 import Form from "framework7/components/form";
 import Input from "framework7/components/input";
 import Checkbox from "framework7/components/checkbox";
@@ -77,7 +77,7 @@ Framework7.use([
   Tabs,
   Panel,
   Card,
-  // Chip,
+  Chip,
   Form,
   Input,
   Checkbox,
@@ -270,7 +270,7 @@ function registerComponents(app: TApp<Element>) {
   app.component("f7-card-header", f7CardHeader);
   app.component("f7-card", f7Card);
   app.component("f7-checkbox", f7Checkbox);
-  // app.component('f7-chip', f7Chip);
+  app.component("f7-chip", f7Chip);
   app.component("f7-fab-backdrop", f7FabBackdrop);
   app.component("f7-fab-button", f7FabButton);
   app.component("f7-fab-buttons", f7FabButtons);
