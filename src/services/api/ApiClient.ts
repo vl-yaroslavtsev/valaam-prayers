@@ -4,9 +4,9 @@ import { fetchJson } from '@/services/api/utils';
  * Базовая конфигурация API
  */
 const API_CONFIG = {
-  baseUrl: 'https://molitvoslov.valaam.ru/rest',
+  baseUrl: 'https://app.valaam.ru/rest',
   timeout: 15000,
-  retries: 1,
+  retries: 0,
   retryDelay: 1000,
 } as const;
 
