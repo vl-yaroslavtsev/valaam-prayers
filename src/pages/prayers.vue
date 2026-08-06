@@ -12,9 +12,7 @@
       <f7-nav-right
         ><f7-link v-if="!isFirstPage" @click="toggleSearch" icon-md="f7:search"
       /></f7-nav-right>
-      <f7-nav-title-large>{{
-        isFirstPage ? "Сейчас читаю" : title
-      }}</f7-nav-title-large>
+      <f7-nav-title-large>{{ title }}</f7-nav-title-large>
       <f7-searchbar
         ref="searchbar"
         class="searchbar-prayers"
@@ -31,15 +29,7 @@
         </template>
       </f7-searchbar>
     </f7-navbar>
-    <HistorySlider v-if="isFirstPage" :items="lastReadings" :isLoading="isLoading"></HistorySlider>
-    <f7-block-title v-if="isFirstPage && isLoading" class="block-title skeleton-text skeleton-effect-wave">
-      ______________________
-    </f7-block-title>
-    <f7-block-title v-if="isFirstPage && !isLoading" class="block-title">
-      {{ title }}
-    </f7-block-title>
     <PrayersList
-      :cssClass="`${isFirstPage ? 'no-margin-top' : ''}`"
       :isLoading="isLoading"
       :prayers="prayers"
       :query="searchQuery"
@@ -54,17 +44,16 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, useTemplateRef, onMounted } from "vue";
+import { ref, computed, useTemplateRef } from "vue";
 import type { Router, Searchbar } from "framework7/types";
 
 import BurgerIcon from "@/assets/icons/burger.svg?raw";
 import { PrayersList } from "@/components/prayers";
 import SvgIcon from "@/components/SvgIcon.vue";
 import SeparatorLine from "@/components/SeparatorLine.vue";
-import HistorySlider from "@/components/HistorySlider.vue";
 
 import { useTheme } from "@/composables/useTheme";
-import { usePrayersStore, BOOKS_SECTION_ID } from "@/stores/prayers";
+import { usePrayersStore } from "@/stores/prayers";
 import { useReadingHistoryStore } from "@/stores/readingHistory";
 
 const { sectionId, f7router } = defineProps<{
@@ -96,18 +85,6 @@ const prayers = computed(() =>
   })
 );
 
-const readingsType = sectionId == BOOKS_SECTION_ID ? "books" : "prayers";
-const lastReadings = computed(() => 
-  historyStore.getLastItems(readingsType, 10).map((r) => {
-    const p = prayersStore.getItemById(r.id) ?? { name: "", url: "" };
-    return {
-      name: p.name,
-      url: p.url,
-      ...r,
-    };
-  })
-);
-
 const onPageBeforeIn = () => {
   isFirstPage.value = f7router.history.length <= 1;
 };
@@ -133,10 +110,6 @@ const searchQuery = ref("");
 
 </script>
 <style scoped lang="less">
-.block-title {
-  margin-top: 20px;
-}
-
 .md .searchbar {
   .input-clear-button {
     &:not(.custom-button) {
