@@ -3,7 +3,7 @@ chcp 65001
 
 set KEY="C:\Users\Владимир\.ssh\id_rsa_valaam_ru"
 set USER="valaam.ru@valaam.ru"
-set REMOTE_FOLDER="/var/www/molitvoslov.valaam.ru/data"
+set REMOTE_FOLDER="/var/www/app.valaam.ru/data"
 
 
 ssh -i %KEY% %USER% "rm -rf %REMOTE_FOLDER%/app/*"

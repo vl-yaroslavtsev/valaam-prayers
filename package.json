@@ -1,7 +1,7 @@
 {
   "name": "valaam-prayers",
   "private": true,
-  "version": "1.13.3",
+  "version": "1.13.4",
   "description": "Валаамский молитвослов и календарь",
   "repository": "",
   "license": "UNLICENSED",
@@ -12,7 +12,7 @@
     "dev": "cross-env NODE_ENV=development vite",
     "dev-local": "cross-env NODE_ENV=development vite --host 172.21.112.50 --port 5173",
     "preview": "cross-env NODE_ENV=development vite preview",
-    "clean": "rmdir /s /q \"www\"",
+    "clean": "if exist www rmdir /s /q www",
     "build": "npm run clean && cross-env NODE_ENV=production vite build",
     "deploy": "scripts\\deploy.cmd",
     "prod": "npm run build && npm run deploy",
