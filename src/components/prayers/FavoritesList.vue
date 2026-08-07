@@ -1,5 +1,10 @@
 <template>
-  <f7-list ref="list" :class="`prayers ${cssClass} favorites-list ${showListAnimation ? 'is-animating' : ''}`" 
+  <f7-list ref="list" :class="[
+      'prayers',
+      'favorites-list',
+      cssClass,
+      { 'is-deleting': showListAnimation },
+    ]"
     :sortable="sortable" 
     :sortable-tap-hold="sortable"
     :sortable-enabled="isSortableMode" 
@@ -10,7 +15,8 @@
     <TransitionGroup 
       name="favorite-item"
       tag="ul" 
-      :key="isLoading ? 'loading' : 'loaded'">
+      :key="isLoading ? 'loading' : 'loaded'"
+      @before-leave="onBeforeLeave">
       <f7-list-item 
         :class="{ 'has-progress': !!item.progress, 'skeleton-text skeleton-effect-wave': isLoading }"
         swipeout 
@@ -48,8 +54,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watchEffect, watch, computed, useTemplateRef, ComponentPublicInstance } from "vue";
-import { storeToRefs } from "pinia";
+import { ref, watchEffect, computed, useTemplateRef, onBeforeUpdate, type ComponentPublicInstance } from "vue";
 import { f7 } from "framework7-vue";
 import { useTheme } from "@/composables/useTheme";
 import { useUndoToast } from "@/composables/useUndoToast";
@@ -119,6 +124,33 @@ const isSortableMode = computed(() => {
 });
 
 const showListAnimation = ref(0);
+
+/** Позиции li до патча DOM — нужны, т.к. leave идёт последовательно и absolute сбивает offsetTop. */
+const itemOffsets = new Map<string, { top: number; width: number }>();
+
+onBeforeUpdate(() => {
+  const listEl = listRef.value?.$el as HTMLElement | undefined;
+  const ul = listEl?.querySelector("ul");
+  if (!ul) return;
+
+  itemOffsets.clear();
+  ul.querySelectorAll<HTMLElement>("li[data-id]").forEach((li) => {
+    const id = li.dataset.id;
+    if (!id) return;
+    itemOffsets.set(id, { top: li.offsetTop, width: li.offsetWidth });
+  });
+});
+
+/** Фиксирует позицию уходящего элемента, чтобы при фильтре они не схлопывались в кучу. */
+const onBeforeLeave = (el: Element) => {
+  //return;
+  const htmlEl = el as HTMLElement;
+  const id = htmlEl.dataset.id;
+  const saved = id ? itemOffsets.get(id) : undefined;
+  htmlEl.style.top = `${saved?.top ?? htmlEl.offsetTop}px`;
+  htmlEl.style.left = "0";
+  htmlEl.style.width = `${saved?.width ?? htmlEl.offsetWidth}px`;
+};
 
 const deleteItem = (item: FavoriteListItem) => {
   showListAnimation.value = 1;
@@ -223,23 +255,50 @@ const handleContextMenu = (e: Event) => {
 </script>
 
 <style scoped>
-/* Анимация только при удалении (не при смене фильтра) */
-.favorites-list.is-animating .favorite-item-move,
-.favorites-list.is-animating .favorite-item-enter-active,
-.favorites-list.is-animating .favorite-item-leave-active {
-  transition: all ease 600ms;
+/* Якорь для absolute leave при фильтрации / удалении */
+.favorites-list :deep(ul) {
+  position: relative;
 }
 
-.favorites-list.is-animating .favorite-item-enter-from,
-.favorites-list.is-animating .favorite-item-leave-to {
+/* Плавная перестройка при смене фильтра */
+.favorite-item-move,
+.favorite-item-enter-active,
+.favorite-item-leave-active {
+  transition:
+    opacity 0.3s ease,
+    transform 0.3s ease;
+}
+
+.favorite-item-enter-from {
   opacity: 0;
+  transform: translateY(-12px);
+}
+
+.favorite-item-leave-to {
+  opacity: 0;
+  transform: translateY(8px);
+}
+
+.favorite-item-leave-active {
+  position: absolute;
+  width: 100%;
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* Более выразительная анимация удаления / undo */
+.favorites-list.is-deleting .favorite-item-move,
+.favorites-list.is-deleting .favorite-item-enter-active,
+.favorites-list.is-deleting .favorite-item-leave-active {
+  transition-duration: 0.6s;
+}
+
+.favorites-list.is-deleting .favorite-item-enter-from,
+.favorites-list.is-deleting .favorite-item-leave-to {
   transform: translateX(-40%) translateY(-50%);
 }
 
-/* position:absolute на leave схлопывает список — только при анимации удаления */
-.favorites-list.is-animating .favorite-item-leave-active {
-  position: absolute;
-  width: 100%;
+.favorites-list.is-deleting .favorite-item-leave-active {
   z-index: -1;
 }
 
