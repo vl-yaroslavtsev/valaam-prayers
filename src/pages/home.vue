@@ -142,7 +142,7 @@ const currentFavorites = computed(() => {
       ...getFavoritesByType("prayers"),
       ...getFavoritesByType("books"),
       ...getFavoritesByType("calendar"),
-    ];
+    ].sort((a, b) => a.sort - b.sort);
   }
   return getFavoritesByType(selectedFilter.value);
 });
@@ -178,8 +178,10 @@ const getFavoritesByType = (filterType: Exclude<FilterType, "all">) => {
     favorites = favoritesStore.getFavoritesByType("prayers");
 
   } else if (filterType === "calendar") {
-    favorites = favoritesStore.getFavoritesByType("saints");
-    favorites = favorites.concat(favoritesStore.getFavoritesByType("thoughts"));
+    favorites = [
+      ...favoritesStore.getFavoritesByType("saints"),
+      ...favoritesStore.getFavoritesByType("thoughts"),
+    ].sort((a, b) => a.sort - b.sort);
 
   }
   return favorites.map((f) => {
@@ -238,8 +240,8 @@ const toggleSortable = () => {
   sortableEnabled.value = !sortableEnabled.value;
 };
 
-const onSorted = (id: string, from: number, to: number) => {
-  favoritesStore.moveFavorite(id, from, to);
+const onSorted = (id: string, prevId: string | null) => {
+  favoritesStore.moveFavorite(id, prevId);
 };
 </script>
 

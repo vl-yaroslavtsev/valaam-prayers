@@ -87,16 +87,14 @@ export const useFavoritesStore = defineStore("favorites", () => {
       sort: -1,
     };
     favorites.value.push(newItem);
-    const itemsByType = favorites.value
-      .filter((p) => p.type === type)
-      .sort((a, b) => a.sort - b.sort);
-    itemsByType.forEach((p, i) => {
+    const sortedItems = favorites.value.sort((a, b) => a.sort - b.sort);
+    sortedItems.forEach((p, i) => {
       p.sort = i;
     });
 
     // Сохраняем в IndexedDB
     try {
-      await favoritesStorage?.putAll(itemsByType);
+      await favoritesStorage?.putAll(sortedItems);
     } catch (error) {
       console.error('Failed to save favorite to storage:', error);
     }
@@ -106,23 +104,23 @@ export const useFavoritesStore = defineStore("favorites", () => {
     return !!favorites.value.find((p) => p.id === id);
   };
 
-  const moveFavorite = async (id: string, from: number, to: number) => {
+  const moveFavorite = async (id: string, prevId: string | null) => {
     const item = favorites.value.find((p) => p.id === id);
     if (!item) return;
 
-    const { type } = item;
-    const itemsByType = favorites.value
-      .filter((p) => p.type === type)
-      .sort((a, b) => a.sort - b.sort);
-    const [removedItem] = itemsByType.splice(from, 1);
-    itemsByType.splice(to, 0, removedItem);
-    itemsByType.forEach((p, i) => {
+    const sortedItems = favorites.value.sort((a, b) => a.sort - b.sort);
+    const fromIndex = sortedItems.findIndex((p) => p.id === id);
+    let toIndex = prevId === null ? 0 : sortedItems.findIndex((p) => p.id === prevId) + 1;
+    const [removedItem] = sortedItems.splice(fromIndex, 1);
+    if (fromIndex < toIndex) toIndex--;
+    sortedItems.splice(toIndex, 0, removedItem);
+    sortedItems.forEach((p, i) => {
       p.sort = i;
     });
 
     // Сохраняем в IndexedDB
     try {
-      await favoritesStorage?.putAll(itemsByType);
+      await favoritesStorage?.putAll(sortedItems);
     } catch (error) {
       console.error('Failed to save favorite to storage:', error);
     }

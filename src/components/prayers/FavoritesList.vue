@@ -93,7 +93,7 @@ const emit = defineEmits<{
   undoDeleteItem: [];
   resetItemProgress: [id: string];
   undoResetItemProgress: [];
-  sorted: [id: string, from: number, to: number];
+  sorted: [id: string, prevId: string | null];
 }>();
 
 const { isDarkMode } = useTheme();
@@ -130,9 +130,10 @@ const deleteItem = (item: FavoriteListItem) => {
 };
 
 const onSortableSort = ({ from, to, el }: { from: number; to: number; el: HTMLElement }) => {
-  // console.log("onSortableSort", from, to, el);
+  const prevEl = el.previousElementSibling;
+  const prevId = prevEl ? (prevEl as HTMLElement).dataset.id as string : null;
   const id = el.dataset.id as string;
-  emit("sorted", id, from, to);
+  emit("sorted", id, prevId);
 };
 
 const { getComponent } = useComponentsStore();
