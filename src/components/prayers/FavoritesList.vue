@@ -1,5 +1,5 @@
 <template>
-  <f7-list ref="list" :class="`prayers ${cssClass} favorites-list`" 
+  <f7-list ref="list" :class="`prayers ${cssClass} favorites-list ${showListAnimation ? 'is-animating' : ''}`" 
     :sortable="sortable" 
     :sortable-tap-hold="sortable"
     :sortable-enabled="isSortableMode" 
@@ -223,23 +223,21 @@ const handleContextMenu = (e: Event) => {
 </script>
 
 <style scoped>
-/* Анимация для удаления элементов из избранного */
-.favorite-item-move,
-.favorite-item-enter-active,
-.favorite-item-leave-active {
-  transition: all ease;
-  transition-duration: calc(600ms * v-bind(showListAnimation));
+/* Анимация только при удалении (не при смене фильтра) */
+.favorites-list.is-animating .favorite-item-move,
+.favorites-list.is-animating .favorite-item-enter-active,
+.favorites-list.is-animating .favorite-item-leave-active {
+  transition: all ease 600ms;
 }
 
-.favorite-item-enter-from,
-.favorite-item-leave-to {
+.favorites-list.is-animating .favorite-item-enter-from,
+.favorites-list.is-animating .favorite-item-leave-to {
   opacity: 0;
-  /* transform: translateY(-50%); */
   transform: translateX(-40%) translateY(-50%);
 }
 
-/* Обеспечиваем плавное схлопывание высоты */
-.favorite-item-leave-active {
+/* position:absolute на leave схлопывает список — только при анимации удаления */
+.favorites-list.is-animating .favorite-item-leave-active {
   position: absolute;
   width: 100%;
   z-index: -1;

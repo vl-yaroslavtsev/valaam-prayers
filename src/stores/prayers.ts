@@ -395,7 +395,7 @@ export const usePrayersStore = defineStore("prayers", () => {
   };
 
   const isBook = (itemId: string) => {
-    return isItemInSection(itemId, BOOKS_SECTION_ID);
+    return isItemInSection(itemId, BOOKS_SECTION_ID) || isItemInSection(itemId, BIBLE_SECTION_ID);
   };
 
   const isItemInSection = (itemId: string, sectionId: string) => {

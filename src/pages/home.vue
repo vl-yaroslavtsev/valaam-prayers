@@ -22,29 +22,35 @@
     </f7-navbar>
     <HistorySlider :items="lastReadings" :isLoading="isHistoryLoading" />
     <f7-block-title>Избранное</f7-block-title>
-    <f7-block class="chips-block">
+    <f7-block ref="chipsBlockRef" class="chips-block">
       <f7-chip
         v-for="chip in chips"
         :key="chip.id"
         :text="chip.title"
         :class="{ 'chip-selected': selectedFilter === chip.id }"
-        @click="selectedFilter = chip.id"
+        @click="onFilterClick(chip.id)"
       />
     </f7-block>
     <f7-block v-if="isEmptyList"
       >Отметьте звездочкой молитвы, книги, святые, мысли и они появятся здесь.</f7-block
     >
-    <FavoritesList
-      :isLoading="isLoading"
-      sortable
-      :sortable-enabled="sortableEnabled"
-      :favorites="currentFavorites"
-      @delete-item="onDeleteItem"
-      @undo-delete-item="onUndoDeleteItem"
-      @reset-item-progress="onResetItemProgress"
-      @undo-reset-item-progress="onUndoResetItemProgress"
-      @sorted="onSorted"
-    />
+    <div
+      ref="favoritesSectionRef"
+      class="favorites-section"
+      :style="favoritesSectionMinHeight ? { minHeight: favoritesSectionMinHeight } : undefined"
+    >
+      <FavoritesList
+        :isLoading="isLoading"
+        sortable
+        :sortable-enabled="sortableEnabled"
+        :favorites="currentFavorites"
+        @delete-item="onDeleteItem"
+        @undo-delete-item="onUndoDeleteItem"
+        @reset-item-progress="onResetItemProgress"
+        @undo-reset-item-progress="onUndoResetItemProgress"
+        @sorted="onSorted"
+      />
+    </div>
     <SeparatorLine
       class="separator"
       :color="isDarkMode ? 'baige-10' : 'black-10'"
@@ -53,7 +59,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watchEffect, computed } from "vue";
+import { ref, watchEffect, computed, nextTick, useTemplateRef } from "vue";
 import { useTheme } from "@/composables/useTheme";
 import { useFavoritesStore, type FavoritesItem } from "@/stores/favorites";
 import { usePrayersStore } from "@/stores/prayers";
@@ -87,6 +93,46 @@ const chips: { id: FilterType; title: string }[] = [
 ];
 
 const selectedFilter = ref<FilterType>("all");
+const chipsBlockRef = useTemplateRef("chipsBlockRef");
+const favoritesSectionRef = useTemplateRef<HTMLElement>("favoritesSectionRef");
+const favoritesSectionMinHeight = ref<string | null>(null);
+
+const getF7El = (refValue: unknown): HTMLElement | null => {
+  if (!refValue) return null;
+  if (refValue instanceof HTMLElement) return refValue;
+  const el = (refValue as { $el?: HTMLElement }).$el;
+  return el instanceof HTMLElement ? el : null;
+};
+
+/** Сохраняет позицию chips при смене фильтра: короткие списки не схлопывают scrollHeight. */
+const onFilterClick = async (id: FilterType) => {
+  if (selectedFilter.value === id) return;
+
+  const chipsEl = getF7El(chipsBlockRef.value);
+  const favoritesSection = favoritesSectionRef.value;
+  const pageContent = chipsEl?.closest(".page-content") as HTMLElement | null;
+
+  if (pageContent && favoritesSection) {
+    // min-height секции = место от её начала до низа видимой области при текущем scrollTop
+    const needed =
+      pageContent.scrollTop +
+      pageContent.clientHeight -
+      favoritesSection.offsetTop;
+    favoritesSectionMinHeight.value = `${Math.max(needed, 0)}px`;
+  }
+
+  const anchorTop = chipsEl?.getBoundingClientRect().top ?? null;
+  selectedFilter.value = id;
+
+  await nextTick();
+
+  if (!pageContent || !chipsEl || anchorTop == null) return;
+
+  const delta = chipsEl.getBoundingClientRect().top - anchorTop;
+  if (Math.abs(delta) > 1) {
+    pageContent.scrollTop += delta;
+  }
+};
 
 const isLoading = computed(() => {
   if (selectedFilter.value === "prayers" || selectedFilter.value === "books") {
@@ -268,6 +314,10 @@ const onSorted = (id: string, prevId: string | null) => {
 :global(.dark .chips-block) {
   // --filter-chip-selected-border: var(--content-color-white-100);
   --filter-chip-bg-color: var(--content-color-baige-5);
+}
+
+.favorites-section {
+  overflow-anchor: none;
 }
 
 .separator {
