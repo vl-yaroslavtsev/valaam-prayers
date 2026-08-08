@@ -2,10 +2,32 @@ import path from "path";
 import vue from "@vitejs/plugin-vue";
 import { VitePWA } from "vite-plugin-pwa";
 import config from "./package.json";
+import { generateIconTypes } from "./scripts/generate-icon-types.js";
 
 const SRC_DIR = path.resolve(__dirname, "./src");
 const PUBLIC_DIR = path.resolve(__dirname, "./public");
 const BUILD_DIR = path.resolve(__dirname, "./www");
+const ICONS_DIR = path.resolve(SRC_DIR, "assets/icons");
+
+// Перегенерирует src/types/icon-name.d.ts из файлов src/assets/icons,
+// чтобы тип IconName не приходилось прописывать вручную.
+function svgIconTypesPlugin() {
+  return {
+    name: "svg-icon-types",
+    buildStart() {
+      generateIconTypes();
+    },
+    configureServer(server) {
+      generateIconTypes();
+      server.watcher.on("add", (file) => {
+        if (file.startsWith(ICONS_DIR) && file.endsWith(".svg")) generateIconTypes();
+      });
+      server.watcher.on("unlink", (file) => {
+        if (file.startsWith(ICONS_DIR) && file.endsWith(".svg")) generateIconTypes();
+      });
+    },
+  };
+}
 
 process.env.VITE_APP_VER = config.version;
 
@@ -19,6 +41,7 @@ export default async () => {
       },
     },
     plugins: [
+      svgIconTypesPlugin(),
       vue({
         template: {
           compilerOptions: {

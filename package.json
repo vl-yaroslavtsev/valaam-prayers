@@ -1,7 +1,7 @@
 {
   "name": "valaam-prayers",
   "private": true,
-  "version": "1.13.4",
+  "version": "1.13.5",
   "description": "Валаамский молитвослов и календарь",
   "repository": "",
   "license": "UNLICENSED",
@@ -16,9 +16,10 @@
     "build": "npm run clean && cross-env NODE_ENV=production vite build",
     "deploy": "scripts\\deploy.cmd",
     "prod": "npm run build && npm run deploy",
+    "pretype-check": "node scripts/generate-icon-types.js",
     "type-check": "vue-tsc --noEmit",
     "format": "prettier --write src/",
-    "postinstall": "cpy --flat ./node_modules/material-icons/iconfont/*.* ./src/fonts/"
+    "postinstall": "cpy --flat ./node_modules/material-icons/iconfont/*.* ./src/fonts/ && node scripts/generate-icon-types.js"
   },
   "browserslist": [
     "IOS >= 15",

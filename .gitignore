@@ -40,3 +40,6 @@ Thumbs.db
 
 # Production build
 www/
+
+# Автогенерируемые типы (см. scripts/generate-icon-types.js)
+src/types/icon-name.d.ts

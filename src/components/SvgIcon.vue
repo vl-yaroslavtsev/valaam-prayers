@@ -7,52 +7,7 @@
 </template>
 <script setup lang="ts">
 import { computed } from 'vue';
-
-type IconName =
-  | "arrow-right-left"
-  | "arrow-up-down"
-  | "burger"
-  | "pencil"
-  | "favorite"
-  | "favorite-filled"
-  | "cancel"
-  | "chain"
-  | "share"
-  | "reset"
-  | "delete"
-  | "search"
-  | "settings"
-  | "settings-2"
-  | "info"
-  | "language"
-  | "menu"
-  | "home"
-  | "calendar"
-  | "calendar-month"
-  | "calendar-week"
-  | "calendar-day"
-  | "books"
-  | "molitvoslov"
-  | "alarm"
-  | "notes"
-  | "pray"
-  | "about"
-  | "rites"
-  | "telegram"
-  | "vk"
-  | "whatsapp"
-  | "odnoklassniki"
-  | "valaam-logo"
-  | "align-center"
-  | "color-theme"
-  | "double-arrow"
-  | "fullscreen"
-  | "letter-a"
-  | "letter-b"
-  | "letter-tt"
-  | "line-height"
-  | "sun"
-  | "wrap-text";
+import type { IconName } from '@/types/icon-name';
 
 type IconColor = 
   | "white"
