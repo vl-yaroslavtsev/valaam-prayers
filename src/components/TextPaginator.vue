@@ -242,6 +242,7 @@ const scrollToProgress = (progress: number, animate: boolean) => {
   if (!el) {
     return;
   }
+  markProgrammaticScrollStart();
   const maxScroll = Math.max(0, el.scrollHeight - el.clientHeight);
   el.scrollTo({ top: progress * maxScroll, behavior: animate ? "smooth" : "instant" });
 };
@@ -326,6 +327,28 @@ const supportsScrollEnd = typeof window !== "undefined" && "onscrollend" in wind
 let verticalTouchStartPoint: { x: number; y: number } | null = null;
 const VERTICAL_TAP_MOVE_THRESHOLD = 10; // px — максимальное смещение пальца, чтобы считать касание тапом
 
+// Флаг "сейчас идёт наш собственный el.scrollTo()" — нужен, чтобы отличать
+// инерционную (momentum) докрутку браузера после свайпа от программного скролла
+const isProgrammaticScroll = ref(false);
+let programmaticScrollTimeout: ReturnType<typeof setTimeout> | null = null;
+
+const markProgrammaticScrollStart = () => {
+  isProgrammaticScroll.value = true;
+  if (programmaticScrollTimeout) {
+    clearTimeout(programmaticScrollTimeout);
+  }
+  // Страховка на случай, если "scrollend" не придёт (с запасом больше длительности smooth-анимации)
+  programmaticScrollTimeout = setTimeout(() => {
+    isProgrammaticScroll.value = false;
+    programmaticScrollTimeout = null;
+  }, 400);
+};
+
+// Инерционная докрутка: скролл идёт, палец уже не касается экрана, и это не наш scrollTo()
+const isMomentumScrolling = computed(
+  () => isTransitioning.value && !isTouchingVertical.value && !isProgrammaticScroll.value
+);
+
 const emitVerticalTapZone = (x: number, y: number, rect: DOMRect) => {
   const topZone = rect.height * 0.25; // 25% сверху
   const bottomZone = rect.height * 0.75; // 75% от верха (25% снизу)
@@ -372,10 +395,17 @@ const tryEmitVerticalTap = (clientX: number, clientY: number) => {
   emitVerticalTapZone(clientX - rect.left, clientY - rect.top, rect);
 };
 
+// true, если палец коснулся экрана во время инерционной прокрутки — такое касание
+// "ловит"/останавливает скролл и не должно считаться тапом по меню
+let verticalTouchStoppedMomentum = false;
+
 const handleVerticalTouchStart = (event: TouchEvent) => {
   if (isLoading || isCalculating.value) {
     return;
   }
+
+  verticalTouchStoppedMomentum = isMomentumScrolling.value;
+
   isTouchingVertical.value = true;
 
   const touch = event.touches[0];
@@ -397,8 +427,10 @@ const handleVerticalTouchEnd = (event: TouchEvent) => {
   const startPoint = verticalTouchStartPoint;
   verticalTouchStartPoint = null;
   const touch = event.changedTouches[0];
+  const stoppedMomentum = verticalTouchStoppedMomentum;
+  verticalTouchStoppedMomentum = false;
 
-  if (startPoint && touch) {
+  if (startPoint && touch && !stoppedMomentum) {
     const dx = touch.clientX - startPoint.x;
     const dy = touch.clientY - startPoint.y;
     if (Math.hypot(dx, dy) <= VERTICAL_TAP_MOVE_THRESHOLD) {
@@ -426,6 +458,7 @@ const handleVerticalScroll = () => {
     }
     verticalScrollSettleTimeout = setTimeout(() => {
       isTransitioning.value = false;
+      isProgrammaticScroll.value = false;
       verticalScrollSettleTimeout = null;
     }, 120);
   }
@@ -446,6 +479,11 @@ const handleVerticalScroll = () => {
 const handleVerticalScrollEnd = () => {
   console.log("handleVerticalScrollEnd isTransitioning false");
   isTransitioning.value = false;
+  isProgrammaticScroll.value = false;
+  if (programmaticScrollTimeout) {
+    clearTimeout(programmaticScrollTimeout);
+    programmaticScrollTimeout = null;
+  }
 };
 
 const restoreProgress = () => {
@@ -657,6 +695,7 @@ const scrollByPage = (direction: 1 | -1) => {
     lastVerticalScrollTimeout = null;
   }, speed);
 
+  markProgrammaticScrollStart();
   el.scrollTo({ top: lastVerticalScrollTarget, behavior: "smooth" });
 };
 
@@ -681,6 +720,7 @@ defineExpose({
     if (!el || !pageHeightPx.value) {
       return;
     }
+    markProgrammaticScrollStart();
     el.scrollTo({ top: (page - 1) * pageHeightPx.value, behavior: animate ? "smooth" : "instant" });
   },
   setProgress: (progress: number) => {
