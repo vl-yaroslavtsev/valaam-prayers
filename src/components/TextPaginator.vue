@@ -1,5 +1,6 @@
 <template>
   <swiper-container 
+    v-if="mode === 'horizontal'"
     :key="`swiper-${mode}`"    
     :class="`text-paginator mode-${mode} reading-text ${lang ? 'prayer-text lang-' + lang : ''} theme-${theme}`" 
     ref="swiper"     
@@ -9,13 +10,9 @@
       addSlidesBefore: 1,
     }" 
     :direction="mode"
-    :freeMode="mode === 'horizontal' ? false : {
-      enabled: true,
-      momentumRatio: 0.75,
-      momentumVelocityRatio: 1.2,
-    }" 
+    :freeMode="false" 
     :speed="300"
-    :effect="mode === 'horizontal' ? 'creative' : 'slide'" 
+    :effect="'creative'" 
     :creativeEffect="{
       prev: {
         shadow: true,
@@ -34,6 +31,38 @@
     @progress="handleProgress"
     @settransition="handleSetTransition" >
   </swiper-container>
+  <div
+    v-else
+    ref="verticalContainer"
+    :data-text-paginator-id="paginatorInstanceId"
+    :class="`text-paginator mode-${mode} reading-text ${lang ? 'prayer-text lang-' + lang : ''} theme-${theme}`"
+    @click="handleVerticalClick"
+    @scroll.passive="handleVerticalScroll"
+    @touchstart.passive="handleVerticalTouchStart"
+    @touchend.passive="handleVerticalTouchEnd"
+  >
+    <f7-list
+      class="text-paginator-vlist"
+      virtual-list
+      :virtual-list-params="{
+        items: [],
+        renderExternal: handleRenderExternal,
+        height: 1,
+        setListHeight: true,
+        scrollableParentEl: paginatorInstanceSelector,
+        rowsBefore: 2,
+        rowsAfter: 2,
+      }"
+    >
+      <li
+        v-for="item in vlData.items"
+        :key="item.index"
+        class="text-page"
+        :style="{ top: (vlData.topPosition || 0) + 'px', height: pageHeightPx + 'px' }"
+        v-html="item.html"
+      ></li>
+    </f7-list>
+  </div>
   <div :class="`text-paginator-progress theme-${theme}`"
        v-if="!isLoading && !isCalculating" >
     <f7-progressbar 
@@ -80,6 +109,7 @@ import { useDelayed } from "@/composables/useDelayed";
 import type { PaginationCacheItemHeader } from "@/services/storage/PaginationCacheStorage";
 import type { SwiperContainer } from "swiper/element";
 import type { Swiper } from "swiper";
+import type { VirtualList } from "framework7/types";
 import type { TextTheme, Language } from "@/types/common";
 import {
   paginateText
@@ -102,6 +132,12 @@ const {
 
 
 const swiperRef = useTemplateRef<SwiperContainer>("swiper");
+const verticalContainerRef = useTemplateRef<HTMLElement>("verticalContainer");
+
+// Уникальный на инстанс идентификатор для scrollableParentEl VirtualList (несколько страниц
+// читалки могут одновременно жить в DOM из-за кэширования страниц Framework7)
+const paginatorInstanceId = `tp-${Math.random().toString(36).slice(2)}`;
+const paginatorInstanceSelector = `[data-text-paginator-id="${paginatorInstanceId}"]`;
 
 const settingsStore = useSettingsStore();
 const { } = useTextSettings(); // Инициализируем синхронизацию настроек текста глобально
@@ -116,8 +152,8 @@ const theme = computed(() => settingsStore.textTheme);
 const emit = defineEmits<{
   tap: [payload: { type: "center" | "left" | "right" | "top" | "bottom"; x: number; y: number }];
   progress: [payload: { progress: number, pages: number }];
-  touchstart: [payload: { swiper: Swiper, event: PointerEvent }];
-  touchend: [event: TouchEvent];
+  touchstart: [payload: { swiper: Swiper | null, event: Event }];
+  touchend: [event: Event];
 }>();
 
 let swiperRect = {
@@ -152,6 +188,63 @@ const updateSlides = (slides: string[]) => {
   swiper.virtual.update(true);
 };
 
+// --- Вертикальный режим: Framework7 VirtualList на нативном скролле ---
+
+interface VerticalListItem {
+  index: number;
+  html: string;
+}
+
+interface VerticalListRenderData {
+  fromIndex?: number;
+  toIndex?: number;
+  listHeight?: number;
+  topPosition?: number;
+  items: VerticalListItem[];
+}
+
+let f7VirtualList: VirtualList.VirtualList | undefined;
+const vlData = ref<VerticalListRenderData>({ items: [] });
+const pageHeightPx = ref<number>(0);
+
+const handleRenderExternal = (vl: VirtualList.VirtualList, data: VerticalListRenderData) => {
+  f7VirtualList = vl;
+  vlData.value = data;
+};
+
+const pushPagesToVerticalList = () => {
+  if (!f7VirtualList) {
+    return;
+  }
+
+  const container = verticalContainerRef.value;
+  if (container) {
+    pageHeightPx.value = container.clientHeight;
+  }
+
+  f7VirtualList.params.height = pageHeightPx.value || 1;
+  f7VirtualList.replaceAllItems(
+    pages.value.map((html, index) => ({ index, html }))
+  );
+};
+
+// Применяет посчитанные страницы к активному в данный момент рендереру (swiper или VirtualList)
+const applyPages = () => {
+  if (mode.value === "horizontal") {
+    updateSlides(pages.value);
+  } else {
+    pushPagesToVerticalList();
+  }
+};
+
+const scrollToProgress = (progress: number, animate: boolean) => {
+  const el = verticalContainerRef.value;
+  if (!el) {
+    return;
+  }
+  const maxScroll = Math.max(0, el.scrollHeight - el.clientHeight);
+  el.scrollTo({ top: progress * maxScroll, behavior: animate ? "smooth" : "instant" });
+};
 
 const { clearSelection, isSelected } = useTextSelection();
 
@@ -179,77 +272,38 @@ const handleTap = (e: CustomEvent<[swiper: Swiper, event: PointerEvent]>) => {
   const x = clientX - swiperRect.left;
   const y = clientY - swiperRect.top;
 
-  // Определяем область касания в зависимости от режима
-  if (mode.value === "horizontal") {
-    // Горизонтальный режим
-    const leftZone = swiperRect.width * 0.25; // 25% слева
-    const rightZone = swiperRect.width * 0.75; // 75% от левого края (25% справа)
-    const centerX = swiperRect.width * 0.5; // Центр по горизонтали
+  // Горизонтальный режим
+  const leftZone = swiperRect.width * 0.25; // 25% слева
+  const rightZone = swiperRect.width * 0.75; // 75% от левого края (25% справа)
+  const centerX = swiperRect.width * 0.5; // Центр по горизонтали
 
-    // Дополнительные ограничения для центральной области по вертикали
-    const topCenterZone = swiperRect.height * 0.3; // 30% сверху
-    const bottomCenterZone = swiperRect.height * 0.7; // 70% от верха (20% снизу)
+  // Дополнительные ограничения для центральной области по вертикали
+  const topCenterZone = swiperRect.height * 0.3; // 30% сверху
+  const bottomCenterZone = swiperRect.height * 0.7; // 70% от верха (20% снизу)
 
-    if (x < leftZone) {
-      // Левая область - предыдущая страница
-      emit("tap", { type: "left", x, y });
-      // swiper.slidePrev();
-    } else if (x > rightZone) {
-      // Правая область - следующая страница
-      emit("tap", { type: "right", x, y });
-      // swiper.slideNext();
-    } else {
-      // Находимся в центральной горизонтальной зоне
-      if (y >= topCenterZone && y <= bottomCenterZone) {
-        // Центральная область - показать меню
-        emit("tap", { type: "center", x, y });
-      } else {
-        // В nav top или nav bottom - определяем по половинам
-        if (x < centerX) {
-          // Левая половина nav области
-          emit("tap", { type: "left", x, y });
-          // swiper.slidePrev();
-        } else {
-          // Правая половина nav области
-          emit("tap", { type: "right", x, y });
-          // swiper.slideNext();
-        }
-      }
-    }
+  if (x < leftZone) {
+    // Левая область - предыдущая страница
+    emit("tap", { type: "left", x, y });
+    // swiper.slidePrev();
+  } else if (x > rightZone) {
+    // Правая область - следующая страница
+    emit("tap", { type: "right", x, y });
+    // swiper.slideNext();
   } else {
-    // Вертикальный режим
-    const topZone = swiperRect.height * 0.25; // 25% сверху
-    const bottomZone = swiperRect.height * 0.75; // 75% от верха (25% снизу)
-    const centerY = swiperRect.height * 0.5; // Центр по вертикали
-
-    // Дополнительные ограничения для центральной области по горизонтали
-    const leftCenterZone = swiperRect.width * 0.3; // 30% слева
-    const rightCenterZone = swiperRect.width * 0.7; // 70% от левого края (20% справа)
-
-    if (y < topZone) {
-      // Верхняя область - предыдущая страница
-      emit("tap", { type: "top", x, y });
-      // swiper.slidePrev();
-      // swiper.translateTo(swiper.translate + swiperRect.height, swiper.params.speed || 300);
-    } else if (y > bottomZone) {
-      // Нижняя область - следующая страница
-      emit("tap", { type: "bottom", x, y });
-      // swiper.slideNext();
-      // swiper.translateTo(swiper.translate - swiperRect.height, swiper.params.speed || 300);
+    // Находимся в центральной горизонтальной зоне
+    if (y >= topCenterZone && y <= bottomCenterZone) {
+      // Центральная область - показать меню
+      emit("tap", { type: "center", x, y });
     } else {
-      // Находимся в центральной вертикальной зоне
-      if (x >= leftCenterZone && x <= rightCenterZone) {
-        // Центральная область - показать меню
-        emit("tap", { type: "center", x, y });
+      // В nav top или nav bottom - определяем по половинам
+      if (x < centerX) {
+        // Левая половина nav области
+        emit("tap", { type: "left", x, y });
+        // swiper.slidePrev();
       } else {
-        // В left или right nav области - определяем по половинам
-        if (y < centerY) {
-          // Верхняя половина nav области
-          emit("tap", { type: "top", x, y });
-        } else {
-          // Нижняя половина nav области
-          emit("tap", { type: "bottom", x, y });
-        }
+        // Правая половина nav области
+        emit("tap", { type: "right", x, y });
+        // swiper.slideNext();
       }
     }
   }
@@ -262,20 +316,161 @@ const handleSlideChange = (e: CustomEvent<[swiper: Swiper]>) => {
   }
 };
 
+// --- Вертикальный режим: обработка тапов/скролла/касаний на нативном скролле ---
+
+const isTouchingVertical = ref(false);
+let verticalScrollSettleTimeout: ReturnType<typeof setTimeout> | null = null;
+let verticalTouchStartPoint: { x: number; y: number } | null = null;
+let suppressNextVerticalClick = false;
+const VERTICAL_TAP_MOVE_THRESHOLD = 10; // px — максимальное смещение пальца, чтобы считать касание тапом
+
+const emitVerticalTapZone = (x: number, y: number, rect: DOMRect) => {
+  const topZone = rect.height * 0.25; // 25% сверху
+  const bottomZone = rect.height * 0.75; // 75% от верха (25% снизу)
+  const centerY = rect.height * 0.5; // Центр по вертикали
+
+  // Дополнительные ограничения для центральной области по горизонтали
+  const leftCenterZone = rect.width * 0.3; // 30% слева
+  const rightCenterZone = rect.width * 0.7; // 70% от левого края (20% справа)
+
+  if (y < topZone) {
+    emit("tap", { type: "top", x, y });
+  } else if (y > bottomZone) {
+    emit("tap", { type: "bottom", x, y });
+  } else {
+    if (x >= leftCenterZone && x <= rightCenterZone) {
+      emit("tap", { type: "center", x, y });
+    } else {
+      if (y < centerY) {
+        emit("tap", { type: "top", x, y });
+      } else {
+        emit("tap", { type: "bottom", x, y });
+      }
+    }
+  }
+};
+
+// Общая проверка перед эмитом тапа по зоне (используется и из touchend, и из click)
+const tryEmitVerticalTap = (clientX: number, clientY: number) => {
+  if (isLoading || isCalculating.value) {
+    return;
+  }
+
+  if (isSelected.value) {
+    clearSelection();
+    return;
+  }
+
+  if (isMomentumTransitioning.value) {
+    return;
+  }
+
+  const el = verticalContainerRef.value;
+  if (!el) {
+    return;
+  }
+
+  const rect = el.getBoundingClientRect();
+  emitVerticalTapZone(clientX - rect.left, clientY - rect.top, rect);
+};
+
+const handleVerticalClick = (event: MouseEvent) => {
+  // Тап уже обработан в touchend (см. ниже) — игнорируем синтетический click,
+  // который браузер шлёт следом за touchend на реальных устройствах
+  if (suppressNextVerticalClick) {
+    suppressNextVerticalClick = false;
+    return;
+  }
+
+  tryEmitVerticalTap(event.clientX, event.clientY);
+};
+
+const handleVerticalTouchStart = (event: TouchEvent) => {
+  if (isLoading || isCalculating.value) {
+    return;
+  }
+  isTouchingVertical.value = true;
+
+  const touch = event.touches[0];
+  verticalTouchStartPoint = touch ? { x: touch.clientX, y: touch.clientY } : null;
+
+  emit("touchstart", { swiper: null, event });
+};
+
+const handleVerticalTouchEnd = (event: TouchEvent) => {
+  if (isLoading || isCalculating.value) {
+    return;
+  }
+  isTouchingVertical.value = false;
+
+  if (!event.isTrusted) {
+    event.stopPropagation();
+  }
+
+  const startPoint = verticalTouchStartPoint;
+  verticalTouchStartPoint = null;
+  const touch = event.changedTouches[0];
+
+  if (startPoint && touch) {
+    const dx = touch.clientX - startPoint.x;
+    const dy = touch.clientY - startPoint.y;
+    if (Math.hypot(dx, dy) <= VERTICAL_TAP_MOVE_THRESHOLD) {
+      // Эмитим "tap" ДО "touchend": родитель (prayersText.vue) сбрасывает свой guard
+      // от повторного показа меню именно по "touchend", а тап должен успеть отработать
+      // до этого сброса — так же, как это естественным образом происходит в Swiper
+      tryEmitVerticalTap(touch.clientX, touch.clientY);
+      suppressNextVerticalClick = true;
+    }
+  }
+
+  emit("touchend", event);
+};
+
+const handleVerticalScroll = () => {
+  if (isSelected.value) {
+    clearSelection();
+  }
+
+  isTransitioning.value = true;
+  //isMomentumTransitioning.value = !isTouchingVertical.value;
+
+  if (verticalScrollSettleTimeout) {
+    clearTimeout(verticalScrollSettleTimeout);
+  }
+  verticalScrollSettleTimeout = setTimeout(() => {
+    isTransitioning.value = false;
+    //isMomentumTransitioning.value = false;
+    verticalScrollSettleTimeout = null;
+  }, 120);
+
+  if (isLoading || isCalculating.value) {
+    return;
+  }
+
+  const el = verticalContainerRef.value;
+  if (!el) {
+    return;
+  }
+  const maxScroll = el.scrollHeight - el.clientHeight;
+  currentProgress.value = maxScroll > 0 ? Math.min(1, Math.max(0, el.scrollTop / maxScroll)) : 0;
+};
+
 const restoreProgress = () => {
   const progress = currentProgress.value;
   console.log("restoreProgress", progress);
 
-  if (!progress || !swiperRef.value) {
+  if (!progress) {
     return;
   }
-  
-  const swiper = swiperRef.value.swiper;
 
   if (mode.value === "horizontal") {
+    if (!swiperRef.value) {
+      return;
+    }
+    const swiper = swiperRef.value.swiper;
     swiper.slideTo(Math.floor(progress * swiper.virtual.slides.length), 0);
   } else {
-    swiper.setProgress(progress);
+    scrollToProgress(progress, false);
   }
 };
 
@@ -312,8 +507,8 @@ async () => {
     return;
   }
 
-  const container = swiperRef.value;
-
+  const container: HTMLElement | undefined =
+    mode.value === "horizontal" ? swiperRef.value ?? undefined : verticalContainerRef.value ?? undefined;
 
   if (text && container) {
     
@@ -342,7 +537,7 @@ async () => {
       setCachedText(itemId, lang, pages.value, headers.value);
     }
     
-    updateSlides(pages.value);
+    applyPages();
 
     restoreProgress();
 
@@ -354,22 +549,27 @@ async () => {
 watch(mode, async (newMode) => {
 
   isCalculating.value = true;
-  // При смене режима компонент пересоздается благодаря key
-  // Нужно только дождаться пересоздания и обновить слайды
+  // При смене режима компонент пересоздается (v-if/v-else меняет ветку рендера)
+  // Нужно только дождаться пересоздания и обновить страницы в новом рендерере
   await nextTick();
-  
-  const swiper = swiperRef.value?.swiper;
-  if (!swiper || pages.value.length === 0) {
+
+  if (pages.value.length === 0) {
     isCalculating.value = false;
     return;
-  }  
-  
-  // Обновляем слайды в новом swiper
-  updateSlides(pages.value);
-  
+  }
+
+  const isReady = newMode === "horizontal" ? !!swiperRef.value?.swiper : !!f7VirtualList;
+  if (!isReady) {
+    isCalculating.value = false;
+    return;
+  }
+
+  // Обновляем страницы в новом рендерере (swiper или VirtualList)
+  applyPages();
+
   // Восстанавливаем позицию используя сохраненный прогресс или initialProgress
   restoreProgress();
-  
+
   isCalculating.value = false;
 });
 
@@ -415,20 +615,23 @@ const isMomentumTransitioning = ref(false);
 
 const handleSetTransition = (e: CustomEvent<[swiper: Swiper, transition: number]>) => {
   const [swiper, transition] = e.detail;
+
+  return;
+  console.log("handleSetTransition transition start", swiper, transition);
  
   if (transtionTimeout) {
     clearTimeout(transtionTimeout);
     transtionTimeout = null;
   }  
 
-  const momentumTimeout = typeof swiper.params.freeMode === 'object' && 
-                                 swiper.params.freeMode.momentumRatio ? 
-                                 swiper.params.freeMode.momentumRatio * 1000 : 750;
+  // const momentumTimeout = typeof swiper.params.freeMode === 'object' && 
+  //                                swiper.params.freeMode.momentumRatio ? 
+  //                                swiper.params.freeMode.momentumRatio * 1000 : 750;
   
   if (transition === 0) {
     transtionTimeout = setTimeout(() => {
       isTransitioning.value = false;
-      isMomentumTransitioning.value = false;
+      // isMomentumTransitioning.value = false;
       console.log("handleSetTransition transition end", swiper, transition);
     }, 0);
     return;
@@ -437,21 +640,45 @@ const handleSetTransition = (e: CustomEvent<[swiper: Swiper, transition: number]
   console.log("handleSetTransition transition start", swiper, transition);
   
   isTransitioning.value = true;
-  if (Math.round(transition) === momentumTimeout) {
-    isMomentumTransitioning.value = true;
-  }
+  // if (Math.round(transition) === momentumTimeout) {
+  //   isMomentumTransitioning.value = true;
+  // }
 
   transtionTimeout = setTimeout(() => {
     transtionTimeout = null;
     isTransitioning.value = false;
-    isMomentumTransitioning.value = false;
+    // isMomentumTransitioning.value = false;
     console.log("handleSetTransition transition end", swiper, transition);
   }, transition);
 };
 
 
-let lastTranslatePosition = 0;
-let lastTranslatePositionTimeout: ReturnType<typeof setTimeout> | null = null;
+let lastVerticalScrollTarget: number | null = null;
+let lastVerticalScrollTimeout: ReturnType<typeof setTimeout> | null = null;
+
+// Прокручивает вертикальный список на одну "страницу" вперед/назад, накапливая
+// цель при повторных быстрых вызовах (аналог lastTranslatePosition для swiper)
+const scrollByPage = (direction: 1 | -1) => {
+  const el = verticalContainerRef.value;
+  if (!el || !pageHeightPx.value) {
+    return;
+  }
+
+  const speed = 300;
+  const maxScroll = Math.max(0, el.scrollHeight - el.clientHeight);
+  const base = lastVerticalScrollTarget ?? el.scrollTop;
+  lastVerticalScrollTarget = Math.min(maxScroll, Math.max(0, base + direction * pageHeightPx.value));
+
+  if (lastVerticalScrollTimeout) {
+    clearTimeout(lastVerticalScrollTimeout);
+  }
+  lastVerticalScrollTimeout = setTimeout(() => {
+    lastVerticalScrollTarget = null;
+    lastVerticalScrollTimeout = null;
+  }, speed);
+
+  el.scrollTo({ top: lastVerticalScrollTarget, behavior: "smooth" });
+};
 
 // Expose swiper instance for parent component
 defineExpose({
@@ -464,72 +691,49 @@ defineExpose({
   pagesCount: computed(() => pages.value.length),
   headers: readonly(headers),
   goToPage: (page: number, animate: boolean = true) => {
-    if (swiperRef.value?.swiper) {
-      swiperRef.value.swiper.slideTo(page - 1, animate ? 300 : 0);
-    }
-  },
-  setProgress: (progress: number) => swiperRef.value?.swiper.setProgress(progress),
-  slidePrev: () => {
-    const swiper = swiperRef.value?.swiper;
-    if (!swiper) {
+    if (mode.value === "horizontal") {
+      if (swiperRef.value?.swiper) {
+        swiperRef.value.swiper.slideTo(page - 1, animate ? 300 : 0);
+      }
       return;
     }
-    if (mode.value === "horizontal") {
-      swiper.slidePrev();
-    } else {
 
-      const speed = swiper.params.speed || 300;
-
-      if (lastTranslatePosition === 0) {
-        lastTranslatePosition = swiper.translate + swiperRect.height;
-        
-      } else {
-        lastTranslatePosition = lastTranslatePosition + swiperRect.height;
-      }
-
-      if (lastTranslatePositionTimeout) {
-        clearTimeout(lastTranslatePositionTimeout);
-        lastTranslatePositionTimeout = null;
-      }
-
-      lastTranslatePositionTimeout = setTimeout(() => {
-        lastTranslatePosition = 0;
-        lastTranslatePositionTimeout = null;
-      }, speed);
-
-      swiper.translateTo(lastTranslatePosition, speed);
+    const el = verticalContainerRef.value;
+    if (!el || !pageHeightPx.value) {
+      return;
     }
+    el.scrollTo({ top: (page - 1) * pageHeightPx.value, behavior: animate ? "smooth" : "instant" });
+  },
+  setProgress: (progress: number) => {
+    if (mode.value === "horizontal") {
+      swiperRef.value?.swiper.setProgress(progress);
+      return;
+    }
+    scrollToProgress(progress, false);
+  },
+  slidePrev: () => {
+    if (mode.value === "horizontal") {
+      const swiper = swiperRef.value?.swiper;
+      if (!swiper) {
+        return;
+      }
+      swiper.slidePrev();
+      return;
+    }
+
+    scrollByPage(-1);
   },
   slideNext: () => {
-    const swiper = swiperRef.value?.swiper;
-    if (!swiper) {
+    if (mode.value === "horizontal") {
+      const swiper = swiperRef.value?.swiper;
+      if (!swiper) {
+        return;
+      }
+      swiper.slideNext();
       return;
     }
 
-    if (mode.value === "horizontal") {
-      swiper.slideNext();
-    } else {
-
-      const speed = swiper.params.speed || 300;
-      if (lastTranslatePosition === 0) {
-        lastTranslatePosition = swiper.translate - swiperRect.height;
-        
-      } else {
-        lastTranslatePosition = lastTranslatePosition - swiperRect.height;
-      }
-
-      if (lastTranslatePositionTimeout) {
-        clearTimeout(lastTranslatePositionTimeout);
-        lastTranslatePositionTimeout = null;
-      }
-
-      lastTranslatePositionTimeout = setTimeout(() => {
-        lastTranslatePosition = 0;
-        lastTranslatePositionTimeout = null;
-      }, speed);
-
-      swiper.translateTo(lastTranslatePosition, speed);
-    }
+    scrollByPage(1);
   },
 });
 </script>
@@ -548,6 +752,21 @@ defineExpose({
   &.theme-dark {
     --skeleton-color: #515151;
     --skeleton-icon-color: rgba(255, 255, 255, 0.25);
+  }
+
+  &.mode-vertical {
+    overflow-y: auto;
+    overflow-x: hidden;
+    overscroll-behavior-y: contain;
+    -webkit-overflow-scrolling: touch;
+  }
+}
+
+.text-paginator-vlist {
+  margin: 0;
+
+  :deep(li) {
+    overflow: hidden;
   }
 }
 .skeleton-text-line {

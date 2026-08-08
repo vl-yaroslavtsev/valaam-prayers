@@ -294,9 +294,9 @@ const textMode = computed(() => {
 });
 
 
-const isMomentumTransitioning = computed(() => {
-  return textPaginator.value?.isMomentumTransitioning;
-});
+// const isMomentumTransitioning = computed(() => {
+//   return textPaginator.value?.isMomentumTransitioning;
+// });
 
 const onTextPaginatorTap = (payload: { type: "center" | "left" | "right" | "top" | "bottom"; x: number; y: number }) => {
   const { type, x, y } = payload;
@@ -311,9 +311,9 @@ const onTextPaginatorTap = (payload: { type: "center" | "left" | "right" | "top"
     return;
   }
 
-  if (isMomentumTransitioning.value || isMomentumTransitionStopping) {
-    return;
-  }
+  // if (isMomentumTransitioning.value || isMomentumTransitionStopping) {
+  //   return;
+  // }
 
   if (type === "center") {
     if (!isNavbarHiding) {
@@ -336,7 +336,7 @@ let isNavbarHiding = false;
 let isPageNavHiding = false;
 let isMomentumTransitionStopping = false;
 
-const onTextPaginatorTouchStart = (payload: { swiper: Swiper, event: PointerEvent }) => {
+const onTextPaginatorTouchStart = (payload: { swiper: Swiper | null, event: Event }) => {
   console.log("onTextPaginatorTouchStart", payload);
   if (!isNavbarHidden.value) {
     isNavbarHidden.value = true;
@@ -348,12 +348,12 @@ const onTextPaginatorTouchStart = (payload: { swiper: Swiper, event: PointerEven
     isPageNavHiding = true;
   }
 
-  if (isMomentumTransitioning.value) {
-    isMomentumTransitionStopping = true;
-  }
+  // if (isMomentumTransitioning.value) {
+  //   isMomentumTransitionStopping = true;
+  // }
 };
 
-const onTextPaginatorTouchEnd = (event: TouchEvent) => {
+const onTextPaginatorTouchEnd = (event: Event) => {
   console.log("onTextPaginatorTouchEnd", event);
   if (!event.isTrusted) {
     return;
@@ -362,8 +362,6 @@ const onTextPaginatorTouchEnd = (event: TouchEvent) => {
   isPageNavHiding = false;
   isMomentumTransitionStopping = false;
 };
-
-
 
 // Состояние навигации по страницам
 const totalPages = computed(() => textPaginator.value?.pagesCount || 0);
