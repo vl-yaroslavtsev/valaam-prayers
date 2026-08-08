@@ -208,7 +208,7 @@ import "../css/icons.less";
 import "../css/app.less";
 
 // Import App Component
-import App from "../components/App.vue";
+import App from "../components/app.vue";
 
 // Import Pinia
 import { pinia } from "../stores";
