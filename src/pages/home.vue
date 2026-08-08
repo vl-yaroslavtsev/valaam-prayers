@@ -59,7 +59,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watchEffect, computed, nextTick, useTemplateRef } from "vue";
+import { ref, watch, watchEffect, computed, nextTick, useTemplateRef } from "vue";
 import { useTheme } from "@/composables/useTheme";
 import { useFavoritesStore, type FavoritesItem } from "@/stores/favorites";
 import { usePrayersStore } from "@/stores/prayers";
@@ -85,14 +85,39 @@ const historyStore = useReadingHistoryStore();
 
 type FilterType = "all" | "prayers" | "books" | "calendar";
 
-const chips: { id: FilterType; title: string }[] = [
+const ALL_CHIPS: { id: FilterType; title: string }[] = [
   { id: "all", title: "Все" },
   { id: "prayers", title: "Молитвы" },
   { id: "books", title: "Книги" },
   { id: "calendar", title: "Календарь" },
 ];
 
+const hasFavoritesOfType = (filterType: Exclude<FilterType, "all">) => {
+  if (filterType === "calendar") {
+    return favoritesStore.favorites.some(
+      (f) => f.type === "saints" || f.type === "thoughts"
+    );
+  }
+  return favoritesStore.favorites.some((f) => f.type === filterType);
+};
+
+/** Только фильтры, для которых есть избранное; «Все» — если есть хотя бы один тип. */
+const chips = computed(() => {
+  const available = ALL_CHIPS.filter((chip) => {
+    if (chip.id === "all") return favoritesStore.favorites.length > 0;
+    return hasFavoritesOfType(chip.id);
+  });
+  return available;
+});
+
 const selectedFilter = ref<FilterType>("all");
+
+watch(chips, (availableChips) => {
+  if (!availableChips.some((chip) => chip.id === selectedFilter.value)) {
+    selectedFilter.value = "all";
+  }
+});
+
 const chipsBlockRef = useTemplateRef("chipsBlockRef");
 const favoritesSectionRef = useTemplateRef<HTMLElement>("favoritesSectionRef");
 const favoritesSectionMinHeight = ref<string | null>(null);

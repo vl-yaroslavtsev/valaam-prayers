@@ -223,15 +223,15 @@ export const usePrayersStore = defineStore("prayers", () => {
   const getPrayerText = async (id: string): Promise<PrayerText> => {
     try {
       // Сначала проверяем кэш
-      // const cached = await prayerDetailsStorage?.get(id);
-      // if (cached) {
-      //   return transformApiPrayerText(cached);
-      // }
+      const cached = await prayerDetailsStorage?.get(id);
+      if (cached) {
+        return transformApiPrayerText(cached);
+      }
 
       // Загружаем с сервера
       const response = await prayersApi.getPrayerText(id);
       // Сохраняем в кэш
-      prayerDetailsStorage?.put(response);
+      //prayerDetailsStorage?.put(response);
 
       return transformApiPrayerText(response);
     } catch (err) {
