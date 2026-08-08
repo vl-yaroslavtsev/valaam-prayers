@@ -36,8 +36,8 @@
     ref="verticalContainer"
     :data-text-paginator-id="paginatorInstanceId"
     :class="`text-paginator mode-${mode} reading-text ${lang ? 'prayer-text lang-' + lang : ''} theme-${theme}`"
-    @click="handleVerticalClick"
     @scroll.passive="handleVerticalScroll"
+    @scrollend.passive="handleVerticalScrollEnd"
     @touchstart.passive="handleVerticalTouchStart"
     @touchend.passive="handleVerticalTouchEnd"
   >
@@ -320,8 +320,10 @@ const handleSlideChange = (e: CustomEvent<[swiper: Swiper]>) => {
 
 const isTouchingVertical = ref(false);
 let verticalScrollSettleTimeout: ReturnType<typeof setTimeout> | null = null;
+// В браузерах без поддержки "scrollend" (Safari < 17, старые WebView) используем
+// debounce по "scroll" как фолбэк — см. handleVerticalScroll/handleVerticalScrollEnd
+const supportsScrollEnd = typeof window !== "undefined" && "onscrollend" in window;
 let verticalTouchStartPoint: { x: number; y: number } | null = null;
-let suppressNextVerticalClick = false;
 const VERTICAL_TAP_MOVE_THRESHOLD = 10; // px — максимальное смещение пальца, чтобы считать касание тапом
 
 const emitVerticalTapZone = (x: number, y: number, rect: DOMRect) => {
@@ -361,10 +363,6 @@ const tryEmitVerticalTap = (clientX: number, clientY: number) => {
     return;
   }
 
-  if (isMomentumTransitioning.value) {
-    return;
-  }
-
   const el = verticalContainerRef.value;
   if (!el) {
     return;
@@ -372,17 +370,6 @@ const tryEmitVerticalTap = (clientX: number, clientY: number) => {
 
   const rect = el.getBoundingClientRect();
   emitVerticalTapZone(clientX - rect.left, clientY - rect.top, rect);
-};
-
-const handleVerticalClick = (event: MouseEvent) => {
-  // Тап уже обработан в touchend (см. ниже) — игнорируем синтетический click,
-  // который браузер шлёт следом за touchend на реальных устройствах
-  if (suppressNextVerticalClick) {
-    suppressNextVerticalClick = false;
-    return;
-  }
-
-  tryEmitVerticalTap(event.clientX, event.clientY);
 };
 
 const handleVerticalTouchStart = (event: TouchEvent) => {
@@ -419,7 +406,6 @@ const handleVerticalTouchEnd = (event: TouchEvent) => {
       // от повторного показа меню именно по "touchend", а тап должен успеть отработать
       // до этого сброса — так же, как это естественным образом происходит в Swiper
       tryEmitVerticalTap(touch.clientX, touch.clientY);
-      suppressNextVerticalClick = true;
     }
   }
 
@@ -432,16 +418,17 @@ const handleVerticalScroll = () => {
   }
 
   isTransitioning.value = true;
-  //isMomentumTransitioning.value = !isTouchingVertical.value;
 
-  if (verticalScrollSettleTimeout) {
-    clearTimeout(verticalScrollSettleTimeout);
+  if (!supportsScrollEnd) {
+    // Фолбэк: считаем скролл завершённым, если новых "scroll"-событий не было 120мс
+    if (verticalScrollSettleTimeout) {
+      clearTimeout(verticalScrollSettleTimeout);
+    }
+    verticalScrollSettleTimeout = setTimeout(() => {
+      isTransitioning.value = false;
+      verticalScrollSettleTimeout = null;
+    }, 120);
   }
-  verticalScrollSettleTimeout = setTimeout(() => {
-    isTransitioning.value = false;
-    //isMomentumTransitioning.value = false;
-    verticalScrollSettleTimeout = null;
-  }, 120);
 
   if (isLoading || isCalculating.value) {
     return;
@@ -453,6 +440,12 @@ const handleVerticalScroll = () => {
   }
   const maxScroll = el.scrollHeight - el.clientHeight;
   currentProgress.value = maxScroll > 0 ? Math.min(1, Math.max(0, el.scrollTop / maxScroll)) : 0;
+};
+
+// Точное определение конца скролла (в т.ч. инерционного) там, где браузер это поддерживает
+const handleVerticalScrollEnd = () => {
+  console.log("handleVerticalScrollEnd isTransitioning false");
+  isTransitioning.value = false;
 };
 
 const restoreProgress = () => {
@@ -611,12 +604,10 @@ const handleTouchEnd = (event: TouchEvent) => {
 
 let transtionTimeout: ReturnType<typeof setTimeout> | null = null;
 const isTransitioning = ref(false);
-const isMomentumTransitioning = ref(false);
 
 const handleSetTransition = (e: CustomEvent<[swiper: Swiper, transition: number]>) => {
   const [swiper, transition] = e.detail;
 
-  return;
   console.log("handleSetTransition transition start", swiper, transition);
  
   if (transtionTimeout) {
@@ -624,30 +615,19 @@ const handleSetTransition = (e: CustomEvent<[swiper: Swiper, transition: number]
     transtionTimeout = null;
   }  
 
-  // const momentumTimeout = typeof swiper.params.freeMode === 'object' && 
-  //                                swiper.params.freeMode.momentumRatio ? 
-  //                                swiper.params.freeMode.momentumRatio * 1000 : 750;
-  
   if (transition === 0) {
     transtionTimeout = setTimeout(() => {
       isTransitioning.value = false;
-      // isMomentumTransitioning.value = false;
       console.log("handleSetTransition transition end", swiper, transition);
     }, 0);
     return;
   } 
 
-  console.log("handleSetTransition transition start", swiper, transition);
-  
   isTransitioning.value = true;
-  // if (Math.round(transition) === momentumTimeout) {
-  //   isMomentumTransitioning.value = true;
-  // }
 
   transtionTimeout = setTimeout(() => {
     transtionTimeout = null;
     isTransitioning.value = false;
-    // isMomentumTransitioning.value = false;
     console.log("handleSetTransition transition end", swiper, transition);
   }, transition);
 };
@@ -684,7 +664,6 @@ const scrollByPage = (direction: 1 | -1) => {
 defineExpose({
   isCalculating: readonly(isCalculating),
   isTransitioning: readonly(isTransitioning),
-  isMomentumTransitioning: readonly(isMomentumTransitioning),
   theme: readonly(theme),
   mode: readonly(mode),
   progress: readonly(currentProgress),

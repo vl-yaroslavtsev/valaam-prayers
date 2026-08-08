@@ -289,15 +289,6 @@ const textTheme = computed(() => {
   return textPaginator.value?.theme || "light";
 });
 
-const textMode = computed(() => {
-  return textPaginator.value?.mode || "horizontal";
-});
-
-
-// const isMomentumTransitioning = computed(() => {
-//   return textPaginator.value?.isMomentumTransitioning;
-// });
-
 const onTextPaginatorTap = (payload: { type: "center" | "left" | "right" | "top" | "bottom"; x: number; y: number }) => {
   const { type, x, y } = payload;
 
@@ -310,10 +301,6 @@ const onTextPaginatorTap = (payload: { type: "center" | "left" | "right" | "top"
   if (!isNavbarHidden.value || !isPageNavHidden.value) {
     return;
   }
-
-  // if (isMomentumTransitioning.value || isMomentumTransitionStopping) {
-  //   return;
-  // }
 
   if (type === "center") {
     if (!isNavbarHiding) {
@@ -334,7 +321,6 @@ const onTextPaginatorTap = (payload: { type: "center" | "left" | "right" | "top"
 
 let isNavbarHiding = false;
 let isPageNavHiding = false;
-let isMomentumTransitionStopping = false;
 
 const onTextPaginatorTouchStart = (payload: { swiper: Swiper | null, event: Event }) => {
   console.log("onTextPaginatorTouchStart", payload);
@@ -347,10 +333,6 @@ const onTextPaginatorTouchStart = (payload: { swiper: Swiper | null, event: Even
     isPageNavHidden.value = true;
     isPageNavHiding = true;
   }
-
-  // if (isMomentumTransitioning.value) {
-  //   isMomentumTransitionStopping = true;
-  // }
 };
 
 const onTextPaginatorTouchEnd = (event: Event) => {
@@ -360,7 +342,6 @@ const onTextPaginatorTouchEnd = (event: Event) => {
   }
   isNavbarHiding = false;
   isPageNavHiding = false;
-  isMomentumTransitionStopping = false;
 };
 
 // Состояние навигации по страницам
@@ -379,7 +360,10 @@ const isPageNavHidden = ref(true);
 
 const onPageSliderChange = (value: number) => {
   isNavbarHidden.value = true;
-  textPaginator.value?.goToPage(value, textMode.value === "vertical");
+  // Мгновенный переход (без анимации): плавный скролл в вертикальном режиме
+  // порождает промежуточные значения currentPage во время анимации, которые
+  // через f7-range's :value заново триггерят range:change и откатывают страницу назад
+  textPaginator.value?.goToPage(value, false);
 };
 
 const { showUndoToast: showUndoResetToast } = useUndoToast({
@@ -400,7 +384,7 @@ const resetProgress = () => {
     return;
   }
 
-  textPaginator.value?.goToPage(1);
+  textPaginator.value?.goToPage(1, false);
   showUndoResetToast();
 }
 
