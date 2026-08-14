@@ -70,13 +70,17 @@ const {
   lang = null, 
   isLoading = false, 
   initialProgress = 0,
-  itemId = ""
+  itemId = "",
+  highlightTransform,
 } = defineProps<{
   text: string;
   initialProgress?: number;
   lang?: Language | null;
   isLoading?: boolean;
   itemId: string;
+  // Трансформация HTML страницы перед отображением (например, подсветка поиска).
+  // Вызывается для каждой страницы при applyPages, не влияет на пагинацию/кэш.
+  highlightTransform?: (html: string, pageIndex: number) => string;
 }>();
 
 const settingsStore = useSettingsStore();
@@ -118,7 +122,10 @@ const pager = useTemplateRef<PagerInstance>("pager");
 
 // Применяет посчитанные страницы к активному в данный момент рендереру
 const applyPages = () => {
-  pager.value?.applyPages(pages.value);
+  const finalPages = highlightTransform
+    ? pages.value.map((html, i) => highlightTransform(html, i))
+    : pages.value;
+  pager.value?.applyPages(finalPages);
 };
 
 const restoreProgress = () => {
@@ -215,6 +222,8 @@ defineExpose({
   progress: readonly(currentProgress),
   pagesCount: computed(() => pages.value.length),
   headers: readonly(headers),
+  pages: readonly(pages),
+  refreshDisplay: () => applyPages(),
   goToPage: (page: number, animate: boolean = true) => {
     pager.value?.goToPage(page, animate);
   },

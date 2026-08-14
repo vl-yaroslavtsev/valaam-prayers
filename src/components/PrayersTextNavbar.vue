@@ -31,7 +31,7 @@
       <f7-link icon-only>
         <SvgIcon icon="share" color="baige-90" :size="24" @click="shareItem" />
       </f7-link>
-      <f7-link icon-only>
+      <f7-link icon-only @click="emit('open-search')">
         <SvgIcon icon="search" color="baige-90" :size="24" />
       </f7-link>
     </f7-nav-right>
@@ -94,6 +94,7 @@ interface Props {
 interface Emits {
   (e: 'toggle-text-settings'): void;
   (e: 'open-content-popup'): void;
+  (e: 'open-search'): void;
 }
 
 const props = defineProps<Props>();

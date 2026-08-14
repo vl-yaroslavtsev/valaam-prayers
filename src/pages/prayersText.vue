@@ -12,6 +12,7 @@
       :is-hidden="isNavbarHidden"
       @toggle-text-settings="toggleTextSettingsSheet"
       @open-content-popup="openContentPopup"
+      @open-search="onOpenSearch"
     />
     <f7-page-content class="">
       <TextPaginator 
@@ -20,6 +21,7 @@
         :initialProgress="initialProgress"
         :lang="currentLanguage"
         :itemId="itemId"
+        :highlightTransform="isSearchModeActive ? getHighlightedPageHtml : undefined"
         ref="textPaginator" 
         @tap="onTextPaginatorTap"
         @touchstart="onTextPaginatorTouchStart"
@@ -35,12 +37,24 @@
     <!-- Всплывающий тулбар для навигации по страницам -->
      
     <PageNavigationToolbar
+      v-if="!isSearchModeActive"
       v-show="!isBrightnessTouching"
       :current-page="currentPage"
       :total-pages="totalPages"
       :is-hidden="isPageNavHidden"
       @reset-progress="resetProgress"
       @page-change="onPageSliderChange"
+    />
+    <SearchNavigationToolbar
+      v-else
+      v-show="!isBrightnessTouching"
+      :current-index="activeMatchIndex"
+      :total="searchMatches.length"
+      :is-hidden="isPageNavHidden"
+      @next="onSearchNext"
+      @prev="onSearchPrev"
+      @open-list="onOpenSearch"
+      @close-search="onCloseSearch"
     />
     <PrayersTextContentPopup
       v-model:isOpened="isContentPopupOpened"
@@ -49,6 +63,12 @@
       :headers="headers"
       :page="currentPage"
       @goToPage="onGoToPageFromPopup"
+    />
+    <PrayersTextSearchPage
+      v-model:isOpened="isSearchPageOpened"
+      v-model:query="searchQuery"
+      :matches="searchMatches"
+      @selectMatch="onSelectMatch"
     />
   </f7-page>
 </template>
@@ -70,12 +90,15 @@ import { useReadingHistoryStore } from "@/stores/readingHistory";
 import { useComponentsStore } from "@/stores/components";
 import { useSettingsStore } from "@/stores/settings";
 import { useUndoToast } from "@/composables/useUndoToast";
+import { useTextSearch } from "@/composables/useTextSearch";
 
 import PrayersTextContentPopup from "@/components/PrayersTextContentPopup.vue";
+import PrayersTextSearchPage from "@/components/PrayersTextSearchPage.vue";
 import TextPaginator from "@/components/TextPaginator.vue"
 import TextSettingsSelector from "@/components/TextSettingsSelector.vue";
 import PrayersTextNavbar from "@/components/PrayersTextNavbar.vue";
 import PageNavigationToolbar from "@/components/PageNavigationToolbar.vue";
+import SearchNavigationToolbar from "@/components/SearchNavigationToolbar.vue";
 
 import { useApiState } from "@/composables/useApiState";
 import { device } from "@/js/device";
@@ -365,6 +388,77 @@ const onPageSliderChange = (value: number) => {
   // через f7-range's :value заново триггерят range:change и откатывают страницу назад
   textPaginator.value?.goToPage(value, false);
 };
+
+// --- Поиск по тексту ---
+const pagesForSearch = computed<readonly string[]>(() => textPaginator.value?.pages || []);
+const {
+  query: searchQuery,
+  matches: searchMatches,
+  activeMatchIndex,
+  activeMatch,
+  goToMatch,
+  goToNextMatch,
+  goToPrevMatch,
+  getHighlightedPageHtml,
+  resetSearch,
+} = useTextSearch(pagesForSearch);
+
+const isSearchPageOpened = ref(false);
+const isSearchModeActive = ref(false);
+
+const onOpenSearch = () => {
+  isSearchPageOpened.value = true;
+};
+
+const onSelectMatch = (id: number) => {
+  goToMatch(id);
+  isSearchPageOpened.value = false;
+  isSearchModeActive.value = true;
+  isNavbarHidden.value = true;
+  isPageNavHidden.value = false;
+
+  const match = searchMatches.value.find((m) => m.id === id);
+  if (match) {
+    textPaginator.value?.goToPage(match.page, true);
+  }
+};
+
+const onSearchNext = () => {
+  goToNextMatch();
+  if (activeMatch.value) {
+    textPaginator.value?.goToPage(activeMatch.value.page, true);
+  }
+};
+
+const onSearchPrev = () => {
+  goToPrevMatch();
+  if (activeMatch.value) {
+    textPaginator.value?.goToPage(activeMatch.value.page, true);
+  }
+};
+
+const onCloseSearch = () => {
+  isSearchModeActive.value = false;
+  isSearchPageOpened.value = false;
+  resetSearch();
+};
+
+// Обновляем подсветку в читалке при переходах между результатами и при включении/
+// выключении режима поиска. flush: 'post' — чтобы к моменту вызова highlightTransform-prop
+// у TextPaginator уже было актуальное значение
+watch(activeMatch, () => {
+  if (!isSearchModeActive.value) return;
+  textPaginator.value?.refreshDisplay();
+}, { flush: 'post' });
+
+watch(isSearchModeActive, () => {
+  textPaginator.value?.refreshDisplay();
+}, { flush: 'post' });
+
+// Сбрасываем поиск при смене языка — страницы пересчитываются, старые совпадения не валидны
+watch(currentLanguage, () => {
+  onCloseSearch();
+});
 
 const { showUndoToast: showUndoResetToast } = useUndoToast({
   text: "Прогресс сброшен",

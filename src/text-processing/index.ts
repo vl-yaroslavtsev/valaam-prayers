@@ -18,4 +18,12 @@ export {
   getLastWord,
   moveLastWordBetweenElements,
   getTextNodes,
-} from './textUtils'; 
+} from './textUtils';
+
+// Экспорт утилит для поиска по тексту
+export {
+  buildPageSentenceIndex,
+  searchInSentenceIndex,
+  highlightPageHtml,
+} from './textSearch';
+export type { PageSentence, PageSentenceIndex, SearchMatch } from './textSearch';
