@@ -36,25 +36,24 @@
     
     <!-- Всплывающий тулбар для навигации по страницам -->
      
+    <SearchNavigationToolbar
+      v-if="isSearchModeActive"
+      v-show="!isBrightnessTouching"
+      :current-index="activeMatchIndex"
+      :total="searchMatches.length"
+      :is-hidden="false"
+      @next="onSearchNext"
+      @prev="onSearchPrev"
+      @open-list="onOpenSearch"
+      @close-search="onCloseSearch"
+    />
     <PageNavigationToolbar
-      v-if="!isSearchModeActive"
       v-show="!isBrightnessTouching"
       :current-page="currentPage"
       :total-pages="totalPages"
       :is-hidden="isPageNavHidden"
       @reset-progress="resetProgress"
       @page-change="onPageSliderChange"
-    />
-    <SearchNavigationToolbar
-      v-else
-      v-show="!isBrightnessTouching"
-      :current-index="activeMatchIndex"
-      :total="searchMatches.length"
-      :is-hidden="isPageNavHidden"
-      @next="onSearchNext"
-      @prev="onSearchPrev"
-      @open-list="onOpenSearch"
-      @close-search="onCloseSearch"
     />
     <PrayersTextContentPopup
       v-model:isOpened="isContentPopupOpened"
@@ -69,6 +68,7 @@
       v-model:query="searchQuery"
       :matches="searchMatches"
       @selectMatch="onSelectMatch"
+      @closeSearch="onCloseSearch"
     />
   </f7-page>
 </template>
@@ -415,26 +415,20 @@ const onSelectMatch = (id: number) => {
   isSearchPageOpened.value = false;
   isSearchModeActive.value = true;
   isNavbarHidden.value = true;
-  isPageNavHidden.value = false;
+  isPageNavHidden.value = true;
 
   const match = searchMatches.value.find((m) => m.id === id);
   if (match) {
-    textPaginator.value?.goToPage(match.page, true);
+    textPaginator.value?.goToPage(match.page, false);
   }
 };
 
 const onSearchNext = () => {
   goToNextMatch();
-  if (activeMatch.value) {
-    textPaginator.value?.goToPage(activeMatch.value.page, true);
-  }
 };
 
 const onSearchPrev = () => {
   goToPrevMatch();
-  if (activeMatch.value) {
-    textPaginator.value?.goToPage(activeMatch.value.page, true);
-  }
 };
 
 const onCloseSearch = () => {
@@ -443,12 +437,14 @@ const onCloseSearch = () => {
   resetSearch();
 };
 
-// Обновляем подсветку в читалке при переходах между результатами и при включении/
-// выключении режима поиска. flush: 'post' — чтобы к моменту вызова highlightTransform-prop
-// у TextPaginator уже было актуальное значение
+// Сначала обновляем HTML подсветки, затем переходим к странице совпадения.
+// Иначе refreshDisplay пересоберёт слайды Swiper в середине анимации.
 watch(activeMatch, () => {
   if (!isSearchModeActive.value) return;
   textPaginator.value?.refreshDisplay();
+  if (activeMatch.value) {
+    textPaginator.value?.goToPage(activeMatch.value.page, false);
+  }
 }, { flush: 'post' });
 
 watch(isSearchModeActive, () => {

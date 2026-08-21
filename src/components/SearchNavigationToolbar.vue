@@ -7,24 +7,28 @@
   >
     <div class="header">
       <f7-link class="side-link" icon-only href="#" @click="emit('openList')">
-        <SvgIcon icon="menu" color="baige-60" />
+        <SvgIcon icon="search" color="baige-60" />
       </f7-link>
 
       <div class="nav-controls">
-        <f7-link icon="icon-back" icon-only href="#" @click="emit('prev')" />
+        <f7-link icon-only href="#" @click="emit('prev')">
+          <SvgIcon icon="shevron-left" :size="32" color="baige-60" />
+        </f7-link>
         <div class="match-counter">{{ currentNumber }} из {{ total }}</div>
-        <f7-link icon="icon-forward" icon-only href="#" @click="emit('next')" />
+        <f7-link icon-only href="#" @click="emit('next')">
+          <SvgIcon icon="shevron-right" :size="32" color="baige-60" />
+        </f7-link>
       </div>
 
       <f7-link class="side-link" icon-only href="#" @click="emit('closeSearch')">
-        <SvgIcon icon="cancel" color="baige-60" />
+        <SvgIcon icon="cancel" :size="20" color="baige-60" />
       </f7-link>
     </div>
   </f7-toolbar>
 </template>
 
 <script setup lang="ts">
-import { computed, watch, useTemplateRef, type ComponentPublicInstance } from "vue";
+import { computed, watch, onMounted, useTemplateRef, type ComponentPublicInstance } from "vue";
 import { f7 } from "framework7-vue";
 import SvgIcon from "@/components/SvgIcon.vue";
 
@@ -48,7 +52,7 @@ const currentNumber = computed(() => (props.currentIndex >= 0 ? props.currentInd
 
 const searchNavToolbar = useTemplateRef<ComponentPublicInstance>("searchNavToolbar");
 
-watch(() => props.isHidden, (isHidden) => {
+const applyVisibility = (isHidden: boolean) => {
   if (!searchNavToolbar.value) return;
   const toolbarEl = searchNavToolbar.value.$el;
   if (isHidden) {
@@ -56,12 +60,15 @@ watch(() => props.isHidden, (isHidden) => {
   } else {
     f7.toolbar.show(toolbarEl, true);
   }
-});
+};
+
+watch(() => props.isHidden, applyVisibility);
+onMounted(() => applyVisibility(props.isHidden));
 </script>
 
 <style scoped lang="less">
 .search-navigation-toolbar {
-  --f7-toolbar-height: calc(56px + var(--f7-safe-area-bottom));
+  --f7-toolbar-height: calc(40px + var(--f7-safe-area-bottom));
   --f7-toolbar-bg-color: var(--f7-bars-bg-color);
   --f7-toolbar-border-color: var(--f7-bars-border-color);
   --f7-link-touch-ripple-color: rgba(255, 255, 255, 0.15);
@@ -90,7 +97,7 @@ watch(() => props.isHidden, (isHidden) => {
     flex-direction: row;
     align-items: center;
     justify-content: center;
-    gap: 16px;
+    gap: 8px;
   }
 
   .match-counter {

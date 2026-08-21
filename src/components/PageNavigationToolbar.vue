@@ -92,6 +92,7 @@ const handleResetProgress = () => {
 
 <style scoped lang="less">
 .page-navigation-toolbar {
+  z-index: 600;
   --f7-toolbar-height: calc(70px + var(--f7-safe-area-bottom));
   --f7-toolbar-bg-color: var(--f7-bars-bg-color);
   --f7-toolbar-border-color: var(--f7-bars-border-color);

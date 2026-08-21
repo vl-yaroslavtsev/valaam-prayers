@@ -65,7 +65,7 @@ export function useTextSettings() {
     setCSSVariable('--reading-text-hyphens', settingsStore.isTextWordsBreak ? 'manual' : 'none');
 
     // Обновляем отступы страницы
-    const padding = settingsStore.isTextPagePadding ? '16px 24px calc(16px + var(--f7-safe-area-bottom)) 24px' : '8px 12px calc(8px + var(--f7-safe-area-bottom)) 12px';
+    const padding = settingsStore.isTextPagePadding ? '16px 24px calc(35px + var(--f7-safe-area-bottom)) 24px' : '8px 12px calc(35px + var(--f7-safe-area-bottom)) 12px';
     setCSSVariable('--reading-text-page-padding', padding);
 
     // Обновляем жирность шрифта

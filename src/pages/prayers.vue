@@ -110,21 +110,4 @@ const searchQuery = ref("");
 
 </script>
 <style scoped lang="less">
-.md .searchbar {
-  .input-clear-button {
-    &:not(.custom-button) {
-      display: none;
-    }
-
-    &.custom-button {
-      display: flex;
-      justify-content: center;
-      align-items: center;
-    }
-  }
-}
-
-:global(.md .searchbar .input-clear-button::after) {
-  display: none;
-}
 </style>

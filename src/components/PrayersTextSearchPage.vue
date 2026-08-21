@@ -7,16 +7,22 @@
     <f7-page>
       <f7-navbar>
         <f7-nav-left>
-          <f7-link icon="icon-back" @click="isOpened = false" />
+          <f7-link icon="icon-back" @click="emit('closeSearch')" />
         </f7-nav-left>
         <f7-searchbar
           ref="searchbarRef"
-          class="search-page-searchbar"
+          class="search-page-searchbar text-normal-case"
           custom-search
           :disable-button="false"
           placeholder="Поиск по тексту"
           v-model:value="query"
-        />
+        >
+          <template #input-wrap-end>
+            <span class="input-clear-button custom-button">
+              <SvgIcon icon="cancel" color="baige-30" />
+            </span>
+          </template>
+        </f7-searchbar>
       </f7-navbar>
       <f7-list
         v-if="matches.length > 0"
@@ -46,7 +52,8 @@
 </template>
 
 <script setup lang="ts">
-import { ref, nextTick, useTemplateRef, type ComponentPublicInstance } from "vue";
+import { ref, watch, nextTick, useTemplateRef, type ComponentPublicInstance } from "vue";
+import SvgIcon from "@/components/SvgIcon.vue";
 import type { VirtualList } from "framework7/types";
 import type { SearchMatch } from "@/text-processing";
 
@@ -59,6 +66,7 @@ const query = defineModel<string>("query", { default: "" });
 
 const emit = defineEmits<{
   selectMatch: [id: number];
+  closeSearch: [];
 }>();
 
 const ITEM_HEIGHT = 76;
@@ -73,9 +81,25 @@ interface VirtualListData {
 
 const vlData = ref<VirtualListData>({ items: [] });
 
+let f7VirtualList: VirtualList.VirtualList | undefined;
+
 const renderExternal = (vl: VirtualList.VirtualList, data: VirtualListData) => {
+  f7VirtualList = vl;
   vlData.value = data;
 };
+
+// Virtual List читает items только при создании — при смене запроса нужно
+// явно подменять массив, иначе на экране остаются старые совпадения.
+watch(
+  () => matches,
+  (newMatches) => {
+    if (!f7VirtualList?.el?.isConnected) {
+      f7VirtualList = undefined;
+      return;
+    }
+    f7VirtualList.replaceAllItems(newMatches);
+  },
+);
 
 const selectMatch = (id: number) => {
   emit("selectMatch", id);
@@ -113,5 +137,18 @@ const onPopupOpened = () => {
 .search-empty-state {
   text-align: center;
   color: var(--content-color-black-40);
+}
+
+.search-page-searchbar {
+  position: absolute;
+  z-index: 0;
+
+  :deep(.searchbar-icon) {
+    display: none;
+  }
+
+  :deep(.searchbar-inner:after) {
+    display: none;
+  }
 }
 </style>

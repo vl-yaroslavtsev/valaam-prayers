@@ -17,7 +17,35 @@
         color: var(--f7-searchbar-input-text-color);
       }
     }
+
+    &.text-normal-case {
+      input[type="text"],
+      input[type="search"] {
+        text-transform: none;
+        font-size: 18px;
+      }
+    }
+
+    // Подменяем на кастомную кнопку очистки для searchbar
+    .input-clear-button {
+      &:not(.custom-button) {
+        display: none;
+      }
+  
+      &.custom-button {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+      }
+    }
+
+    // Скрываем стандартную кнопку очистки для searchbar
+    .input-clear-button::after {
+      display: none;
+    }
   }
+
+  
 
   .searchbar-inner:after {
     content: '';

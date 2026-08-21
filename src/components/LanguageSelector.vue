@@ -16,7 +16,7 @@
         {{ getLanguageLabel(lang) }}
       </option>
     </select>
-    <SvgIcon icon="language" color="baige-90" :size="24" />
+    <SvgIcon icon="language2" color="baige-90" :size="20" />
   </f7-link>
 </template>
 

@@ -69,14 +69,22 @@ const updateSlides = (slides: string[]) => {
   const template = `<div class="text-page">$content</div>`;
 
   const swiper = swiperRef.value?.swiper;
-  if (!swiper) {
+  if (!swiper?.virtual) {
     return;
   }
-  swiper.virtual.removeAllSlides();
+
+  // removeAllSlides() вызывает slideTo(0) и сбрасывает текущую страницу.
+  // Кеш virtual нужно очистить, иначе renderSlide вернёт старый DOM без новой подсветки.
+  const activeIndex = swiper.activeIndex;
   swiper.virtual.slides = slides.map((slide) =>
     template.replace("$content", slide)
   );
+  swiper.virtual.cache = {};
   swiper.virtual.update(true);
+  // Creative-эффект держит соседние слайды со сдвигом translate.
+  // После force-update без slideTo активный слайд может остаться за экраном
+  // («пустая страница»). next/prev это скрывали повторным goToPage.
+  swiper.slideTo(activeIndex, 0);
 };
 
 const handleTap = (e: CustomEvent<[swiper: Swiper, event: PointerEvent]>) => {
