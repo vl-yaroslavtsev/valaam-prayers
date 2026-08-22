@@ -70,6 +70,7 @@
       v-model:isOpened="isSearchPageOpened"
       v-model:query="searchQuery"
       :matches="searchMatches"
+      :active-match-id="isSearchModeActive ? activeMatchId : null"
       @selectMatch="onSelectMatch"
       @closeSearch="onCloseSearch"
     />
@@ -402,6 +403,7 @@ const pagesForSearch = computed<readonly string[]>(() => textPaginator.value?.pa
 const {
   query: searchQuery,
   matches: searchMatches,
+  activeMatchId,
   activeMatchIndex,
   activeMatch,
   goToMatch,
@@ -422,8 +424,12 @@ const onSelectMatch = (id: number) => {
   goToMatch(id);
   isSearchPageOpened.value = false;
   isSearchModeActive.value = true;
+  readingBarsAnimate.value = false;
   isNavbarHidden.value = true;
   isPageNavHidden.value = true;
+  nextTick(() => {
+    readingBarsAnimate.value = true;
+  });
 
   const match = searchMatches.value.find((m) => m.id === id);
   if (match) {
