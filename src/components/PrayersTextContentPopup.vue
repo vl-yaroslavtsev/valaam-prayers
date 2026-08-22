@@ -33,7 +33,7 @@
       >
         <f7-block v-if="headers.length > 0"
           class="no-padding-horizontal">
-          <f7-treeview >
+          <f7-treeview :class="{ 'lang-cs': lang === 'cs' }">
             <f7-treeview-item
               v-for="header in groupedHeaders" 
               :key="`${header.index}`"
@@ -83,13 +83,15 @@ import { computed, ref, watch, nextTick } from "vue";
 import { f7 } from "framework7-vue";
 
 import type { PaginationCacheItemHeader } from "@/services/storage/PaginationCacheStorage";
+import type { Language } from "@/types/common";
 import Swiper from "swiper";
 
-const { itemId, title, headers, page } = defineProps<{
+const { itemId, title, headers, page, lang } = defineProps<{
   itemId: string;
   title: string;
   headers: PaginationCacheItemHeader[];
   page: number;
+  lang?: Language | null;
 }>();
 
 const isOpened = defineModel<boolean>('isOpened');

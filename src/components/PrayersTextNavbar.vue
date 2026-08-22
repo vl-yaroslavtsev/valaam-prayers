@@ -36,7 +36,7 @@
       </f7-link>
     </f7-nav-right>
     <f7-nav-title-large>{{ title }}
-      <div class="subtitle-large">
+      <div class="subtitle-large" :class="{ 'lang-cs': currentLanguage === 'cs' }">
         <div class="subtitle-large-item"
           v-for="item in subtitle">
           {{ item }}
@@ -240,6 +240,10 @@ defineExpose({
   font-size: 16px;
   font-weight: 400;
   color: var(--content-color-baige-40);
+
+  &.lang-cs {
+    font-family: 'Triodion Unicode';
+  }
 }
 
 .subtitle-large-item {

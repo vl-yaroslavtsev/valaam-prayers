@@ -61,6 +61,7 @@
       :title="title"
       :headers="headers"
       :page="currentPage"
+      :lang="currentLanguage"
       @goToPage="onGoToPageFromPopup"
     />
     <PrayersTextSearchPage
