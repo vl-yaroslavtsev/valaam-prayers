@@ -89,6 +89,7 @@ interface Props {
   availableLanguages: Language[];
   textTheme: string;
   isHidden: boolean;
+  animateVisibility?: boolean;
 }
 
 interface Emits {
@@ -113,12 +114,13 @@ const currentLanguage = defineModel<Language | null>('current-language');
 watch(() => props.isHidden, (isHidden) => {
   if (!navbarRef.value) return;
   const navbarEl = navbarRef.value.$el;
+  const animate = props.animateVisibility !== false;
 
   if (isHidden) {
-    f7.navbar.hide(navbarEl, true);
+    f7.navbar.hide(navbarEl, animate);
     f7.navbar.collapseLargeTitle(navbarEl);
   } else {
-    f7.navbar.show(navbarEl, true);
+    f7.navbar.show(navbarEl, animate);
     f7.navbar.expandLargeTitle(navbarEl);
   }
 });

@@ -43,6 +43,7 @@ interface Props {
   currentPage: number;
   totalPages: number;
   isHidden: boolean;
+  animateVisibility?: boolean;
 }
 
 interface Emits {
@@ -59,10 +60,11 @@ const pageNavToolbar = useTemplateRef<ComponentPublicInstance>("pageNavToolbar")
 watch(() => props.isHidden, (isHidden) => {
   if (!pageNavToolbar.value) return;
   const pageNavToolbarEl = pageNavToolbar.value.$el;
+  const animate = props.animateVisibility !== false;
   if (isHidden) {
-    f7.toolbar.hide(pageNavToolbarEl, true);
+    f7.toolbar.hide(pageNavToolbarEl, animate);
   } else {
-    f7.toolbar.show(pageNavToolbarEl, true);
+    f7.toolbar.show(pageNavToolbarEl, animate);
   }
 });
 

@@ -1,5 +1,6 @@
 <template>
   <f7-popup 
+    ref="popup"
     :tablet-fullscreen="true"  
     v-model:opened="isOpened">
     <f7-page>
@@ -79,7 +80,7 @@
   </f7-popup>
 </template>
 <script setup lang="ts">
-import { computed, ref, watch, nextTick } from "vue";
+import { computed, ref, watch, nextTick, useTemplateRef, type ComponentPublicInstance } from "vue";
 import { f7 } from "framework7-vue";
 
 import type { PaginationCacheItemHeader } from "@/services/storage/PaginationCacheStorage";
@@ -95,6 +96,7 @@ const { itemId, title, headers, page, lang } = defineProps<{
 }>();
 
 const isOpened = defineModel<boolean>('isOpened');
+const popupRef = useTemplateRef<ComponentPublicInstance>("popup");
 
 // События
 const emit = defineEmits<{
@@ -156,7 +158,11 @@ const goToPage = (page: number, event: PointerEvent) => {
     return;
   }
   emit('goToPage', page);
-  isOpened.value = false; // Закрываем попап после выбора
+  const popupEl = popupRef.value?.$el;
+  if (popupEl) {
+    f7.popup.close(popupEl, false);
+  }
+  isOpened.value = false;
 };
 
 // Всплытие Custom TouchEnd от Swiper вызывает ошибку в Range

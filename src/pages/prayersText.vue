@@ -10,6 +10,7 @@
       :available-languages="availableLanguages"
       :text-theme="textTheme"
       :is-hidden="isNavbarHidden"
+      :animate-visibility="readingBarsAnimate"
       @toggle-text-settings="toggleTextSettingsSheet"
       @open-content-popup="openContentPopup"
       @open-search="onOpenSearch"
@@ -52,6 +53,7 @@
       :current-page="currentPage"
       :total-pages="totalPages"
       :is-hidden="isPageNavHidden"
+      :animate-visibility="readingBarsAnimate"
       @reset-progress="resetProgress"
       @page-change="onPageSliderChange"
     />
@@ -75,7 +77,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watchEffect, useTemplateRef, ComponentPublicInstance, watch } from "vue";
+import { ref, computed, watchEffect, useTemplateRef, ComponentPublicInstance, watch, nextTick } from "vue";
 import type { Router } from "framework7/types";
 import { f7 } from "framework7-vue";
 import type { Swiper } from "swiper";
@@ -176,12 +178,17 @@ const openContentPopup = () => {
   isContentPopupOpened.value = true;
 };
 
+const readingBarsAnimate = ref(true);
+
 // Функция для перехода к странице из попапа
 const onGoToPageFromPopup = (page: number) => {
-  textPaginator.value?.goToPage(page, true);
-  // Скрываем навигацию после перехода
+  textPaginator.value?.goToPage(page, false);
+  readingBarsAnimate.value = false;
   isNavbarHidden.value = true;
   isPageNavHidden.value = true;
+  nextTick(() => {
+    readingBarsAnimate.value = true;
+  });
 };
 
 const isTextSettingsSheetOpened = ref(false);
