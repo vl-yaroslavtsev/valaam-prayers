@@ -191,6 +191,7 @@ watch(
 
   mark {
     color: var(--brand-color-primary-accent-50, #ffe08a);
+    font-weight: 600;
     background-color: inherit;
   }
 }

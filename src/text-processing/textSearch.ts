@@ -90,14 +90,16 @@ function findAllMatches(text: string, query: string): { start: number; length: n
 }
 
 /**
- * Разбивает текст блочного элемента на предложения (по . ! ?)
+ * Разбивает текст блочного элемента на предложения (по . ! ?).
+ * Граница только если следующее слово с заглавной — иначе обращения вроде
+ * «Господи! слуга мой…» режутся посередине фразы.
  */
 function splitIntoSentences(blockText: string): string[] {
   const normalized = blockText.replace(/\s+/g, ' ').trim();
   if (!normalized) return [];
 
   return normalized
-    .split(/(?<=[.!?])\s+/)
+    .split(/(?<=[.!?])\s+(?=\p{Lu})/u)
     .map((s) => s.trim())
     .filter((s) => s.length > 0);
 }
