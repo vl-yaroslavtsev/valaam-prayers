@@ -24,6 +24,25 @@
   box-sizing: border-box;
 }
 
+.treeview-item-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.treeview-item-label {
+  flex: 1;
+  min-width: 0;
+}
+
+.treeview-item-page {
+  flex-shrink: 0;
+  margin-left: auto;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+  font-size: var(--mobile-main-text-regular-b3);
+  color: var(--treeview-children-label-text-color);
+}
+
 .treeview-item-children {
   --f7-treeview-item-height: 40px;
   --f7-treeview-label-font-size: var(--mobile-main-text-regular-b3);

@@ -38,20 +38,25 @@
               v-for="header in groupedHeaders" 
               :key="`${header.index}`"
               :label="header.text"
-              :footer="`Страница ${header.page}`"
               :toggle="header.children.length > 0"
               :opened="header.opened"
               :selected="header.selected"
               @click="goToPage(header.page, $event)"
             >
+              <template #content-end>
+                <span class="treeview-item-page">{{ header.page }}</span>
+              </template>
               <f7-treeview-item
                 v-for="child in header.children"
                 :key="`${child.index}`"
                 :label="child.text"
-                :footer="`Страница ${child.page}`"
                 :selected="child.selected"
                 @click="goToPage(child.page, $event)"
-              />
+              >
+                <template #content-end>
+                  <span class="treeview-item-page">{{ child.page }}</span>
+                </template>
+              </f7-treeview-item>
             </f7-treeview-item>
           </f7-treeview>
         </f7-block>
