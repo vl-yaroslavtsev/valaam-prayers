@@ -22,7 +22,7 @@
         >
           <template #input-wrap-end>
             <span class="input-clear-button custom-button">
-              <SvgIcon icon="cancel" color="baige-30" />
+              <SvgIcon icon="cancel" :color="clearButtonColor" :size="20" />
             </span>
           </template>
         </f7-searchbar>
@@ -62,9 +62,10 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch, nextTick, useTemplateRef, type ComponentPublicInstance } from "vue";
+import { computed, ref, watch, nextTick, useTemplateRef, type ComponentPublicInstance } from "vue";
 import { f7 } from "framework7-vue";
 import SvgIcon from "@/components/SvgIcon.vue";
+import { useTheme } from "@/composables/useTheme";
 import type { VirtualList } from "framework7/types";
 import type { SearchMatch } from "@/text-processing";
 
@@ -80,6 +81,9 @@ const emit = defineEmits<{
   selectMatch: [id: number];
   closeSearch: [];
 }>();
+
+const { isDarkMode } = useTheme();
+const clearButtonColor = computed(() => (isDarkMode.value ? "baige-30" : "black-40"));
 
 const ITEM_HEIGHT = 76;
 

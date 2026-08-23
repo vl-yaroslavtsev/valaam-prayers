@@ -224,3 +224,8 @@ watch([() => page, () => headers], () => {
 });
 
 </script>
+<style scoped lang="less">
+.navbar {
+  --f7-navbar-border-color: transparent;
+}
+</style>

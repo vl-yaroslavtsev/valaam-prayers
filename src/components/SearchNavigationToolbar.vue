@@ -7,21 +7,21 @@
   >
     <div class="header">
       <f7-link class="side-link" icon-only href="#" @click="emit('openList')">
-        <SvgIcon icon="search" color="baige-60" />
+        <SvgIcon icon="search" :color="iconColor" />
       </f7-link>
 
       <div class="nav-controls">
         <f7-link icon-only href="#" @click="emit('prev')">
-          <SvgIcon icon="shevron-left" :size="32" color="baige-60" />
+          <SvgIcon icon="shevron-left" :size="32" :color="iconColor" />
         </f7-link>
         <div class="match-counter">{{ currentNumber }} из {{ total }}</div>
         <f7-link icon-only href="#" @click="emit('next')">
-          <SvgIcon icon="shevron-right" :size="32" color="baige-60" />
+          <SvgIcon icon="shevron-right" :size="32" :color="iconColor" />
         </f7-link>
       </div>
 
       <f7-link class="side-link" icon-only href="#" @click="emit('closeSearch')">
-        <SvgIcon icon="cancel" :size="20" color="baige-60" />
+        <SvgIcon icon="cancel" :size="20" :color="iconColor" />
       </f7-link>
     </div>
   </f7-toolbar>
@@ -31,6 +31,7 @@
 import { computed, watch, onMounted, useTemplateRef, type ComponentPublicInstance } from "vue";
 import { f7 } from "framework7-vue";
 import SvgIcon from "@/components/SvgIcon.vue";
+import { useTheme } from "@/composables/useTheme";
 
 interface Props {
   currentIndex: number; // 0-based индекс текущего результата
@@ -52,6 +53,9 @@ const currentNumber = computed(() => (props.currentIndex >= 0 ? props.currentInd
 
 const searchNavToolbar = useTemplateRef<ComponentPublicInstance>("searchNavToolbar");
 
+const { isDarkMode } = useTheme();
+const iconColor = computed(() => (isDarkMode.value ? "baige-60" : "black-40"));
+
 const applyVisibility = (isHidden: boolean) => {
   if (!searchNavToolbar.value) return;
   const toolbarEl = searchNavToolbar.value.$el;
@@ -69,9 +73,8 @@ onMounted(() => applyVisibility(props.isHidden));
 <style scoped lang="less">
 .search-navigation-toolbar {
   --f7-toolbar-height: calc(40px + var(--f7-safe-area-bottom));
-  --f7-toolbar-bg-color: var(--f7-bars-bg-color);
-  --f7-toolbar-border-color: var(--f7-bars-border-color);
   --f7-link-touch-ripple-color: rgba(255, 255, 255, 0.15);
+  --match-counter-color: var(--content-color-black-60);
 
   :deep(.toolbar-inner) {
     padding: 0 16px;
@@ -106,7 +109,7 @@ onMounted(() => applyVisibility(props.isHidden));
     font-size: 14px;
     line-height: 130%;
     letter-spacing: 0.05em;
-    color: var(--content-color-baige-60);
+    color: var(--match-counter-color);
   }
 
   &.theme-dark {
@@ -114,5 +117,9 @@ onMounted(() => applyVisibility(props.isHidden));
       color: var(--content-color-baige-90);
     }
   }
+}
+
+:global(.dark .search-navigation-toolbar) {
+  --match-counter-color: var(--content-color-baige-60);
 }
 </style>

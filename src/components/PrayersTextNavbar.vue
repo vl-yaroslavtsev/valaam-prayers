@@ -1,14 +1,14 @@
 <template>
   <f7-navbar 
     ref="navbar" 
-    large 
+    large
     hidden 
     class="prayers-text-navbar navbar-large-collapsed">
     <f7-nav-left :back-link="true"></f7-nav-left>
     <f7-nav-title sliding></f7-nav-title>
     <f7-nav-right>
       <f7-link icon-only @click="emit('open-content-popup')">
-        <SvgIcon icon="menu" color="baige-90" :size="24" />
+        <SvgIcon icon="menu" :color="navIconColor" :size="24" />
       </f7-link>
       <LanguageSelector 
         v-if="currentLanguage && availableLanguages.length > 1"
@@ -17,22 +17,22 @@
       <f7-link icon-only>
         <SvgIcon 
           :icon="isElementFavorite ? 'favorite-filled' : 'favorite'" 
-          color="baige-90" 
+          :color="navIconColor" 
           :size="24"
           @click="toggleFavorite" />
       </f7-link>
       <f7-link icon-only>
         <SvgIcon 
           icon="settings-2" 
-          color="baige-90" 
+          :color="navIconColor" 
           :size="24" 
           @click="$emit('toggle-text-settings')" />
       </f7-link>
       <f7-link icon-only>
-        <SvgIcon icon="share" color="baige-90" :size="24" @click="shareItem" />
+        <SvgIcon icon="share" :color="navIconColor" :size="24" @click="shareItem" />
       </f7-link>
       <f7-link icon-only @click="emit('open-search')">
-        <SvgIcon icon="search" color="baige-90" :size="24" />
+        <SvgIcon icon="search" :color="navIconColor" :size="24" />
       </f7-link>
     </f7-nav-right>
     <f7-nav-title-large>{{ title }}
@@ -76,6 +76,7 @@ import { useComponentsStore } from "@/stores/components";
 import { useSettingsStore } from "@/stores/settings";
 import { useFavoritesStore } from "@/stores/favorites";
 import { useInfoToast } from "@/composables/useInfoToast";
+import { useTheme } from "@/composables/useTheme";
 import { device } from "@/js/device";
 
 import SvgIcon from "@/components/SvgIcon.vue";
@@ -102,6 +103,9 @@ const props = defineProps<Props>();
 const emit = defineEmits<Emits>();
 
 const navbarRef = useTemplateRef<ComponentPublicInstance>("navbar");
+
+const { isDarkMode } = useTheme();
+const navIconColor = computed(() => (isDarkMode.value ? "baige-90" : "black-primary"));
 
 const prayersStore = usePrayersStore();
 const settingsStore = useSettingsStore();
@@ -241,7 +245,7 @@ defineExpose({
 
   font-size: 16px;
   font-weight: 400;
-  color: var(--content-color-baige-40);
+  color: var(--f7-navbar-subtitle-text-color);
 
   &.lang-cs {
     font-family: 'Triodion Unicode';
@@ -260,7 +264,7 @@ defineExpose({
     width: 5px;
     height: 5px;
     border-radius: 50%;
-    background-color: var(--content-color-baige-40);
+    background-color: var(--f7-navbar-subtitle-text-color);
   }
 
   &:last-child:after {
@@ -274,7 +278,7 @@ defineExpose({
   --f7-range-knob-color: var(--brand-color-primary-accent-70);
 
   position: absolute;
-  top: calc(100% + var(--f7-navbar-large-title-height) - 1px);
+  top: calc(100% + var(--f7-navbar-large-title-height));
   left: 0;
   right: 0;
   height: 30px;

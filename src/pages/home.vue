@@ -1,7 +1,7 @@
 <template>
   <f7-page name="home">
     <!-- Top Navbar -->
-    <f7-navbar>
+    <f7-navbar transparent>
       <f7-nav-left>
         <f7-link panel-open="left">
           <SvgIcon icon="burger" :size="32" />
@@ -12,16 +12,17 @@
         <f7-link @click="toggleSortable"
           ><SvgIcon
             icon="pencil"
-            :color="sortableEnabled ? 'primary-accent-50' : 'baige-90'"
+            :color="sortableEnabled ? 'primary-accent-50' : pencilInactiveColor"
             :size="24"
         /></f7-link>
       </f7-nav-right>
-      <f7-nav-title-large>
+      <!-- <f7-nav-title-large>
         Сейчас читаю
-      </f7-nav-title-large>
+      </f7-nav-title-large> -->
     </f7-navbar>
+    <f7-block-title class="now-reading-title">Сейчас читаю</f7-block-title>
     <HistorySlider :items="lastReadings" :isLoading="isHistoryLoading" />
-    <f7-block-title>Избранное</f7-block-title>
+    <f7-block-title class="favorites-title">Избранное</f7-block-title>
     <f7-block ref="chipsBlockRef" class="chips-block">
       <f7-chip
         v-for="chip in chips"
@@ -75,6 +76,7 @@ import HistorySlider from "@/components/HistorySlider.vue";
 import { FavoritesList } from "@/components/prayers";
 
 const { isDarkMode } = useTheme();
+const pencilInactiveColor = computed(() => (isDarkMode.value ? "baige-90" : "black-60"));
 
 // Используем Pinia store
 const favoritesStore = useFavoritesStore();
@@ -347,5 +349,14 @@ const onSorted = (id: string, prevId: string | null) => {
 
 .separator {
   margin-top: 30px;
+}
+
+.now-reading-title {
+  --f7-block-margin-vertical: 16px;
+  --f7-block-title-margin-bottom: -4px;
+}
+
+.favorites-title {
+  --f7-block-margin-vertical: 22px;
 }
 </style>

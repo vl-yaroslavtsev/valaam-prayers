@@ -86,7 +86,7 @@ const { version } = useSettingsStore();
 
 <style scoped lang="less">
 .page-left-panel {
-  --list-panel-padding-top: 30px;
+  --list-panel-padding-top: calc(30px + var(--f7-safe-area-top));
   --f7-list-item-title-text-color: var(--content-color-black-primary);
 
   // padding-top: var(--f7-safe-area-top);

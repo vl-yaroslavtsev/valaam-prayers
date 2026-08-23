@@ -63,7 +63,12 @@ export function useTheme() {
     f7.setDarkMode(dark);
     
     // Настройки для мобильных устройств
-    device.setStatusBarTextColor('light')
+    if (dark) {
+      device.setStatusBarTextColor('light')
+    } else {
+      device.setStatusBarTextColor('dark')
+    }
+    
     
     // if (dark) {
     //   device.setStatusBarColor('#1f1b1a')

@@ -16,12 +16,14 @@
         {{ getLanguageLabel(lang) }}
       </option>
     </select>
-    <SvgIcon icon="language2" color="baige-90" :size="20" />
+    <SvgIcon icon="language2" :color="iconColor" :size="20" />
   </f7-link>
 </template>
 
 <script setup lang="ts">
+import { computed } from "vue";
 import SvgIcon from "@/components/SvgIcon.vue";
+import { useTheme } from "@/composables/useTheme";
 
 type Language = 'cs' | 'cs-cf' | 'ru';
 
@@ -31,6 +33,9 @@ interface Props {
 
 const props = defineProps<Props>();
 const currentLanguage = defineModel<Language>({ required: true });
+
+const { isDarkMode } = useTheme();
+const iconColor = computed(() => (isDarkMode.value ? "baige-90" : "black-primary"));
 
 const getLanguageLabel = (language: Language): string => {
   const labels: Record<Language, string> = {

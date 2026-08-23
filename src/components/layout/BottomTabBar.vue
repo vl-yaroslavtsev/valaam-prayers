@@ -26,6 +26,7 @@
 import SvgIcon from "@/components/SvgIcon.vue";
 import { setCSSVariable } from "@/js/utils";
 import { useTemplateRef } from "vue";
+import { useTheme } from "@/composables/useTheme";
 
 export interface Toolbar {
   hide: (animate?: boolean) => void;
@@ -52,12 +53,18 @@ defineExpose({
   hide,
 });
 
-const getColor = (tab: string) => (activeTab === tab ? "white" : "baige-60");
+const { isDarkMode } = useTheme();
+
+const getColor = (tab: string) => {
+  if (isDarkMode.value) {
+    return activeTab === tab ? "white" : "baige-60";
+  }
+  return activeTab === tab ? "primary-accent-50" : "black-60";
+};
 </script>
 
 <style scoped lang="less">
 .bottom-menu {
-  --f7-toolbar-bg-color: var(--content-color-black-primary);
   --f7-tabbar-link-active-bg-color: transparent; // var(--content-color-black-primary);
 
   --f7-tabbar-icons-height: calc(83px - var(--f7-safe-area-bottom));
@@ -68,12 +75,12 @@ const getColor = (tab: string) => (activeTab === tab ? "white" : "baige-60");
   --f7-tabbar-link-inactive-color: var(--content-color-baige-60);
 
   backdrop-filter: blur(50px);
-  box-shadow: 0 -0px 0 0 rgba(0, 0, 0, 0.3);
 }
 
 .dark {
   .bottom-menu {
-    --f7-toolbar-bg-color: var(--content-color-baige-5-no-opacity); //var(--content-color-baige-5); //var(--content-color-black-primary);
+    // --f7-toolbar-border-color: transparent;
+    //  box-shadow: 0px -0.33px 0px rgba(0, 0, 0, 0.3);
   }
 }
 </style>

@@ -12,7 +12,7 @@
         href="#"
         @click="handleResetProgress"
       >
-        <SvgIcon icon="reset" color="baige-60" />
+        <SvgIcon icon="reset" :color="iconColor" />
       </f7-link>
       
       <div class="page-counter">
@@ -38,6 +38,7 @@
 import { ref, computed, watch, useTemplateRef, type ComponentPublicInstance } from "vue";
 import { f7 } from "framework7-vue";
 import SvgIcon from "@/components/SvgIcon.vue";
+import { useTheme } from "@/composables/useTheme";
 
 interface Props {
   currentPage: number;
@@ -55,6 +56,9 @@ const props = defineProps<Props>();
 const emit = defineEmits<Emits>();
 
 const pageNavToolbar = useTemplateRef<ComponentPublicInstance>("pageNavToolbar");
+
+const { isDarkMode } = useTheme();
+const iconColor = computed(() => (isDarkMode.value ? "baige-60" : "black-40"));
 
 // Показать/скрыть тулбар
 watch(() => props.isHidden, (isHidden) => {
@@ -96,9 +100,12 @@ const handleResetProgress = () => {
 .page-navigation-toolbar {
   z-index: 600;
   --f7-toolbar-height: calc(70px + var(--f7-safe-area-bottom));
-  --f7-toolbar-bg-color: var(--f7-bars-bg-color);
-  --f7-toolbar-border-color: var(--f7-bars-border-color);
   --f7-link-touch-ripple-color: rgba(255, 255, 255, 0.15);
+  --page-counter-color: var(--content-color-black-60);
+
+  --f7-range-bar-bg-color: var(--content-color-black-20);
+  --f7-range-bar-active-bg-color: var(--brand-color-primary-accent-50);
+  --f7-range-knob-color: var(--brand-color-primary-accent-50);
   
   :deep(.toolbar-inner) {
     display: flex;
@@ -133,21 +140,17 @@ const handleResetProgress = () => {
     font-size: 14px;
     line-height: 130%;
     letter-spacing: 0.05em;
-    color: var(--content-color-baige-60);
+    color: var(--page-counter-color);
     text-align: center;
   }
   
   .page-range-slider {
     width: 100%;
-    --f7-range-bar-bg-color: var(--content-color-baige-30);
-    --f7-range-bar-active-bg-color: var(--brand-color-primary-accent-50);
-    --f7-range-knob-color: var(--brand-color-primary-accent-50);
   }
-  
-  &.theme-dark {
-    .page-counter {
-      color: var(--content-color-baige-90);
-    }
-  }
+}
+
+:global(.dark .page-navigation-toolbar) {
+  --page-counter-color: var(--content-color-baige-60);
+  --f7-range-bar-bg-color: var(--content-color-baige-30);
 }
 </style>

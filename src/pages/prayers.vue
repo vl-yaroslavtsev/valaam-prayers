@@ -1,6 +1,6 @@
 <template>
   <f7-page @page:beforein="onPageBeforeIn">
-    <f7-navbar large>
+    <f7-navbar large transparent>
       <f7-nav-left :back-link="!isFirstPage">
         <f7-link
           v-if="isFirstPage"
@@ -24,7 +24,7 @@
       >
         <template #input-wrap-end>
           <span class="input-clear-button custom-button">
-            <SvgIcon icon="cancel" color="baige-30" />
+            <SvgIcon icon="cancel" :color="isDarkMode ? 'baige-30' : 'black-40'" :size="20" />
           </span>
         </template>
       </f7-searchbar>

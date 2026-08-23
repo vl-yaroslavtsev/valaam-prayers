@@ -1,17 +1,9 @@
 .md {
   --f7-panel-bg-color: var(--content-color-baige-100);
---panel-status-bar-color: var(--content-color-black-60);
+  --panel-status-bar-color: var(--content-color-black-60);
 
   .panel {
-    .page-content:before {
-      content: "";
-      display: block;
-      width: 100%;
-      height: var(--f7-safe-area-top);
-      background-color: var(--panel-status-bar-color);
-    }
-
-    height: calc(100% - var(--f7-safe-area-bottom));
+    // height: calc(100% - var(--f7-safe-area-bottom));
   }
 
   &.dark, & .dark {
