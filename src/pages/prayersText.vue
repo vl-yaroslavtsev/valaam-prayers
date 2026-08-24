@@ -15,7 +15,7 @@
       @open-content-popup="openContentPopup"
       @open-search="onOpenSearch"
     />
-    <f7-page-content class="">
+    <f7-page-content>
       <TextPaginator 
         :isLoading="isLoading" 
         :text="text" 
@@ -27,7 +27,10 @@
         @tap="onTextPaginatorTap"
         @touchstart="onTextPaginatorTouchStart"
         @touchend="onTextPaginatorTouchEnd" />
-       
+      <!-- Пока протяжка ползунка не устоялась, реальный переход отложен —
+           закрываем текст фоном текущей темы чтения (не сам reading-text,
+           у которого горизонтальный режим рендерит слайды через Shadow DOM) -->
+      <div v-if="isPageScrubbing" class="page-scrub-overlay" :class="`theme-${textTheme}`"></div>
     </f7-page-content>
     <TextSettingsSelector 
       v-model:isOpened="isTextSettingsSheetOpened"
@@ -56,6 +59,8 @@
       :animate-visibility="readingBarsAnimate"
       @reset-progress="resetProgress"
       @page-change="onPageSliderChange"
+      @scrub-move="isPageScrubbing = true"
+      @scrub-settle="isPageScrubbing = false"
     />
     <PrayersTextContentPopup
       v-model:isOpened="isContentPopupOpened"
@@ -304,6 +309,11 @@ const onPageBeforeIn = () => {
 };
 
 const onPageAfterOut = () => {
+  if (saveProgressTimer) {
+    clearTimeout(saveProgressTimer);
+    saveProgressTimer = null;
+    saveProgress();
+  }
   const bottomTabBar = getComponent("bottomTabBar");
   bottomTabBar?.show(true);
   device.resetBrightness();
@@ -381,14 +391,32 @@ const totalPages = computed(() => textPaginator.value?.pagesCount || 0);
 const progress = computed(() => textPaginator.value?.progress || 0);
 const currentPage = computed(() => Math.min(Math.floor(progress.value * totalPages.value) + 1, totalPages.value));
 
-watch(progress, () => {
+const saveProgress = () => {
   if (!textPaginator.value || !totalPages.value) return;
-  //console.log("watch progress", progress.value, totalPages.value);
   const type = prayersStore.isBook(itemId) ? "books" : "prayers";
   historyStore.updateProgress(itemId, progress.value, totalPages.value, type);
+};
+
+let saveProgressTimer: ReturnType<typeof setTimeout> | null = null;
+watch(progress, () => {
+  if (!textPaginator.value || !totalPages.value) return;
+  if (saveProgressTimer) {
+    clearTimeout(saveProgressTimer);
+  }
+  // IndexedDB на каждый шаг слайдера/свайпа даёт заметный лаг при большом числе страниц
+  saveProgressTimer = setTimeout(() => {
+    saveProgressTimer = null;
+    saveProgress();
+  }, 300);
 });
 
 const isPageNavHidden = ref(true);
+
+// Пока ползунок страниц двигается, реальный переход по тексту отложен
+// (дебаунс в PageNavigationToolbar), поэтому видимый текст не соответствует
+// счётчику — прячем его оверлеем. Как только переход применится (даже без
+// отпускания пальца, на паузе), PageNavigationToolbar пришлёт scrub-settle.
+const isPageScrubbing = ref(false);
 
 const onPageSliderChange = (value: number) => {
   isNavbarHidden.value = true;
@@ -500,5 +528,16 @@ const isBrightnessTouching = computed(() => navbarRef.value?.isBrightnessTouchin
 // Стили перенесены в компонент PrayersTextNavbar
 .dark .page {
   --f7-bars-bg-color: var(--content-color-baige-5-no-opacity);
+}
+
+// Фон берётся из того же общего правила [class*=' theme-'] в reading-text.less,
+// что и у .reading-text/.text-page — визуально это просто "пустая" страница чтения
+.page-scrub-overlay {
+  position: absolute;
+  top: var(--f7-safe-area-top);
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 5;
 }
 </style>

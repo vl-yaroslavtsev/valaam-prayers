@@ -16,7 +16,7 @@
       </f7-link>
       
       <div class="page-counter">
-        {{ currentPage }} из {{ totalPages }}
+        {{ displayedPage }} из {{ totalPages }}
       </div>
     </div>
       
@@ -26,16 +26,20 @@
       :min="1"
       :max="totalPages"
       :step="1"
+      :value="sliderValue"
       @range:change="handlePageSliderChange"
-      @touchstart.passive="handlePageSliderTouchStart"
-      @touchend.passive="handlePageSliderTouchEnd"
-      :value="currentPage"          
+      @range:changed="handlePageSliderChanged"
+      @pointerdown.passive="handlePageSliderStart"
+      @pointerup.passive="handlePageSliderEnd"
+      @pointercancel.passive="handlePageSliderEnd"
+      @touchstart.passive="handlePageSliderStart"
+      @touchend.passive="handlePageSliderEnd"
     />
   </f7-toolbar>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch, useTemplateRef, type ComponentPublicInstance } from "vue";
+import { ref, computed, watch, onBeforeUnmount, useTemplateRef, type ComponentPublicInstance } from "vue";
 import { f7 } from "framework7-vue";
 import SvgIcon from "@/components/SvgIcon.vue";
 import { useTheme } from "@/composables/useTheme";
@@ -50,6 +54,10 @@ interface Props {
 interface Emits {
   (e: 'page-change', value: number): void;
   (e: 'reset-progress'): void;
+  // Текст ещё не соответствует счётчику — реальный переход отложен (см. schedulePageChange)
+  (e: 'scrub-move'): void;
+  // Текст снова соответствует счётчику — переход применён (debounce сработал или отпустили палец)
+  (e: 'scrub-settle'): void;
 }
 
 const props = defineProps<Props>();
@@ -72,24 +80,122 @@ watch(() => props.isHidden, (isHidden) => {
   }
 });
 
-let pageSliderTouching = false;
+// Во время перетаскивания ползунок не должен получать :value с пагинатора —
+// иначе каждый goToPage дёргает ручку назад. Счётчик берём из слайдера сразу,
+// а сам переход по тексту откладываем (см. schedulePageChange ниже).
+const isScrubbing = ref(false);
+const sliderValue = ref(props.currentPage);
+const scrubPage = ref(props.currentPage);
+const displayedPage = computed(() =>
+  isScrubbing.value ? scrubPage.value : props.currentPage
+);
 
-const handlePageSliderTouchStart = (event: TouchEvent) => {
-  pageSliderTouching = true;
-};
+watch(
+  () => props.currentPage,
+  (page) => {
+    if (!isScrubbing.value) {
+      sliderValue.value = page;
+      // scrubPage тоже должен быть свежим: это то, что покажет счётчик в момент
+      // handlePageSliderStart, ещё до первого движения (иначе мелькнёт значение
+      // с момента монтирования компонента, например 0, если текст ещё не был готов)
+      scrubPage.value = page;
+    }
+  }
+);
 
-const handlePageSliderTouchEnd = (event: TouchEvent) => {
-  pageSliderTouching = false;
-};
+// Реальный goToPage — это не просто передвижение ручки, а пересчёт progress/
+// currentPage/subtitle и переход в пагинаторе (скролл/слайд). При быстрой протяжке
+// по ползунку это может вызываться десятки раз в секунду и тормозить даже сам драг.
+// Поэтому пока палец двигается, откладываем реальный переход (дебаунс), а не
+// вызываем его на каждый кадр — обновляется только счётчик (см. displayedPage).
+const SCRUB_DEBOUNCE_MS = 80;
 
-// Обработчик изменения слайдера страниц
-const handlePageSliderChange = (value: number) => {
-  if (!pageSliderTouching) {
+let pendingPage: number | null = null;
+let lastSentPage: number | null = null;
+let pageChangeTimer: ReturnType<typeof setTimeout> | null = null;
+
+const sendPageChange = (page: number) => {
+  if (page === lastSentPage) {
     return;
   }
-
-  emit('page-change', value);
+  lastSentPage = page;
+  pendingPage = null;
+  emit("page-change", page);
+  // К этому моменту goToPage уже применён синхронно — текст соответствует счётчику
+  emit("scrub-settle");
 };
+
+const schedulePageChange = (page: number) => {
+  pendingPage = page;
+  if (pageChangeTimer) {
+    clearTimeout(pageChangeTimer);
+  }
+  pageChangeTimer = setTimeout(() => {
+    pageChangeTimer = null;
+    if (pendingPage != null) {
+      sendPageChange(pendingPage);
+    }
+  }, SCRUB_DEBOUNCE_MS);
+};
+
+const flushPageChange = () => {
+  if (pageChangeTimer) {
+    clearTimeout(pageChangeTimer);
+    pageChangeTimer = null;
+  }
+  if (pendingPage != null) {
+    sendPageChange(pendingPage);
+  }
+};
+
+const handlePageSliderStart = () => {
+  isScrubbing.value = true;
+  lastSentPage = null;
+  // Текст пока не прячем: до первого движения показанная страница ещё верна
+};
+
+const finishScrub = () => {
+  if (!isScrubbing.value) {
+    return;
+  }
+  flushPageChange();
+  sliderValue.value = scrubPage.value;
+  isScrubbing.value = false;
+};
+
+const handlePageSliderEnd = () => {
+  finishScrub();
+};
+
+const handlePageSliderChange = (value: number) => {
+  if (!isScrubbing.value) {
+    return;
+  }
+  scrubPage.value = value;
+  emit('scrub-move');
+  schedulePageChange(value);
+};
+
+const handlePageSliderChanged = (value: number) => {
+  if (typeof value === "number" && !Number.isNaN(value)) {
+    scrubPage.value = value;
+    pendingPage = value;
+  }
+  if (isScrubbing.value) {
+    finishScrub();
+    return;
+  }
+  // pointerup мог завершить scrub раньше, чем range:changed отдал финальное значение
+  sendPageChange(scrubPage.value);
+  sliderValue.value = scrubPage.value;
+};
+
+onBeforeUnmount(() => {
+  if (pageChangeTimer) {
+    clearTimeout(pageChangeTimer);
+    pageChangeTimer = null;
+  }
+});
 
 const handleResetProgress = () => {
   emit('reset-progress');

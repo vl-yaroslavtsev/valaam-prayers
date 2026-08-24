@@ -296,8 +296,12 @@ defineExpose({
     if (!el || !pageHeightPx.value) {
       return;
     }
+    const top = (page - 1) * pageHeightPx.value;
+    if (Math.abs(el.scrollTop - top) < 1) {
+      return;
+    }
     markProgrammaticScrollStart();
-    el.scrollTo({ top: (page - 1) * pageHeightPx.value, behavior: animate ? "smooth" : "instant" });
+    el.scrollTo({ top, behavior: animate ? "smooth" : "instant" });
   },
   setProgress: (progress: number) => scrollToProgress(progress, false),
   slidePrev: () => scrollByPage(-1),

@@ -189,7 +189,15 @@ defineExpose({
     swiper.slideTo(Math.floor(progress * swiper.virtual.slides.length), 0);
   },
   goToPage: (page: number, animate: boolean = true) => {
-    swiperRef.value?.swiper?.slideTo(page - 1, animate ? 300 : 0);
+    const swiper = swiperRef.value?.swiper;
+    if (!swiper) {
+      return;
+    }
+    const index = page - 1;
+    if (swiper.activeIndex === index) {
+      return;
+    }
+    swiper.slideTo(index, animate ? 300 : 0);
   },
   setProgress: (progress: number) => {
     swiperRef.value?.swiper?.setProgress(progress);
