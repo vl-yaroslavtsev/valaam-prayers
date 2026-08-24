@@ -12,11 +12,11 @@
 
       <div class="nav-controls">
         <f7-link icon-only href="#" @click="emit('prev')">
-          <SvgIcon icon="shevron-left" :size="32" :color="iconColor" />
+          <SvgIcon icon="chevron-left" :color="iconColor" />
         </f7-link>
         <div class="match-counter">{{ currentNumber }} из {{ total }}</div>
         <f7-link icon-only href="#" @click="emit('next')">
-          <SvgIcon icon="shevron-right" :size="32" :color="iconColor" />
+          <SvgIcon icon="chevron-right" :color="iconColor" />
         </f7-link>
       </div>
 
