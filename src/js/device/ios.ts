@@ -1,5 +1,5 @@
 import { format } from "date-fns";
-import type { CalendarEvent, CalendarEventResponse, IOSHandler, Device } from "@/js/device/types";
+import type { CalendarEvent, CalendarEventResponse, IOSHandler, Device, ScreenRect } from "@/js/device/types";
 
 const iosHandler = window.webkit?.messageHandlers as IOSHandler;
 
@@ -323,6 +323,25 @@ const ios: Device = {
 
   setShouldHandleLongClick(shouldHandle: boolean): void {
     // iOS не поддерживает
+  },
+
+  /**
+   * Отключает системный жест "Назад" (свайп от края экрана) в указанной
+   * области экрана. Полезно, когда элемент управления (например, слайдер)
+   * расположен близко к краю экрана и системный жест мешает работе с ним.
+   * Действует до вызова enableBackGesture().
+   * @param rect - область экрана в CSS-пикселях (как из getBoundingClientRect())
+   */
+  disableBackGestureInArea(rect: ScreenRect): void {
+    iosHandler?.backGestureHandler.postMessage({ action: "disable", ...rect });
+  },
+
+  /**
+   * Возвращает системный жест "Назад" в исходное состояние,
+   * отменяя действие disableBackGestureInArea()
+   */
+  enableBackGesture(): void {
+    iosHandler?.backGestureHandler.postMessage({ action: "enable" });
   },
 };
 

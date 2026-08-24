@@ -5,6 +5,7 @@ import type {
   CalendarEvent,
   CalendarEventResponse,
   Device,
+  ScreenRect,
 } from "@/js/device/types";
 
 
@@ -477,6 +478,25 @@ const android: Device = {
 
   setShouldHandleLongClick(shouldHandle: boolean): void {
     androidHandler?.setShouldHandleLongClick(shouldHandle);
+  },
+
+  /**
+   * Отключает системный жест "Назад" (свайп от края экрана) в указанной
+   * области экрана. Полезно, когда элемент управления (например, слайдер)
+   * расположен близко к краю экрана и системный жест мешает работе с ним.
+   * Действует до вызова enableBackGesture().
+   * @param rect - область экрана в CSS-пикселях (как из getBoundingClientRect())
+   */
+  disableBackGestureInArea(rect: ScreenRect): void {
+    androidHandler?.disableBackGestureInArea(rect.x, rect.y, rect.width, rect.height);
+  },
+
+  /**
+   * Возвращает системный жест "Назад" в исходное состояние,
+   * отменяя действие disableBackGestureInArea()
+   */
+  enableBackGesture(): void {
+    androidHandler?.enableBackGesture();
   },
 };
 

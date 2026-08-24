@@ -1,4 +1,4 @@
-import type { CalendarEvent, CalendarEventResponse, Device } from "@/js/device/types";
+import type { CalendarEvent, CalendarEventResponse, Device, ScreenRect } from "@/js/device/types";
 
 const browser: Device = {
   KEYCODE_VOLUME_DOWN: 0,
@@ -69,6 +69,9 @@ const browser: Device = {
   openCalendarSettings() {},
 
   setShouldHandleLongClick(shouldHandle: boolean) {},
+
+  disableBackGestureInArea(rect: ScreenRect) {},
+  enableBackGesture() {},
 };
 
 export default browser;

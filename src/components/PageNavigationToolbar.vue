@@ -46,6 +46,7 @@ import { ref, computed, watch, onBeforeUnmount, useTemplateRef, type ComponentPu
 import { f7 } from "framework7-vue";
 import SvgIcon from "@/components/SvgIcon.vue";
 import { useTheme } from "@/composables/useTheme";
+import { device } from "@/js/device";
 
 interface Props {
   currentPage: number;
@@ -172,12 +173,30 @@ const flushPageChange = () => {
   }
 };
 
+// На Android/iOS системный жест "Назад" (свайп от края экрана) перехватывает
+// перетаскивание ползунка у краёв экрана. На время протяжки просим нативку
+// отключить жест в полосе по высоте слайдера на всю ширину экрана — именно
+// там, а не в границах самого элемента, случается конфликт (у тулбара есть
+// горизонтальные отступы, но палец при протяжке может уйти за них к краю)
+const disableBackGestureForSlider = () => {
+  const el = pageRangeSlider.value?.$el as HTMLElement | undefined;
+  if (!el) return;
+  const rect = el.getBoundingClientRect();
+  device.disableBackGestureInArea({
+    x: 0,
+    y: rect.top,
+    width: window.innerWidth,
+    height: rect.height,
+  });
+};
+
 const handlePageSliderStart = () => {
   isScrubbing.value = true;
   lastSentPage = null;
   hasMoved = false;
   scrubStartPage = scrubPage.value;
   // Текст пока не прячем: до первого движения показанная страница ещё верна
+  disableBackGestureForSlider();
 };
 
 const handleSliderTouchMove = () => {
@@ -195,6 +214,7 @@ const finishScrub = () => {
 
 const handlePageSliderEnd = () => {
   finishScrub();
+  device.enableBackGesture();
 };
 
 const handlePageSliderChange = (value: number) => {
@@ -234,6 +254,9 @@ onBeforeUnmount(() => {
   if (pageChangeTimer) {
     clearTimeout(pageChangeTimer);
     pageChangeTimer = null;
+  }
+  if (isScrubbing.value) {
+    device.enableBackGesture();
   }
 });
 

@@ -45,6 +45,16 @@ export interface AndroidCalendarEvent {
   }[];
 }
 
+/**
+ * Область экрана в CSS-пикселях (как у DOMRect / getBoundingClientRect())
+ */
+export interface ScreenRect {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
 export interface IOSCalendarEvent {
   id: string;
   title: string;
@@ -97,6 +107,22 @@ export interface Device {
   openCalendarSettings(): void;
 
   setShouldHandleLongClick(shouldHandle: boolean): void;
+
+  /**
+   * Отключает системный жест "Назад" (свайп от края экрана на Android,
+   * Predictive Back и т.п.) в указанной области экрана.
+   * Полезно, когда элемент управления (например, слайдер) расположен близко
+   * к краю экрана и системный жест мешает работе с ним.
+   * Действует до вызова enableBackGesture().
+   * @param rect - область экрана в CSS-пикселях (как из getBoundingClientRect())
+   */
+  disableBackGestureInArea(rect: ScreenRect): void;
+
+  /**
+   * Возвращает системный жест "Назад" в исходное состояние,
+   * отменяя действие disableBackGestureInArea()
+   */
+  enableBackGesture(): void;
 }
 
 export interface AndroidHandler {
@@ -130,6 +156,9 @@ export interface AndroidHandler {
   openSettings(type: "notifications" | "settings"): void;
 
   setShouldHandleLongClick(shouldHandle: boolean): void;
+
+  disableBackGestureInArea(x: number, y: number, width: number, height: number): void; // Отключает системный жест "Назад" в области экрана (координаты в CSS px)
+  enableBackGesture(): void; // Возвращает системный жест "Назад" в исходное состояние
 }
 
 export interface IOSHandler {
@@ -164,6 +193,14 @@ export interface IOSHandler {
 
   deleteEventHandler: {
     postMessage(data: { id: string }): void;
+  };
+
+  backGestureHandler: {
+    postMessage(
+      data:
+        | { action: "disable"; x: number; y: number; width: number; height: number }
+        | { action: "enable" }
+    ): void;
   };
 }
 
