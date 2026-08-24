@@ -22,6 +22,7 @@
       
     <f7-range
       v-if="!isHidden"
+      ref="pageRangeSlider"
       class="page-range-slider"
       :min="1"
       :max="totalPages"
@@ -32,8 +33,10 @@
       @pointerdown.passive="handlePageSliderStart"
       @pointerup.passive="handlePageSliderEnd"
       @pointercancel.passive="handlePageSliderEnd"
+      @pointermove.passive="handleSliderTouchMove"
       @touchstart.passive="handlePageSliderStart"
       @touchend.passive="handlePageSliderEnd"
+      @touchmove.passive="handleSliderTouchMove"
     />
   </f7-toolbar>
 </template>
@@ -64,6 +67,20 @@ const props = defineProps<Props>();
 const emit = defineEmits<Emits>();
 
 const pageNavToolbar = useTemplateRef<ComponentPublicInstance>("pageNavToolbar");
+const pageRangeSlider = useTemplateRef<ComponentPublicInstance>("pageRangeSlider");
+
+// f7-range считает своё значение по абсолютной позиции пальца на треке (см.
+// handleTouchStart в node_modules/framework7/components/range/range-class.js),
+// а не относительно точки, где схватили ручку. При 500+ страницах на пиксель
+// трека приходится больше одной страницы, поэтому даже небольшая неточность
+// касания (толщина пальца) даёт "прыжок" ручки — причём меняется и внутреннее
+// состояние f7-range, так что прыжок может просочиться в range:changed при
+// отпускании, даже если палец вообще не двигался. Достаём реальный экземпляр,
+// чтобы откатывать такие прыжки (см. handleSliderTouchMove/handlePageSliderChange).
+const getF7Range = (): { setValue: (value: number, byTouchMove?: boolean) => void } | null => {
+  const el = pageRangeSlider.value?.$el as (HTMLElement & { f7Range?: { setValue: (value: number, byTouchMove?: boolean) => void } }) | undefined;
+  return el?.f7Range ?? null;
+};
 
 const { isDarkMode } = useTheme();
 const iconColor = computed(() => (isDarkMode.value ? "baige-60" : "black-40"));
@@ -114,6 +131,13 @@ let pendingPage: number | null = null;
 let lastSentPage: number | null = null;
 let pageChangeTimer: ReturnType<typeof setTimeout> | null = null;
 
+// true — было реальное touchmove/pointermove с начала протяжки. Пока пальцем
+// не двигали, любое значение от f7-range — это шумовой "прыжок" от касания,
+// а не осознанный жест (см. getF7Range выше)
+let hasMoved = false;
+let scrubStartPage = props.currentPage;
+let isCorrectingRangeJump = false;
+
 const sendPageChange = (page: number) => {
   if (page === lastSentPage) {
     return;
@@ -151,7 +175,13 @@ const flushPageChange = () => {
 const handlePageSliderStart = () => {
   isScrubbing.value = true;
   lastSentPage = null;
+  hasMoved = false;
+  scrubStartPage = scrubPage.value;
   // Текст пока не прячем: до первого движения показанная страница ещё верна
+};
+
+const handleSliderTouchMove = () => {
+  hasMoved = true;
 };
 
 const finishScrub = () => {
@@ -168,7 +198,15 @@ const handlePageSliderEnd = () => {
 };
 
 const handlePageSliderChange = (value: number) => {
-  if (!isScrubbing.value) {
+  if (!isScrubbing.value || isCorrectingRangeJump) {
+    return;
+  }
+  if (!hasMoved) {
+    // Пальцем ещё не двигали — это "прыжок" f7-range от касания, а не жест.
+    // Откатываем ручку обратно (byTouchMove=true, чтобы не улетело в range:changed)
+    isCorrectingRangeJump = true;
+    getF7Range()?.setValue(scrubStartPage, true);
+    isCorrectingRangeJump = false;
     return;
   }
   scrubPage.value = value;
@@ -177,9 +215,11 @@ const handlePageSliderChange = (value: number) => {
 };
 
 const handlePageSliderChanged = (value: number) => {
-  if (typeof value === "number" && !Number.isNaN(value)) {
-    scrubPage.value = value;
-    pendingPage = value;
+  // Палец не двигался — не даём просочиться "прыжковому" значению даже на отпускании
+  const resolvedValue = hasMoved ? value : scrubStartPage;
+  if (typeof resolvedValue === "number" && !Number.isNaN(resolvedValue)) {
+    scrubPage.value = resolvedValue;
+    pendingPage = resolvedValue;
   }
   if (isScrubbing.value) {
     finishScrub();
