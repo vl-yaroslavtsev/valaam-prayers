@@ -188,6 +188,8 @@ const disableBackGestureForSlider = () => {
     width: window.innerWidth,
     height: rect.height,
   });
+
+  console.log("disableBackGestureForSlider rect = ", rect);
 };
 
 const handlePageSliderStart = () => {

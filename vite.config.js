@@ -1,12 +1,12 @@
 import path from "path";
 import vue from "@vitejs/plugin-vue";
 import { VitePWA } from "vite-plugin-pwa";
-import config from "./package.json";
+import config from "./package.json" with { type: "json" };
 import { generateIconTypes } from "./scripts/generate-icon-types.js";
 
-const SRC_DIR = path.resolve(__dirname, "./src");
-const PUBLIC_DIR = path.resolve(__dirname, "./public");
-const BUILD_DIR = path.resolve(__dirname, "./www");
+const SRC_DIR = path.resolve(import.meta.dirname, "./src");
+const PUBLIC_DIR = path.resolve(import.meta.dirname, "./public");
+const BUILD_DIR = path.resolve(import.meta.dirname, "./www");
 const ICONS_DIR = path.resolve(SRC_DIR, "assets/icons");
 
 // Перегенерирует src/types/icon-name.d.ts из файлов src/assets/icons,
@@ -76,38 +76,33 @@ export default async () => {
       assetsInlineLimit: 0,
       emptyOutDir: true,
       sourcemap: true,
-      rollupOptions: {
+      rolldownOptions: {
         treeshake: true,
         output: {
-          manualChunks: (id) => {
-            // Vue
-            if (id.includes('node_modules/vue')) {
-              return 'vue';
-            }
-
-            // Framework7
-            if (id.includes('node_modules/swiper')) {
-              return 'swiper';
-            }
-
-            // Framework7-Vue
-            if (id.includes('node_modules/framework7-vue')) {
-              return 'f7-vue';
-            }
-
-            // Framework7
-            if (id.includes('node_modules/framework7')) {
-              return 'f7';
-            }
-            // SVG иконки
-            if (id.includes('/assets/icons/') && id.includes('.svg?raw')) {
-              return 'svg-icons';
-            }
-
-            // // 
-            // if (id.includes('/test-data/')) {
-            //   return 'test-data';
-            // }
+          codeSplitting: {
+            groups: [
+              {
+                name: "f7-vue",
+                test: /node_modules[\\/]framework7-vue(?:[\\/]|$)/,
+                priority: 20,
+              },
+              {
+                name: "swiper",
+                test: /node_modules[\\/]swiper(?:[\\/]|$)/,
+                priority: 10,
+              },
+              {
+                name: "f7",
+                test: /node_modules[\\/]framework7(?:[\\/]|$)/,
+                priority: 5,
+              },
+              {
+                name: "svg-icons",
+                test: (id) =>
+                  id.includes("/assets/icons/") && id.includes(".svg?raw"),
+                priority: 10,
+              },
+            ],
           },
         },
       },
@@ -116,6 +111,11 @@ export default async () => {
       alias: {
         "@": SRC_DIR,
       },
+    },
+    // framework7/types указывает на .d.ts без runtime-экспортов;
+    // Vite 8/Rolldown падает на нём при prebundle, если импорт не type-only.
+    optimizeDeps: {
+      exclude: ["framework7/types"],
     },
     server: {
       host: true,

@@ -18,7 +18,7 @@
           :disable-button="false"
           placeholder="Поиск по тексту"
           v-model:value="query"
-          backdrop="false"
+          :backdrop="false"
         >
           <template #input-wrap-end>
             <span class="input-clear-button custom-button">

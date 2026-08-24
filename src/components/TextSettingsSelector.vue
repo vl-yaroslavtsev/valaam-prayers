@@ -231,7 +231,6 @@ import SvgIcon from '@/components/SvgIcon.vue';
 import { useTheme } from '@/composables/useTheme';
 import { Language } from '@/types/common';
 import type { SmartSelect } from 'framework7/types';
-import type { Dom7Array } from 'dom7';
 import { device } from '@/js/device';
 
 const isOpened = defineModel<boolean>('isOpened');
@@ -354,7 +353,7 @@ const onTextThemeSmartSelectOpen = (e: Event) => {
   // console.log(e);
   const smartSelectEl = e.target as HTMLElement & { 
     f7SmartSelect: SmartSelect.SmartSelect & { 
-      $containerEl: Dom7Array;
+      $containerEl: ArrayLike<HTMLElement>;
     };
   };
   const smartSelect = smartSelectEl.f7SmartSelect;

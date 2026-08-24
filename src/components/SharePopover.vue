@@ -70,7 +70,7 @@
 <script setup lang="ts">
 import { onUnmounted, ref,watch } from "vue";
 import { Dom7 as $$ } from "framework7";
-import { Popover, Toast } from "framework7/types";
+import type { Popover, Toast } from "framework7/types";
 import { f7 } from "framework7-vue";
 import { useTheme } from "@/composables/useTheme";
 

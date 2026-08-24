@@ -1,4 +1,4 @@
-import { Router } from "framework7/types";
+import type { Router } from "framework7/types";
 
 import HomePage from "../pages/home.vue";
 import AboutPage from "../pages/about.vue";

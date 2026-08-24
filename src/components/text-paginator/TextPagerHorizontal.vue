@@ -22,16 +22,18 @@
     }"
     :touchRatio="1"
     :threshold="5"
-    @tap="handleTap"
-    @slidechange="handleSlideChange"
-    @touchstart.passive="handleTouchStart"
-    @touchend.passive="handleTouchEnd"
-    @progress="handleProgress"
-    @settransition="handleSetTransition" >
+    @pointerdown.passive="handlePointerDown"
+    @pointerup.passive="handlePointerUp"
+    @pointercancel.passive="handlePointerCancel"
+    @swipertap="handleSwiperTap"
+    @swiperslidechange="handleSlideChange"
+    @swiperprogress="handleProgress"
+    @swipersettransition="handleSetTransition"
+  >
   </swiper-container>
 </template>
 <script setup lang="ts">
-import { useTemplateRef, computed, watchEffect } from "vue";
+import { useTemplateRef, computed } from "vue";
 import { useTextSelection } from "@/composables/useTextSelection";
 import type { SwiperContainer } from "swiper/element";
 import type { Swiper } from "swiper";
@@ -56,14 +58,10 @@ const emit = defineEmits<{
 const swiperRef = useTemplateRef<SwiperContainer>("swiperRef");
 const { clearSelection, isSelected } = useTextSelection();
 
-let swiperRect = {
-  top: 0,
-  bottom: 0,
-  left: 0,
-  right: 0,
-  width: 0,
-  height: 0,
-};
+const TAP_MOVE_THRESHOLD = 10;
+const TAP_DEBOUNCE_MS = 50;
+let pointerStart: { x: number; y: number; id: number } | null = null;
+let lastTapAt = 0;
 
 const updateSlides = (slides: string[]) => {
   const template = `<div class="text-page">$content</div>`;
@@ -87,27 +85,40 @@ const updateSlides = (slides: string[]) => {
   swiper.slideTo(activeIndex, 0);
 };
 
-const handleTap = (e: CustomEvent<[swiper: Swiper, event: PointerEvent]>) => {
-
+const emitTapFromClientPoint = (clientX: number, clientY: number) => {
   if (isLoading || isCalculating) {
     return;
   }
+
+  const now = performance.now();
+  if (now - lastTapAt < TAP_DEBOUNCE_MS) {
+    return;
+  }
+  lastTapAt = now;
 
   if (isSelected.value) {
     clearSelection();
     return;
   }
 
-  if (swiperRef.value) {
-    swiperRect = swiperRef.value.getBoundingClientRect();
+  const el = swiperRef.value;
+  if (!el) {
+    return;
   }
 
-  const [, event] = e.detail;
-  const x = event.clientX - swiperRect.left;
-  const y = event.clientY - swiperRect.top;
-
-  const type = detectTapZone(x, y, swiperRect.width, swiperRect.height, "horizontal");
+  const rect = el.getBoundingClientRect();
+  const x = clientX - rect.left;
+  const y = clientY - rect.top;
+  const type = detectTapZone(x, y, rect.width, rect.height, "horizontal");
   emit("tap", { type, x, y });
+};
+
+const handleSwiperTap = (e: CustomEvent<[swiper: Swiper, event: PointerEvent]>) => {
+  const pointer = e.detail?.[1];
+  if (!pointer || typeof pointer.clientX !== "number") {
+    return;
+  }
+  emitTapFromClientPoint(pointer.clientX, pointer.clientY);
 };
 
 const handleSlideChange = () => {
@@ -116,30 +127,49 @@ const handleSlideChange = () => {
   }
 };
 
-const handleTouchStart = (e: CustomEvent<[swiper: Swiper, event: PointerEvent]>) => {
-
+const handlePointerDown = (event: PointerEvent) => {
   if (isLoading || isCalculating) {
     return;
   }
 
-  if (!e.detail || !e.detail[0]) {
+  if (!event.isPrimary || event.button !== 0) {
     return;
   }
-  const [swiper, event] = e.detail;
+
+  pointerStart = { x: event.clientX, y: event.clientY, id: event.pointerId };
+
+  const swiper = swiperRef.value?.swiper;
+  if (!swiper) {
+    return;
+  }
   emit("touchstart", { swiper, event });
 };
 
-const handleTouchEnd = (event: TouchEvent) => {
-
+const handlePointerUp = (event: PointerEvent) => {
   if (isLoading || isCalculating) {
     return;
   }
 
-  // CustomEvent вызывает ошибку в progressbar
-  if (!event.isTrusted) {
-    event.stopPropagation();
+  if (!event.isPrimary) {
+    return;
   }
 
+  const start = pointerStart;
+  pointerStart = null;
+
+  if (start && start.id === event.pointerId) {
+    const dx = event.clientX - start.x;
+    const dy = event.clientY - start.y;
+    if (Math.hypot(dx, dy) <= TAP_MOVE_THRESHOLD) {
+      emitTapFromClientPoint(event.clientX, event.clientY);
+    }
+  }
+
+  emit("touchend", event);
+};
+
+const handlePointerCancel = (event: PointerEvent) => {
+  pointerStart = null;
   emit("touchend", event);
 };
 
@@ -148,7 +178,14 @@ const handleProgress = (e: CustomEvent<[swiper: Swiper, progress: number]>) => {
     return;
   }
 
-  const [, progress] = e.detail;
+  if (!Array.isArray(e.detail)) {
+    return;
+  }
+
+  const progress = e.detail[1];
+  if (typeof progress !== "number") {
+    return;
+  }
 
   emit("update:progress", progress);
 };
@@ -156,7 +193,14 @@ const handleProgress = (e: CustomEvent<[swiper: Swiper, progress: number]>) => {
 let transitionTimeout: ReturnType<typeof setTimeout> | null = null;
 
 const handleSetTransition = (e: CustomEvent<[swiper: Swiper, transition: number]>) => {
-  const [swiper, transition] = e.detail;
+  if (!Array.isArray(e.detail)) {
+    return;
+  }
+
+  const transition = e.detail[1];
+  if (typeof transition !== "number") {
+    return;
+  }
 
   if (transitionTimeout) {
     clearTimeout(transitionTimeout);
