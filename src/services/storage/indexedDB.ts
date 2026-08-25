@@ -130,10 +130,23 @@ interface ValaamDB extends DBSchema {
       'by-accessed': Date;
     };
   };
+  bookmarks: {
+    key: string;
+    value: {
+      id: string;
+      itemId: string;
+      progress: number;
+      name: string;
+      createdAt: Date;
+    };
+    indexes: {
+      'by-item': string;
+    };
+  };
 }
 
 const DB_NAME: string = 'valaam-prayers';
-const DB_VERSION: number = 2;
+const DB_VERSION: number = 3;
 
 let db: IDBPDatabase<ValaamDB> | null = null;
 let initPromise: Promise<void> | null = null;
@@ -226,6 +239,14 @@ async function initIndexedDB() {
           keyPath: 'id'
         });
         cacheStore.createIndex('by-accessed', 'accessedAt');
+      }
+
+      // Создаем хранилище закладок
+      if (!db.objectStoreNames.contains('bookmarks')) {
+        const bookmarksStore = db.createObjectStore('bookmarks', {
+          keyPath: 'id'
+        });
+        bookmarksStore.createIndex('by-item', 'itemId');
       }
     },
     blocked() {

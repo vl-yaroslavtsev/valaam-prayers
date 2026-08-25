@@ -31,6 +31,13 @@
            закрываем текст фоном текущей темы чтения (не сам reading-text,
            у которого горизонтальный режим рендерит слайды через Shadow DOM) -->
       <div v-if="isPageScrubbing" class="page-scrub-overlay" :class="`theme-${textTheme}`"></div>
+      <!-- Индикатор закладки на текущей странице (тап обрабатывается через detectTapZone) -->
+      <div
+        v-if="currentPageBookmark && isNavbarHidden"
+        class="bookmark-corner-indicator"
+      >
+        <SvgIcon icon="bookmark-filled" color="primary-accent-50" :size="24" />
+      </div>
     </f7-page-content>
     <TextSettingsSelector 
       v-model:isOpened="isTextSettingsSheetOpened"
@@ -51,6 +58,17 @@
       @open-list="onOpenSearch"
       @close-search="onCloseSearch"
     />
+    <BookmarkNavigationToolbar
+      v-if="isBookmarkNavActive"
+      v-show="!isBrightnessTouching"
+      :current-index="activeBookmarkIndex"
+      :total="bookmarksForItem.length"
+      :is-hidden="false"
+      @next="goToNextBookmark"
+      @prev="goToPrevBookmark"
+      @open-list="openBookmarksList"
+      @close="closeBookmarkNav"
+    />
     <PageNavigationToolbar
       v-show="!isBrightnessTouching"
       :current-page="currentPage"
@@ -69,7 +87,13 @@
       :headers="headers"
       :page="currentPage"
       :lang="currentLanguage"
+      :bookmarks="bookmarksForItem"
+      :initial-tab="contentPopupInitialTab"
+      :active-bookmark-id="isBookmarkNavActive ? activeBookmarkId : null"
       @goToPage="onGoToPageFromPopup"
+      @goToBookmark="onGoToBookmarkFromPopup"
+      @editBookmark="onEditBookmarkFromPopup"
+      @deleteBookmark="onDeleteBookmarkFromPopup"
     />
     <PrayersTextSearchPage
       v-model:isOpened="isSearchPageOpened"
@@ -100,6 +124,7 @@ import { useComponentsStore } from "@/stores/components";
 import { useSettingsStore } from "@/stores/settings";
 import { useUndoToast } from "@/composables/useUndoToast";
 import { useTextSearch } from "@/composables/useTextSearch";
+import { useBookmarks } from "@/composables/useBookmarks";
 
 import PrayersTextContentPopup from "@/components/PrayersTextContentPopup.vue";
 import PrayersTextSearchPage from "@/components/PrayersTextSearchPage.vue";
@@ -108,6 +133,8 @@ import TextSettingsSelector from "@/components/TextSettingsSelector.vue";
 import PrayersTextNavbar from "@/components/PrayersTextNavbar.vue";
 import PageNavigationToolbar from "@/components/PageNavigationToolbar.vue";
 import SearchNavigationToolbar from "@/components/SearchNavigationToolbar.vue";
+import BookmarkNavigationToolbar from "@/components/BookmarkNavigationToolbar.vue";
+import SvgIcon from "@/components/SvgIcon.vue";
 
 import { useApiState } from "@/composables/useApiState";
 import { device } from "@/js/device";
@@ -171,6 +198,7 @@ const title = item?.name || '';
 const text = ref<string>("");
 
 const isContentPopupOpened = ref(false);
+const contentPopupInitialTab = ref<"content" | "bookmarks">("content");
 
 // Получение headers из TextPaginator
 const headers = computed(() => {
@@ -181,6 +209,12 @@ const headers = computed(() => {
 
 // Функция для открытия попапа с содержанием
 const openContentPopup = () => {
+  contentPopupInitialTab.value = "content";
+  isContentPopupOpened.value = true;
+};
+
+const openBookmarksList = () => {
+  contentPopupInitialTab.value = "bookmarks";
   isContentPopupOpened.value = true;
 };
 
@@ -331,7 +365,7 @@ const textTheme = computed(() => {
   return textPaginator.value?.theme || "light";
 });
 
-const onTextPaginatorTap = (payload: { type: "center" | "left" | "right" | "top" | "bottom"; x: number; y: number }) => {
+const onTextPaginatorTap = (payload: { type: "center" | "left" | "right" | "top" | "bottom" | "bookmark"; x: number; y: number }) => {
   const { type, x, y } = payload;
 
   console.log("onTextPaginatorTap", payload);
@@ -352,6 +386,9 @@ const onTextPaginatorTap = (payload: { type: "center" | "left" | "right" | "top"
     if (!isPageNavHiding) {
       isPageNavHidden.value = false;
     }
+
+  } else if (type === "bookmark") {
+    onCornerTap();
 
   } else if (type === "left" || type === "top") {
     textPaginator.value?.slidePrev();
@@ -390,6 +427,54 @@ const onTextPaginatorTouchEnd = (event: Event) => {
 const totalPages = computed(() => textPaginator.value?.pagesCount || 0);
 const progress = computed(() => textPaginator.value?.progress || 0);
 const currentPage = computed(() => Math.min(Math.floor(progress.value * totalPages.value) + 1, totalPages.value));
+
+// Закладки
+const {
+  bookmarksForItem,
+  currentPageBookmark,
+  isBookmarkNavActive,
+  activeBookmarkId,
+  activeBookmarkIndex,
+  activeBookmark,
+  goToBookmark,
+  goToNextBookmark,
+  goToPrevBookmark,
+  closeBookmarkNav,
+  onCornerTap,
+  openEditDialog: openBookmarkEditDialog,
+  deleteBookmarkWithUndo,
+} = useBookmarks(itemId, progress, totalPages);
+
+const onGoToBookmarkFromPopup = (id: string) => {
+  if (isSearchModeActive.value) {
+    onCloseSearch();
+  }
+  goToBookmark(id);
+  readingBarsAnimate.value = false;
+  isNavbarHidden.value = true;
+  isPageNavHidden.value = true;
+  nextTick(() => {
+    readingBarsAnimate.value = true;
+  });
+};
+
+const onEditBookmarkFromPopup = (id: string) => {
+  const bookmark = bookmarksForItem.value.find((b) => b.id === id);
+  if (bookmark) {
+    openBookmarkEditDialog(bookmark);
+  }
+};
+
+const onDeleteBookmarkFromPopup = (id: string) => {
+  deleteBookmarkWithUndo(id);
+};
+
+// При переходе к закладке из режима навигации по закладкам — сдвигаем читалку на её прогресс
+watch(activeBookmark, (bookmark) => {
+  if (isBookmarkNavActive.value && bookmark) {
+    textPaginator.value?.setProgress(bookmark.progress);
+  }
+}, { flush: 'post' });
 
 const saveProgress = () => {
   if (!textPaginator.value || !totalPages.value) return;
@@ -449,6 +534,7 @@ const onOpenSearch = () => {
 };
 
 const onSelectMatch = (id: number) => {
+  closeBookmarkNav();
   goToMatch(id);
   isSearchPageOpened.value = false;
   isSearchModeActive.value = true;
@@ -496,6 +582,7 @@ watch(isSearchModeActive, () => {
 // Сбрасываем поиск при смене языка — страницы пересчитываются, старые совпадения не валидны
 watch(currentLanguage, () => {
   onCloseSearch();
+  closeBookmarkNav();
 });
 
 const { showUndoToast: showUndoResetToast } = useUndoToast({
@@ -539,5 +626,15 @@ const isBrightnessTouching = computed(() => navbarRef.value?.isBrightnessTouchin
   right: 0;
   bottom: 0;
   z-index: 5;
+}
+
+// Индикатор закладки на текущей странице — тап всё равно обрабатывается через
+// detectTapZone/onTextPaginatorTap, поэтому сам оверлей не должен перехватывать события
+.bookmark-corner-indicator {
+  position: absolute;
+  top: calc(var(--f7-safe-area-top) + 10px);
+  right: 8px;
+  pointer-events: none;
+  z-index: 6;
 }
 </style>

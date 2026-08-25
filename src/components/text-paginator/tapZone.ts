@@ -1,7 +1,15 @@
-export type TapZoneType = "center" | "left" | "right" | "top" | "bottom";
+export type TapZoneType = "center" | "left" | "right" | "top" | "bottom" | "bookmark";
+
+// Область тапа для закладки в правом верхнем углу — задана в абсолютных px, так как
+// угол физически всегда сверху-справа на экране, независимо от orientation (в отличие
+// от along/across осей ниже, которые переставляются между горизонтальным и вертикальным режимом)
+const BOOKMARK_ZONE_SIZE = 56;
 
 /**
  * Определяет зону тапа внутри прямоугольника читалки.
+ *
+ * Правый верхний угол (см. BOOKMARK_ZONE_SIZE) всегда даёт "bookmark" — добавление/редактирование
+ * закладки на текущей странице, независимо от остальной геометрии.
  *
  * По "продольной" оси (X для горизонтального режима, Y для вертикального) первые/последние 25%
  * дают "левую"/"правую" (соотв. "верхнюю"/"нижнюю") зону — переход к предыдущей/следующей странице.
@@ -18,6 +26,10 @@ export function detectTapZone(
   height: number,
   orientation: "horizontal" | "vertical"
 ): TapZoneType {
+  if (x >= width - BOOKMARK_ZONE_SIZE && y <= BOOKMARK_ZONE_SIZE) {
+    return "bookmark";
+  }
+
   const isHorizontal = orientation === "horizontal";
 
   const along = isHorizontal ? x : y;

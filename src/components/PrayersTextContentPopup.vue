@@ -2,7 +2,8 @@
   <f7-popup 
     ref="popup"
     :tablet-fullscreen="true"  
-    v-model:opened="isOpened">
+    v-model:opened="isOpened"
+    @popup:open="onPopupOpen">
     <f7-page>
       <f7-navbar>
         <f7-nav-left>
@@ -69,7 +70,31 @@
         id="tab-text-zakladki"
         class="page-content"
       >
-        <f7-block>
+        <f7-list v-if="bookmarks.length > 0" class="bookmarks-list no-hairlines-md">
+          <transition-group tag="ul" name="bookmark-item">
+            <f7-list-item
+              v-for="bookmark in bookmarks"
+              :key="bookmark.id"
+              link="#"
+              no-chevron
+              :selected="bookmark.id === activeBookmarkId"
+              :title="bookmark.name"
+              @click.prevent="onBookmarkClick(bookmark.id)"
+            >
+              <template #after>
+                <span class="bookmark-page">{{ bookmark.page }}</span>
+                <f7-link
+                  icon-only
+                  class="bookmark-actions-link"
+                  @click.stop.prevent="openActionsPopover(bookmark, $event)"
+                >
+                  <SvgIcon icon="more-vertical" :size="24" :color="pageIconColor" />
+                </f7-link>
+              </template>
+            </f7-list-item>
+          </transition-group>
+        </f7-list>
+        <f7-block v-else>
             <p>Коснитесь правого верхнего угла текста и 
               закладка появится здесь
             </p>
@@ -77,22 +102,51 @@
       </f7-tab>
     </f7-tabs>
     </f7-page>
+    <f7-popover
+      ref="bookmarkActionsPopoverRef"
+      class="bookmark-actions-popover"
+      v-model:opened="isActionsPopoverOpened"
+      @popover:open="onActionsPopoverOpen"
+    >
+      <f7-list no-chevron>
+        <f7-list-item link="#" @click="onEditBookmarkClick">
+          <template #media>
+            <SvgIcon icon="pencil" :size="24" :color="actionIconColor" />
+          </template>
+          <template #title>Редактировать</template>
+        </f7-list-item>
+        <f7-list-item link="#" @click="onDeleteBookmarkClick">
+          <template #media>
+            <SvgIcon icon="delete" :size="24" :color="actionIconColor" />
+          </template>
+          <template #title>Удалить</template>
+        </f7-list-item>
+      </f7-list>
+    </f7-popover>
   </f7-popup>
 </template>
 <script setup lang="ts">
 import { computed, ref, watch, nextTick, useTemplateRef, type ComponentPublicInstance } from "vue";
 import { f7 } from "framework7-vue";
+import { Dom7 as $$ } from "framework7";
+import type { Popover } from "framework7/types";
 
 import type { PaginationCacheItemHeader } from "@/services/storage/PaginationCacheStorage";
 import type { Language } from "@/types/common";
+import type { BookmarkWithPage } from "@/composables/useBookmarks";
+import { useTheme } from "@/composables/useTheme";
+import SvgIcon from "@/components/SvgIcon.vue";
 import Swiper from "swiper";
 
-const { itemId, title, headers, page, lang } = defineProps<{
+const { itemId, title, headers, page, lang, bookmarks = [], initialTab = "content", activeBookmarkId = null } = defineProps<{
   itemId: string;
   title: string;
   headers: PaginationCacheItemHeader[];
   page: number;
   lang?: Language | null;
+  bookmarks?: BookmarkWithPage[];
+  initialTab?: "content" | "bookmarks";
+  activeBookmarkId?: string | null;
 }>();
 
 const isOpened = defineModel<boolean>('isOpened');
@@ -101,7 +155,66 @@ const popupRef = useTemplateRef<ComponentPublicInstance>("popup");
 // События
 const emit = defineEmits<{
   goToPage: [page: number];
+  goToBookmark: [id: string];
+  editBookmark: [id: string];
+  deleteBookmark: [id: string];
 }>();
+
+const { isDarkMode } = useTheme();
+const pageIconColor = computed(() => (isDarkMode.value ? "baige-60" : "black-40"));
+const actionIconColor = computed(() => (isDarkMode.value ? "baige-100" : "black-primary"));
+
+// --- Вкладка "Закладки" ---
+const onBookmarkClick = (id: string) => {
+  emit('goToBookmark', id);
+  const popupEl = popupRef.value?.$el;
+  if (popupEl) {
+    f7.popup.close(popupEl, false);
+  }
+  isOpened.value = false;
+};
+
+const isActionsPopoverOpened = ref(false);
+const actionsTargetEl = ref<Element | null>(null);
+const activeActionsBookmarkId = ref<string | null>(null);
+// Примерная высота попапа с двумя пунктами — используется, чтобы решить,
+// хватает ли места открыть его вниз, или нужно открыть вверх
+const ACTIONS_POPOVER_ESTIMATED_HEIGHT = 120;
+const actionsPopoverVerticalPosition = ref<"top" | "bottom">("bottom");
+
+const openActionsPopover = (bookmark: BookmarkWithPage, event: PointerEvent) => {
+  activeActionsBookmarkId.value = bookmark.id;
+  const targetEl = event.currentTarget as Element;
+  actionsTargetEl.value = targetEl;
+
+  const rect = targetEl.getBoundingClientRect();
+  const spaceBelow = window.innerHeight - rect.bottom;
+  actionsPopoverVerticalPosition.value =
+    spaceBelow >= ACTIONS_POPOVER_ESTIMATED_HEIGHT ? "bottom" : "top";
+
+  isActionsPopoverOpened.value = true;
+};
+
+const onActionsPopoverOpen = (popover: Popover.Popover) => {
+  if (actionsTargetEl.value) {
+    popover.$targetEl = $$(actionsTargetEl.value);
+  }
+  popover.params.verticalPosition = actionsPopoverVerticalPosition.value;
+};
+
+const onEditBookmarkClick = () => {
+  if (activeActionsBookmarkId.value) {
+    emit('editBookmark', activeActionsBookmarkId.value);
+  }
+  isActionsPopoverOpened.value = false;
+};
+
+const onDeleteBookmarkClick = () => {
+  if (activeActionsBookmarkId.value) {
+    emit('deleteBookmark', activeActionsBookmarkId.value);
+  }
+  isActionsPopoverOpened.value = false;
+};
 
 interface GroupedHeaderItem extends PaginationCacheItemHeader {
   index: number;
@@ -209,12 +322,22 @@ const scrollToSelectedIfNeeded = () => {
   container.scrollTo({ top: Math.max(0, target), behavior: 'auto' });
 };
 
-// Когда открывается попап — прокрутить к текущему заголовку
-watch(() => isOpened.value, (opened) => {
-  if (opened) {
-    nextTick(() => scrollToSelectedIfNeeded());
-  }
-});
+// Когда попап реально открылся (а не просто получил isOpened=true) — показать нужную
+// вкладку и прокрутить к текущему заголовку. Именно "popup:open", а не watch по isOpened,
+// потому что watch в этом компоненте срабатывает раньше внутреннего watch'а f7-popup
+// (который и вызывает f7Popup.open()) — переключать вкладку swiper'а до реального открытия
+// попапа нельзя: он ещё скрыт, и слайд не встанет на нужную позицию
+const onPopupOpen = () => {
+  const targetTabId = initialTab === "bookmarks" ? "tab-text-zakladki" : "tab-text-content";
+  const targetTabEl = document.getElementById(targetTabId);
+  // При повторном открытии попапа swiper внутри swipeable-табов пересоздаётся и
+  // сбрасывается на первый слайд, а класс tab-active от предыдущего открытия может
+  // остаться на другой вкладке. Из-за этого f7.tab.show() решает, что нужная вкладка
+  // уже активна, и не переключает swiper. Снимаем класс заранее, чтобы show() не пропустил переключение
+  targetTabEl?.classList.remove("tab-active");
+  f7.tab.show(`#${targetTabId}`);
+  nextTick(() => scrollToSelectedIfNeeded());
+};
 
 // При смене страницы/списка заголовков — тоже обновить прокрутку, если попап открыт
 watch([() => page, () => headers], () => {
@@ -227,5 +350,88 @@ watch([() => page, () => headers], () => {
 <style scoped lang="less">
 .navbar {
   --f7-navbar-border-color: transparent;
+}
+
+.bookmarks-list {
+  margin: 0;
+  --bookmark-page-color: var(--content-color-black-60);
+
+  :deep(.item-title) {
+    white-space: normal;
+    flex: 1;
+    min-width: 0;
+  }
+
+  :deep(.item-after) {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+}
+
+:global(.dark .bookmarks-list) {
+  --bookmark-page-color: var(--content-color-baige-60);
+}
+
+.bookmark-page {
+  flex-shrink: 0;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+  font-size: var(--mobile-main-text-regular-b3);
+  color: var(--bookmark-page-color);
+}
+
+:deep(.item-selected),
+:deep(.item-selected .item-content) {
+  background-color: var(--f7-treeview-selectable-selected-bg-color);
+}
+
+.bookmarks-list :deep(ul) {
+  position: relative;
+}
+
+:deep(.bookmark-item-move),
+:deep(.bookmark-item-enter-active),
+:deep(.bookmark-item-leave-active) {
+  transition: opacity 0.25s ease, transform 0.25s ease;
+}
+
+:deep(.bookmark-item-enter-from),
+:deep(.bookmark-item-leave-to) {
+  opacity: 0;
+  transform: translateY(-8px);
+}
+
+:deep(.bookmark-item-leave-active) {
+  position: absolute;
+  width: 100%;
+}
+
+.bookmark-actions-link {
+  width: 42px;
+  height: 42px;
+  padding: 0;
+  flex-shrink: 0;
+}
+
+.bookmark-actions-popover {
+  --f7-popover-width: 232px;
+  --f7-popover-border-radius: 8px;
+  --f7-list-item-padding-horizontal: 8px;
+  --f7-list-item-min-height: 24px;
+  --f7-list-item-media-margin: 10px;
+  --f7-list-font-size: var(--mobile-main-text-regular-b3);
+
+  :deep(ul) {
+    padding: 8px;
+  }
+
+  :deep(.item-content) {
+    border-radius: 8px;
+  }
+}
+
+:global(.bookmark-actions-popover.modal-in ~ .popover-backdrop) {
+  --popover-backdrop-bg-color: transparent;
 }
 </style>

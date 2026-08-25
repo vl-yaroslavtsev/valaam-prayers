@@ -10,6 +10,7 @@ import { ThoughtDetailsStorage } from "./ThoughtDetailsStorage";
 import { ReadingHistoryStorage } from "./ReadingHistoryStorage";
 import { MetadataStorage } from "./MetadataStorage";
 import { PaginationCacheStorage } from "./PaginationCacheStorage";
+import { BookmarksStorage } from "./BookmarksStorage";
 
 let initStorageError: Error | null = null;
 
@@ -24,6 +25,7 @@ let favoritesStorage: FavoritesStorage | null = null;
 let readingHistoryStorage: ReadingHistoryStorage | null = null;
 let metadataStorage: MetadataStorage | null = null;
 let paginationCacheStorage: PaginationCacheStorage | null = null;
+let bookmarksStorage: BookmarksStorage | null = null;
 
 async function initStorage() {
   try {
@@ -44,6 +46,7 @@ async function initStorage() {
   readingHistoryStorage = new ReadingHistoryStorage();
   metadataStorage = new MetadataStorage();
   paginationCacheStorage = new PaginationCacheStorage();
+  bookmarksStorage = new BookmarksStorage();
 }
 
 export {
@@ -60,4 +63,5 @@ export {
   readingHistoryStorage,
   metadataStorage,
   paginationCacheStorage,
+  bookmarksStorage,
 };

@@ -7,6 +7,7 @@ import { useThoughtsStore } from './thoughts';
 import { useFavoritesStore } from './favorites';
 import { useReadingHistoryStore } from './readingHistory';
 import { useSettingsStore } from './settings';
+import { useBookmarksStore } from './bookmarks';
 
 export const pinia = createPinia()
 
@@ -17,7 +18,8 @@ export * from "./thoughts";
 export * from "./favorites";
 export * from "./readingHistory";
 export * from "./settings";
-export * from "./components"; 
+export * from "./components";
+export * from "./bookmarks";
 
 export async function initStores() {
   await initStorage();
@@ -30,6 +32,7 @@ export async function initStores() {
     useFavoritesStore(),
     useReadingHistoryStore(),
     useSettingsStore(),
+    useBookmarksStore(),
   ]
 
   await Promise.all(stores.map(store => store.initStore()));

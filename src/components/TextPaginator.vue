@@ -94,7 +94,7 @@ const theme = computed(() => settingsStore.textTheme);
 
 // Events
 const emit = defineEmits<{
-  tap: [payload: { type: "center" | "left" | "right" | "top" | "bottom"; x: number; y: number }];
+  tap: [payload: { type: "center" | "left" | "right" | "top" | "bottom" | "bookmark"; x: number; y: number }];
   progress: [payload: { progress: number, pages: number }];
   touchstart: [payload: { swiper: Swiper | null, event: Event }];
   touchend: [event: Event];
