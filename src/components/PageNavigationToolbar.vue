@@ -288,6 +288,11 @@ const handleResetProgress = () => {
   --f7-range-bar-active-bg-color: var(--brand-color-primary-accent-50);
   --f7-range-knob-color: var(--brand-color-primary-accent-50);
   
+  --f7-range-bar-size: 4px;
+  --f7-range-bar-border-radius: 2px;
+  --f7-range-knob-width: 16px;
+  --f7-range-knob-height: 18px;
+
   :deep(.toolbar-inner) {
     display: flex;
     flex-direction: column;

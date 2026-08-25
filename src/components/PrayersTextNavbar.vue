@@ -222,6 +222,11 @@ defineExpose({
 <style scoped lang="less">
 .prayers-text-navbar {
   --f7-navbar-large-title-height: 80px;
+
+  --f7-range-bar-size: 4px;
+  --f7-range-bar-border-radius: 2px;
+  --f7-range-knob-width: 16px;
+  --f7-range-knob-height: 18px;
 }
 
 .navbar-hidden-with-brightness {
