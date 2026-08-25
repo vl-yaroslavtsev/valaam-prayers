@@ -159,7 +159,7 @@ watch(
 // по ползунку это может вызываться десятки раз в секунду и тормозить даже сам драг.
 // Поэтому пока палец двигается, откладываем реальный переход (дебаунс), а не
 // вызываем его на каждый кадр — обновляется только счётчик (см. displayedPage).
-const SCRUB_DEBOUNCE_MS = 80;
+const SCRUB_DEBOUNCE_MS = 100;
 
 let pendingPage: number | null = null;
 let lastSentPage: number | null = null;
@@ -291,7 +291,7 @@ const handleResetProgress = () => {
   --f7-range-bar-size: 4px;
   --f7-range-bar-border-radius: 2px;
   --f7-range-knob-width: 16px;
-  --f7-range-knob-height: 18px;
+  --f7-range-knob-height: 32px;
 
   :deep(.toolbar-inner) {
     display: flex;

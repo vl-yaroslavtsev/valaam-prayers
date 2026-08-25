@@ -77,7 +77,7 @@
       :animate-visibility="readingBarsAnimate"
       @reset-progress="resetProgress"
       @page-change="onPageSliderChange"
-      @scrub-move="isPageScrubbing = true"
+      @scrub-move="isPageScrubbing = true; isNavbarHidden = true"
       @scrub-settle="isPageScrubbing = false"
     />
     <PrayersTextContentPopup
