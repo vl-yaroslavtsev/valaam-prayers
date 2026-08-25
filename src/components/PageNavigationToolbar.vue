@@ -42,7 +42,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch, onBeforeUnmount, useTemplateRef, type ComponentPublicInstance } from "vue";
+import { ref, computed, watch, onMounted, onBeforeUnmount, useTemplateRef, type ComponentPublicInstance } from "vue";
 import { f7 } from "framework7-vue";
 import SvgIcon from "@/components/SvgIcon.vue";
 import { useTheme } from "@/composables/useTheme";
@@ -86,17 +86,50 @@ const getF7Range = (): { setValue: (value: number, byTouchMove?: boolean) => voi
 const { isDarkMode } = useTheme();
 const iconColor = computed(() => (isDarkMode.value ? "baige-60" : "black-40"));
 
-// Показать/скрыть тулбар
-watch(() => props.isHidden, (isHidden) => {
+// На Android/iOS системный жест "Назад" (свайп от края экрана) перехватывает
+// касания нижнего меню у краёв. Отключаем его на всё время показа тулбара, а не
+// по pointerdown: системный жест начинается раньше, чем до нас дойдёт касание.
+// Область — полоса по высоте тулбара на всю ширину экрана: у панели есть
+// горизонтальные отступы, но палец может уйти за них к краю. Высоту берём из
+// layout (offsetHeight), а не из getBoundingClientRect: во время анимации
+// показа/скрытия transform уводит элемент за экран, и visual-rect был бы меньше.
+let isBackGestureDisabled = false;
+
+const disableBackGestureForToolbar = () => {
+  const el = pageNavToolbar.value?.$el as HTMLElement | undefined;
+  if (!el) return;
+  const height = el.offsetHeight;
+  if (height <= 0) return;
+  device.disableBackGestureInArea({
+    x: 0,
+    y: window.innerHeight - height,
+    width: window.innerWidth,
+    height,
+  });
+  isBackGestureDisabled = true;
+};
+
+const enableBackGesture = () => {
+  if (!isBackGestureDisabled) return;
+  device.enableBackGesture();
+  isBackGestureDisabled = false;
+};
+
+const applyVisibility = (isHidden: boolean) => {
   if (!pageNavToolbar.value) return;
   const pageNavToolbarEl = pageNavToolbar.value.$el;
   const animate = props.animateVisibility !== false;
   if (isHidden) {
+    enableBackGesture();
     f7.toolbar.hide(pageNavToolbarEl, animate);
   } else {
     f7.toolbar.show(pageNavToolbarEl, animate);
+    disableBackGestureForToolbar();
   }
-});
+};
+
+watch(() => props.isHidden, applyVisibility);
+onMounted(() => applyVisibility(props.isHidden));
 
 // Во время перетаскивания ползунок не должен получать :value с пагинатора —
 // иначе каждый goToPage дёргает ручку назад. Счётчик берём из слайдера сразу,
@@ -173,32 +206,12 @@ const flushPageChange = () => {
   }
 };
 
-// На Android/iOS системный жест "Назад" (свайп от края экрана) перехватывает
-// перетаскивание ползунка у краёв экрана. На время протяжки просим нативку
-// отключить жест в полосе по высоте слайдера на всю ширину экрана — именно
-// там, а не в границах самого элемента, случается конфликт (у тулбара есть
-// горизонтальные отступы, но палец при протяжке может уйти за них к краю)
-const disableBackGestureForSlider = () => {
-  const el = pageRangeSlider.value?.$el as HTMLElement | undefined;
-  if (!el) return;
-  const rect = el.getBoundingClientRect();
-  device.disableBackGestureInArea({
-    x: 0,
-    y: rect.top,
-    width: window.innerWidth,
-    height: rect.height,
-  });
-
-  console.log("disableBackGestureForSlider rect = ", rect);
-};
-
 const handlePageSliderStart = () => {
   isScrubbing.value = true;
   lastSentPage = null;
   hasMoved = false;
   scrubStartPage = scrubPage.value;
   // Текст пока не прячем: до первого движения показанная страница ещё верна
-  disableBackGestureForSlider();
 };
 
 const handleSliderTouchMove = () => {
@@ -216,7 +229,6 @@ const finishScrub = () => {
 
 const handlePageSliderEnd = () => {
   finishScrub();
-  device.enableBackGesture();
 };
 
 const handlePageSliderChange = (value: number) => {
@@ -257,9 +269,7 @@ onBeforeUnmount(() => {
     clearTimeout(pageChangeTimer);
     pageChangeTimer = null;
   }
-  if (isScrubbing.value) {
-    device.enableBackGesture();
-  }
+  enableBackGesture();
 });
 
 const handleResetProgress = () => {
