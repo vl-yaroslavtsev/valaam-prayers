@@ -59,9 +59,11 @@ interface Emits {
   (e: 'page-change', value: number): void;
   (e: 'reset-progress'): void;
   // Текст ещё не соответствует счётчику — реальный переход отложен (см. schedulePageChange)
-  (e: 'scrub-move'): void;
+  (e: 'scrub-move', page: number): void;
   // Текст снова соответствует счётчику — переход применён (debounce сработал или отпустили палец)
   (e: 'scrub-settle'): void;
+  // Палец убрали со слайдера
+  (e: 'scrub-end'): void;
 }
 
 const props = defineProps<Props>();
@@ -225,10 +227,14 @@ const finishScrub = () => {
   flushPageChange();
   sliderValue.value = scrubPage.value;
   isScrubbing.value = false;
+  emit("scrub-end");
 };
 
 const handlePageSliderEnd = () => {
   finishScrub();
+  // Всегда сообщаем родителю: палец убрали, даже если finishScrub уже сработал
+  // по range:changed (иначе заголовок может остаться на экране)
+  emit("scrub-end");
 };
 
 const handlePageSliderChange = (value: number) => {
@@ -244,7 +250,7 @@ const handlePageSliderChange = (value: number) => {
     return;
   }
   scrubPage.value = value;
-  emit('scrub-move');
+  emit("scrub-move", value);
   schedulePageChange(value);
 };
 

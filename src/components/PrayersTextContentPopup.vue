@@ -43,7 +43,7 @@
               :toggle="header.children.length > 0"
               :opened="header.opened"
               :selected="header.selected"
-              @click="goToPage(header.page, $event)"
+              @click="selectHeader(header.flatIndex, $event)"
             >
               <template #content-end>
                 <span class="treeview-item-page">{{ header.page }}</span>
@@ -53,7 +53,7 @@
                 :key="`${child.index}`"
                 :label="child.text"
                 :selected="child.selected"
-                @click="goToPage(child.page, $event)"
+                @click="selectHeader(child.flatIndex, $event)"
               >
                 <template #content-end>
                   <span class="treeview-item-page">{{ child.page }}</span>
@@ -138,7 +138,7 @@ import { useTheme } from "@/composables/useTheme";
 import SvgIcon from "@/components/SvgIcon.vue";
 import Swiper from "swiper";
 
-const { itemId, title, headers, page, lang, bookmarks = [], initialTab = "content", activeBookmarkId = null } = defineProps<{
+const { itemId, title, headers, page, lang, bookmarks = [], initialTab = "content", activeBookmarkId = null, activeHeaderIndex = null } = defineProps<{
   itemId: string;
   title: string;
   headers: PaginationCacheItemHeader[];
@@ -147,6 +147,7 @@ const { itemId, title, headers, page, lang, bookmarks = [], initialTab = "conten
   bookmarks?: BookmarkWithPage[];
   initialTab?: "content" | "bookmarks";
   activeBookmarkId?: string | null;
+  activeHeaderIndex?: number | null;
 }>();
 
 const isOpened = defineModel<boolean>('isOpened');
@@ -154,7 +155,7 @@ const popupRef = useTemplateRef<ComponentPublicInstance>("popup");
 
 // События
 const emit = defineEmits<{
-  goToPage: [page: number];
+  goToHeader: [index: number];
   goToBookmark: [id: string];
   editBookmark: [id: string];
   deleteBookmark: [id: string];
@@ -218,6 +219,7 @@ const onDeleteBookmarkClick = () => {
 
 interface GroupedHeaderItem extends PaginationCacheItemHeader {
   index: number;
+  flatIndex: number;
   selected: boolean;
   opened?: boolean;
   children: GroupedHeaderItem[];
@@ -236,11 +238,15 @@ const groupedHeaders = computed(() => {
   let lastRoot: GroupedHeaderItem | null = null;
 
   headers.forEach((h, i) => {
-    const isSelected = i === currentFlatIndex;
+    const isSelected =
+      activeHeaderIndex != null && activeHeaderIndex >= 0
+        ? i === activeHeaderIndex
+        : i === currentFlatIndex;
     if (h.level === 2) {
       lastRoot = {
         ...h,
         index: result.length,
+        flatIndex: i,
         children: [],
         selected: isSelected,
         opened: isSelected,
@@ -250,6 +256,7 @@ const groupedHeaders = computed(() => {
       const child: GroupedHeaderItem = {
         ...h,
         index: lastRoot.children.length,
+        flatIndex: i,
         children: [],
         selected: isSelected,
       };
@@ -264,13 +271,12 @@ const groupedHeaders = computed(() => {
   return result;
 });
 
-// Функция для перехода к странице
-const goToPage = (page: number, event: PointerEvent) => {
+const selectHeader = (flatIndex: number, event: PointerEvent) => {
   if (event.target instanceof HTMLElement && 
       event.target.classList.contains('treeview-toggle')) {
     return;
   }
-  emit('goToPage', page);
+  emit('goToHeader', flatIndex);
   const popupEl = popupRef.value?.$el;
   if (popupEl) {
     f7.popup.close(popupEl, false);
