@@ -9,7 +9,7 @@
     swipe-handler=".swipe-handler"
   >
     <f7-page-content>
-      <f7-block-title>Настройки текста</f7-block-title>
+      <!-- <f7-block-title>Настройки текста</f7-block-title> -->
       <f7-list dividers>
         <f7-list-item 
           title="Листать стр."
@@ -373,6 +373,7 @@ const onTextThemeSmartSelectOpen = (e: Event) => {
 
 <style scoped lang="less">
 .text-settings-sheet {
+  --f7-sheet-height: 45%;
   // --f7-block-margin-vertical: 30px;
   --f7-block-title-margin-bottom: 5px;
   --f7-list-item-padding-vertical: 12px;
