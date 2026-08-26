@@ -31,6 +31,25 @@
            закрываем текст фоном текущей темы чтения (не сам reading-text,
            у которого горизонтальный режим рендерит слайды через Shadow DOM) -->
       <div v-if="isPageScrubbing" class="page-scrub-overlay" :class="`theme-${textTheme}`"></div>
+      <!-- Подзаголовок текущей страницы слайдера — как в large title navbar -->
+      <div
+        v-if="isSliderScrubbing && subtitle.length"
+        class="page-scrub-heading"
+        :class="`theme-${textTheme}`"
+      >
+        <div
+          class="page-scrub-subtitle"
+          :class="{ 'lang-cs': currentLanguage === 'cs' }"
+        >
+          <div
+            v-for="(item, index) in subtitle"
+            :key="index"
+            class="page-scrub-subtitle-item"
+          >
+            {{ item }}
+          </div>
+        </div>
+      </div>
       <!-- Индикатор закладки на текущей странице (тап обрабатывается через detectTapZone) -->
       <div
         v-if="currentPageBookmark && isNavbarHidden"
@@ -69,6 +88,17 @@
       @open-list="openBookmarksList"
       @close="closeBookmarkNav"
     />
+    <ChapterNavigationToolbar
+      v-if="isChapterNavActive"
+      v-show="!isBrightnessTouching"
+      :current-index="activeHeaderIndex"
+      :total="headers.length"
+      :is-hidden="false"
+      @next="goToNextHeader"
+      @prev="goToPrevHeader"
+      @open-list="openContentPopup"
+      @close="closeChapterNav"
+    />
     <PageNavigationToolbar
       v-show="!isBrightnessTouching"
       :current-page="currentPage"
@@ -77,8 +107,9 @@
       :animate-visibility="readingBarsAnimate"
       @reset-progress="resetProgress"
       @page-change="onPageSliderChange"
-      @scrub-move="isPageScrubbing = true; isNavbarHidden = true"
+      @scrub-move="onPageScrubMove"
       @scrub-settle="isPageScrubbing = false"
+      @scrub-end="onPageScrubEnd"
     />
     <PrayersTextContentPopup
       v-model:isOpened="isContentPopupOpened"
@@ -90,7 +121,8 @@
       :bookmarks="bookmarksForItem"
       :initial-tab="contentPopupInitialTab"
       :active-bookmark-id="isBookmarkNavActive ? activeBookmarkId : null"
-      @goToPage="onGoToPageFromPopup"
+      :active-header-index="isChapterNavActive ? activeHeaderIndex : null"
+      @goToHeader="onGoToHeaderFromPopup"
       @goToBookmark="onGoToBookmarkFromPopup"
       @editBookmark="onEditBookmarkFromPopup"
       @deleteBookmark="onDeleteBookmarkFromPopup"
@@ -134,6 +166,7 @@ import PrayersTextNavbar from "@/components/PrayersTextNavbar.vue";
 import PageNavigationToolbar from "@/components/PageNavigationToolbar.vue";
 import SearchNavigationToolbar from "@/components/SearchNavigationToolbar.vue";
 import BookmarkNavigationToolbar from "@/components/BookmarkNavigationToolbar.vue";
+import ChapterNavigationToolbar from "@/components/ChapterNavigationToolbar.vue";
 import SvgIcon from "@/components/SvgIcon.vue";
 
 import { useApiState } from "@/composables/useApiState";
@@ -162,14 +195,19 @@ if (!itemId) {
 }
 
 const item = prayersStore.getItemById(itemId);
-const subtitle = computed<string[]>(() => {
 
+// Пока палец на слайдере — считаем заголовок по странице ползунка, а не по
+// отложенному goToPage (иначе подзаголовок отстаёт на debounce)
+const scrubPreviewPage = ref<number | null>(null);
+
+const subtitle = computed<string[]>(() => {
   const result: string[] = [];
+  const page = scrubPreviewPage.value ?? currentPage.value;
 
   // Находим индекс последнего заголовка, страница которого <= текущей
   let currentFlatIndex = -1;
   for (let i = 0; i < headers.value.length; i++) {
-    if (headers.value[i].page <= currentPage.value) {
+    if (headers.value[i].page <= page) {
       currentFlatIndex = i;
     } else {
       break;
@@ -219,17 +257,6 @@ const openBookmarksList = () => {
 };
 
 const readingBarsAnimate = ref(true);
-
-// Функция для перехода к странице из попапа
-const onGoToPageFromPopup = (page: number) => {
-  textPaginator.value?.goToPage(page, false);
-  readingBarsAnimate.value = false;
-  isNavbarHidden.value = true;
-  isPageNavHidden.value = true;
-  nextTick(() => {
-    readingBarsAnimate.value = true;
-  });
-};
 
 const isTextSettingsSheetOpened = ref(false);
 const toggleTextSettingsSheet = () => {
@@ -449,6 +476,7 @@ const onGoToBookmarkFromPopup = (id: string) => {
   if (isSearchModeActive.value) {
     onCloseSearch();
   }
+  closeChapterNav();
   goToBookmark(id);
   readingBarsAnimate.value = false;
   isNavbarHidden.value = true;
@@ -476,6 +504,71 @@ watch(activeBookmark, (bookmark) => {
   }
 }, { flush: 'post' });
 
+const isChapterNavActive = ref(false);
+const activeHeaderIndex = ref(-1);
+
+const goToHeader = (index: number) => {
+  if (index < 0 || index >= headers.value.length) return;
+  activeHeaderIndex.value = index;
+  isChapterNavActive.value = true;
+};
+
+const goToNextHeader = () => {
+  const list = headers.value;
+  if (list.length === 0) return;
+  const idx = (activeHeaderIndex.value + 1 + list.length) % list.length;
+  activeHeaderIndex.value = idx;
+};
+
+const goToPrevHeader = () => {
+  const list = headers.value;
+  if (list.length === 0) return;
+  const idx = (activeHeaderIndex.value - 1 + list.length) % list.length;
+  activeHeaderIndex.value = idx;
+};
+
+const closeChapterNav = () => {
+  isChapterNavActive.value = false;
+  activeHeaderIndex.value = -1;
+};
+
+const onGoToHeaderFromPopup = (index: number) => {
+  if (isSearchModeActive.value) {
+    onCloseSearch();
+  }
+  closeBookmarkNav();
+  goToHeader(index);
+  readingBarsAnimate.value = false;
+  isNavbarHidden.value = true;
+  isPageNavHidden.value = true;
+  nextTick(() => {
+    readingBarsAnimate.value = true;
+  });
+};
+
+watch(
+  [activeHeaderIndex, isChapterNavActive],
+  () => {
+    if (!isChapterNavActive.value) return;
+    const header = headers.value[activeHeaderIndex.value];
+    if (header) {
+      textPaginator.value?.goToPage(header.page, false);
+    }
+  },
+  { flush: "post" }
+);
+
+watch(headers, (list) => {
+  if (!isChapterNavActive.value) return;
+  if (list.length === 0) {
+    closeChapterNav();
+    return;
+  }
+  if (activeHeaderIndex.value >= list.length) {
+    activeHeaderIndex.value = list.length - 1;
+  }
+});
+
 const saveProgress = () => {
   if (!textPaginator.value || !totalPages.value) return;
   const type = prayersStore.isBook(itemId) ? "books" : "prayers";
@@ -502,6 +595,20 @@ const isPageNavHidden = ref(true);
 // счётчику — прячем его оверлеем. Как только переход применится (даже без
 // отпускания пальца, на паузе), PageNavigationToolbar пришлёт scrub-settle.
 const isPageScrubbing = ref(false);
+// Палец на слайдере: заголовок держим до отпускания, даже если оверлей уже скрыт
+const isSliderScrubbing = ref(false);
+
+const onPageScrubMove = (page: number) => {
+  isSliderScrubbing.value = true;
+  scrubPreviewPage.value = page;
+  isPageScrubbing.value = true;
+  isNavbarHidden.value = true;
+};
+
+const onPageScrubEnd = () => {
+  isSliderScrubbing.value = false;
+  scrubPreviewPage.value = null;
+};
 
 const onPageSliderChange = (value: number) => {
   isNavbarHidden.value = true;
@@ -535,6 +642,7 @@ const onOpenSearch = () => {
 
 const onSelectMatch = (id: number) => {
   closeBookmarkNav();
+  closeChapterNav();
   goToMatch(id);
   isSearchPageOpened.value = false;
   isSearchModeActive.value = true;
@@ -583,6 +691,7 @@ watch(isSearchModeActive, () => {
 watch(currentLanguage, () => {
   onCloseSearch();
   closeBookmarkNav();
+  closeChapterNav();
 });
 
 const { showUndoToast: showUndoResetToast } = useUndoToast({
@@ -626,6 +735,58 @@ const isBrightnessTouching = computed(() => navbarRef.value?.isBrightnessTouchin
   right: 0;
   bottom: 0;
   z-index: 5;
+}
+
+.page-scrub-heading {
+  position: absolute;
+  top: var(--f7-safe-area-top);
+  left: 0;
+  right: 0;
+  z-index: 7;
+  padding: 8px 16px 12px;
+  pointer-events: none;
+  background-color: var(--reading-text-background-color);
+}
+
+.page-scrub-subtitle {
+  display: flex;
+  flex-direction: row;
+  gap: 20px;
+  justify-content: left;
+  align-items: center;
+  min-width: 0;
+  overflow: hidden;
+  font-size: 16px;
+  font-weight: 400;
+  color: var(--reading-text-subtitle-color);
+
+  &.lang-cs {
+    font-family: "Triodion Unicode";
+  }
+}
+
+.page-scrub-subtitle-item {
+  position: relative;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+
+  &:after {
+    content: "";
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    right: -12.5px;
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background-color: var(--reading-text-subtitle-color);
+  }
+
+  &:last-child:after {
+    background-color: transparent;
+  }
 }
 
 // Индикатор закладки на текущей странице — тап всё равно обрабатывается через
