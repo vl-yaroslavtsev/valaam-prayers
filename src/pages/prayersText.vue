@@ -41,13 +41,11 @@
           class="page-scrub-subtitle"
           :class="{ 'lang-cs': currentLanguage === 'cs' }"
         >
-          <div
+          <span
             v-for="(item, index) in subtitle"
             :key="index"
             class="page-scrub-subtitle-item"
-          >
-            {{ item }}
-          </div>
+          >{{ item }}</span>
         </div>
       </div>
       <!-- Индикатор закладки на текущей странице (тап обрабатывается через detectTapZone) -->
@@ -595,7 +593,7 @@ const isPageNavHidden = ref(true);
 // счётчику — прячем его оверлеем. Как только переход применится (даже без
 // отпускания пальца, на паузе), PageNavigationToolbar пришлёт scrub-settle.
 const isPageScrubbing = ref(false);
-// Палец на слайдере: заголовок держим до отпускания, даже если оверлей уже скрыт
+// После протяжки слайдера заголовок оставляем, пока видно нижнее меню
 const isSliderScrubbing = ref(false);
 
 const onPageScrubMove = (page: number) => {
@@ -606,9 +604,15 @@ const onPageScrubMove = (page: number) => {
 };
 
 const onPageScrubEnd = () => {
-  isSliderScrubbing.value = false;
   scrubPreviewPage.value = null;
 };
+
+watch(isPageNavHidden, (hidden) => {
+  if (hidden) {
+    isSliderScrubbing.value = false;
+    scrubPreviewPage.value = null;
+  }
+});
 
 const onPageSliderChange = (value: number) => {
   isNavbarHidden.value = true;
@@ -743,50 +747,41 @@ const isBrightnessTouching = computed(() => navbarRef.value?.isBrightnessTouchin
   left: 0;
   right: 0;
   z-index: 7;
-  padding: 8px 16px 12px;
+  padding: 4px 12px 4px; // 8px 12px 8px;
   pointer-events: none;
   background-color: var(--reading-text-background-color);
 }
 
 .page-scrub-subtitle {
-  display: flex;
-  flex-direction: row;
-  gap: 20px;
-  justify-content: left;
-  align-items: center;
-  min-width: 0;
   overflow: hidden;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
   font-size: 16px;
   font-weight: 400;
+  line-height: 130%;
   color: var(--reading-text-subtitle-color);
+  hyphens: none;
 
   &.lang-cs {
     font-family: "Triodion Unicode";
   }
 }
 
-.page-scrub-subtitle-item {
-  position: relative;
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
+.page-scrub-subtitle-item:not(:first-child) {
   white-space: nowrap;
+}
 
-  &:after {
-    content: "";
-    position: absolute;
-    top: 50%;
-    transform: translateY(-50%);
-    right: -12.5px;
-    width: 5px;
-    height: 5px;
-    border-radius: 50%;
-    background-color: var(--reading-text-subtitle-color);
-  }
-
-  &:last-child:after {
-    background-color: transparent;
-  }
+.page-scrub-subtitle-item:not(:first-child)::before {
+  content: "";
+  display: inline-block;
+  width: 5px;
+  height: 5px;
+  margin: 0 7.5px;
+  border-radius: 50%;
+  background-color: var(--reading-text-subtitle-color);
+  vertical-align: middle;
 }
 
 // Индикатор закладки на текущей странице — тап всё равно обрабатывается через

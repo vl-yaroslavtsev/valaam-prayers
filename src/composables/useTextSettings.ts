@@ -32,6 +32,10 @@ export function useTextSettings() {
       'Vilnius': '"Vilnius"'
     };
 
+  const applyPagePadding = (isPagePadding: boolean) => {
+    document.documentElement.classList.toggle('reading-compact-padding', !isPagePadding);
+  };
+
   /**
    * Обновляет CSS переменные для настроек текста
    */
@@ -64,9 +68,7 @@ export function useTextSettings() {
     // Обновляем переносы слов
     setCSSVariable('--reading-text-hyphens', settingsStore.isTextWordsBreak ? 'manual' : 'none');
 
-    // Обновляем отступы страницы
-    const padding = settingsStore.isTextPagePadding ? '16px 24px calc(35px + var(--f7-safe-area-bottom)) 24px' : '8px 12px calc(35px + var(--f7-safe-area-bottom)) 12px';
-    setCSSVariable('--reading-text-page-padding', padding);
+    applyPagePadding(settingsStore.isTextPagePadding);
 
     // Обновляем жирность шрифта
     setCSSVariable('--reading-text-font-weight', settingsStore.isTextBold ? '700' : '400');
@@ -162,8 +164,7 @@ export function useTextSettings() {
     unwatchPagePadding = watch(
       () => settingsStore.isTextPagePadding,
       (newPagePadding) => {
-        const padding = newPagePadding ? '16px 24px calc(16px + var(--f7-safe-area-bottom)) 24px' : '8px 12px calc(8px + var(--f7-safe-area-bottom)) 12px';
-        setCSSVariable('--reading-text-page-padding', padding);
+        applyPagePadding(newPagePadding);
       }
     );
 
@@ -195,8 +196,7 @@ export function useTextSettings() {
     unwatchPagePadding = watch(
       () => settingsStore.isTextPagePadding,
       (newPagePadding) => {
-        const padding = newPagePadding ? '16px 24px calc(16px + var(--f7-safe-area-bottom)) 24px' : '8px 12px calc(8px + var(--f7-safe-area-bottom)) 12px';
-        setCSSVariable('--reading-text-page-padding', padding);
+        applyPagePadding(newPagePadding);
       }
     );
 
