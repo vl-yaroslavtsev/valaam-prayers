@@ -37,6 +37,7 @@ export interface PrayerTextApiResponse {
   text_cs: string;
   text_cs_cf: string;
   text_ru: string;
+  modified_ts: number;
 }
 
 export interface PrayerTextsApiResponse {

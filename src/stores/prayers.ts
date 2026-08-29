@@ -225,7 +225,10 @@ export const usePrayersStore = defineStore("prayers", () => {
       // Сначала проверяем кэш
       const cached = await prayerDetailsStorage?.get(id);
       if (cached) {
-        return transformApiPrayerText(cached);
+        return transformApiPrayerText({
+          ...cached,
+          modified_ts: cached.modified_ts ?? 0,
+        });
       }
 
       // Загружаем с сервера
@@ -270,6 +273,11 @@ export const usePrayersStore = defineStore("prayers", () => {
       const text_cs = allLanguages.has('cs') ? header + buildSectionText(sectionId, response.data, 2, 'cs') : '';
       const text_ru = allLanguages.has('ru') ? header + buildSectionText(sectionId, response.data, 2, 'ru') : '';
       
+      const modified_ts = response.data.reduce(
+        (max, prayer) => Math.max(max, prayer.modified_ts || 0),
+        0
+      );
+
       // Возвращаем в том же формате, что и getPrayerText
       return {
         id: sectionId,
@@ -279,6 +287,7 @@ export const usePrayersStore = defineStore("prayers", () => {
         text_cs,
         text_cs_cf,
         text_ru,
+        modified_ts,
         lang: Array.from(allLanguages)
       };
     } catch (err) {

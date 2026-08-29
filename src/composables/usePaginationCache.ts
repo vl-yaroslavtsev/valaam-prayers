@@ -33,7 +33,8 @@ export function usePaginationCache() {
    */
   const getCachedText = async (
     id: string,
-    language: Language | null
+    language: Language | null,
+    modifiedTs: number
   ): Promise<{pages: string[], headers: PaginationCacheItemHeader[]} | null> => {
     if (!paginationCacheStorage) {
       console.warn('PaginationCacheStorage не инициализирован, используем прямую пагинацию');
@@ -46,7 +47,7 @@ export function usePaginationCache() {
 
     try {
       // Пытаемся получить кэшированные страницы
-      const cached = await paginationCacheStorage.getCachedPages(id, cacheLanguage, settings);
+      const cached = await paginationCacheStorage.getCachedPages(id, cacheLanguage, settings, modifiedTs);
       
       if (cached) {
         console.log(`Загружены кэшированные страницы для ${id}_${cacheLanguage}`);
@@ -61,7 +62,13 @@ export function usePaginationCache() {
   };
 
 
-  const setCachedText = async (id: string, language: Language | null, pages: string [], headers: PaginationCacheItemHeader[]): Promise<boolean> => {
+  const setCachedText = async (
+    id: string,
+    language: Language | null,
+    pages: string[],
+    headers: PaginationCacheItemHeader[],
+    modifiedTs: number
+  ): Promise<boolean> => {
     if (!paginationCacheStorage) {
       console.warn('PaginationCacheStorage не инициализирован, используем прямую пагинацию');
       return false;
@@ -72,7 +79,7 @@ export function usePaginationCache() {
 
     if (pages.length > 100) {
       console.log(`Сохраняем в кэш ${pages.length} страниц для ${id}_${cacheLanguage}`);
-      await paginationCacheStorage.setCachedPages(id, cacheLanguage, settings, pages, headers);
+      await paginationCacheStorage.setCachedPages(id, cacheLanguage, settings, pages, headers, modifiedTs);
       return true;
     } else {
       console.log(`Не сохраняем в кэш: только ${pages.length} страниц (требуется >100)`);

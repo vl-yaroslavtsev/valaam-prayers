@@ -22,6 +22,7 @@
         :initialProgress="initialProgress"
         :lang="currentLanguage"
         :itemId="itemId"
+        :modified-ts="data?.modified_ts ?? 0"
         :highlightTransform="isSearchModeActive ? getHighlightedPageHtml : undefined"
         ref="textPaginator" 
         @tap="onTextPaginatorTap"

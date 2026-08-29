@@ -71,6 +71,7 @@ const {
   isLoading = false, 
   initialProgress = 0,
   itemId = "",
+  modifiedTs = 0,
   highlightTransform,
 } = defineProps<{
   text: string;
@@ -78,6 +79,8 @@ const {
   lang?: Language | null;
   isLoading?: boolean;
   itemId: string;
+  // PHP-таймстамп последнего изменения текста; нужен, чтобы не брать устаревший кэш страниц
+  modifiedTs?: number;
   // Трансформация HTML страницы перед отображением (например, подсветка поиска).
   // Вызывается для каждой страницы при applyPages, не влияет на пагинацию/кэш.
   highlightTransform?: (html: string, pageIndex: number) => string;
@@ -139,7 +142,8 @@ const restoreProgress = () => {
 };
 
 watch([
-  () => text, 
+  () => text,
+  () => modifiedTs,
   () => settingsStore.fontFamily, 
   () => settingsStore.fontSize, 
   () => settingsStore.lineHeight,
@@ -165,7 +169,7 @@ async () => {
     const cssClasses = `text-page reading-text ${lang ? 'prayer-text lang-' + lang : ''} theme-${theme.value}`;
     
     // Используем кэш если доступен itemId
-    const cached = await getCachedText(itemId, lang); 
+    const cached = await getCachedText(itemId, lang, modifiedTs); 
     if (cached) {
       pages.value = cached.pages;
       headers.value = cached.headers;
@@ -180,7 +184,7 @@ async () => {
       });
       pages.value = result.pages;
       headers.value = result.headers;
-      setCachedText(itemId, lang, pages.value, headers.value);
+      setCachedText(itemId, lang, pages.value, headers.value, modifiedTs);
     }
     
     applyPages();

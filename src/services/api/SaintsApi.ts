@@ -29,6 +29,7 @@ export interface SaintDetailApiElement {
   minea_id: string[];
   hagiography_id: string[];
   memo_days: SaintMemoDay[];
+  modified_ts: number;
 }
 
 /**

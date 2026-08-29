@@ -17,6 +17,7 @@ export interface PaginationCacheItem {
   pages: string[];
   headers: PaginationCacheItemHeader[];
   accessedAt: Date;
+  modifiedTs?: number;
 }
 
 /**
@@ -96,7 +97,8 @@ export class PaginationCacheStorage extends BaseStorage<"pagination-cache"> {
   async getCachedPages(
     id: string,
     language: Language | 'default',
-    settings: PaginationHashSettings
+    settings: PaginationHashSettings,
+    modifiedTs: number
   ): Promise<{pages: string[], headers: PaginationCacheItemHeader[]} | null> {
     const cacheKey = this.createCacheKey(id, language);
     const settingsHash = this.createSettingsHash(settings, language);
@@ -105,6 +107,12 @@ export class PaginationCacheStorage extends BaseStorage<"pagination-cache"> {
       const cachedItem = await this.get(cacheKey);
       
       if (!cachedItem) {
+        return null;
+      }
+
+      // Текст изменился на сервере — кэш страниц больше не валиден
+      if ((cachedItem.modifiedTs ?? 0) !== modifiedTs) {
+        await this.delete(cacheKey);
         return null;
       }
 
@@ -133,7 +141,8 @@ export class PaginationCacheStorage extends BaseStorage<"pagination-cache"> {
     language: Language | 'default',
     settings: PaginationHashSettings,
     pages: string[],
-    headers: PaginationCacheItemHeader[]
+    headers: PaginationCacheItemHeader[],
+    modifiedTs: number
   ): Promise<void> {
     const cacheKey = this.createCacheKey(id, language);
     const settingsHash = this.createSettingsHash(settings, language);
@@ -147,6 +156,7 @@ export class PaginationCacheStorage extends BaseStorage<"pagination-cache"> {
         pages,
         headers,
         accessedAt: now,
+        modifiedTs,
       };
 
       await this.put(cacheItem);
