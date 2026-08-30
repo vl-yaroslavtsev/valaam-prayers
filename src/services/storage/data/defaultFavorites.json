@@ -37,41 +37,41 @@
   {
     "id": "1641",
     "type": "books",
-    "sort": 0
+    "sort": 7
   },
   {
     "id": "1640",
     "type": "books",
-    "sort": 1
+    "sort": 8
   },
   {
     "id": "1079",
     "type": "books",
-    "sort": 2
+    "sort": 9
   },
   {
     "id": "1897",
     "type": "books",
-    "sort": 3
+    "sort": 10
   },
   {
     "id": "2076",
     "type": "books",
-    "sort": 4
+    "sort": 11
   },
   {
     "id": "83820",
     "type": "saints",
-    "sort": 0
+    "sort": 12
   },
   {
     "id": "96921",
     "type": "saints",
-    "sort": 1
+    "sort": 13
   },
   {
     "id": "100231",
     "type": "saints",
-    "sort": 2
+    "sort": 14
   }
 ] 

@@ -24,6 +24,8 @@
         :itemId="itemId"
         :modified-ts="data?.modified_ts ?? 0"
         :highlightTransform="isSearchModeActive ? getHighlightedPageHtml : undefined"
+        :bookmarked-pages="bookmarkedPages"
+        :show-bookmark-tabs="isNavbarHidden"
         ref="textPaginator" 
         @tap="onTextPaginatorTap"
         @touchstart="onTextPaginatorTouchStart"
@@ -49,9 +51,8 @@
           >{{ item }}</span>
         </div>
       </div>
-      <!-- Индикатор закладки на текущей странице (тап обрабатывается через detectTapZone) -->
       <div
-        v-if="currentPageBookmark && isNavbarHidden"
+        v-if="currentPageBookmark && isNavbarHidden && settingsStore.pageMode !== 'vertical' && !isTextCalculating && totalPages > 0"
         class="bookmark-corner-indicator"
       >
         <SvgIcon icon="bookmark-filled" color="primary-accent-50" :size="24" />
@@ -155,7 +156,7 @@ import { useComponentsStore } from "@/stores/components";
 import { useSettingsStore } from "@/stores/settings";
 import { useUndoToast } from "@/composables/useUndoToast";
 import { useTextSearch } from "@/composables/useTextSearch";
-import { useBookmarks } from "@/composables/useBookmarks";
+import { useBookmarks, progressToPage } from "@/composables/useBookmarks";
 
 import PrayersTextContentPopup from "@/components/PrayersTextContentPopup.vue";
 import PrayersTextSearchPage from "@/components/PrayersTextSearchPage.vue";
@@ -167,7 +168,6 @@ import SearchNavigationToolbar from "@/components/SearchNavigationToolbar.vue";
 import BookmarkNavigationToolbar from "@/components/BookmarkNavigationToolbar.vue";
 import ChapterNavigationToolbar from "@/components/ChapterNavigationToolbar.vue";
 import SvgIcon from "@/components/SvgIcon.vue";
-
 import { useApiState } from "@/composables/useApiState";
 import { device } from "@/js/device";
 
@@ -391,7 +391,7 @@ const textTheme = computed(() => {
   return textPaginator.value?.theme || "light";
 });
 
-const onTextPaginatorTap = (payload: { type: "center" | "left" | "right" | "top" | "bottom" | "bookmark"; x: number; y: number }) => {
+const onTextPaginatorTap = (payload: { type: "center" | "left" | "right" | "top" | "bottom" | "bookmark"; x: number; y: number; page?: number }) => {
   const { type, x, y } = payload;
 
   console.log("onTextPaginatorTap", payload);
@@ -414,7 +414,7 @@ const onTextPaginatorTap = (payload: { type: "center" | "left" | "right" | "top"
     }
 
   } else if (type === "bookmark") {
-    onCornerTap();
+    onCornerTap(payload.page);
 
   } else if (type === "left" || type === "top") {
     textPaginator.value?.slidePrev();
@@ -452,7 +452,7 @@ const onTextPaginatorTouchEnd = (event: Event) => {
 // Состояние навигации по страницам
 const totalPages = computed(() => textPaginator.value?.pagesCount || 0);
 const progress = computed(() => textPaginator.value?.progress || 0);
-const currentPage = computed(() => Math.min(Math.floor(progress.value * totalPages.value) + 1, totalPages.value));
+const currentPage = computed(() => progressToPage(progress.value, totalPages.value));
 
 // Закладки
 const {
@@ -470,6 +470,10 @@ const {
   openEditDialog: openBookmarkEditDialog,
   deleteBookmarkWithUndo,
 } = useBookmarks(itemId, progress, totalPages);
+
+const bookmarkedPages = computed(() =>
+  [...new Set(bookmarksForItem.value.map((bookmark) => bookmark.page))]
+);
 
 const onGoToBookmarkFromPopup = (id: string) => {
   if (isSearchModeActive.value) {
@@ -496,10 +500,12 @@ const onDeleteBookmarkFromPopup = (id: string) => {
   deleteBookmarkWithUndo(id);
 };
 
-// При переходе к закладке из режима навигации по закладкам — сдвигаем читалку на её прогресс
+// При переходе к закладке — открываем начало её страницы, а не позицию внутри
 watch(activeBookmark, (bookmark) => {
   if (isBookmarkNavActive.value && bookmark) {
-    textPaginator.value?.setProgress(bookmark.progress);
+    // Закладка привязана к странице — открываем её начало, а не позицию внутри
+    // (setProgress в горизонтальном режиме интерполирует слайды).
+    textPaginator.value?.goToPage(bookmark.page, false);
   }
 }, { flush: 'post' });
 
@@ -785,12 +791,10 @@ const isBrightnessTouching = computed(() => navbarRef.value?.isBrightnessTouchin
   vertical-align: middle;
 }
 
-// Индикатор закладки на текущей странице — тап всё равно обрабатывается через
-// detectTapZone/onTextPaginatorTap, поэтому сам оверлей не должен перехватывать события
 .bookmark-corner-indicator {
   position: absolute;
-  top: calc(var(--f7-safe-area-top) + 10px);
-  right: 8px;
+  top: calc(var(--f7-safe-area-top) + 4px);
+  right: 0px;
   pointer-events: none;
   z-index: 6;
 }

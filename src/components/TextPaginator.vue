@@ -19,6 +19,8 @@
     :lang="lang"
     :isLoading="isLoading"
     :isCalculating="isCalculating"
+    :bookmarked-pages="bookmarkedPages"
+    :show-bookmark-tabs="showBookmarkTabs"
     @tap="emit('tap', $event)"
     @touchstart="emit('touchstart', $event)"
     @touchend="emit('touchend', $event)"
@@ -73,6 +75,8 @@ const {
   itemId = "",
   modifiedTs = 0,
   highlightTransform,
+  bookmarkedPages = [],
+  showBookmarkTabs = false,
 } = defineProps<{
   text: string;
   initialProgress?: number;
@@ -84,6 +88,8 @@ const {
   // Трансформация HTML страницы перед отображением (например, подсветка поиска).
   // Вызывается для каждой страницы при applyPages, не влияет на пагинацию/кэш.
   highlightTransform?: (html: string, pageIndex: number) => string;
+  bookmarkedPages?: number[];
+  showBookmarkTabs?: boolean;
 }>();
 
 const settingsStore = useSettingsStore();
@@ -97,7 +103,7 @@ const theme = computed(() => settingsStore.textTheme);
 
 // Events
 const emit = defineEmits<{
-  tap: [payload: { type: "center" | "left" | "right" | "top" | "bottom" | "bookmark"; x: number; y: number }];
+  tap: [payload: { type: "center" | "left" | "right" | "top" | "bottom" | "bookmark"; x: number; y: number; page?: number }];
   progress: [payload: { progress: number, pages: number }];
   touchstart: [payload: { swiper: Swiper | null, event: Event }];
   touchend: [event: Event];

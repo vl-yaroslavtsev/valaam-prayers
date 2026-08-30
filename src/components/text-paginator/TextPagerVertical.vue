@@ -26,8 +26,18 @@
         :key="item.index"
         class="text-page"
         :style="{ top: (vlData.topPosition || 0) + 'px', height: pageHeightPx + 'px' }"
-        v-html="item.html"
-      ></li>
+      >
+        <div
+          v-if="showBookmarkTabs && bookmarkedPageSet.has(item.index + 1)"
+          class="page-bookmark-tab"
+          @touchstart.stop="onBookmarkTabTouchStart"
+          @touchend.stop="onBookmarkTabTouchEnd($event, item.index + 1)"
+          @click.stop="onBookmarkTabClick($event, item.index + 1)"
+        >
+          <SvgIcon icon="bookmark-filled" color="primary-accent-50" :size="24" />
+        </div>
+        <div class="text-page-body" v-html="item.html"></div>
+      </li>
     </f7-list>
   </div>
 </template>
@@ -36,6 +46,7 @@ import { useTemplateRef, ref, computed } from "vue";
 import { useTextSelection } from "@/composables/useTextSelection";
 import type { VirtualList } from "framework7/types";
 import type { TextTheme, Language } from "@/types/common";
+import SvgIcon from "@/components/SvgIcon.vue";
 import { detectTapZone } from "./tapZone";
 
 interface VerticalListItem {
@@ -51,15 +62,24 @@ interface VerticalListRenderData {
   items: VerticalListItem[];
 }
 
-const { isLoading = false, isCalculating = false } = defineProps<{
+const {
+  isLoading = false,
+  isCalculating = false,
+  bookmarkedPages = [],
+  showBookmarkTabs = false,
+} = defineProps<{
   theme: TextTheme;
   lang?: Language | null;
   isLoading?: boolean;
   isCalculating?: boolean;
+  bookmarkedPages?: number[];
+  showBookmarkTabs?: boolean;
 }>();
 
+const bookmarkedPageSet = computed(() => new Set(bookmarkedPages));
+
 const emit = defineEmits<{
-  tap: [payload: { type: "center" | "left" | "right" | "top" | "bottom" | "bookmark"; x: number; y: number }];
+  tap: [payload: { type: "center" | "left" | "right" | "top" | "bottom" | "bookmark"; x: number; y: number; page?: number }];
   touchstart: [payload: { swiper: null; event: Event }];
   touchend: [event: Event];
   "update:progress": [progress: number];
@@ -124,6 +144,9 @@ let verticalScrollSettleTimeout: ReturnType<typeof setTimeout> | null = null;
 const supportsScrollEnd = typeof window !== "undefined" && "onscrollend" in window;
 let verticalTouchStartPoint: { x: number; y: number } | null = null;
 const VERTICAL_TAP_MOVE_THRESHOLD = 10; // px — максимальное смещение пальца, чтобы считать касание тапом
+const BOOKMARK_TAB_TAP_DEBOUNCE_MS = 50;
+let bookmarkTabTouchStart: { x: number; y: number } | null = null;
+let lastBookmarkTabTapAt = 0;
 
 const isTransitioning = ref(false);
 
@@ -140,6 +163,40 @@ const scrollToProgress = (progress: number, animate: boolean) => {
   markProgrammaticScrollStart();
   const maxScroll = Math.max(0, el.scrollHeight - el.clientHeight);
   el.scrollTo({ top: progress * maxScroll, behavior: animate ? "smooth" : "instant" });
+};
+
+const emitBookmarkTabTap = (page: number, clientX: number, clientY: number) => {
+  if (isLoading || isCalculating) {
+    return;
+  }
+  const now = performance.now();
+  if (now - lastBookmarkTabTapAt < BOOKMARK_TAB_TAP_DEBOUNCE_MS) {
+    return;
+  }
+  lastBookmarkTabTapAt = now;
+  emit("tap", { type: "bookmark", x: clientX, y: clientY, page });
+};
+
+const onBookmarkTabTouchStart = (event: TouchEvent) => {
+  const touch = event.touches[0];
+  bookmarkTabTouchStart = touch ? { x: touch.clientX, y: touch.clientY } : null;
+};
+
+const onBookmarkTabTouchEnd = (event: TouchEvent, page: number) => {
+  const start = bookmarkTabTouchStart;
+  bookmarkTabTouchStart = null;
+  const touch = event.changedTouches[0];
+  if (!start || !touch) {
+    return;
+  }
+  if (Math.hypot(touch.clientX - start.x, touch.clientY - start.y) > VERTICAL_TAP_MOVE_THRESHOLD) {
+    return;
+  }
+  emitBookmarkTabTap(page, touch.clientX, touch.clientY);
+};
+
+const onBookmarkTabClick = (event: MouseEvent, page: number) => {
+  emitBookmarkTabTap(page, event.clientX, event.clientY);
 };
 
 // Общая проверка перед эмитом тапа по зоне (используется и из touchend, и из click)
@@ -319,8 +376,34 @@ defineExpose({
 .text-paginator-vlist {
   margin: 0;
 
-  :deep(li) {
-    overflow: hidden;
+  // overflow: hidden ломает position: sticky — клип текста на внутреннем .text-page-body
+  :deep(li.text-page) {
+    overflow: visible;
+    padding: 0;
   }
+}
+
+.text-page-body {
+  position: absolute;
+  top: 0;
+  height: 100%;
+  width: 100%;
+  overflow: hidden;
+  padding: var(--text-page-padding);
+  box-sizing: border-box;
+}
+
+.page-bookmark-tab {
+  position: sticky;
+  top: 0;
+  z-index: 6;
+  display: flex;
+  justify-content: flex-end;
+  width: 56px;
+  margin-left: auto;
+  padding-right: 0;
+  padding-top: 4px;
+  overflow: visible;
+  pointer-events: auto;
 }
 </style>

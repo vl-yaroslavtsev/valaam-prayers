@@ -48,7 +48,7 @@ const { isLoading = false, isCalculating = false } = defineProps<{
 }>();
 
 const emit = defineEmits<{
-  tap: [payload: { type: "center" | "left" | "right" | "top" | "bottom" | "bookmark"; x: number; y: number }];
+  tap: [payload: { type: "center" | "left" | "right" | "top" | "bottom" | "bookmark"; x: number; y: number; page?: number }];
   touchstart: [payload: { swiper: Swiper; event: Event }];
   touchend: [event: Event];
   "update:progress": [progress: number];

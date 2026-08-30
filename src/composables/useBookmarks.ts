@@ -15,9 +15,22 @@ const escapeHtml = (value: string): string =>
     .replace(/"/g, "&quot;")
     .replace(/'/g, "&#39;");
 
-const progressToPage = (progress: number, totalPages: number): number => {
-  if (totalPages <= 0) return 1;
-  return Math.min(Math.floor(progress * totalPages) + 1, totalPages);
+/**
+ * Прогресс пагинатора — позиция от начала первой страницы до начала последней
+ * (swiper.progress и scrollTop / (scrollHeight - clientHeight)): знаменатель N-1.
+ * floor(progress * N)+1 во второй половине страницы (вертикальный скролл) даёт уже
+ * следующий номер — закладка «отваливается», не доскроллив текущую страницу.
+ */
+export const progressToPage = (progress: number, totalPages: number): number => {
+  if (totalPages <= 1) return 1;
+  return Math.min(Math.floor(progress * (totalPages - 1)) + 1, totalPages);
+};
+
+/** Прогресс начала страницы — чтобы закладка открывала верх страницы, а не позицию внутри неё. */
+export const pageToProgress = (page: number, totalPages: number): number => {
+  if (totalPages <= 1) return 0;
+  const clamped = Math.min(Math.max(page, 1), totalPages);
+  return (clamped - 1) / (totalPages - 1);
 };
 
 /**
@@ -25,6 +38,7 @@ const progressToPage = (progress: number, totalPages: number): number => {
  *
  * progress/totalPages — как в reading-history: закладка хранит прогресс (0..1), а не номер
  * страницы, чтобы оставаться корректной при пересчёте пагинации (смена шрифта/языка).
+ * Сохраняем прогресс начала текущей страницы, а не точную позицию скролла.
  */
 export function useBookmarks(itemId: string, progress: Ref<number>, totalPages: Ref<number>) {
   const store = useBookmarksStore();
@@ -132,6 +146,7 @@ export function useBookmarks(itemId: string, progress: Ref<number>, totalPages: 
     const dialog = f7.dialog.create({
       title: "Изменить закладку",
       destroyOnClose: true,
+      closeByBackdropClick: true,
       content: `
         <div class="dialog-input-field input">
           <div class="item-input-wrap">
@@ -160,25 +175,52 @@ export function useBookmarks(itemId: string, progress: Ref<number>, totalPages: 
       ],
       on: {
         opened: (dlg) => {
+          console.log("opened", dlg);
           const input = dlg.$el.find("input.bookmark-name-input")[0] as HTMLInputElement | undefined;
-          input?.focus();
+          if (!input) {
+            return;
+          }
+          input.focus();
+          requestAnimationFrame(() => {
+            const end = input.value.length;
+            input.setSelectionRange(end, end);
+          });
+          
+          if (f7.device.android) {
+            f7.$(window).on("resize", resizeHandler);
+          } else {
+            resizeHandler();
+          }
+        },
+        close: () => {
+          f7.$(window).off("resize", resizeHandler);
         },
       },
     });
+
+    const resizeHandler = () => {
+      console.log("centerDialog", dialog);
+      dialog.$el[0].scrollIntoView({block: "nearest", behavior: "smooth"});
+    };
 
     currentDialog = dialog;
     dialog.open();
   };
 
   // --- Тап по правому верхнему углу ---
-  const onCornerTap = async () => {
-    const existing = currentPageBookmark.value;
+  const onCornerTap = async (page?: number) => {
+    const existing = page != null
+      ? bookmarksForItem.value.find((bookmark) => bookmark.page === page) ?? null
+      : currentPageBookmark.value;
     if (existing) {
       openEditDialog(existing);
       return;
     }
 
-    const created = await store.addBookmark(itemId, progress.value);
+    const created = await store.addBookmark(
+      itemId,
+      pageToProgress(page ?? currentPage.value, totalPages.value)
+    );
     showAddedToast(() => {
       openEditDialog(created);
     });
