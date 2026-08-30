@@ -40,7 +40,7 @@ export const pageToProgress = (page: number, totalPages: number): number => {
  * страницы, чтобы оставаться корректной при пересчёте пагинации (смена шрифта/языка).
  * Сохраняем прогресс начала текущей страницы, а не точную позицию скролла.
  */
-export function useBookmarks(itemId: string, progress: Ref<number>, totalPages: Ref<number>) {
+export function useBookmarks(itemId: number, progress: Ref<number>, totalPages: Ref<number>) {
   const store = useBookmarksStore();
 
   const bookmarksForItem = computed<BookmarkWithPage[]>(() =>

@@ -91,18 +91,15 @@ export async function fetchJson<T = any>(
         throw new Error('Not found');
       }
 
-      // Проверяем статус ответа
       if (!response.ok) {
         throw new Error(`HTTP Error: ${response.status} ${response.statusText}`);
       }
 
-      // Проверяем, что ответ содержит JSON
       const contentType = response.headers.get('content-type');
       if (!contentType || !contentType.includes('application/json')) {
         throw new Error('Response is not JSON');
       }
 
-      // Парсим JSON
       const data = await response.json();
 
       return {

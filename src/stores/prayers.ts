@@ -27,9 +27,9 @@ export interface PrayerText extends PrayerTextApiResponse {
   lang: Language[];
 }
 
-const BIBLE_SECTION_ID = "1078";
-const MOLITVOSLOV_SECTION_ID = "842";
-export const BOOKS_SECTION_ID = "1983";
+const BIBLE_SECTION_ID = 1078;
+const MOLITVOSLOV_SECTION_ID = 842;
+export const BOOKS_SECTION_ID = 1983;
 
 export const usePrayersStore = defineStore("prayers", () => {
   // State
@@ -220,7 +220,7 @@ export const usePrayersStore = defineStore("prayers", () => {
   /**
    * Получает текст молитвы (сначала из кэша, потом с сервера)
    */
-  const getPrayerText = async (id: string): Promise<PrayerText> => {
+  const getPrayerText = async (id: number): Promise<PrayerText> => {
     try {
       // Сначала проверяем кэш
       const cached = await prayerDetailsStorage?.get(id);
@@ -246,10 +246,10 @@ export const usePrayersStore = defineStore("prayers", () => {
   /**
    * Получает тексты всех элементов в разделе (рекурсивно)
    */
-  const getComposedPrayerText = async (sectionId: string): Promise<PrayerText> => {
+  const getComposedPrayerText = async (sectionId: number): Promise<PrayerText> => {
     try {
       // Получаем все тексты молитв в разделе с сервера
-      const response = await prayersApi.getPrayerTextsBySection(sectionId);
+      const prayerTexts = await prayersApi.getPrayerTextsBySection(sectionId);
       
       // Получаем информацию о самом разделе
       const section = getItemById(sectionId) as PrayerSection;
@@ -259,21 +259,21 @@ export const usePrayersStore = defineStore("prayers", () => {
       // Собираем все доступные языки
       const allLanguages = new Set<Language>();
       let hasCommonText = false;
-      response.data.forEach(prayer => {
+      prayerTexts.forEach(prayer => {
         if (prayer.text && !hasCommonText)  hasCommonText = true;
         if (prayer.text_cs) allLanguages.add('cs');
         if (prayer.text_cs_cf) allLanguages.add('cs-cf');
         if (prayer.text_ru) allLanguages.add('ru');
       });
       
-      const text = hasCommonText ? header + buildSectionText(sectionId, response.data, 2, '') : '';
+      const text = hasCommonText ? header + buildSectionText(sectionId, prayerTexts, 2, '') : '';
 
       // Строим тексты для каждого языка
-      const text_cs_cf = allLanguages.has('cs-cf') ? header + buildSectionText(sectionId, response.data, 2, 'cs-cf') : '';
-      const text_cs = allLanguages.has('cs') ? header + buildSectionText(sectionId, response.data, 2, 'cs') : '';
-      const text_ru = allLanguages.has('ru') ? header + buildSectionText(sectionId, response.data, 2, 'ru') : '';
+      const text_cs_cf = allLanguages.has('cs-cf') ? header + buildSectionText(sectionId, prayerTexts, 2, 'cs-cf') : '';
+      const text_cs = allLanguages.has('cs') ? header + buildSectionText(sectionId, prayerTexts, 2, 'cs') : '';
+      const text_ru = allLanguages.has('ru') ? header + buildSectionText(sectionId, prayerTexts, 2, 'ru') : '';
       
-      const modified_ts = response.data.reduce(
+      const modified_ts = prayerTexts.reduce(
         (max, prayer) => Math.max(max, prayer.modified_ts || 0),
         0
       );
@@ -282,7 +282,7 @@ export const usePrayersStore = defineStore("prayers", () => {
       return {
         id: sectionId,
         name: sectionName,
-        parent: section?.parent || '',
+        parent: section?.parent ?? null,
         text,
         text_cs,
         text_cs_cf,
@@ -300,7 +300,7 @@ export const usePrayersStore = defineStore("prayers", () => {
    * Строит текст для раздела на основе уже полученных данных
    */
   const buildSectionText = (
-    sectionId: string, 
+    sectionId: number, 
     prayerTexts: PrayerTextApiResponse[], 
     headerLevel: number = 2,
     language: Language | '' = 'cs-cf'
@@ -366,7 +366,7 @@ export const usePrayersStore = defineStore("prayers", () => {
     return result;
   };
 
-  const getItemsBySection = (sectionId: string) => {
+  const getItemsBySection = (sectionId: number) => {
     let items: Array<PrayerElement | PrayerSection> = [];
 
     const isMolitvoslov = sectionId === MOLITVOSLOV_SECTION_ID;
@@ -403,11 +403,11 @@ export const usePrayersStore = defineStore("prayers", () => {
     return items;
   };
 
-  const isBook = (itemId: string) => {
+  const isBook = (itemId: number) => {
     return isItemInSection(itemId, BOOKS_SECTION_ID) || isItemInSection(itemId, BIBLE_SECTION_ID);
   };
 
-  const isItemInSection = (itemId: string, sectionId: string) => {
+  const isItemInSection = (itemId: number, sectionId: number) => {
     const isBooks = sectionId === BOOKS_SECTION_ID;
 
     let item = getItemById(itemId);
@@ -421,14 +421,14 @@ export const usePrayersStore = defineStore("prayers", () => {
         return true;
       }
       
-      item = getItemById(item.parent);
+      item = item.parent == null ? undefined : getItemById(item.parent);
     }
 
     return false;
   };
 
   const getItemById = (
-    id: string
+    id: number
   ): PrayerElement | PrayerSection | undefined => {
     let item: PrayerElement | PrayerSection | undefined;
 
@@ -443,7 +443,7 @@ export const usePrayersStore = defineStore("prayers", () => {
   };
 
   // Проверяем, является ли элемент секцией
-  const isSection = (id: string, url: string = "") => {
+  const isSection = (id: number, url: string = "") => {
     if (url) {
       return url.match(/\/prayers\/\d+/);
     }

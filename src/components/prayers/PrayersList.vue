@@ -80,7 +80,7 @@ import { useSwipeoutEdgeGuard, swipeoutClearCache } from "@/composables/useSwipe
 import { useComponentsStore } from "@/stores/components";
 
 interface PrayerListItem {
-  id: string;
+  id: number;
   name: string;
   url: string;
   lang?: Language[];
@@ -110,7 +110,7 @@ const {
 
 // Events
 const emit = defineEmits<{
-  resetItemProgress: [id: string];
+  resetItemProgress: [id: number];
   undoResetItemProgress: [];
 }>();
 

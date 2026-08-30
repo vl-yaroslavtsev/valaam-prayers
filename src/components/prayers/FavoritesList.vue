@@ -70,7 +70,7 @@ import { useSwipeoutEdgeGuard, swipeoutClearCache } from "@/composables/useSwipe
 import { useComponentsStore } from "@/stores/components";
 
 interface FavoriteListItem {
-  id: string;
+  id: number;
   name: string;
   url: string;
   lang?: Language[];
@@ -94,17 +94,17 @@ const {
 
 // Events
 const emit = defineEmits<{
-  deleteItem: [id: string];
+  deleteItem: [id: number];
   undoDeleteItem: [];
-  resetItemProgress: [id: string];
+  resetItemProgress: [id: number];
   undoResetItemProgress: [];
-  sorted: [id: string, prevId: string | null];
+  sorted: [id: number, prevId: number | null];
 }>();
 
 const { isDarkMode } = useTheme();
 
 const skeletonItems = Array(5).fill(null).map((_, index) => ({
-  id: `loading-${index}`,
+  id: -(index + 1),
   name: "________________________________",
   url: "javascript:void(0)",
   progress: 0.5,
@@ -163,9 +163,9 @@ const deleteItem = (item: FavoriteListItem) => {
 
 const onSortableSort = ({ from, to, el }: { from: number; to: number; el: HTMLElement }) => {
   const prevEl = el.previousElementSibling;
-  const prevId = prevEl ? (prevEl as HTMLElement).dataset.id as string : null;
-  const id = el.dataset.id as string;
-  emit("sorted", id, prevId);
+  const prevId = prevEl ? Number((prevEl as HTMLElement).dataset.id) : null;
+  const id = Number(el.dataset.id);
+  emit("sorted", id, Number.isFinite(prevId) ? prevId : null);
 };
 
 const { getComponent } = useComponentsStore();

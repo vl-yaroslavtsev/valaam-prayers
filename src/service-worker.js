@@ -28,7 +28,7 @@ registerRoute(
 );
 
 registerRoute(
-  ({ url }) => /^\/rest\/prayers\/\d+/.test(url.pathname),
+  ({ url }) => /^\/api\/prayers\/\d+$/.test(url.pathname),
   // Use a cache-first strategy with the following config:
   new StaleWhileRevalidate({
     // You need to provide a cache name when using expiration.
@@ -45,7 +45,7 @@ registerRoute(
 );
 
 registerRoute(
-  ({ url }) => url.pathname === '/rest/prayers/list/' && url.searchParams.get('section_id'),
+  ({ url }) => url.pathname === '/api/prayers/list' && url.searchParams.get('section_id'),
   // Use a cache-first strategy with the following config:
   new StaleWhileRevalidate({
     // You need to provide a cache name when using expiration.

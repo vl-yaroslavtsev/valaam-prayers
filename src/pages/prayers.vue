@@ -56,10 +56,12 @@ import { useTheme } from "@/composables/useTheme";
 import { usePrayersStore } from "@/stores/prayers";
 import { useReadingHistoryStore } from "@/stores/readingHistory";
 
-const { sectionId, f7router } = defineProps<{
+const { sectionId: sectionIdParam, f7router } = defineProps<{
   sectionId: string;
   f7router: Router.Router;
 }>();
+
+const sectionId = Number(sectionIdParam);
 
 const isFirstPage = ref<boolean>(true);
 
@@ -89,7 +91,7 @@ const onPageBeforeIn = () => {
   isFirstPage.value = f7router.history.length <= 1;
 };
 
-const onResetItemProgress = (id: string) => {
+const onResetItemProgress = (id: number) => {
   console.log("prayers page onResetItemProgress ", id);
   historyStore.resetProgress(id);
 };

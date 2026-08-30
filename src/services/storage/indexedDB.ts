@@ -8,37 +8,37 @@ import type { PaginationCacheItemHeader } from './PaginationCacheStorage';
  */
 interface ValaamDB extends DBSchema {
   'prayers-index': {
-    key: string;
+    key: number;
     value: {
-      id: string;
+      id: number;
       name: string;
-      parent: string;
-      parents: string[];
+      parent: number | null;
+      parents: number[];
       lang: Language[];
       sort: number;
     };
     indexes: {
-      'by-parent': string;
+      'by-parent': number;
     };
   };
   'prayer-sections': {
-    key: string;
+    key: number;
     value: {
-      id: string;
+      id: number;
       name: string;
-      parent: string;
+      parent: number | null;
       sort: number;
       book_root: boolean;
       compose: boolean;
     };
     indexes: {
-      'by-parent': string;
+      'by-parent': number;
     };
   };
   favorites: {
-    key: string;
+    key: number;
     value: {
-      id: string;
+      id: number;
       type: 'prayers' | 'books' | 'saints' | 'thoughts';
       sort: number;
     };
@@ -48,16 +48,16 @@ interface ValaamDB extends DBSchema {
     };
   };
   'saints-index': {
-    key: string;
+    key: number;
     value: {
-      id: string;
+      id: number;
       name: string;
     };
   };
   'saint-details': {
-    key: string;
+    key: number;
     value: {
-      id: string;
+      id: number;
       name: string;
       dates: string[];
       life: string;
@@ -92,11 +92,11 @@ interface ValaamDB extends DBSchema {
     };
   };
   'prayer-details': {
-    key: string;
+    key: number;
     value: {
-      id: string;
+      id: number;
       name: string;
-      parent: string;
+      parent: number | null;
       text: string;
       text_cs: string;
       text_cs_cf: string;
@@ -105,9 +105,9 @@ interface ValaamDB extends DBSchema {
     };
   };
   'reading-history': {
-    key: string;
+    key: number;
     value: {
-      id: string;
+      id: number;
       progress: number;
       pages: number;
       type: 'prayers' | 'books' | 'saints';
@@ -136,26 +136,44 @@ interface ValaamDB extends DBSchema {
     key: string;
     value: {
       id: string;
-      itemId: string;
+      itemId: number;
       progress: number;
       name: string;
       createdAt: Date;
     };
     indexes: {
-      'by-item': string;
+      'by-item': number;
     };
   };
 }
 
 const DB_NAME: string = 'valaam-prayers';
-const DB_VERSION: number = 3;
+const DB_VERSION: number = 4;
 
 let db: IDBPDatabase<ValaamDB> | null = null;
 let initPromise: Promise<void> | null = null;
 
 async function initIndexedDB() {
   db = await openDB<ValaamDB>(DB_NAME, DB_VERSION, {
-    upgrade(db) {
+    upgrade(db, oldVersion) {
+      if (oldVersion < 4) {
+        const storesToRecreate = [
+          'prayers-index',
+          'prayer-sections',
+          'prayer-details',
+          'saints-index',
+          'saint-details',
+          'favorites',
+          'reading-history',
+          'bookmarks',
+        ] as const;
+        for (const name of storesToRecreate) {
+          if (db.objectStoreNames.contains(name)) {
+            db.deleteObjectStore(name);
+          }
+        }
+      }
+
       // Создаем хранилище молитв
       if (!db.objectStoreNames.contains('prayers-index')) {
         const prayersStore = db.createObjectStore('prayers-index', {

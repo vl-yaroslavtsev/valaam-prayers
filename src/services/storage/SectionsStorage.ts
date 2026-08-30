@@ -7,8 +7,8 @@ export class SectionsStorage extends BaseStorage<"prayer-sections"> {
   }
 
   async getByParent(
-    parentId: string
-  ): Promise<ValaamDB["sections"]["value"][]> {
+    parentId: number
+  ): Promise<ValaamDB["prayer-sections"]["value"][]> {
     return this.db.getAllFromIndex(this.name, "by-parent", parentId);
   }
 } 

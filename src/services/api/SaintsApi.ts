@@ -1,52 +1,58 @@
 import { ApiClient } from '@/services/api/ApiClient';
-import type { Language } from '@/types/common';
 
 /**
  * Интерфейсы для API ответов
  */
 export interface SaintIndexApiElement {
-  id: string;
+  id: number;
   name: string;
 }
 
 interface SaintMemoDay {
-  id: string;
+  id: number;
   date_template: string;
   description: string;
   is_relative: boolean;
 }
 
 export interface SaintDetailApiElement {
-  id: string;
+  id: number;
   name: string;
-  sort: string;
+  sort: number;
   type: string;
   text: string;
   picture: string;
-  prayers_id: string;
-  akathist_id: string[];
-  canon_id: string[];
-  minea_id: string[];
-  hagiography_id: string[];
+  prayers_id: number | null;
+  akathist_id: number[];
+  canon_id: number[];
+  minea_id: number[];
+  hagiography_id: number[];
   memo_days: SaintMemoDay[];
   modified_ts: number;
 }
 
 /**
- * API для работы с молитвами
+ * API для работы со святыми
  */
 class SaintsApi extends ApiClient {
   /**
-   * Получает список всех молитв и секций
+   * Получает индекс всех святых
    */
   async getSaintsIndex(): Promise<SaintIndexApiElement[]> {
-    return this.get<SaintIndexApiElement[]>('/saints/');
+    return this.get<SaintIndexApiElement[]>('/saints');
   }
 
   /**
-   * Получает текст конкретной молитвы
+   * Получает карточки святых постранично (saints/list)
    */
-  async getSaintDetail(id: string): Promise<SaintDetailApiElement> {
+  async getSaintsList(): Promise<SaintDetailApiElement[]> {
+    return this.getAllPages<SaintDetailApiElement>('/saints/list');
+  }
+
+  /**
+   * Получает карточку святого
+   */
+  async getSaintDetail(id: number): Promise<SaintDetailApiElement> {
     return this.get<SaintDetailApiElement>(`/saints/${id}`);
   }
 }

@@ -85,7 +85,7 @@ import LanguageSelector from "@/components/LanguageSelector.vue";
 interface Props {
   title: string;
   subtitle: string[];
-  itemId: string;
+  itemId: number;
   itemUrl: string;
   availableLanguages: Language[];
   textTheme: string;

@@ -32,7 +32,7 @@ export function usePaginationCache() {
    * Получает кэшированные страницы или создает новые
    */
   const getCachedText = async (
-    id: string,
+    id: number,
     language: Language | null,
     modifiedTs: number
   ): Promise<{pages: string[], headers: PaginationCacheItemHeader[]} | null> => {
@@ -63,7 +63,7 @@ export function usePaginationCache() {
 
 
   const setCachedText = async (
-    id: string,
+    id: number,
     language: Language | null,
     pages: string[],
     headers: PaginationCacheItemHeader[],
@@ -90,7 +90,7 @@ export function usePaginationCache() {
   /**
    * Очищает кэш для конкретного элемента
    */
-  const clearItemCache = async (id: string, language: Language | null): Promise<void> => {
+  const clearItemCache = async (id: number, language: Language | null): Promise<void> => {
     if (!paginationCacheStorage) {
       return;
     }

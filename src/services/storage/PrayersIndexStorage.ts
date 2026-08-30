@@ -7,7 +7,7 @@ export class PrayersIndexStorage extends BaseStorage<"prayers-index"> {
   }
 
   async getByParent(
-    parentId: string
+    parentId: number
   ): Promise<ValaamDB["prayers-index"]["value"][]> {
     return this.db.getAllFromIndex(this.name, "by-parent", parentId);
   }

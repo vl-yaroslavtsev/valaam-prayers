@@ -60,7 +60,7 @@ import { formatDate } from "@/js/utils";
 import type { SwiperContainer } from "swiper/element";
 
 interface HistoryItem {
-  id: string;
+  id: number;
   name: string;
   url: string;
   progress: number;
@@ -74,7 +74,7 @@ const { items, isLoading } = defineProps<{
 }>();
 
 const skeletonItems = Array.from({ length: 2 }, (_, index) => ({
-  id: `loading-${index}`,
+  id: -(index + 1),
 }));
 
 const swiperRef = useTemplateRef<SwiperContainer>("swiper");

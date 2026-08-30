@@ -284,7 +284,7 @@ const getFavoritesByType = (filterType: Exclude<FilterType, "all">) => {
       }
       extra.url = "/saints/" + f.id;
     } else if (type === "thoughts") {
-      const thought = thoughtsStore.getThoughtById(f.id);
+      const thought = thoughtsStore.getThoughtById(String(f.id));
       if (thought) {
         extra.name = thought.name;
       }
@@ -313,7 +313,7 @@ const toggleSortable = () => {
   sortableEnabled.value = !sortableEnabled.value;
 };
 
-const onSorted = (id: string, prevId: string | null) => {
+const onSorted = (id: number, prevId: number | null) => {
   favoritesStore.moveFavorite(id, prevId);
 };
 </script>

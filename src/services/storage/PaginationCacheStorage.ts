@@ -50,7 +50,7 @@ export class PaginationCacheStorage extends BaseStorage<"pagination-cache"> {
   /**
    * Создает уникальный ключ для кэша на основе id и языка
    */
-  private createCacheKey(id: string, language: Language | 'default'): string {
+  private createCacheKey(id: number, language: Language | 'default'): string {
     return `${id}_${language}`;
   }
 
@@ -95,7 +95,7 @@ export class PaginationCacheStorage extends BaseStorage<"pagination-cache"> {
    * Получает кэшированные страницы для заданного id, языка и настроек
    */
   async getCachedPages(
-    id: string,
+    id: number,
     language: Language | 'default',
     settings: PaginationHashSettings,
     modifiedTs: number
@@ -137,7 +137,7 @@ export class PaginationCacheStorage extends BaseStorage<"pagination-cache"> {
    * Сохраняет страницы в кэш
    */
   async setCachedPages(
-    id: string,
+    id: number,
     language: Language | 'default',
     settings: PaginationHashSettings,
     pages: string[],
@@ -266,7 +266,7 @@ export class PaginationCacheStorage extends BaseStorage<"pagination-cache"> {
   /**
    * Удаляет кэш для конкретного элемента и языка
    */
-  async removeCachedPages(id: string, language: Language | 'default'): Promise<void> {
+  async removeCachedPages(id: number, language: Language | 'default'): Promise<void> {
     const cacheKey = this.createCacheKey(id, language);
     try {
       await this.delete(cacheKey);

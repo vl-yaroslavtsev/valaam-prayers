@@ -1,77 +1,77 @@
 [
   {
-    "id": "47166",
+    "id": 47166,
     "type": "prayers",
     "sort": 0
   },
   {
-    "id": "47167",
+    "id": 47167,
     "type": "prayers",
     "sort": 1
   },
   {
-    "id": "47619",
+    "id": 47619,
     "type": "prayers",
     "sort": 2
   },
   {
-    "id": "1341767",
+    "id": 1341767,
     "type": "prayers",
     "sort": 3
   },
   {
-    "id": "1753529",
+    "id": 1753529,
     "type": "prayers",
     "sort": 4
   },
   {
-    "id": "47168",
+    "id": 47168,
     "type": "prayers",
     "sort": 5
   },
   {
-    "id": "47170",
+    "id": 47170,
     "type": "prayers",
     "sort": 6
   },
   {
-    "id": "1641",
+    "id": 1641,
     "type": "books",
     "sort": 7
   },
   {
-    "id": "1640",
+    "id": 1640,
     "type": "books",
     "sort": 8
   },
   {
-    "id": "1079",
+    "id": 1079,
     "type": "books",
     "sort": 9
   },
   {
-    "id": "1897",
+    "id": 1897,
     "type": "books",
     "sort": 10
   },
   {
-    "id": "2076",
+    "id": 2076,
     "type": "books",
     "sort": 11
   },
   {
-    "id": "83820",
+    "id": 83820,
     "type": "saints",
     "sort": 12
   },
   {
-    "id": "96921",
+    "id": 96921,
     "type": "saints",
     "sort": 13
   },
   {
-    "id": "100231",
+    "id": 100231,
     "type": "saints",
     "sort": 14
   }
-] 
+]

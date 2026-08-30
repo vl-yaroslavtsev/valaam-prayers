@@ -186,10 +186,10 @@ const settingsStore = useSettingsStore();
 const { getComponent } = useComponentsStore();
 
 // Определяем ID и тип элемента
-const itemId = elementId || sectionId;
+const itemId = Number(elementId || sectionId);
 const isSection = !!sectionId;
 
-if (!itemId) {
+if (!Number.isFinite(itemId)) {
   throw new Error("Neither elementId nor sectionId provided");
 }
 

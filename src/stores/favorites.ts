@@ -9,7 +9,7 @@ export type FavoriteType =
   | "thoughts";
 
 export interface FavoritesItem {
-  id: string;
+  id: number;
   type: FavoriteType;
   sort: number;
 }
@@ -48,7 +48,7 @@ export const useFavoritesStore = defineStore("favorites", () => {
       .sort((a, b) => a.sort - b.sort);
 
   // Actions
-  const deleteFavorite = async (id: string) => {
+  const deleteFavorite = async (id: number) => {
     const index = favorites.value.findIndex((p) => p.id === id);
     if (index !== -1) {
       dataToUndoDelete = { item: favorites.value[index], index };
@@ -77,7 +77,7 @@ export const useFavoritesStore = defineStore("favorites", () => {
     }
   };
 
-  const addFavorite = async (id: string, type: FavoriteType) => {
+  const addFavorite = async (id: number, type: FavoriteType) => {
     const item = favorites.value.find((p) => p.id === id);
     if (item) return;
 
@@ -100,11 +100,11 @@ export const useFavoritesStore = defineStore("favorites", () => {
     }
   };
 
-  const isFavorite = (id: string) => {
+  const isFavorite = (id: number) => {
     return !!favorites.value.find((p) => p.id === id);
   };
 
-  const moveFavorite = async (id: string, prevId: string | null) => {
+  const moveFavorite = async (id: number, prevId: number | null) => {
     const item = favorites.value.find((p) => p.id === id);
     if (!item) return;
 

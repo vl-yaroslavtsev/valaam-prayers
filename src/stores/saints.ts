@@ -4,12 +4,12 @@ import { saintsIndexStorage, saintDetailsStorage } from "@/services/storage";
 import { saintsApi } from "@/services/api/SaintsApi";
 
 export interface SaintIndex {
-  id: string;
+  id: number;
   name: string;
 }
 
 export interface SaintDetails {
-  id: string;
+  id: number;
   name: string;
   dates: string[];
   life: string;
@@ -95,14 +95,14 @@ export const useSaintsStore = defineStore("saints", () => {
   /**
    * Получает святого по ID из индекса
    */
-  const getSaintById = (id: string): SaintIndex | undefined => {
+  const getSaintById = (id: number): SaintIndex | undefined => {
     return saints.value.find((saint) => saint.id === id);
   };
 
   /**
    * Получает полные данные святого
    */
-  const getSaintDetails = async (id: string): Promise<SaintDetails | null> => {
+  const getSaintDetails = async (id: number): Promise<SaintDetails | null> => {
     try {
       // Сначала проверяем кэш
       const cached = await saintDetailsStorage?.get(id);

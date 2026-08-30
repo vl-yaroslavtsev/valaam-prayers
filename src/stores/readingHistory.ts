@@ -5,7 +5,7 @@ import { readingHistoryStorage } from "../services/storage";
 type ReadingType = "prayers" | "books" | "saints";
 
 interface ReadingHistoryItem {
-  id: string;
+  id: number;
   progress: number;
   pages: number;
   type: ReadingType;
@@ -16,7 +16,7 @@ export const useReadingHistoryStore = defineStore("readingHistory", {
   state: () => ({
     history: [] as ReadingHistoryItem[],
     snapshot: {
-      id: "",
+      id: 0,
       progress: 0,
       pages: 0,
       type: "prayers",
@@ -27,7 +27,7 @@ export const useReadingHistoryStore = defineStore("readingHistory", {
   }),
 
   getters: {
-    getItem: (state) => (id: string) => {
+    getItem: (state) => (id: number) => {
       return state.history.find((item) => item.id === id);
     },
     getLastItems:
@@ -64,7 +64,7 @@ export const useReadingHistoryStore = defineStore("readingHistory", {
     },
 
     async updateProgress(
-      id: string,
+      id: number,
       progress: number,
       pages?: number,
       type: ReadingType = "prayers"
@@ -90,7 +90,7 @@ export const useReadingHistoryStore = defineStore("readingHistory", {
       await readingHistoryStorage?.put(item);
     },
 
-    resetProgress(id: string) {
+    resetProgress(id: number) {
       this.updateProgress(id, 0);
     },
 

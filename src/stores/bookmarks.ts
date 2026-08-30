@@ -4,7 +4,7 @@ import { bookmarksStorage } from "@/services/storage";
 
 export interface Bookmark {
   id: string;
-  itemId: string;
+  itemId: number;
   progress: number;
   name: string;
   createdAt: Date;
@@ -44,13 +44,13 @@ export const useBookmarksStore = defineStore("bookmarks", () => {
   };
 
   // Getters
-  const getBookmarksByItem = (itemId: string) =>
+  const getBookmarksByItem = (itemId: number) =>
     bookmarks.value
       .filter((b) => b.itemId === itemId)
       .sort((a, b) => a.progress - b.progress);
 
   // Actions
-  const addBookmark = async (itemId: string, progress: number): Promise<Bookmark> => {
+  const addBookmark = async (itemId: number, progress: number): Promise<Bookmark> => {
     const existingCount = bookmarks.value.filter((b) => b.itemId === itemId).length;
     const newItem: Bookmark = {
       id: generateId(),
