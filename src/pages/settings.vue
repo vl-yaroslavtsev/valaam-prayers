@@ -352,7 +352,7 @@ const addEvent = async (type: "local" | "sync" = "sync") => {
     title: "Благовещение Пресвятой Богородицы",
     description: "7 апреля. Не забудьте сходить в храм",
     date: eventDate,
-    url: "https://molitvoslov.valaam.ru/app/#view-calendar:/days/20250407",
+    url: "https://app.valaam.ru/app/#view-calendar:/days/20250407",
     alarmDates: [add(eventDate, { minutes: -1 }), add(eventDate, { days: -1 })],
   };
 
@@ -419,7 +419,7 @@ const addEventsArray = async () => {
       title: `Утреннее правило (${dayMonth})`,
       description: "Время утренней молитвы",
       date: morningDate,
-      url: `https://molitvoslov.valaam.ru/app/#view-calendar:/days/${formattedDate}`,
+      url: `https://app.valaam.ru/app/#view-calendar:/days/${formattedDate}`,
       alarmDates: [
         addMinutes(morningDate, -10), // 10 minutes before
         morningDate, // At the event time
@@ -432,7 +432,7 @@ const addEventsArray = async () => {
       title: `Вечернее правило (${dayMonth})`,
       description: "Время вечерней молитвы",
       date: eveningDate,
-      url: `https://molitvoslov.valaam.ru/app/#view-calendar:/days/${formattedDate}`,
+      url: `https://app.valaam.ru/app/#view-calendar:/days/${formattedDate}`,
       alarmDates: [
         addMinutes(eveningDate, -10), // 10 minutes before
         eveningDate, // At the event time
@@ -488,7 +488,7 @@ const add2Events = async (type: "local" | "sync" = "sync") => {
     title: "Утреннее правило",
     description: "Делу время, молитве час",
     date: add(new Date(), { minutes: 20 }),
-    url: "https://molitvoslov.valaam.ru/app/#view-calendar:/days/20241001",
+    url: "https://app.valaam.ru/app/#view-calendar:/days/20241001",
     alarmDates: [
       add(new Date(), { minutes: 20 }),
       add(new Date(), { minutes: 15 }),
@@ -499,7 +499,7 @@ const add2Events = async (type: "local" | "sync" = "sync") => {
     title: "Вечернее правило",
     description: "Делу время, молитве час",
     date: add(new Date(), { minutes: 40 }),
-    url: "https://molitvoslov.valaam.ru/app/#view-calendar:/days/20241005",
+    url: "https://app.valaam.ru/app/#view-calendar:/days/20241005",
     alarmDates: [
       add(new Date(), { minutes: 39 }),
       add(new Date(), { minutes: 35 }),

@@ -247,7 +247,7 @@ const testBrowser = async (device: Device): Promise<string> => {
 
   await (async function _testBlobImg() {
     const src2 =
-      "https://molitvoslov.valaam.ru/upload/iblock/59f/59fcea0d296ab35820997e98bed8c3bd.jpg";
+      "https://app.valaam.ru/upload/iblock/59f/59fcea0d296ab35820997e98bed8c3bd.jpg";
     let saveResult = "";
     let getResult = "";
     let blobUrl;

@@ -104,7 +104,7 @@ defineExpose({
   close,
 });
 
-const baseUrl = "https://molitvoslov.valaam.ru/app/";
+const baseUrl = "https://app.valaam.ru/app/";
 
 const getShareUrl = (url: string) => {
   return `${baseUrl}#view-prayers:${url}`;

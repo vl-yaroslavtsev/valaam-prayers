@@ -3,7 +3,7 @@ import { CacheFirst, StaleWhileRevalidate } from "workbox-strategies";
 import { ExpirationPlugin } from "workbox-expiration";
 import { precacheAndRoute, cleanupOutdatedCaches } from "workbox-precaching";
 
-const ALLOWED_DOMAIN = ['molitvoslov.valaam.ru', 'localhost', '172.21.117.5'];
+const ALLOWED_DOMAIN = ['app.valaam.ru', 'localhost', '172.21.117.5'];
 
 cleanupOutdatedCaches();
 precacheAndRoute(self.__WB_MANIFEST);
