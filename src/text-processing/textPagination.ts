@@ -1,8 +1,16 @@
 /**
  * Модуль для разбиения HTML-текста на страницы как в читалке
  *
- * Поддерживает HTML-теги: h2, h3, h4, h5, h6, p, a, blockquote, strong, em, b, i
- * Большие элементы (p, blockquote, strong, b, i, em) могут разбиваться между страницами
+ * Поддерживает HTML-теги: h1..h6, p, a, blockquote, strong, em, b, i
+ * Большие элементы (p, blockquote) могут разбиваться между страницами
+ *
+ * Перенос строк и подсчёт высоты блоков считается математически через
+ * canvas measureText (без обращения к реальному DOM/layout) — см. textLayout.ts
+ * и textMeasure.ts. Реальный DOM используется только (1) один раз, чтобы снять
+ * getComputedStyle для отступов/шрифтов, и (2) один раз на страницу — чтобы
+ * провалидировать и при необходимости чуть подправить границу (см.
+ * validateAndCorrectPage), поскольку часть CSS-поведения (hyphens: manual,
+ * схлопывание отступов, кернинг) не на 100% отделима от реального рендера.
  *
  * @example
  * ```typescript
@@ -23,26 +31,28 @@
  * ```
  */
 
-import {
-  startsWithLetter,
-  endsWithLetter,
-  moveLastWordBetweenElements,
-} from "./textUtils";
-
 import { waitForFontsLoaded } from "@/js/utils";
+import {
+  collectFontMetrics,
+  clearMeasureCache,
+  stripSoftHyphens,
+  type FontMetricsByTag,
+} from "./textMeasure";
+import {
+  parseBlocksFromFragment,
+  buildLayoutBlock,
+  sliceBlockHtml,
+  rewrapBlockLinesFrom,
+  type LayoutBlock,
+} from "./textLayout";
 
 // Кэш для хранения вычисленных значений
 interface PaginationCache {
   pageWidth: number;
   pageHeight: number;
   availableHeight: number;
-  styles: {
-    [key: string]: {
-      marginTop: number;
-      marginBottom: number;
-      lineHeight: number;
-    };
-  };
+  contentWidth: number;
+  fontMetrics: FontMetricsByTag;
   cssClasses: string;
   containerKey: string;
 }
@@ -116,7 +126,7 @@ const getPageWidth = (container?: HTMLElement): number => {
     : Math.round(window.innerWidth);
 };
 
-//Оптимизированная функция для получения реальной доступной высоты с кэшированием
+// Функция для получения реальной доступной высоты с кэшированием
 const getAvailableHeight = (
   container?: HTMLElement,
   cssClasses?: string,
@@ -162,57 +172,6 @@ const getAvailableHeight = (
   return Math.max(availableHeight, 100); // Минимум 100px
 };
 
-// Оптимизированная функция для получения стилей с кэшированием
-const getStyles = (
-  measureEl: HTMLElement,
-  cache?: PaginationCache
-): {
-  [key: string]: {
-    marginTop: number;
-    marginBottom: number;
-    lineHeight: number;
-  };
-} => {
-  if (cache && cache.styles) {
-    return cache.styles;
-  }
-
-  const styles: {
-    [key: string]: {
-      marginTop: number;
-      marginBottom: number;
-      lineHeight: number;
-    };
-  } = {};
-  const tags = ["H1", "H2", "H3", "H4", "H5", "H6", "P", "BLOCKQUOTE"];
-
-  // Батчевое создание элементов для измерения
-  const fragment = document.createElement("div");
-  const elements: { [key: string]: HTMLElement } = {};
-
-  tags.forEach((tagName) => {
-    const element = document.createElement(tagName);
-    elements[tagName] = element;
-    fragment.appendChild(element);
-  });
-
-  measureEl.appendChild(fragment);
-
-  // Батчевое получение стилей
-  tags.forEach((tagName) => {
-    const element = elements[tagName];
-    const computedStyle = window.getComputedStyle(element);
-    styles[tagName] = {
-      marginTop: parseFloat(computedStyle.marginTop || "0"),
-      marginBottom: parseFloat(computedStyle.marginBottom || "0"),
-      lineHeight: parseFloat(computedStyle.lineHeight || "0"),
-    };
-  });
-
-  measureEl.removeChild(fragment);
-  return styles;
-};
-
 // Функция для разбора HTML и создания DOM-элементов
 const parseHTML = (html: string): DocumentFragment => {
   const template = document.createElement("template");
@@ -220,303 +179,37 @@ const parseHTML = (html: string): DocumentFragment => {
   return template.content;
 };
 
-// Функция для клонирования элемента с сохранением стилей
-const cloneElement = (element: HTMLElement): HTMLElement => {
-  return element.cloneNode(true) as HTMLElement;
-};
-
-
 /**
- * Ждем загрузки шрифтов
+ * Ждём загрузки шрифтов — важно как для canvas measureText (иначе он мерит
+ * запасной системный шрифт), так и для финальной DOM-валидации страницы
  * @param measureEl
  */
-const loadFonts = async ( measureEl: HTMLElement ) => {
-  // Быстрая проверка - поместится ли элемент целиком
-  const div = document.createElement('div');
+const loadFonts = async (measureEl: HTMLElement) => {
+  const div = document.createElement("div");
   div.innerHTML = `
    <strong>
     Жирный текст...
   </strong>
-  <strong>
+   <strong>
     <em>Жирный косой текст...</em>
   </strong>
   <em>Это просто косой тест.</em>`;
   measureEl.appendChild(div);
   await waitForFontsLoaded();
-  measureEl.removeChild(div);  
-};
-
-
-
-// Оптимизированная функция для разбиения текстового узла
-const splitTextNode = (
-  textNode: Text,
-  container: HTMLElement,
-  maxHeight: number,
-  measureEl: HTMLElement
-): { fitted: Text | null; remaining: Text | null } => {
-  const originalText = textNode.textContent || "";
-  if (!originalText.trim()) {
-    return { fitted: textNode, remaining: null };
-  }
-
-  // Сохраняем исходное содержимое контейнера
-  const originalContent = container.innerHTML;
-  // const originalScrollHeight = measureEl.scrollHeight;
-
-  // Быстрая проверка - помещается ли весь текст
-  const testNode = document.createTextNode(originalText);
-  container.appendChild(testNode);
-  const fullTextHeight = measureEl.scrollHeight;
-
-  if (fullTextHeight <= maxHeight) {
-    container.removeChild(testNode);
-    container.innerHTML = originalContent;
-    return { fitted: textNode, remaining: null };
-  }
-
-  container.removeChild(testNode);
-
-  // Оптимизированный бинарный поиск с меньшим количеством DOM-операций
-  let left = 0;
-  let right = originalText.length;
-  let bestFit = 0;
-  let iterations = 0;
-  const maxIterations = Math.min(
-    20,
-    Math.ceil(Math.log2(originalText.length)) + 5
-  );
-
-  let currentHeight = 0;
-  let mid = 0;
-  while (left <= right && iterations < maxIterations) {
-    iterations++;
-    mid = Math.floor((left + right) / 2);
-    const testText = originalText.substring(0, mid);
-
-    // Используем textContent вместо innerHTML для лучшей производительности
-    const tempNode = document.createTextNode(testText);
-    container.appendChild(tempNode);
-    currentHeight = measureEl.scrollHeight;
-    container.removeChild(tempNode);
-
-    if (currentHeight <= maxHeight) {
-      bestFit = mid;
-      left = mid + 1;
-    } else {
-      right = mid - 1;
-    }
-  }
-
-  while (currentHeight > maxHeight && mid > 0) {
-    const testText = originalText.substring(0, --mid);
-    // Используем textContent вместо innerHTML для лучшей производительности
-    const tempNode = document.createTextNode(testText);
-    container.appendChild(tempNode);
-    currentHeight = measureEl.scrollHeight;
-    container.removeChild(tempNode);
-    // if (process.env.NODE_ENV === "development") {
-    //   console.log("splitTextNode: fixHeight: currentHeight", currentHeight);
-    // }
-  }
-
-  // Восстанавливаем исходное содержимое
-  container.innerHTML = originalContent;
-
-  if (bestFit === 0) {
-    return { fitted: null, remaining: textNode };
-  }
-
-  if (bestFit === originalText.length) {
-    return { fitted: textNode, remaining: null };
-  }
-
-  // Оптимизированное разбиение по словам
-  const fittedText = originalText.substring(0, bestFit);
-  const lastSpaceIndex = fittedText.lastIndexOf(" ");
-
-  // && lastSpaceIndex > bestFit * 0.8
-  if (lastSpaceIndex > 0 ) {
-    // Разбиваем по последнему пробелу, если он не слишком далеко от оптимального места
-    const splitIndex = lastSpaceIndex + 1;
-    return {
-      fitted: document.createTextNode(originalText.substring(0, splitIndex)),
-      remaining: document.createTextNode(originalText.substring(splitIndex)),
-    };
-  }
-
-  // Иначе разбиваем по символам
-  return {
-    fitted: document.createTextNode(originalText.substring(0, bestFit)),
-    remaining: document.createTextNode(originalText.substring(bestFit)),
-  };
-};
-
-// Оптимизированная функция для разбиения элемента между страницами
-const splitElement = (
-  element: HTMLElement,
-  container: HTMLElement,
-  maxHeight: number,
-  measureEl: HTMLElement
-): { fitted: HTMLElement | null; remaining: HTMLElement | null } => {
-  const tagName = element.tagName.toLowerCase();
-
-  // Заголовки и небольшие элементы не разбиваем
-  const nonSplittableTags = ["h1", "h2", "h3", "h4", "h5", "h6", "a", "br"];
-  const smallTags = ["strong", "em", "b", "i"];
-
-  if (nonSplittableTags.includes(tagName)) {
-    // Быстрая проверка без клонирования
-    container.appendChild(element);
-    const newHeight = measureEl.scrollHeight;
-    container.removeChild(element);
-
-    return newHeight <= maxHeight
-      ? { fitted: element, remaining: null }
-      : { fitted: null, remaining: element };
-  }
-
-  // Для небольших элементов сначала пытаемся поместить целиком
-  if (smallTags.includes(tagName)) {
-    container.appendChild(element);
-    const newHeight = measureEl.scrollHeight;
-    container.removeChild(element);
-
-    if (newHeight <= maxHeight) {
-      return { fitted: element, remaining: null };
-    }
-    // Если не помещается, продолжаем с разбиением
-  }
-
-  // Для остальных элементов пытаемся разбить содержимое
-  const fittedElement = cloneElement(element);
-  const remainingElement = cloneElement(element);
-
-  remainingElement.classList.add("splitted");
-
-  fittedElement.innerHTML = "";
-  remainingElement.innerHTML = "";
-
-  container.appendChild(fittedElement);
-
-  let hasContent = false;
-  let hasRemaining = false;
-
-  // Оптимизированная обработка дочерних узлов
-  const childNodes = Array.from(element.childNodes);
-
-  for (let i = 0; i < childNodes.length; i++) {
-    const child = childNodes[i];
-
-    if (child.nodeType === Node.TEXT_NODE) {
-      const textNode = child as Text;
-      if (!textNode.textContent?.trim()) {
-        fittedElement.appendChild(textNode.cloneNode(true));
-        continue;
-      }
-
-      const { fitted, remaining } = splitTextNode(
-        textNode,
-        fittedElement,
-        maxHeight,
-        measureEl
-      );
-
-      if (fitted) {
-        fittedElement.appendChild(fitted);
-        hasContent = true;
-      }
-
-      if (remaining) {
-        remainingElement.appendChild(remaining);
-        hasRemaining = true;
-
-        // Добавляем все оставшиеся элементы в remaining
-        for (let j = i + 1; j < childNodes.length; j++) {
-          remainingElement.appendChild(childNodes[j].cloneNode(true));
-        }
-        break;
-      }
-    } else if (child.nodeType === Node.ELEMENT_NODE) {
-      const childElement = child as HTMLElement;
-      const { fitted, remaining } = splitElement(
-        childElement,
-        fittedElement,
-        maxHeight,
-        measureEl
-      );
-
-      if (fitted) {
-        fittedElement.appendChild(fitted);
-        hasContent = true;
-      }
-
-      if (remaining) {
-        // Оптимизированная проверка переноса слов
-        const fittedText = fittedElement.textContent || "";
-        const remainingText = remaining.textContent || "";
-
-        if (
-          fittedText &&
-          remainingText &&
-          endsWithLetter(fittedText) &&
-          startsWithLetter(remainingText)
-        ) {
-          try {
-            // debugger;
-            moveLastWordBetweenElements(fittedElement, remaining);
-          } catch (e) {
-            if (process.env.NODE_ENV === "development") {
-              console.warn("Failed to move word between elements:", e);
-            }
-          }
-        }
-
-        remainingElement.appendChild(remaining);
-        hasRemaining = true;
-
-        // Добавляем все оставшиеся элементы в remaining
-        for (let j = i + 1; j < childNodes.length; j++) {
-          remainingElement.appendChild(childNodes[j].cloneNode(true));
-        }
-        break;
-      }
-    }
-  }
-
-  // Если ничего не поместилось, но элемент небольшой, принудительно помещаем его
-  if (!hasContent && !hasRemaining) {
-    container.appendChild(cloneElement(element));
-    const elementHeight = measureEl.scrollHeight;
-    container.removeChild(container.lastChild!);
-
-    // * 1.2
-    if (elementHeight <= maxHeight ) {
-      // Позволяем превышение на 20%
-      return { fitted: element, remaining: null };
-    }
-  }
-
-  return {
-    fitted: hasContent ? fittedElement : null,
-    remaining: hasRemaining ? remainingElement : null,
-  };
+  measureEl.removeChild(div);
 };
 
 /**
  * Функция для создания задержки и передачи управления основному потоку
  */
 const yieldToMainThread = (): Promise<void> => {
-  return new Promise(resolve => {
-    // setTimeout(resolve, 0);
-    if ('requestIdleCallback' in window) {
+  return new Promise((resolve) => {
+    if ("requestIdleCallback" in window) {
       requestIdleCallback(() => resolve(), { timeout: 50 });
     } else {
       setTimeout(resolve, 0);
     }
   });
-
- 
 };
 
 interface Header {
@@ -530,18 +223,450 @@ interface PaginationResult {
   headers: Header[];
 }
 
-// Функция-помощник для добавления заголовка в массив headers
-const addHeaderIfNeeded = (element: HTMLElement, headers: Header[], pageIndex: number) => {
-  if (element.tagName === 'H2' || element.tagName === 'H3') {
-    const headerText = element.textContent?.trim() || '';
-    if (headerText) {
-      headers.push({
-        level: element.tagName === 'H2' ? 2 : 3,
-        text: headerText,
-        page: pageIndex + 1
-      });
+/** Снимает ширину контента (без паддингов страницы) + шрифты/отступы блоков */
+const buildCache = (
+  pageWidth: number,
+  pageHeight: number,
+  container: HTMLElement | undefined,
+  cssClasses: string | undefined,
+  cacheKey: string
+): PaginationCache => {
+  const measureEl = createMeasureElement(pageWidth, cssClasses);
+
+  const cs = window.getComputedStyle(measureEl);
+  const paddingLeft = parseFloat(cs.paddingLeft) || 0;
+  const paddingRight = parseFloat(cs.paddingRight) || 0;
+  const borderLeft = parseFloat(cs.borderLeftWidth) || 0;
+  const borderRight = parseFloat(cs.borderRightWidth) || 0;
+  const contentWidth = Math.max(
+    pageWidth - paddingLeft - paddingRight - borderLeft - borderRight,
+    50
+  );
+
+  const fontMetrics = collectFontMetrics(measureEl);
+  document.body.removeChild(measureEl);
+  clearMeasureCache();
+
+  return {
+    pageWidth,
+    pageHeight,
+    availableHeight: getAvailableHeight(container, cssClasses),
+    contentWidth,
+    fontMetrics,
+    cssClasses: cssClasses || "",
+    containerKey: cacheKey,
+  };
+};
+
+// --- Линейный проход по блокам: подбор содержимого одной страницы ---
+
+interface Placement {
+  blockIndex: number;
+  fromLine: number;
+  toLineExclusive: number;
+}
+
+/**
+ * Считает, что помещается на одну страницу, начиная с позиции
+ * (startBlockIndex, startLineIndex), чисто математически (без DOM).
+ * Отступы между соседними блоками схлопываются (max, а не сумма), как в CSS.
+ */
+// Пробел, по которому можно перенести строку (не \u00A0 — неразрывный пробел)
+const BREAKABLE_SPACE_RE = /[^\S\u00A0]/;
+
+const getBlockFlatText = (block: LayoutBlock): string => block.segments.map((s) => s.text).join("");
+
+/**
+ * Если разрыв страницы попал на строку, обрывающуюся мягким переносом (слово
+ * разбито по слогам ровно на границе), убираем на следующую страницу только
+ * само это слово, а не всю строку целиком — иначе слова перед ним на той же
+ * строке без нужды теряют место на текущей странице. Ищем ближайший пробел
+ * перед точкой переноса и переразбиваем остаток блока с начала слова (ширина
+ * и шрифт от страницы не зависят, так что переразбивка детерминирована).
+ * Возвращает true, если получилось обойтись без переноса всей строки.
+ */
+const avoidHyphenAtPageBreak = (
+  placements: Placement[],
+  blocks: LayoutBlock[],
+  fontMetrics: FontMetricsByTag,
+  contentWidth: number
+): boolean => {
+  if (placements.length === 0) return false;
+  const last = placements[placements.length - 1];
+  const block = blocks[last.blockIndex];
+  if (!block.splittable) return false;
+
+  const lineIdx = last.toLineExclusive - 1;
+  const line = block.lines[lineIdx];
+  if (!line?.endsWithHyphen) return true; // переноса и не было — трогать нечего
+
+  const flatText = getBlockFlatText(block);
+  let spacePos = -1;
+  for (let i = line.end - 1; i >= line.start; i--) {
+    if (BREAKABLE_SPACE_RE.test(flatText[i])) {
+      spacePos = i;
+      break;
     }
   }
+  if (spacePos < 0) return false; // строка — одно слово целиком, откатывать на уровне слова некуда
+
+  const wordStart = spacePos + 1;
+  const metrics = fontMetrics[block.tag];
+  const tailLines = rewrapBlockLinesFrom(block, wordStart, metrics, contentWidth);
+
+  block.lines = [
+    ...block.lines.slice(0, lineIdx),
+    { start: line.start, end: spacePos, endsWithHyphen: false },
+    ...tailLines,
+  ];
+  return true;
+};
+
+const buildOnePageMath = (
+  blocks: LayoutBlock[],
+  startBlockIndex: number,
+  startLineIndex: number,
+  availableHeight: number
+): { placements: Placement[]; nextBlockIndex: number; nextLineIndex: number } => {
+  const placements: Placement[] = [];
+  let currentHeight = 0;
+  let pendingMarginBottom = 0;
+  let blockIndex = startBlockIndex;
+  let lineIndex = startLineIndex;
+
+  while (blockIndex < blocks.length) {
+    const block = blocks[blockIndex];
+
+    if (!block.splittable) {
+      const ownHeight = block.lines.length * block.lineHeight;
+      const gap =
+        placements.length === 0
+          ? block.marginTop
+          : Math.max(pendingMarginBottom, block.marginTop);
+
+      if (placements.length > 0 && currentHeight + gap + ownHeight > availableHeight) {
+        break; // переносим целиком на следующую страницу
+      }
+
+      currentHeight += gap + ownHeight;
+      pendingMarginBottom = block.marginBottom;
+      placements.push({ blockIndex, fromLine: 0, toLineExclusive: block.lines.length });
+      blockIndex++;
+      lineIndex = 0;
+      continue;
+    }
+
+    // Сплиттуемый блок (p/blockquote) — построчно, отступ применяется один раз
+    // на весь помещённый диапазон, а не на каждую строку
+    const placementStart = lineIndex;
+    const gapForPlacement =
+      placements.length === 0
+        ? block.marginTop
+        : Math.max(pendingMarginBottom, block.marginTop);
+
+    let linesFitted = 0;
+    let heightIfFits = currentHeight;
+    while (lineIndex < block.lines.length) {
+      const extra = linesFitted === 0 ? gapForPlacement : 0;
+      const candidateHeight = heightIfFits + extra + block.lineHeight;
+      const isFirstLineOfEmptyPage = placements.length === 0 && linesFitted === 0;
+      if (candidateHeight > availableHeight && !isFirstLineOfEmptyPage) {
+        break;
+      }
+      heightIfFits = candidateHeight;
+      linesFitted++;
+      lineIndex++;
+    }
+
+    if (linesFitted > 0) {
+      currentHeight = heightIfFits;
+      const isBlockFinished = lineIndex >= block.lines.length;
+      pendingMarginBottom = isBlockFinished ? block.marginBottom : 0;
+      placements.push({ blockIndex, fromLine: placementStart, toLineExclusive: lineIndex });
+    }
+
+    if (lineIndex >= block.lines.length) {
+      blockIndex++;
+      lineIndex = 0;
+      continue;
+    }
+
+    break; // блок не влез целиком — страница заполнена
+  }
+
+  return { placements, nextBlockIndex: blockIndex, nextLineIndex: lineIndex };
+};
+
+/**
+ * Резервный вариант avoidHyphenAtPageBreak — когда перенести только слово
+ * нельзя (оно одно занимает всю строку), откатываем строку(и) целиком, как
+ * раньше. Работает поверх уже готового результата (после дожима), а не
+ * внутри buildOnePageMath — иначе дожим, добавляя/убирая строки независимо
+ * от переносов, мог заново поставить разрыв страницы на слово с переносом.
+ */
+const trimTrailingHyphenLines = (
+  placements: Placement[],
+  blocks: LayoutBlock[],
+  blockIndex: number,
+  lineIndex: number
+): { blockIndex: number; lineIndex: number } => {
+  while (
+    placements.length > 0 &&
+    placements[placements.length - 1].blockIndex === blockIndex &&
+    blocks[blockIndex]?.lines[lineIndex - 1]?.endsWithHyphen
+  ) {
+    const last = placements[placements.length - 1];
+    const lastPlacementLines = last.toLineExclusive - last.fromLine;
+    const canTrim = lastPlacementLines > 1 || placements.length > 1;
+    if (!canTrim) break;
+    lineIndex -= 1;
+    if (lastPlacementLines === 1) {
+      placements.pop();
+    } else {
+      last.toLineExclusive -= 1;
+    }
+  }
+  return { blockIndex, lineIndex };
+};
+
+/**
+ * Финальная проверка на перенос слова по границе страницы — вызывается один
+ * раз на уже полностью готовый (после дожима) результат страницы, чтобы ни
+ * математика, ни DOM-коррекция не оставили слово разбитым мягким переносом
+ * ровно на стыке страниц.
+ */
+const finalizeHyphenAtPageBreak = (
+  result: { placements: Placement[]; nextBlockIndex: number; nextLineIndex: number },
+  blocks: LayoutBlock[],
+  fontMetrics: FontMetricsByTag,
+  contentWidth: number
+): { placements: Placement[]; nextBlockIndex: number; nextLineIndex: number } => {
+  const { placements } = result;
+  if (placements.length === 0) return result;
+
+  const last = placements[placements.length - 1];
+  const block = blocks[last.blockIndex];
+  const line = block.lines[last.toLineExclusive - 1];
+  if (!line?.endsWithHyphen) return result;
+
+  if (avoidHyphenAtPageBreak(placements, blocks, fontMetrics, contentWidth)) {
+    return result; // содержимое строки подрезано на месте, границы страниц не меняются
+  }
+
+  const { blockIndex, lineIndex } = trimTrailingHyphenLines(
+    placements,
+    blocks,
+    result.nextBlockIndex,
+    result.nextLineIndex
+  );
+  return { placements, nextBlockIndex: blockIndex, nextLineIndex: lineIndex };
+};
+
+const placementsToHtml = (placements: Placement[], blocks: LayoutBlock[]): string =>
+  placements
+    .map((p) => sliceBlockHtml(blocks[p.blockIndex], p.fromLine, p.toLineExclusive))
+    .join("");
+
+const getBlockPlainText = (block: LayoutBlock): string =>
+  block.segments.map((s) => s.text).join("");
+
+const removeLastLine = (
+  placements: Placement[],
+  blocks: LayoutBlock[]
+): { placements: Placement[]; blockIndex: number; lineIndex: number } | null => {
+  if (placements.length === 0) return null;
+  const last = placements[placements.length - 1];
+  const block = blocks[last.blockIndex];
+
+  if (!block.splittable || last.toLineExclusive - last.fromLine <= 1) {
+    return {
+      placements: placements.slice(0, -1),
+      blockIndex: last.blockIndex,
+      lineIndex: last.fromLine,
+    };
+  }
+
+  const trimmed: Placement = { ...last, toLineExclusive: last.toLineExclusive - 1 };
+  return {
+    placements: [...placements.slice(0, -1), trimmed],
+    blockIndex: last.blockIndex,
+    lineIndex: trimmed.toLineExclusive,
+  };
+};
+
+const addNextLine = (
+  placements: Placement[],
+  blocks: LayoutBlock[],
+  blockIndex: number,
+  lineIndex: number
+): { placements: Placement[]; blockIndex: number; lineIndex: number } | null => {
+  if (blockIndex >= blocks.length) return null;
+  const block = blocks[blockIndex];
+
+  if (!block.splittable) {
+    if (lineIndex !== 0) return null;
+    return {
+      placements: [...placements, { blockIndex, fromLine: 0, toLineExclusive: block.lines.length }],
+      blockIndex: blockIndex + 1,
+      lineIndex: 0,
+    };
+  }
+
+  if (lineIndex >= block.lines.length) return null;
+
+  const last = placements[placements.length - 1];
+  if (last && last.blockIndex === blockIndex && last.toLineExclusive === lineIndex) {
+    const extended: Placement = { ...last, toLineExclusive: lineIndex + 1 };
+    return {
+      placements: [...placements.slice(0, -1), extended],
+      blockIndex,
+      lineIndex: lineIndex + 1,
+    };
+  }
+
+  return {
+    placements: [...placements, { blockIndex, fromLine: lineIndex, toLineExclusive: lineIndex + 1 }],
+    blockIndex,
+    lineIndex: lineIndex + 1,
+  };
+};
+
+const DOJIM_EPSILON = 1;
+const DOJIM_MAX_ATTEMPTS = 8;
+// Математический расчёт систематически чуть переоценивает вместимость страницы
+// (canvas.measureText не на 100% совпадает с реальным рендером браузера).
+// Небольшой запас снижает число случаев, когда "дожим" вынужден откатывать
+// строки назад (дорогая операция — полный ре-рендер страницы), сдвигая
+// коррекцию в сторону дешёвого добавления недостающих строк.
+const MATH_SAFETY_MARGIN = 0; // 30px - запас для случаев, когда строки не влезают на страницу
+
+/**
+ * Дожим: рендерит посчитанную математически страницу в реальный (скрытый)
+ * measureEl один раз и по необходимости подправляет границу на ±несколько
+ * строк — это ловит расхождения из-за hyphens: manual, схлопывания отступов
+ * и т.п., оставаясь на порядки дешевле старого DOM-based алгоритма.
+ */
+const validateAndCorrectPage = (
+  initialPlacements: Placement[],
+  blocks: LayoutBlock[],
+  measureEl: HTMLElement,
+  availableHeight: number,
+  nextBlockIndex: number,
+  nextLineIndex: number,
+  chromeOffset: number
+): { placements: Placement[]; nextBlockIndex: number; nextLineIndex: number } => {
+  let placements = initialPlacements;
+  let curNextBlock = nextBlockIndex;
+  let curNextLine = nextLineIndex;
+
+  //return { placements, nextBlockIndex: curNextBlock, nextLineIndex: curNextLine };
+
+  // measureEl.scrollHeight включает паддинги/бордер страницы (chromeOffset),
+  // а availableHeight — это высота именно под контент (без них). Вычитаем
+  // chromeOffset, чтобы сравнивать высоты в одних и тех же единицах —
+  // иначе дожим считал страницу "полной" на chromeOffset раньше времени
+  // и системно недозаполнял каждую страницу.
+  const render = (p: Placement[]): number => {
+    measureEl.innerHTML = placementsToHtml(p, blocks);
+    return measureEl.scrollHeight - chromeOffset;
+  };
+
+  let height = render(placements);
+  let attempts = 0;
+
+  // Быстрая пакетная коррекция: по величине переполнения и высоте строки
+  // последнего блока сразу оцениваем, сколько строк лишние, и убираем их
+  // без промежуточных ре-рендеров — вместо процесса "минус одна строка —
+  // ре-рендер — проверка" за один лишний рендер закрываем большую часть разрыва.
+  if (height > availableHeight + DOJIM_EPSILON && placements.length > 0) {
+    const lastPlacement = placements[placements.length - 1];
+    const lastLineHeight = blocks[lastPlacement.blockIndex]?.lineHeight || 24;
+    const overflow = height - availableHeight;
+    const batchCount = Math.min(Math.ceil(overflow / lastLineHeight), placements.length * 50);
+    for (let i = 0; i < batchCount; i++) {
+      const result = removeLastLine(placements, blocks);
+      if (!result) break;
+      placements = result.placements;
+      curNextBlock = result.blockIndex;
+      curNextLine = result.lineIndex;
+    }
+    height = render(placements);
+  }
+
+  while (height > availableHeight + DOJIM_EPSILON && attempts < DOJIM_MAX_ATTEMPTS && placements.length > 0) {
+    const result = removeLastLine(placements, blocks);
+    if (!result) break;
+    placements = result.placements;
+    curNextBlock = result.blockIndex;
+    curNextLine = result.lineIndex;
+    height = render(placements);
+    attempts++;
+  }
+
+  if (placements.length === 0 && initialPlacements.length > 0) {
+    // Не потеряли прогресс — гарантированно размещаем хотя бы одну строку/блок
+    const first = initialPlacements[0];
+    const forced: Placement = {
+      ...first,
+      toLineExclusive: blocks[first.blockIndex].splittable
+        ? Math.min(first.toLineExclusive, first.fromLine + 1)
+        : first.toLineExclusive,
+    };
+    placements = [forced];
+    curNextBlock = forced.blockIndex;
+    curNextLine = forced.toLineExclusive;
+    height = render(placements);
+  }
+
+  // Пакетное добавление: оцениваем по остатку места и высоте следующей строки,
+  // сколько строк туда влезет, и пробуем добавить их все разом одним ре-рендером
+  // вместо цикла "плюс одна строка — ре-рендер" на каждую.
+  if (height < availableHeight - DOJIM_EPSILON) {
+    const slack = availableHeight - height;
+    const nextLineHeight = blocks[curNextBlock]?.lineHeight || 24;
+    const batchAddCount = Math.floor(slack / nextLineHeight);
+    if (batchAddCount > 1) {
+      let batchPlacements = placements;
+      let bBlock = curNextBlock;
+      let bLine = curNextLine;
+      let added = 0;
+      for (let i = 0; i < batchAddCount; i++) {
+        const probe = addNextLine(batchPlacements, blocks, bBlock, bLine);
+        if (!probe) break;
+        batchPlacements = probe.placements;
+        bBlock = probe.blockIndex;
+        bLine = probe.lineIndex;
+        added++;
+      }
+      if (added > 0) {
+        const batchHeight = render(batchPlacements);
+        if (batchHeight <= availableHeight + DOJIM_EPSILON) {
+          placements = batchPlacements;
+          curNextBlock = bBlock;
+          curNextLine = bLine;
+          height = batchHeight;
+        }
+      }
+    }
+  }
+
+  attempts = 0;
+  while (attempts < DOJIM_MAX_ATTEMPTS) {
+    const probe = addNextLine(placements, blocks, curNextBlock, curNextLine);
+    if (!probe) break;
+    const probeHeight = render(probe.placements);
+    if (probeHeight > availableHeight + DOJIM_EPSILON) {
+      break;
+    }
+    placements = probe.placements;
+    curNextBlock = probe.blockIndex;
+    curNextLine = probe.lineIndex;
+    height = probeHeight;
+    attempts++;
+  }
+
+  void height;
+  return { placements, nextBlockIndex: curNextBlock, nextLineIndex: curNextLine };
 };
 
 /**
@@ -560,265 +685,96 @@ export const paginateText = async (
 ): Promise<PaginationResult> => {
   const startTime = performance.now();
 
-  // Проверяем кэш
+  // debugger;
+
   const cacheKey = createCacheKey(container, cssClasses);
-  // console.log("paginateText: cacheKey", cacheKey);
   let cache = paginationCache.get(cacheKey);
 
   const pageWidth = getPageWidth(container);
   const pageHeight = getPageHeight(container);
 
-  // console.log("paginateText: pageWidth", pageWidth);
-  // console.log("paginateText: pageHeight", pageHeight);
-
-  // Обновляем или создаем кэш
-  if (
-    !cache ||
-    cache.pageWidth !== pageWidth ||
-    cache.pageHeight !== pageHeight
-  ) {
-    const measureEl = createMeasureElement(pageWidth, cssClasses);
-
-    cache = {
-      pageWidth,
-      pageHeight,
-      availableHeight: getAvailableHeight(container, cssClasses),
-      styles: getStyles(measureEl),
-      cssClasses: cssClasses || "",
-      containerKey: cacheKey,
-    };
-
+  if (!cache || cache.pageWidth !== pageWidth || cache.pageHeight !== pageHeight) {
+    cache = buildCache(pageWidth, pageHeight, container, cssClasses, cacheKey);
     paginationCache.set(cacheKey, cache);
-    document.body.removeChild(measureEl);
   }
 
   const pages: string[] = [];
   const headers: Header[] = [];
   const measureEl = createMeasureElement(pageWidth, cssClasses);
-  const maxAllowedHeight = cache.pageHeight;
-
-  const totalHtmlLength = html.length;
-  let currentHtmlLength = 0;
+  // measureEl рендерится с height:auto, поэтому его scrollHeight включает
+  // паддинги/бордер страницы (в отличие от cache.availableHeight — высоты
+  // только под контент). Разница нужна дожиму, чтобы сравнивать в одних
+  // единицах — см. validateAndCorrectPage.
+  const chromeOffset = pageHeight - cache.availableHeight;
+  const availableHeight = cache.availableHeight;
 
   await loadFonts(measureEl);
 
   try {
     const fragment = parseHTML(html);
-    const elements = Array.from(fragment.childNodes).filter(
-      (node) =>
-        node.nodeType === Node.ELEMENT_NODE ||
-        (node.nodeType === Node.TEXT_NODE && node.textContent?.trim())
+    const rawBlocks = parseBlocksFromFragment(fragment);
+    const layoutBlocks: LayoutBlock[] = rawBlocks.map((b) =>
+      buildLayoutBlock(b, cache!.fontMetrics, cache!.contentWidth)
     );
 
-    let currentPageContent: Node[] = [];
-    let pageIndex = 0;
-    let pagesProcessedSinceYield = 0;
-    
-    const finalizePage = async () => {
-      if (currentPageContent.length > 0) {
-        // Оптимизированное создание страницы
-        const fragment = document.createDocumentFragment();
-        currentPageContent.forEach((node) =>
-          fragment.appendChild(node.cloneNode(true))
-        );
+    const totalLineCount = layoutBlocks.reduce((sum, b) => sum + b.lines.length, 0) || 1;
+    let linesConsumed = 0;
 
-        const pageDiv = document.createElement("div");
-        pageDiv.appendChild(fragment);
+    let blockIndex = 0;
+    let lineIndex = 0;
+    let pagesSinceYield = 0;
 
-        currentHtmlLength += pageDiv.innerHTML.length;
+    while (blockIndex < layoutBlocks.length) {
+      const mathResult = buildOnePageMath(
+        layoutBlocks,
+        blockIndex,
+        lineIndex,
+        Math.max(availableHeight - MATH_SAFETY_MARGIN, 50)
+      );
+      const dojimResult = validateAndCorrectPage(
+        mathResult.placements,
+        layoutBlocks,
+        measureEl,
+        availableHeight,
+        mathResult.nextBlockIndex,
+        mathResult.nextLineIndex,
+        chromeOffset
+      );
+      const corrected = finalizeHyphenAtPageBreak(
+        dojimResult,
+        layoutBlocks,
+        cache!.fontMetrics,
+        cache!.contentWidth
+      );
 
-        pages.push(pageDiv.innerHTML);
-        currentPageContent = [];
+      pages.push(placementsToHtml(corrected.placements, layoutBlocks));
 
-        pagesProcessedSinceYield++;
-
-        // Каждые 10 страниц даем основному потоку возможность выполнить другие задачи
-        if (pagesProcessedSinceYield >= maxPagesPerYield) {
-          await yieldToMainThread();
-          pagesProcessedSinceYield = 0;
-          progressCb?.(currentHtmlLength / totalHtmlLength);
-          if (process.env.NODE_ENV === "development") {
-            console.log(`Processed ${pages.length} pages, yielding to main thread`);
+      corrected.placements.forEach((p) => {
+        const block = layoutBlocks[p.blockIndex];
+        if (block.tag === "H2" || block.tag === "H3") {
+          const headerText = stripSoftHyphens(getBlockPlainText(block)).trim();
+          if (headerText) {
+            headers.push({ level: block.tag === "H2" ? 2 : 3, text: headerText, page: pages.length });
           }
         }
-      }
-    };
+        linesConsumed += p.toLineExclusive - p.fromLine;
+      });
 
-    // Оптимизированная обработка элементов
-    for (let elementIndex = 0; elementIndex < elements.length; elementIndex++) {
-      const element = elements[elementIndex];
+      blockIndex = corrected.nextBlockIndex;
+      lineIndex = corrected.nextLineIndex;
 
-      if (element.nodeType === Node.TEXT_NODE) {
-        const textNode = element as Text;
-        if (!textNode.textContent?.trim()) continue;
-
-        let remainingText: Text | null = textNode;
-        let textIterations = 0;
-        const maxTextIterations = 100; // Уменьшили лимит
-
-        while (remainingText && textIterations < maxTextIterations) {
-          textIterations++;
-
-          // Оптимизированное восстановление содержимого страницы
-          measureEl.innerHTML = "";
-          const pageFragment = document.createDocumentFragment();
-          currentPageContent.forEach((node) =>
-            pageFragment.appendChild(node.cloneNode(true))
-          );
-          measureEl.appendChild(pageFragment);
-
-          // Быстрая проверка - поместится ли весь оставшийся текст
-          const testElement = document.createTextNode(
-            remainingText.textContent || ""
-          );
-          measureEl.appendChild(testElement);
-          const wouldFit = measureEl.scrollHeight <= maxAllowedHeight;
-          measureEl.removeChild(testElement);
-
-          if (wouldFit) {
-            currentPageContent.push(remainingText);
-            remainingText = null;
-            continue;
-          }
-
-          // Разбиваем текст
-          const { fitted, remaining } = splitTextNode(
-            remainingText,
-            measureEl,
-            maxAllowedHeight,
-            measureEl
-          );
-
-          // Проверка на бесконечный цикл
-          if (
-            remaining &&
-            remaining.textContent === remainingText.textContent
-          ) {
-            if (process.env.NODE_ENV === "development") {
-              console.error(
-                "splitTextNode returned the same text, breaking to avoid infinite loop"
-              );
-            }
-            await finalizePage();
-            break;
-          }
-
-          if (fitted) {
-            currentPageContent.push(fitted);
-          }
-
-          if (remaining) {
-            await finalizePage();
-            remainingText = remaining;
-          } else {
-            remainingText = null;
-          }
-        }
-
-        if (textIterations >= maxTextIterations) {
-          if (process.env.NODE_ENV === "development") {
-            console.error(
-              "Text processing exceeded maximum iterations, breaking loop"
-            );
-          }
-          break;
-        }
-      } else if (element.nodeType === Node.ELEMENT_NODE) {
-        let remainingElement: HTMLElement | null = element as HTMLElement;
-        let elementIterations = 0;
-        const maxElementIterations = 500;
-
-        while (remainingElement && elementIterations < maxElementIterations) {
-          elementIterations++;
-
-          // Оптимизированное восстановление содержимого страницы
-          measureEl.innerHTML = "";
-          const pageFragment = document.createDocumentFragment();
-          currentPageContent.forEach((node) =>
-            pageFragment.appendChild(node.cloneNode(true))
-          );
-          measureEl.appendChild(pageFragment);
-
-          // Быстрая проверка - поместится ли элемент целиком
-          const testElement = cloneElement(remainingElement);
-          measureEl.appendChild(testElement);
-          const wouldFit = measureEl.scrollHeight <= maxAllowedHeight;
-          measureEl.removeChild(testElement);
-
-          if (wouldFit) {
-            addHeaderIfNeeded(remainingElement, headers, pages.length);
-            
-            currentPageContent.push(remainingElement);
-            remainingElement = null;
-            continue;
-          }
-
-          // Быстрая проверка доступной высоты
-          const elementStyles = cache.styles[remainingElement.tagName];
-          if (elementStyles) {
-            const availableHeight =
-              maxAllowedHeight -
-              measureEl.scrollHeight -
-              elementStyles.marginTop -
-              elementStyles.marginBottom;
-
-            if (
-              elementStyles.lineHeight > 0 &&
-              availableHeight < elementStyles.lineHeight
-            ) {
-              await finalizePage();
-              continue;
-            }
-          }
-
-          // Разбиваем элемент
-          const { fitted, remaining } = splitElement(
-            remainingElement,
-            measureEl,
-            maxAllowedHeight,
-            measureEl
-          );
-
-          if (!fitted && !remaining && currentPageContent.length === 0) {
-            if (process.env.NODE_ENV === "development") {
-              console.warn(
-                `No split possible for ${remainingElement.tagName}, forcing on empty page`
-              );
-            }
-            
-            addHeaderIfNeeded(remainingElement, headers, pages.length);
-            
-            currentPageContent.push(remainingElement);
-            remainingElement = null;
-            continue;
-          }
-
-          if (fitted) {
-            addHeaderIfNeeded(fitted, headers, pages.length);
-            
-            currentPageContent.push(fitted);
-          }
-
-          if (remaining) {
-            await finalizePage();
-            remainingElement = remaining;
-          } else {
-            remainingElement = null;
-          }
-        }
-
-        if (elementIterations >= maxElementIterations) {
-          if (process.env.NODE_ENV === "development") {
-            console.error(
-              "Element processing exceeded maximum iterations, breaking loop"
-            );
-          }
-          break;
+      pagesSinceYield++;
+      if (pagesSinceYield >= maxPagesPerYield) {
+        await yieldToMainThread();
+        pagesSinceYield = 0;
+        progressCb?.(Math.min(1, linesConsumed / totalLineCount));
+        if (process.env.NODE_ENV === "development") {
+          console.log(`Processed ${pages.length} pages, yielding to main thread`);
         }
       }
     }
 
-    await finalizePage();
+    progressCb?.(1);
   } finally {
     document.body.removeChild(measureEl);
   }
@@ -826,13 +782,13 @@ export const paginateText = async (
   const endTime = performance.now();
   if (process.env.NODE_ENV === "development") {
     console.log(
-      `Text pagination completed in ${(endTime - startTime).toFixed(2)}ms`
+      `Text pagination completed in ${(endTime - startTime).toFixed(2)}ms, pages: ${pages.length}`
     );
   }
 
   return {
     pages: pages.length > 0 ? pages : [""],
-    headers
+    headers,
   };
 };
 
@@ -841,6 +797,7 @@ export const paginateText = async (
  */
 export const clearPaginationCache = (): void => {
   paginationCache.clear();
+  clearMeasureCache();
 };
 
 /**
@@ -897,21 +854,12 @@ export const estimatePageCount = (
   const cacheKey = createCacheKey(container, cssClasses);
   let cache = paginationCache.get(cacheKey);
 
-  if (!cache) {
-    const pageWidth = getPageWidth(container);
-    const measureEl = createMeasureElement(pageWidth, cssClasses);
+  const pageWidth = getPageWidth(container);
+  const pageHeight = getPageHeight(container);
 
-    cache = {
-      pageWidth,
-      pageHeight: getPageHeight(container),
-      availableHeight: getAvailableHeight(container, cssClasses),
-      styles: getStyles(measureEl),
-      cssClasses: cssClasses || "",
-      containerKey: cacheKey,
-    };
-
+  if (!cache || cache.pageWidth !== pageWidth || cache.pageHeight !== pageHeight) {
+    cache = buildCache(pageWidth, pageHeight, container, cssClasses, cacheKey);
     paginationCache.set(cacheKey, cache);
-    document.body.removeChild(measureEl);
   }
 
   const tempDiv = document.createElement("div");
@@ -929,11 +877,8 @@ export const estimatePageCount = (
     tempDiv.className = cssClasses;
   }
 
-  console.time('paginateText: estimatePageCount: tempDiv.scrollHeight');
   document.body.appendChild(tempDiv);
   const totalHeight = tempDiv.scrollHeight;
-  console.timeEnd('paginateText: estimatePageCount: tempDiv.scrollHeight');
-
   document.body.removeChild(tempDiv);
 
   return Math.ceil(totalHeight / cache.availableHeight);
