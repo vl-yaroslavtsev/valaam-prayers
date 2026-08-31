@@ -38,8 +38,13 @@ class SaintsApi extends ApiClient {
   /**
    * Получает индекс всех святых
    */
-  async getSaintsIndex(): Promise<SaintIndexApiElement[]> {
-    return this.get<SaintIndexApiElement[]>('/saints');
+  async getSaintsIndex(since?: Date): Promise<SaintIndexApiElement[]> {
+    let url = '/saints';
+    if (since) {
+      const modifiedSince = Math.floor(since.getTime() / 1000);
+      url += `?modified_since=${modifiedSince}`;
+    }
+    return this.get<SaintIndexApiElement[]>(url);
   }
 
   /**

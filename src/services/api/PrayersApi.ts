@@ -50,7 +50,8 @@ class PrayersApi extends ApiClient {
   async getPrayers(since?: Date): Promise<PrayersApiResponse> {
     let url = '/prayers';
     if (since) {
-      url += `?since=${since.toISOString()}`;
+      const modifiedSince = Math.floor(since.getTime() / 1000);
+      url += `?modified_since=${modifiedSince}`;
     }
     return this.get<PrayersApiResponse>(url);
   }
