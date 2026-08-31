@@ -9,7 +9,7 @@
     }"
     direction="horizontal"
     :freeMode="false"
-    :speed="300"
+    :speed="pageTurnDuration"
     :effect="'creative'"
     :creativeEffect="{
       prev: {
@@ -35,6 +35,7 @@
 <script setup lang="ts">
 import { useTemplateRef, computed } from "vue";
 import { useTextSelection } from "@/composables/useTextSelection";
+import { useSettingsStore } from "@/stores/settings";
 import type { SwiperContainer } from "swiper/element";
 import type { Swiper } from "swiper";
 import type { TextTheme, Language } from "@/types/common";
@@ -46,6 +47,11 @@ const { isLoading = false, isCalculating = false } = defineProps<{
   isLoading?: boolean;
   isCalculating?: boolean;
 }>();
+
+const settingsStore = useSettingsStore();
+const pageTurnDuration = computed(() =>
+  settingsStore.isPageTurnAnimationEnabled ? 300 : 0
+);
 
 const emit = defineEmits<{
   tap: [payload: { type: "center" | "left" | "right" | "top" | "bottom" | "bookmark"; x: number; y: number; page?: number }];
@@ -241,7 +247,7 @@ defineExpose({
     if (swiper.activeIndex === index) {
       return;
     }
-    swiper.slideTo(index, animate ? 300 : 0);
+    swiper.slideTo(index, animate ? pageTurnDuration.value : 0);
   },
   setProgress: (progress: number) => {
     swiperRef.value?.swiper?.setProgress(progress);

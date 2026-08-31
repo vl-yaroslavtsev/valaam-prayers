@@ -363,8 +363,19 @@ const onPageBeforeIn = () => {
     device.showStatusBar(false);
   }
 
-  if (settingsStore.keepScreenOn) {
-    device.keepScreenOn(true);
+  device.keepScreenOn(settingsStore.keepScreenOn);
+
+  if (settingsStore.isVolumeButtonsScrollEnabled) {
+    device.onVolumeKey((keyCode) => {
+      switch (keyCode) {
+        case device.KEYCODE_VOLUME_UP:
+          textPaginator.value?.slidePrev();
+          break;
+        case device.KEYCODE_VOLUME_DOWN:
+          textPaginator.value?.slideNext();
+          break;
+      }
+    });
   }
 };
 
@@ -379,6 +390,7 @@ const onPageAfterOut = () => {
   device.resetBrightness();
   device.showStatusBar(true);
   device.keepScreenOn(false);
+  device.offVolumeKey();
 };
 
 const textPaginator = useTemplateRef<InstanceType<typeof TextPaginator>>("textPaginator");

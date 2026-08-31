@@ -9,6 +9,8 @@ import CalendarPage from "../pages/calendar.vue";
 import DayPage from "../pages/day.vue";
 import RitesPage from "../pages/rites.vue";
 import SettingsPage from "../pages/settings.vue";
+import SettingsTestPage from "../pages/settingsTest.vue";
+import SettingsOfflinePage from "../pages/settingsOffline.vue";
 
 import NotFoundPage from "../pages/404.vue";
 
@@ -70,6 +72,20 @@ const routes: Router.RouteParameters[] = [
   {
     path: "/settings/",
     component: SettingsPage,
+    options: {
+      transition: "fade-slide",
+    },
+  },
+  {
+    path: "/settings-test/",
+    component: SettingsTestPage,
+    options: {
+      transition: "fade-slide",
+    },
+  },
+  {
+    path: "/settings/offline/",
+    component: SettingsOfflinePage,
     options: {
       transition: "fade-slide",
     },

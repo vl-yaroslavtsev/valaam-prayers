@@ -28,6 +28,11 @@
               <SvgIcon icon="settings" :color="iconColor" />
             </template>
           </f7-list-item>
+          <f7-list-item title="Настройки тест" link="/settings-test/" view="current" panel-close>
+            <template #media>
+              <SvgIcon icon="settings-2" :color="iconColor" />
+            </template>
+          </f7-list-item>
           <f7-list-item title="О ПРИЛОЖЕНИИ" link="/about/" view="current" panel-close>
             <template #media>
               <SvgIcon icon="info" :color="iconColor" />

@@ -26,6 +26,7 @@ const SETTINGS_KEYS = {
   IS_STATUS_BAR_VISIBLE: `${SETTINGS_PREFIX}is-status-bar-visible`,
   PAGE_MODE: `${SETTINGS_PREFIX}page-mode`,
   VOLUME_BUTTONS_SCROLL: `${SETTINGS_PREFIX}volume-buttons-scroll`,
+  PAGE_TURN_ANIMATION: `${SETTINGS_PREFIX}page-turn-animation`,
 } as const;
 
 // Интерфейс настроек приложения
@@ -87,6 +88,7 @@ interface AppSettings {
 
   // Другие настройки
   isVolumeButtonsScrollEnabled: boolean;
+  isPageTurnAnimationEnabled: boolean;
 }
 
 // Настройки по умолчанию
@@ -109,6 +111,7 @@ const DEFAULT_SETTINGS: AppSettings = {
   pageMode: "horizontal",
   isStatusBarVisible: true,
   isVolumeButtonsScrollEnabled: false,
+  isPageTurnAnimationEnabled: true,
 };
 
 export const useSettingsStore = defineStore("settings", () => {
@@ -154,6 +157,7 @@ export const useSettingsStore = defineStore("settings", () => {
       pageMode: SETTINGS_KEYS.PAGE_MODE,
       isStatusBarVisible: SETTINGS_KEYS.IS_STATUS_BAR_VISIBLE,
       isVolumeButtonsScrollEnabled: SETTINGS_KEYS.VOLUME_BUTTONS_SCROLL,
+      isPageTurnAnimationEnabled: SETTINGS_KEYS.PAGE_TURN_ANIMATION,
     };
     return keyMap[key];
   };
@@ -186,6 +190,12 @@ export const useSettingsStore = defineStore("settings", () => {
   const pageMode = computed(() => settings.value.pageMode);
   const isStatusBarVisible = computed(() => settings.value.isStatusBarVisible);
   const keepScreenOn = computed(() => settings.value.keepScreenOn);
+  const isVolumeButtonsScrollEnabled = computed(
+    () => settings.value.isVolumeButtonsScrollEnabled
+  );
+  const isPageTurnAnimationEnabled = computed(
+    () => settings.value.isPageTurnAnimationEnabled
+  );
 
   // Получение языка с приоритетом из доступных языков
   const getLanguageFromAvailable = (
@@ -241,6 +251,8 @@ export const useSettingsStore = defineStore("settings", () => {
     pageMode,
     isStatusBarVisible,
     keepScreenOn,
+    isVolumeButtonsScrollEnabled,
+    isPageTurnAnimationEnabled,
 
     // Универсальный метод
     setSetting,
@@ -274,19 +286,13 @@ export const useSettingsStore = defineStore("settings", () => {
     setIsStatusBarVisible: (visible: boolean) => {
       setSetting("isStatusBarVisible", visible);
     },
-    setIsVolumeButtonsScrollEnabled: (
-      enabled: boolean,
-      callback: (keyCode: number, event: any) => void
-    ) => {
+    setIsVolumeButtonsScrollEnabled: (enabled: boolean) => {
       setSetting("isVolumeButtonsScrollEnabled", enabled);
-      if (enabled) {
-        device.onVolumeKey(callback);
-      } else {
-        device.offVolumeKey();
-      }
     },
     setPageMode: (mode: AppSettings["pageMode"]) =>
       setSetting("pageMode", mode),
+    setIsPageTurnAnimationEnabled: (enabled: boolean) =>
+      setSetting("isPageTurnAnimationEnabled", enabled),
 
     // Утилиты
     getLanguageFromAvailable,

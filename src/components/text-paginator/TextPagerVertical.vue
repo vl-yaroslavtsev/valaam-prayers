@@ -44,6 +44,7 @@
 <script setup lang="ts">
 import { useTemplateRef, ref, computed } from "vue";
 import { useTextSelection } from "@/composables/useTextSelection";
+import { useSettingsStore } from "@/stores/settings";
 import type { VirtualList } from "framework7/types";
 import type { TextTheme, Language } from "@/types/common";
 import SvgIcon from "@/components/SvgIcon.vue";
@@ -77,6 +78,11 @@ const {
 }>();
 
 const bookmarkedPageSet = computed(() => new Set(bookmarkedPages));
+
+const settingsStore = useSettingsStore();
+const pageTurnScrollBehavior = computed<"smooth" | "instant">(() =>
+  settingsStore.isPageTurnAnimationEnabled ? "smooth" : "instant"
+);
 
 const emit = defineEmits<{
   tap: [payload: { type: "center" | "left" | "right" | "top" | "bottom" | "bookmark"; x: number; y: number; page?: number }];
@@ -130,11 +136,11 @@ const markProgrammaticScrollStart = () => {
   if (programmaticScrollTimeout) {
     clearTimeout(programmaticScrollTimeout);
   }
-  // Страховка на случай, если "scrollend" не придёт (с запасом больше длительности smooth-анимации)
+  // Страховка на случай, если "scrollend" не придёт (с запасом больше длительности анимации)
   programmaticScrollTimeout = setTimeout(() => {
     isProgrammaticScroll.value = false;
     programmaticScrollTimeout = null;
-  }, 400);
+  }, settingsStore.isPageTurnAnimationEnabled ? 400 : 50);
 };
 
 const isTouchingVertical = ref(false);
@@ -162,7 +168,10 @@ const scrollToProgress = (progress: number, animate: boolean) => {
   }
   markProgrammaticScrollStart();
   const maxScroll = Math.max(0, el.scrollHeight - el.clientHeight);
-  el.scrollTo({ top: progress * maxScroll, behavior: animate ? "smooth" : "instant" });
+  el.scrollTo({
+    top: progress * maxScroll,
+    behavior: animate ? pageTurnScrollBehavior.value : "instant",
+  });
 };
 
 const emitBookmarkTabTap = (page: number, clientX: number, clientY: number) => {
@@ -327,7 +336,6 @@ const scrollByPage = (direction: 1 | -1) => {
     return;
   }
 
-  const speed = 300;
   const maxScroll = Math.max(0, el.scrollHeight - el.clientHeight);
   const base = lastVerticalScrollTarget ?? el.scrollTop;
   lastVerticalScrollTarget = Math.min(maxScroll, Math.max(0, base + direction * pageHeightPx.value));
@@ -338,10 +346,10 @@ const scrollByPage = (direction: 1 | -1) => {
   lastVerticalScrollTimeout = setTimeout(() => {
     lastVerticalScrollTarget = null;
     lastVerticalScrollTimeout = null;
-  }, speed);
+  }, 300);
 
   markProgrammaticScrollStart();
-  el.scrollTo({ top: lastVerticalScrollTarget, behavior: "smooth" });
+  el.scrollTo({ top: lastVerticalScrollTarget, behavior: pageTurnScrollBehavior.value });
 };
 
 defineExpose({
@@ -358,7 +366,10 @@ defineExpose({
       return;
     }
     markProgrammaticScrollStart();
-    el.scrollTo({ top, behavior: animate ? "smooth" : "instant" });
+    el.scrollTo({
+      top,
+      behavior: animate ? pageTurnScrollBehavior.value : "instant",
+    });
   },
   setProgress: (progress: number) => scrollToProgress(progress, false),
   slidePrev: () => scrollByPage(-1),
