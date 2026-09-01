@@ -46,14 +46,49 @@ async function getMolitvoslovSectionIds(): Promise<number[]> {
 }
 
 /**
- * Удаляет из prayer-details все элементы, принадлежащие любому из переданных разделов.
+ * id переданных разделов и всех вложенных (на любую глубину).
+ */
+function collectDescendantSectionIds(
+  sections: Array<{ id: number; parent: number | null }>,
+  rootIds: number[],
+): Set<number> {
+  const childrenByParent = new Map<number, number[]>();
+  for (const section of sections) {
+    if (section.parent == null) continue;
+    const children = childrenByParent.get(section.parent);
+    if (children) {
+      children.push(section.id);
+    } else {
+      childrenByParent.set(section.parent, [section.id]);
+    }
+  }
+
+  const ids = new Set<number>(rootIds);
+  const stack = [...rootIds];
+  while (stack.length > 0) {
+    const current = stack.pop()!;
+    const children = childrenByParent.get(current);
+    if (!children) continue;
+    for (const childId of children) {
+      if (ids.has(childId)) continue;
+      ids.add(childId);
+      stack.push(childId);
+    }
+  }
+  return ids;
+}
+
+/**
+ * Удаляет из prayer-details все элементы внутри переданных разделов (на любой глубине).
  * prayers-index/prayer-sections (общий навигационный индекс приложения) не трогаются.
  */
 async function removePrayerSectionsData(sectionIds: number[]): Promise<void> {
   if (sectionIds.length === 0) return;
+  const sections = (await sectionsStorage?.getAll()) ?? [];
+  const descendantIds = collectDescendantSectionIds(sections, sectionIds);
   const elements = (await prayersIndexStorage?.getAll()) ?? [];
   const idsToRemove = elements
-    .filter((element) => element.parents.some((parentId) => sectionIds.includes(parentId)))
+    .filter((element) => element.parents.some((parentId) => descendantIds.has(parentId)))
     .map((element) => element.id);
   await Promise.all(idsToRemove.map((id) => prayerDetailsStorage?.delete(id)));
 }

@@ -11,6 +11,7 @@ import RitesPage from "../pages/rites.vue";
 import SettingsPage from "../pages/settings.vue";
 import SettingsTestPage from "../pages/settingsTest.vue";
 import SettingsOfflinePage from "../pages/settingsOffline.vue";
+import SettingsOfflineTestPage from "../pages/settingsOfflineTest.vue";
 
 import NotFoundPage from "../pages/404.vue";
 
@@ -86,6 +87,13 @@ const routes: Router.RouteParameters[] = [
   {
     path: "/settings/offline/",
     component: SettingsOfflinePage,
+    options: {
+      transition: "fade-slide",
+    },
+  },
+  {
+    path: "/settings/offline-test/",
+    component: SettingsOfflineTestPage,
     options: {
       transition: "fade-slide",
     },

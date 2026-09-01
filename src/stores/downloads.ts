@@ -35,6 +35,16 @@ export const useDownloadsStore = defineStore("downloads", () => {
     });
   };
 
+  const checkForUpdate = async (moduleId: DownloadModuleId, since?: Date): Promise<void> => {
+    await downloadManager.checkForUpdate(
+      moduleId,
+      (p) => {
+        progress[moduleId] = p;
+      },
+      since
+    );
+  };
+
   const cancelDownload = async (moduleId: DownloadModuleId): Promise<void> => {
     await downloadManager.cancelDownload(moduleId);
     delete progress[moduleId];
@@ -51,6 +61,7 @@ export const useDownloadsStore = defineStore("downloads", () => {
     getModuleSize,
     isDownloaded,
     startDownload,
+    checkForUpdate,
     cancelDownload,
     deleteDownload,
   };

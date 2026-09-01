@@ -9,7 +9,7 @@ import {
   type ModuleDownloadState,
 } from "@/services/download/types";
 
-const PERSIST_THROTTLE_MS = 1000;
+const PERSIST_THROTTLE_MS = 100;
 
 function createEmptyState(moduleId: DownloadModuleId): ModuleDownloadState {
   return {
@@ -70,17 +70,22 @@ export class DownloadManager {
   }
 
   /**
-   * Инкрементальное автообновление уже полностью скачанного модуля (modified_since).
+   * Инкрементальное обновление уже полностью скачанного модуля (modified_since).
    * Не мешает уже идущему вручную запущенному скачиванию того же модуля.
+   * @param since если задан — используется вместо lastSync (например, начало текущего года)
    */
-  async checkForUpdate(moduleId: DownloadModuleId, onProgress?: (progress: DownloadProgress) => void): Promise<void> {
+  async checkForUpdate(
+    moduleId: DownloadModuleId,
+    onProgress?: (progress: DownloadProgress) => void,
+    since?: Date
+  ): Promise<void> {
     if (this.runningPromises.has(moduleId)) return;
 
     const lastSync = await metadataStorage?.getLastSyncTime(downloadSyncKey(moduleId));
     if (!lastSync) return; // модуль ещё не скачан полностью - автообновление его не касается
 
     const state = createEmptyState(moduleId);
-    const promise = this.executeDownload(moduleId, state, lastSync, onProgress);
+    const promise = this.executeDownload(moduleId, state, since ?? lastSync, onProgress);
     this.track(moduleId, promise);
     return promise;
   }
