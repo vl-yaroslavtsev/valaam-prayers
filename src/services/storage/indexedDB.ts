@@ -2,6 +2,10 @@ import { openDB, DBSchema, IDBPDatabase } from 'idb';
 import defaultFavorites from './data/defaultFavorites.json';
 import type { Language } from '@/types/common';
 import type { PaginationCacheItemHeader } from './PaginationCacheStorage';
+import type { IconBlobRecord } from './IconBlobStorage';
+import type { CalendarDayApiElement } from '@/services/api/DaysApi';
+import type { SaintDetailApiElement } from '@/services/api/SaintsApi';
+import type { DownloadModuleId, ModuleDownloadState } from '@/services/download/types';
 
 /**
  * Схема базы данных
@@ -54,17 +58,10 @@ interface ValaamDB extends DBSchema {
       name: string;
     };
   };
+  // Наполняется только DownloadManager'ом (офлайн-загрузка "Святые"), хранит форму ответа API как есть
   'saint-details': {
     key: number;
-    value: {
-      id: number;
-      name: string;
-      dates: string[];
-      life: string;
-      tropars?: string[];
-      canons?: string[];
-      akathists?: string[];
-    };
+    value: SaintDetailApiElement;
   };
   'thoughts-index': {
     key: string;
@@ -145,10 +142,30 @@ interface ValaamDB extends DBSchema {
       'by-item': number;
     };
   };
+  // Дни календаря, скачанные для офлайна. Наполняется только DownloadManager'ом
+  'calendar-days': {
+    key: string;
+    value: CalendarDayApiElement;
+  };
+  // Файлы иконок календаря, ключ - абсолютный URL
+  'calendar-icons': {
+    key: string;
+    value: IconBlobRecord;
+  };
+  // Файлы иконок святых, ключ - абсолютный URL
+  'saint-icons': {
+    key: string;
+    value: IconBlobRecord;
+  };
+  // Персистентный прогресс офлайн-загрузок (для докачки после потери сети/перезапуска)
+  'download-progress': {
+    key: DownloadModuleId;
+    value: ModuleDownloadState;
+  };
 }
 
 const DB_NAME: string = 'valaam-prayers';
-const DB_VERSION: number = 4;
+const DB_VERSION: number = 5;
 
 let db: IDBPDatabase<ValaamDB> | null = null;
 let initPromise: Promise<void> | null = null;
@@ -267,6 +284,34 @@ async function initIndexedDB() {
           keyPath: 'id'
         });
         bookmarksStore.createIndex('by-item', 'itemId');
+      }
+
+      // Создаем хранилище дней календаря (офлайн-загрузка)
+      if (!db.objectStoreNames.contains('calendar-days')) {
+        db.createObjectStore('calendar-days', {
+          keyPath: 'code'
+        });
+      }
+
+      // Создаем хранилище файлов иконок календаря (офлайн-загрузка)
+      if (!db.objectStoreNames.contains('calendar-icons')) {
+        db.createObjectStore('calendar-icons', {
+          keyPath: 'url'
+        });
+      }
+
+      // Создаем хранилище файлов иконок святых (офлайн-загрузка)
+      if (!db.objectStoreNames.contains('saint-icons')) {
+        db.createObjectStore('saint-icons', {
+          keyPath: 'url'
+        });
+      }
+
+      // Создаем хранилище прогресса офлайн-загрузок
+      if (!db.objectStoreNames.contains('download-progress')) {
+        db.createObjectStore('download-progress', {
+          keyPath: 'moduleId'
+        });
       }
     },
     blocked() {

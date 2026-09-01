@@ -2,6 +2,7 @@ import { defineStore } from "pinia";
 import { ref, shallowRef } from "vue";
 import { saintsIndexStorage, saintDetailsStorage, metadataStorage } from "@/services/storage";
 import { saintsApi } from "@/services/api/SaintsApi";
+import type { SaintDetailApiElement } from "@/services/api/SaintsApi";
 
 export interface SaintIndex {
   id: number;
@@ -17,6 +18,16 @@ export interface SaintDetails {
   canons?: string[];
   akathists?: string[];
 }
+
+/**
+ * Преобразует форму ответа API (/saints/list, /saints/:id) в форму, ожидаемую UI
+ */
+const transformApiSaintDetail = (e: SaintDetailApiElement): SaintDetails => ({
+  id: e.id,
+  name: e.name,
+  dates: e.memo_days.map((day) => day.description),
+  life: e.text,
+});
 
 export const useSaintsStore = defineStore("saints", () => {
   // State
@@ -120,15 +131,16 @@ export const useSaintsStore = defineStore("saints", () => {
    */
   const getSaintDetails = async (id: number): Promise<SaintDetails | null> => {
     try {
-      // Сначала проверяем кэш
+      // saint-details наполняется только DownloadManager'ом (офлайн-загрузка "Святые").
+      // Разовое чтение карточки святого не из скачанного набора идёт по сети;
+      // HTTP-кэширование для него обеспечивает Service Worker (см. src/service-worker.js).
       const cached = await saintDetailsStorage?.get(id);
       if (cached) {
-        return cached as SaintDetails;
+        return transformApiSaintDetail(cached);
       }
 
-      // TODO: Загрузить с сервера
-      console.log(`Need to fetch saint details for ID ${id} from API`);
-      return null;
+      const detail = await saintsApi.getSaintDetail(id);
+      return transformApiSaintDetail(detail);
     } catch (err) {
       console.error(`Failed to get saint details for ID ${id}:`, err);
       return null;

@@ -1,5 +1,8 @@
 import { defineStore } from "pinia";
 import { computed, ref } from "vue";
+import { daysApi } from "@/services/api/DaysApi";
+import type { CalendarDayApiElement } from "@/services/api/DaysApi";
+import { calendarDaysStorage } from "@/services/storage";
 
 export interface CalendarDay {
   id: string;
@@ -39,6 +42,25 @@ export const useCalendarStore = defineStore("calendar", () => {
   
   const getDayById = (id: string) => days.value.find((day) => day.id === id);
 
+  /**
+   * Получает день по коду даты (YYYYMMDD) из реального API.
+   * Сначала проверяет офлайн-кэш (наполняется только DownloadManager'ом), иначе идёт в сеть.
+   * Результат разового сетевого запроса в IndexedDB не сохраняется - см. Service Worker.
+   */
+  const getDayByCode = async (code: string): Promise<CalendarDayApiElement | null> => {
+    try {
+      const cached = await calendarDaysStorage?.get(code);
+      if (cached) {
+        return cached;
+      }
+
+      const { items } = await daysApi.getDaysPage(code, code, 1, 1);
+      return items[0] ?? null;
+    } catch (err) {
+      console.error(`Failed to get calendar day for code ${code}:`, err);
+      return null;
+    }
+  };
 
   return {
     // State
@@ -46,6 +68,7 @@ export const useCalendarStore = defineStore("calendar", () => {
     // Getters
     getDays,
     getDayById,
+    getDayByCode,
     // Actions
     initStore,
   };

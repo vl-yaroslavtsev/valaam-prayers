@@ -233,7 +233,9 @@ export const usePrayersStore = defineStore("prayers", () => {
 
       // Загружаем с сервера
       const response = await prayersApi.getPrayerText(id);
-      // Сохраняем в кэш
+      // prayer-details наполняется только DownloadManager'ом (офлайн-загрузка молитв).
+      // Разовое чтение не из скачанного набора в IndexedDB не пишем; HTTP-кэширование
+      // для него обеспечивает Service Worker (route /api/prayers/:id, см. src/service-worker.js).
       //prayerDetailsStorage?.put(response);
 
       return transformApiPrayerText(response);

@@ -27,6 +27,7 @@ const SETTINGS_KEYS = {
   PAGE_MODE: `${SETTINGS_PREFIX}page-mode`,
   VOLUME_BUTTONS_SCROLL: `${SETTINGS_PREFIX}volume-buttons-scroll`,
   PAGE_TURN_ANIMATION: `${SETTINGS_PREFIX}page-turn-animation`,
+  AUTO_UPDATE_OFFLINE_DATA: `${SETTINGS_PREFIX}auto-update-offline`,
 } as const;
 
 // Интерфейс настроек приложения
@@ -89,6 +90,9 @@ interface AppSettings {
   // Другие настройки
   isVolumeButtonsScrollEnabled: boolean;
   isPageTurnAnimationEnabled: boolean;
+
+  // Автообновление скачанных офлайн-данных (см. src/services/download/AutoUpdate.ts)
+  isAutoUpdateOfflineDataEnabled: boolean;
 }
 
 // Настройки по умолчанию
@@ -112,6 +116,7 @@ const DEFAULT_SETTINGS: AppSettings = {
   isStatusBarVisible: true,
   isVolumeButtonsScrollEnabled: false,
   isPageTurnAnimationEnabled: true,
+  isAutoUpdateOfflineDataEnabled: true,
 };
 
 export const useSettingsStore = defineStore("settings", () => {
@@ -158,6 +163,7 @@ export const useSettingsStore = defineStore("settings", () => {
       isStatusBarVisible: SETTINGS_KEYS.IS_STATUS_BAR_VISIBLE,
       isVolumeButtonsScrollEnabled: SETTINGS_KEYS.VOLUME_BUTTONS_SCROLL,
       isPageTurnAnimationEnabled: SETTINGS_KEYS.PAGE_TURN_ANIMATION,
+      isAutoUpdateOfflineDataEnabled: SETTINGS_KEYS.AUTO_UPDATE_OFFLINE_DATA,
     };
     return keyMap[key];
   };
@@ -195,6 +201,9 @@ export const useSettingsStore = defineStore("settings", () => {
   );
   const isPageTurnAnimationEnabled = computed(
     () => settings.value.isPageTurnAnimationEnabled
+  );
+  const isAutoUpdateOfflineDataEnabled = computed(
+    () => settings.value.isAutoUpdateOfflineDataEnabled
   );
 
   // Получение языка с приоритетом из доступных языков
@@ -253,6 +262,7 @@ export const useSettingsStore = defineStore("settings", () => {
     keepScreenOn,
     isVolumeButtonsScrollEnabled,
     isPageTurnAnimationEnabled,
+    isAutoUpdateOfflineDataEnabled,
 
     // Универсальный метод
     setSetting,
@@ -293,6 +303,8 @@ export const useSettingsStore = defineStore("settings", () => {
       setSetting("pageMode", mode),
     setIsPageTurnAnimationEnabled: (enabled: boolean) =>
       setSetting("isPageTurnAnimationEnabled", enabled),
+    setIsAutoUpdateOfflineDataEnabled: (enabled: boolean) =>
+      setSetting("isAutoUpdateOfflineDataEnabled", enabled),
 
     // Утилиты
     getLanguageFromAvailable,

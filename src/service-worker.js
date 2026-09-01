@@ -45,7 +45,7 @@ registerRoute(
 );
 
 registerRoute(
-  ({ url }) => url.pathname === '/api/prayers/list' && url.searchParams.get('section_id'),
+  ({ url }) => url.pathname === '/api/prayers/list' && url.searchParams.get('section_id') && url.searchParams.get('composed'),
   // Use a cache-first strategy with the following config:
   new StaleWhileRevalidate({
     // You need to provide a cache name when using expiration.
@@ -55,6 +55,34 @@ registerRoute(
         // Keep at most 100 entries.
         maxEntries: 100,
         // Automatically cleanup if quota is exceeded.
+        purgeOnQuotaError: true,
+      }),
+    ],
+  }),
+);
+
+// Разовое чтение карточки святого не из офлайн-набора (см. src/stores/saints.ts getSaintDetails)
+registerRoute(
+  ({ url }) => /^\/api\/saints\/\d+$/.test(url.pathname),
+  new StaleWhileRevalidate({
+    cacheName: "saint-details",
+    plugins: [
+      new ExpirationPlugin({
+        maxEntries: 100,
+        purgeOnQuotaError: true,
+      }),
+    ],
+  }),
+);
+
+// Разовое чтение дня календаря не из офлайн-набора (см. src/stores/calendar.ts getDayByCode)
+registerRoute(
+  ({ url }) => /^\/api\/days\/[0-9]{8}$/.test(url.pathname),
+  new StaleWhileRevalidate({
+    cacheName: "calendar-days",
+    plugins: [
+      new ExpirationPlugin({
+        maxEntries: 50,
         purgeOnQuotaError: true,
       }),
     ],

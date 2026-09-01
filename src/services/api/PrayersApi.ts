@@ -1,4 +1,5 @@
 import { ApiClient } from '@/services/api/ApiClient';
+import type { ApiNav } from '@/services/api/types';
 import type { Language } from '@/types/common';
 
 /**
@@ -69,7 +70,31 @@ class PrayersApi extends ApiClient {
   async getPrayerTextsBySection(sectionId: number): Promise<PrayerTextApiResponse[]> {
     return this.getAllPages<PrayerTextApiResponse>('/prayers/list', {
       section_id: sectionId,
+      composed: '1',
     });
+  }
+
+  /**
+   * Размер (в байтах) и количество молитв раздела — для офлайн-скачивания
+   */
+  async getPrayersCount(sectionId: number, since?: Date): Promise<{ count: number; size: number }> {
+    const search = new URLSearchParams({ section_id: String(sectionId) });
+    if (since) {
+      search.set('modified_since', String(Math.floor(since.getTime() / 1000)));
+    }
+    return this.get<{ count: number; size: number }>(`/prayers/count?${search.toString()}`);
+  }
+
+  /**
+   * Одна страница молитв раздела с отслеживанием прогресса — для офлайн-скачивания
+   */
+  async getPrayersPage(
+    sectionId: number,
+    page: number,
+    pageSize: number,
+    options: { since?: Date; signal?: AbortSignal; onBytes?: (bytes: number) => void } = {}
+  ): Promise<{ items: PrayerTextApiResponse[]; nav: ApiNav; byteSize: number }> {
+    return this.getPage<PrayerTextApiResponse>('/prayers/list', { section_id: sectionId }, page, pageSize, options);
   }
 }
 

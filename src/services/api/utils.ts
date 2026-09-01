@@ -194,3 +194,100 @@ export async function deleteJson<T = any>(
     method: 'DELETE'
   });
 }
+
+/**
+ * Опции для fetchJsonWithProgress
+ */
+export interface FetchJsonWithProgressOptions {
+  /** Сигнал для отмены запроса */
+  signal?: AbortSignal;
+  /** Вызывается при получении каждого чанка байт (для прогресса скачивания) */
+  onBytes?: (chunkLength: number) => void;
+  /** Таймаут запроса в миллисекундах */
+  timeout?: number;
+  /** Дополнительные заголовки */
+  headers?: Record<string, string>;
+}
+
+/**
+ * Результат fetchJsonWithProgress
+ */
+export interface FetchJsonWithProgressResult<T> {
+  data: T;
+  /** Полный размер полученного ответа в байтах */
+  byteSize: number;
+}
+
+/**
+ * Получает JSON, читая тело ответа потоково (ReadableStream), чтобы сообщать
+ * прогресс скачивания по мере поступления байт, а не только по завершении запроса.
+ * JSON парсится один раз, после того как все чанки получены и склеены.
+ *
+ * Если поток недоступен (старый WebView), делает fallback на response.text().
+ */
+export async function fetchJsonWithProgress<T = any>(
+  url: string,
+  options: FetchJsonWithProgressOptions = {}
+): Promise<FetchJsonWithProgressResult<T>> {
+  const { signal, onBytes, timeout = 15000, headers = {} } = options;
+
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeout);
+
+  const onExternalAbort = () => controller.abort();
+  if (signal) {
+    if (signal.aborted) {
+      controller.abort();
+    } else {
+      signal.addEventListener('abort', onExternalAbort);
+    }
+  }
+
+  try {
+    const response = await fetch(url, {
+      headers: { Accept: 'application/json', ...headers },
+      signal: controller.signal,
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP Error: ${response.status} ${response.statusText}`);
+    }
+
+    const reader = response.body?.getReader();
+    if (!reader) {
+      // Fallback для сред без поддержки потокового чтения тела ответа
+      const text = await response.text();
+      const byteSize = new TextEncoder().encode(text).length;
+      onBytes?.(byteSize);
+      return { data: JSON.parse(text) as T, byteSize };
+    }
+
+    const chunks: Uint8Array[] = [];
+    let byteSize = 0;
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      if (value) {
+        chunks.push(value);
+        byteSize += value.byteLength;
+        onBytes?.(value.byteLength);
+      }
+    }
+
+    const merged = new Uint8Array(byteSize);
+    let offset = 0;
+    for (const chunk of chunks) {
+      merged.set(chunk, offset);
+      offset += chunk.byteLength;
+    }
+
+    const text = new TextDecoder('utf-8').decode(merged);
+    return { data: JSON.parse(text) as T, byteSize };
+  } finally {
+    clearTimeout(timeoutId);
+    if (signal) {
+      signal.removeEventListener('abort', onExternalAbort);
+    }
+  }
+}

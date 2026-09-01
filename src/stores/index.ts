@@ -8,6 +8,9 @@ import { useFavoritesStore } from './favorites';
 import { useReadingHistoryStore } from './readingHistory';
 import { useSettingsStore } from './settings';
 import { useBookmarksStore } from './bookmarks';
+import { useDownloadsStore } from './downloads';
+import { downloadManager } from '@/services/download/DownloadManager';
+import { startAutoUpdate } from '@/services/download/AutoUpdate';
 
 export const pinia = createPinia()
 
@@ -20,10 +23,12 @@ export * from "./readingHistory";
 export * from "./settings";
 export * from "./components";
 export * from "./bookmarks";
+export * from "./downloads";
 
 export async function initStores() {
   await initStorage();
 
+  const settingsStore = useSettingsStore();
   const stores = [
     useCalendarStore(),
     usePrayersStore(),
@@ -31,9 +36,15 @@ export async function initStores() {
     useThoughtsStore(),
     useFavoritesStore(),
     useReadingHistoryStore(),
-    useSettingsStore(),
+    settingsStore,
     useBookmarksStore(),
+    useDownloadsStore(),
   ]
 
   await Promise.all(stores.map(store => store.initStore()));
+
+  void downloadManager.resumeInterrupted();
+  if (settingsStore.isAutoUpdateOfflineDataEnabled) {
+    startAutoUpdate();
+  }
 }
