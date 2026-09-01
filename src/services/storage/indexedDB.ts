@@ -365,6 +365,7 @@ function closeDB(): void {
     db.close();
     db = null;
   }
+  initPromise = null;
 }
 
 
