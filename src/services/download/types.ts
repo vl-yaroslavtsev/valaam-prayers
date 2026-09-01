@@ -10,6 +10,12 @@ export type DownloadModuleId =
   | 'saints'
   | 'saintIcons';
 
+/** Модули, которые пишут тексты в prayer-details */
+export type PrayerDownloadModuleId = Extract<
+  DownloadModuleId,
+  'molitvoslov' | 'spiritualLiterature' | 'liturgicalBooks'
+>;
+
 export const ALL_MODULE_IDS: DownloadModuleId[] = [
   'calendar',
   'calendarIcons',

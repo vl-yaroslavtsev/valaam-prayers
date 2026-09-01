@@ -4,14 +4,13 @@ import { prayersApi } from "@/services/api/PrayersApi";
 import { saintsApi } from "@/services/api/SaintsApi";
 import {
   prayerDetailsStorage,
-  prayersIndexStorage,
   saintDetailsStorage,
   saintIconsStorage,
   sectionsStorage,
 } from "@/services/storage";
 import { getModule } from "@/services/download/modules";
 import type { DownloadContext, DownloadModuleId, ModuleDownloadState } from "@/services/download/types";
-import { makeNav, prayerElement, prayerSection, prayerText, resetIndexedDB, saintDetail } from "@/test/helpers";
+import { makeNav, prayerDetail, prayerSection, prayerText, resetIndexedDB, saintDetail } from "@/test/helpers";
 
 vi.mock("@/services/api/DaysApi", () => ({
   daysApi: {
@@ -129,6 +128,19 @@ describe("download modules", () => {
       const sectionIds = vi.mocked(prayersApi.getPrayersCount).mock.calls.map((call) => call[0]);
       expect(sectionIds.sort()).toEqual([100, 101]);
     });
+
+    it("download пишет moduleId в prayer-details", async () => {
+      await sectionsStorage?.putAll([prayerSection(100, 842)]);
+      vi.mocked(prayersApi.getPrayersPage).mockResolvedValue({
+        items: [prayerText(1)],
+        nav: makeNav(1, 1),
+        byteSize: 1,
+      });
+
+      await getModule("molitvoslov").download(createCtx("molitvoslov"));
+
+      expect(await prayerDetailsStorage?.get(1)).toMatchObject({ id: 1, moduleId: "molitvoslov" });
+    });
   });
 
   describe("createIconModule", () => {
@@ -201,56 +213,46 @@ describe("download modules", () => {
   });
 
   describe("remove() секционных модулей", () => {
-    async function seedNestedTree() {
-      await sectionsStorage?.putAll([
-        prayerSection(842, null),
-        prayerSection(100, 842),
-        prayerSection(200, 100),
-        prayerSection(937, 842),
-        prayerSection(300, 937),
-        prayerSection(976, null),
-        prayerSection(400, 976),
+    async function seedByModule() {
+      await prayerDetailsStorage?.putAll([
+        prayerDetail(1, "molitvoslov"),
+        prayerDetail(2, "molitvoslov"),
+        prayerDetail(3, "liturgicalBooks"),
+        prayerDetail(4, "spiritualLiterature"),
       ]);
-      await prayersIndexStorage?.putAll([
-        prayerElement(1, [200]),
-        prayerElement(2, [100]),
-        prayerElement(3, [300]),
-        prayerElement(4, [400]),
-      ]);
-      await prayerDetailsStorage?.putAll([prayerText(1), prayerText(2), prayerText(3), prayerText(4)]);
     }
 
-    it("удаляет элементы молитвослова на любой глубине, не трогая книги и литературу", async () => {
-      await seedNestedTree();
+    it("удаляет только записи molitvoslov по индексу by-module", async () => {
+      await seedByModule();
 
       await getModule("molitvoslov").remove();
 
       expect(await prayerDetailsStorage?.get(1)).toBeUndefined();
       expect(await prayerDetailsStorage?.get(2)).toBeUndefined();
-      expect(await prayerDetailsStorage?.get(3)).toMatchObject({ id: 3 });
-      expect(await prayerDetailsStorage?.get(4)).toMatchObject({ id: 4 });
+      expect(await prayerDetailsStorage?.get(3)).toMatchObject({ id: 3, moduleId: "liturgicalBooks" });
+      expect(await prayerDetailsStorage?.get(4)).toMatchObject({ id: 4, moduleId: "spiritualLiterature" });
     });
 
-    it("удаляет вложенные элементы богослужебных книг, не трогая молитвослов", async () => {
-      await seedNestedTree();
+    it("удаляет только записи liturgicalBooks по индексу by-module", async () => {
+      await seedByModule();
 
       await getModule("liturgicalBooks").remove();
 
       expect(await prayerDetailsStorage?.get(3)).toBeUndefined();
-      expect(await prayerDetailsStorage?.get(1)).toMatchObject({ id: 1 });
-      expect(await prayerDetailsStorage?.get(2)).toMatchObject({ id: 2 });
-      expect(await prayerDetailsStorage?.get(4)).toMatchObject({ id: 4 });
+      expect(await prayerDetailsStorage?.get(1)).toMatchObject({ id: 1, moduleId: "molitvoslov" });
+      expect(await prayerDetailsStorage?.get(2)).toMatchObject({ id: 2, moduleId: "molitvoslov" });
+      expect(await prayerDetailsStorage?.get(4)).toMatchObject({ id: 4, moduleId: "spiritualLiterature" });
     });
 
-    it("удаляет вложенные элементы духовной литературы, не трогая молитвослов", async () => {
-      await seedNestedTree();
+    it("удаляет только записи spiritualLiterature по индексу by-module", async () => {
+      await seedByModule();
 
       await getModule("spiritualLiterature").remove();
 
       expect(await prayerDetailsStorage?.get(4)).toBeUndefined();
-      expect(await prayerDetailsStorage?.get(1)).toMatchObject({ id: 1 });
-      expect(await prayerDetailsStorage?.get(2)).toMatchObject({ id: 2 });
-      expect(await prayerDetailsStorage?.get(3)).toMatchObject({ id: 3 });
+      expect(await prayerDetailsStorage?.get(1)).toMatchObject({ id: 1, moduleId: "molitvoslov" });
+      expect(await prayerDetailsStorage?.get(2)).toMatchObject({ id: 2, moduleId: "molitvoslov" });
+      expect(await prayerDetailsStorage?.get(3)).toMatchObject({ id: 3, moduleId: "liturgicalBooks" });
     });
   });
 });

@@ -76,6 +76,7 @@ describe("usePrayersStore", () => {
       text_cs_cf: "",
       text_ru: "cached",
       modified_ts: 1,
+      moduleId: "molitvoslov",
     });
 
     const result = await usePrayersStore().getPrayerText(10);

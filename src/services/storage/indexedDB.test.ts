@@ -43,4 +43,9 @@ describe("indexedDB", () => {
     }
     expect(await metadataStorage?.getValue("keep")).toBe("yes");
   });
+
+  it("prayer-details имеет индекс by-module", () => {
+    const indexNames = getDB().transaction("prayer-details").store.indexNames;
+    expect(Array.from(indexNames)).toContain("by-module");
+  });
 });

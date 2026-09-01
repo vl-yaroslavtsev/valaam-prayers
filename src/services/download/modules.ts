@@ -9,13 +9,12 @@ import {
   calendarDaysStorage,
   calendarIconsStorage,
   prayerDetailsStorage,
-  prayersIndexStorage,
   saintDetailsStorage,
   saintIconsStorage,
   sectionsStorage,
 } from "@/services/storage";
 import { getIconSize } from "@/services/download/device";
-import type { DownloadContext, DownloadModule, DownloadModuleId } from "@/services/download/types";
+import type { DownloadContext, DownloadModule, DownloadModuleId, PrayerDownloadModuleId } from "@/services/download/types";
 
 const MOLITVOSLOV_ROOT_SECTION_ID = 842;
 const LITURGICAL_BOOKS_SECTION_ID = 937;
@@ -43,54 +42,6 @@ async function getMolitvoslovSectionIds(): Promise<number[]> {
   return sections
     .filter((section) => section.parent === MOLITVOSLOV_ROOT_SECTION_ID && section.id !== LITURGICAL_BOOKS_SECTION_ID)
     .map((section) => section.id);
-}
-
-/**
- * id переданных разделов и всех вложенных (на любую глубину).
- */
-function collectDescendantSectionIds(
-  sections: Array<{ id: number; parent: number | null }>,
-  rootIds: number[],
-): Set<number> {
-  const childrenByParent = new Map<number, number[]>();
-  for (const section of sections) {
-    if (section.parent == null) continue;
-    const children = childrenByParent.get(section.parent);
-    if (children) {
-      children.push(section.id);
-    } else {
-      childrenByParent.set(section.parent, [section.id]);
-    }
-  }
-
-  const ids = new Set<number>(rootIds);
-  const stack = [...rootIds];
-  while (stack.length > 0) {
-    const current = stack.pop()!;
-    const children = childrenByParent.get(current);
-    if (!children) continue;
-    for (const childId of children) {
-      if (ids.has(childId)) continue;
-      ids.add(childId);
-      stack.push(childId);
-    }
-  }
-  return ids;
-}
-
-/**
- * Удаляет из prayer-details все элементы внутри переданных разделов (на любой глубине).
- * prayers-index/prayer-sections (общий навигационный индекс приложения) не трогаются.
- */
-async function removePrayerSectionsData(sectionIds: number[]): Promise<void> {
-  if (sectionIds.length === 0) return;
-  const sections = (await sectionsStorage?.getAll()) ?? [];
-  const descendantIds = collectDescendantSectionIds(sections, sectionIds);
-  const elements = (await prayersIndexStorage?.getAll()) ?? [];
-  const idsToRemove = elements
-    .filter((element) => element.parents.some((parentId) => descendantIds.has(parentId)))
-    .map((element) => element.id);
-  await Promise.all(idsToRemove.map((id) => prayerDetailsStorage?.delete(id)));
 }
 
 type PageFetcher<T> = (
@@ -134,7 +85,7 @@ function createListModule<T>(config: ListModuleConfig<T>): DownloadModule {
 }
 
 interface SectionsModuleConfig {
-  id: DownloadModuleId;
+  id: PrayerDownloadModuleId;
   getSectionIds: () => Promise<number[]>;
   getSectionCount: (sectionId: number, since?: Date) => Promise<number>;
   fetchSectionPage: (
@@ -145,8 +96,6 @@ interface SectionsModuleConfig {
     signal: AbortSignal,
     onBytes: (bytes: number) => void
   ) => Promise<{ items: PrayerTextApiResponse[]; nav: ApiNav }>;
-  saveItems: (items: PrayerTextApiResponse[]) => Promise<void>;
-  removeBySectionIds: (sectionIds: number[]) => Promise<void>;
 }
 
 /**
@@ -186,7 +135,7 @@ function createPrayerSectionsModule(config: SectionsModuleConfig): DownloadModul
             ctx.onBytes
           );
           totalPages = nav.page_count;
-          await config.saveItems(items);
+          await prayerDetailsStorage?.putAll(items.map((item) => ({ ...item, moduleId: config.id })));
 
           sectionState.currentPage = page;
           sectionState.totalPages = totalPages;
@@ -196,8 +145,7 @@ function createPrayerSectionsModule(config: SectionsModuleConfig): DownloadModul
       }
     },
     async remove() {
-      const sectionIds = await config.getSectionIds();
-      await config.removeBySectionIds(sectionIds);
+      await prayerDetailsStorage?.deleteByModule(config.id);
     },
   };
 }
@@ -346,10 +294,6 @@ const liturgicalBooksModule = createPrayerSectionsModule({
   getSectionCount: async (sectionId, since) => (await prayersApi.getPrayersCount(sectionId, since)).size,
   fetchSectionPage: (sectionId, page, pageSize, since, signal, onBytes) =>
     prayersApi.getPrayersPage(sectionId, page, pageSize, { since, signal, onBytes }),
-  saveItems: async (items) => {
-    await prayerDetailsStorage?.putAll(items);
-  },
-  removeBySectionIds: removePrayerSectionsData,
 });
 
 const spiritualLiteratureModule = createPrayerSectionsModule({
@@ -358,10 +302,6 @@ const spiritualLiteratureModule = createPrayerSectionsModule({
   getSectionCount: async (sectionId, since) => (await prayersApi.getPrayersCount(sectionId, since)).size,
   fetchSectionPage: (sectionId, page, pageSize, since, signal, onBytes) =>
     prayersApi.getPrayersPage(sectionId, page, pageSize, { since, signal, onBytes }),
-  saveItems: async (items) => {
-    await prayerDetailsStorage?.putAll(items);
-  },
-  removeBySectionIds: removePrayerSectionsData,
 });
 
 const molitvoslovModule = createPrayerSectionsModule({
@@ -370,10 +310,6 @@ const molitvoslovModule = createPrayerSectionsModule({
   getSectionCount: async (sectionId, since) => (await prayersApi.getPrayersCount(sectionId, since)).size,
   fetchSectionPage: (sectionId, page, pageSize, since, signal, onBytes) =>
     prayersApi.getPrayersPage(sectionId, page, pageSize, { since, signal, onBytes }),
-  saveItems: async (items) => {
-    await prayerDetailsStorage?.putAll(items);
-  },
-  removeBySectionIds: removePrayerSectionsData,
 });
 
 const MODULES: Record<DownloadModuleId, DownloadModule> = {

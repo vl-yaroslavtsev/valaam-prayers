@@ -5,7 +5,7 @@ import type { PaginationCacheItemHeader } from './PaginationCacheStorage';
 import type { IconBlobRecord } from './IconBlobStorage';
 import type { CalendarDayApiElement } from '@/services/api/DaysApi';
 import type { SaintDetailApiElement } from '@/services/api/SaintsApi';
-import type { DownloadModuleId, ModuleDownloadState } from '@/services/download/types';
+import type { DownloadModuleId, ModuleDownloadState, PrayerDownloadModuleId } from '@/services/download/types';
 
 /**
  * Схема базы данных
@@ -99,6 +99,10 @@ interface ValaamDB extends DBSchema {
       text_cs_cf: string;
       text_ru: string;
       modified_ts?: number;
+      moduleId: PrayerDownloadModuleId;
+    };
+    indexes: {
+      'by-module': PrayerDownloadModuleId;
     };
   };
   'reading-history': {
@@ -165,7 +169,7 @@ interface ValaamDB extends DBSchema {
 }
 
 const DB_NAME: string = 'valaam-prayers';
-const DB_VERSION: number = 5;
+const DB_VERSION: number = 6;
 
 let db: IDBPDatabase<ValaamDB> | null = null;
 let initPromise: Promise<void> | null = null;
@@ -189,6 +193,10 @@ async function initIndexedDB() {
             db.deleteObjectStore(name);
           }
         }
+      }
+
+      if (oldVersion < 6 && oldVersion >= 4 && db.objectStoreNames.contains('prayer-details')) {
+        db.deleteObjectStore('prayer-details');
       }
 
       // Создаем хранилище молитв
@@ -229,9 +237,10 @@ async function initIndexedDB() {
 
       // Создаем хранилище текстов молитв (отдельно для оптимизации)
       if (!db.objectStoreNames.contains('prayer-details')) {
-        db.createObjectStore('prayer-details', {
+        const prayerDetailsStore = db.createObjectStore('prayer-details', {
           keyPath: 'id'
         });
+        prayerDetailsStore.createIndex('by-module', 'moduleId');
       }
 
       // Создаем хранилище индекса святых

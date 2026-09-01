@@ -6,7 +6,9 @@ import type { ApiNav } from "@/services/api/types";
 import type { CalendarDayApiElement } from "@/services/api/DaysApi";
 import type { SaintDetailApiElement } from "@/services/api/SaintsApi";
 import type { PrayerApiElement, PrayerApiSection, PrayerTextApiResponse } from "@/services/api/PrayersApi";
+import type { PrayerDownloadModuleId } from "@/services/download/types";
 import type { PaginationHashSettings } from "@/services/storage/PaginationCacheStorage";
+import type { ValaamDB } from "@/services/storage/indexedDB";
 
 export async function resetIndexedDB(): Promise<void> {
   closeDB();
@@ -135,6 +137,13 @@ export function prayerText(id: number): PrayerTextApiResponse {
     text_ru: "text",
     modified_ts: 0,
   };
+}
+
+export function prayerDetail(
+  id: number,
+  moduleId: PrayerDownloadModuleId,
+): ValaamDB["prayer-details"]["value"] {
+  return { ...prayerText(id), moduleId };
 }
 
 export function hangingFetch() {
