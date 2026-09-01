@@ -62,7 +62,7 @@ import type { Swiper } from "swiper";
 import type { Language } from "@/types/common";
 import {
   paginateText
-} from "@/text-processing-old";
+} from "@/text-processing";
 
 import TextPagerHorizontal from "./text-paginator/TextPagerHorizontal.vue";
 import TextPagerVertical from "./text-paginator/TextPagerVertical.vue";

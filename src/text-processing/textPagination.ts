@@ -9,8 +9,9 @@
  * и textMeasure.ts. Реальный DOM используется только (1) один раз, чтобы снять
  * getComputedStyle для отступов/шрифтов, и (2) один раз на страницу — чтобы
  * провалидировать и при необходимости чуть подправить границу (см.
- * validateAndCorrectPage), поскольку часть CSS-поведения (hyphens: manual,
- * схлопывание отступов, кернинг) не на 100% отделима от реального рендера.
+ * validateAndCorrectPage) и дотянуть слова на последнюю строку, поскольку
+ * часть CSS-поведения (hyphens: manual, схлопывание отступов, кернинг)
+ * не на 100% отделима от реального рендера.
  *
  * @example
  * ```typescript
@@ -533,6 +534,8 @@ const addNextLine = (
 
 const DOJIM_EPSILON = 1;
 const DOJIM_MAX_ATTEMPTS = 8;
+const LAST_LINE_FILL_MAX_WORDS = 32;
+const LAST_LINE_TOP_EPSILON = 1;
 // Математический расчёт систематически чуть переоценивает вместимость страницы
 // (canvas.measureText не на 100% совпадает с реальным рендером браузера).
 // Небольшой запас снижает число случаев, когда "дожим" вынужден откатывать
@@ -540,11 +543,192 @@ const DOJIM_MAX_ATTEMPTS = 8;
 // коррекцию в сторону дешёвого добавления недостающих строк.
 const MATH_SAFETY_MARGIN = 0; // 30px - запас для случаев, когда строки не влезают на страницу
 
+/** Конец следующего слова в плоском тексте блока (как tokenizer: только «ломающий» пробел). */
+const nextWordEnd = (text: string, from: number): number | null => {
+  let i = from;
+  while (i < text.length && BREAKABLE_SPACE_RE.test(text[i])) i++;
+  if (i >= text.length) return null;
+  const start = i;
+  while (i < text.length && !BREAKABLE_SPACE_RE.test(text[i])) i++;
+  return i > start ? i : null;
+};
+
+const collectWordEnds = (text: string, from: number, until: number): number[] => {
+  const ends: number[] = [];
+  let cursor = from;
+  while (ends.length < LAST_LINE_FILL_MAX_WORDS) {
+    const end = nextWordEnd(text, cursor);
+    if (end == null || end > until) break;
+    ends.push(end);
+    cursor = end;
+  }
+  return ends;
+};
+
+/**
+ * Верхняя граница глифа с индексом charIndex в textContent корня
+ * (Range.getBoundingClientRect по одному символу).
+ */
+const getCharRectTop = (root: HTMLElement, charIndex: number): number | null => {
+  if (charIndex < 0) return null;
+  const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+  let remaining = charIndex;
+  let node = walker.nextNode() as Text | null;
+  while (node) {
+    const len = node.data.length;
+    if (remaining < len) {
+      const range = document.createRange();
+      range.setStart(node, remaining);
+      range.setEnd(node, remaining + 1);
+      return range.getBoundingClientRect().top;
+    }
+    remaining -= len;
+    node = walker.nextNode() as Text | null;
+  }
+  return null;
+};
+
+/**
+ * На последней строке страницы часто остаётся горизонтальный зазор: canvas
+ * чуть переоценивает ширину, целая следующая строка по высоте уже не влезает,
+ * а 2–3 слова с начала следующей страницы — ещё да. Рендерим хвост того же
+ * абзаца, и по Range.getBoundingClientRect смотрим, какие слова остались на
+ * той же визуальной строке (тот же top, что у прежнего последнего символа).
+ */
+const fillLastLineFromNextPage = (
+  placements: Placement[],
+  blocks: LayoutBlock[],
+  measureEl: HTMLElement,
+  curNextBlock: number,
+  curNextLine: number,
+  availableHeight: number,
+  fontMetrics: FontMetricsByTag,
+  contentWidth: number,
+  render: (p: Placement[]) => number
+): { nextBlockIndex: number; nextLineIndex: number } => {
+  if (placements.length === 0) {
+    return { nextBlockIndex: curNextBlock, nextLineIndex: curNextLine };
+  }
+
+  const last = placements[placements.length - 1];
+  const block = blocks[last.blockIndex];
+  if (
+    !block?.splittable ||
+    last.blockIndex !== curNextBlock ||
+    curNextLine >= block.lines.length
+  ) {
+    return { nextBlockIndex: curNextBlock, nextLineIndex: curNextLine };
+  }
+
+  const lastLineIdx = last.toLineExclusive - 1;
+  const lastLine = block.lines[lastLineIdx];
+  if (!lastLine || lastLine.end <= lastLine.start) {
+    return { nextBlockIndex: curNextBlock, nextLineIndex: curNextLine };
+  }
+
+  const metrics = fontMetrics[block.tag];
+  if (!metrics) {
+    return { nextBlockIndex: curNextBlock, nextLineIndex: curNextLine };
+  }
+
+  const lookLine = Math.min(curNextLine + 1, block.lines.length - 1);
+  const until = block.lines[lookLine].end;
+  const flatText = getBlockFlatText(block);
+  const candidates = collectWordEnds(flatText, lastLine.end, until);
+  if (candidates.length === 0) {
+    return { nextBlockIndex: curNextBlock, nextLineIndex: curNextLine };
+  }
+
+  const startOffset = block.lines[last.fromLine]?.start ?? 0;
+  const origEnd = lastLine.end;
+  const origHyphen = lastLine.endsWithHyphen;
+  const origLastCharIndex = origEnd - startOffset - 1;
+  if (origLastCharIndex < 0) {
+    return { nextBlockIndex: curNextBlock, nextLineIndex: curNextLine };
+  }
+
+  lastLine.end = candidates[candidates.length - 1];
+  lastLine.endsWithHyphen = false;
+  render(placements);
+
+  const lastEl = measureEl.lastElementChild as HTMLElement | null;
+  const lineTop = lastEl ? getCharRectTop(lastEl, origLastCharIndex) : null;
+  if (!lastEl || lineTop == null) {
+    lastLine.end = origEnd;
+    lastLine.endsWithHyphen = origHyphen;
+    return { nextBlockIndex: curNextBlock, nextLineIndex: curNextLine };
+  }
+
+  let bestIdx = -1;
+  for (let i = 0; i < candidates.length; i++) {
+    const top = getCharRectTop(lastEl, candidates[i] - 1 - startOffset);
+    if (top == null || top > lineTop + LAST_LINE_TOP_EPSILON) break;
+    bestIdx = i;
+  }
+
+  const restoreOrig = () => {
+    lastLine.end = origEnd;
+    lastLine.endsWithHyphen = origHyphen;
+    return { nextBlockIndex: curNextBlock, nextLineIndex: curNextLine };
+  };
+
+  if (bestIdx < 0) {
+    return restoreOrig();
+  }
+
+  const lastLineHolds = (wordEnd: number, height: number): boolean => {
+    if (height > availableHeight + DOJIM_EPSILON) return false;
+    const el = measureEl.lastElementChild as HTMLElement | null;
+    if (!el) return false;
+    const top = getCharRectTop(el, wordEnd - 1 - startOffset);
+    const base = getCharRectTop(el, origLastCharIndex);
+    return top != null && base != null && top <= base + LAST_LINE_TOP_EPSILON;
+  };
+
+  lastLine.endsWithHyphen = false;
+  while (bestIdx >= 0) {
+    const wordEnd = candidates[bestIdx];
+    lastLine.end = wordEnd;
+    const height = render(placements);
+    if (lastLineHolds(wordEnd, height)) break;
+    bestIdx--;
+  }
+
+  if (bestIdx < 0) {
+    return restoreOrig();
+  }
+
+  const bestEnd = candidates[bestIdx];
+  lastLine.end = bestEnd;
+  lastLine.endsWithHyphen = false;
+
+  const consumeRestOfBlock = () => {
+    block.lines = block.lines.slice(0, lastLineIdx + 1);
+    return { nextBlockIndex: last.blockIndex + 1, nextLineIndex: 0 };
+  };
+
+  if (bestEnd >= block.totalLength) {
+    return consumeRestOfBlock();
+  }
+
+  const tailLines = rewrapBlockLinesFrom(block, bestEnd, metrics, contentWidth).filter(
+    (l) => l.end > l.start
+  );
+  if (tailLines.length === 0) {
+    return consumeRestOfBlock();
+  }
+
+  block.lines = [...block.lines.slice(0, lastLineIdx + 1), ...tailLines];
+  return { nextBlockIndex: last.blockIndex, nextLineIndex: last.toLineExclusive };
+};
+
 /**
  * Дожим: рендерит посчитанную математически страницу в реальный (скрытый)
- * measureEl один раз и по необходимости подправляет границу на ±несколько
- * строк — это ловит расхождения из-за hyphens: manual, схлопывания отступов
- * и т.п., оставаясь на порядки дешевле старого DOM-based алгоритма.
+ * measureEl и по необходимости подправляет границу на ±несколько строк —
+ * это ловит расхождения из-за hyphens: manual, схлопывания отступов и т.п.,
+ * оставаясь на порядки дешевле старого DOM-based алгоритма. После того как
+ * высота сошлась, дописывает на последнюю строку слова со следующей страницы,
+ * пока они не переносятся (Range.getBoundingClientRect).
  */
 const validateAndCorrectPage = (
   initialPlacements: Placement[],
@@ -553,13 +737,14 @@ const validateAndCorrectPage = (
   availableHeight: number,
   nextBlockIndex: number,
   nextLineIndex: number,
-  chromeOffset: number
+  chromeOffset: number,
+  fontMetrics: FontMetricsByTag,
+  contentWidth: number
 ): { placements: Placement[]; nextBlockIndex: number; nextLineIndex: number } => {
   let placements = initialPlacements;
   let curNextBlock = nextBlockIndex;
   let curNextLine = nextLineIndex;
 
-  //return { placements, nextBlockIndex: curNextBlock, nextLineIndex: curNextLine };
 
   // measureEl.scrollHeight включает паддинги/бордер страницы (chromeOffset),
   // а availableHeight — это высота именно под контент (без них). Вычитаем
@@ -666,7 +851,23 @@ const validateAndCorrectPage = (
   }
 
   void height;
-  return { placements, nextBlockIndex: curNextBlock, nextLineIndex: curNextLine };
+
+  const filled = fillLastLineFromNextPage(
+    placements,
+    blocks,
+    measureEl,
+    curNextBlock,
+    curNextLine,
+    availableHeight,
+    fontMetrics,
+    contentWidth,
+    render
+  );
+  return {
+    placements,
+    nextBlockIndex: filled.nextBlockIndex,
+    nextLineIndex: filled.nextLineIndex,
+  };
 };
 
 /**
@@ -738,7 +939,9 @@ export const paginateText = async (
         availableHeight,
         mathResult.nextBlockIndex,
         mathResult.nextLineIndex,
-        chromeOffset
+        chromeOffset,
+        cache!.fontMetrics,
+        cache!.contentWidth
       );
       const corrected = finalizeHyphenAtPageBreak(
         dojimResult,
