@@ -67,7 +67,7 @@ export class ApiClient {
       search.set(key, String(value));
     }
     search.set('page_size', String(API_PAGE_SIZE));
-    search.set('page_num', String(pageNum));
+    search.set('page', String(pageNum));
     return `${path}?${search.toString()}`;
   }
 
