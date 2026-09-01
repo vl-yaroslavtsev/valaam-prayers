@@ -250,6 +250,16 @@ const findHardCharBreak = (word: WordToken, maxWidth: number, fonts: Record<Styl
   return Math.max(offset, word.start + 1);
 };
 
+// Небольшой допуск только на погрешность округления float — при корректно
+// загруженных шрифтах canvas.measureText совпадает с реальным рендером
+// браузера почти до сотых пикселя (проверено вручную). Допуск в 1-2px (как
+// было раньше) даёт обратный эффект: строка, которая в реальном браузере не
+// влезает буквально на десятые доли пикселя, у нас "влезает" — из-за этого
+// перенос по мягкому дефису сдвигается на строку раньше, чем в браузере, и
+// расхождение накапливается дальше по абзацу (см. историю страницы 7 "Молитвы
+// на сон грядущим" — итоговая строка-вдова "возстави").
+const WRAP_TOLERANCE = 0.5;
+
 const sliceWordFrom = (word: WordToken, fromOffset: number): WordToken => {
   const parts: WordPart[] = [];
   let pos = word.start;
@@ -323,11 +333,11 @@ export const layoutBlockLines = (
       const extra = hasContent && spacePending ? spaceWidth : 0;
       const wordWidth = measurePartsWidth(word.parts, fonts);
 
-      if (hasContent && lineWidth + extra + wordWidth > maxWidth) {
+      if (hasContent && lineWidth + extra + wordWidth > maxWidth + WRAP_TOLERANCE) {
         // Слово целиком не влезает на текущую (непустую) строку — пробуем
         // перенести его часть по мягкому переносу в оставшееся место (как
         // делает браузер с hyphens: manual), а не сразу уносить целиком
-        const remaining = maxWidth - lineWidth - extra;
+        const remaining = maxWidth + WRAP_TOLERANCE - lineWidth - extra;
         const hyphenOffset = word.hyphenOffsets.length > 0 ? findHyphenBreak(word, remaining, fonts) : null;
         if (hyphenOffset !== null && hyphenOffset > word.start) {
           lines.push({ start: lineStart, end: hyphenOffset, endsWithHyphen: true });
@@ -340,7 +350,7 @@ export const layoutBlockLines = (
         continue; // тот же word теперь обрабатывается как первое слово пустой строки
       }
 
-      if (!hasContent && wordWidth > maxWidth) {
+      if (!hasContent && wordWidth > maxWidth + WRAP_TOLERANCE) {
         // Слово не влезает целиком даже на пустую строку
         const hyphenOffset = word.hyphenOffsets.length > 0 ? findHyphenBreak(word, maxWidth, fonts) : null;
         if (hyphenOffset !== null && hyphenOffset > word.start) {

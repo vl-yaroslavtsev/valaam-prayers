@@ -187,6 +187,7 @@ const parseHTML = (html: string): DocumentFragment => {
 const loadFonts = async (measureEl: HTMLElement) => {
   const div = document.createElement("div");
   div.innerHTML = `
+  Обычный текст...
    <strong>
     Жирный текст...
   </strong>
@@ -453,13 +454,13 @@ const finalizeHyphenAtPageBreak = (
     return result; // содержимое строки подрезано на месте, границы страниц не меняются
   }
 
-  const { blockIndex, lineIndex } = trimTrailingHyphenLines(
+  const { blockIndex: hyphenBlockIndex, lineIndex: hyphenLineIndex } = trimTrailingHyphenLines(
     placements,
     blocks,
     result.nextBlockIndex,
     result.nextLineIndex
   );
-  return { placements, nextBlockIndex: blockIndex, nextLineIndex: lineIndex };
+  return { placements, nextBlockIndex: hyphenBlockIndex, nextLineIndex: hyphenLineIndex };
 };
 
 const placementsToHtml = (placements: Placement[], blocks: LayoutBlock[]): string =>
@@ -492,6 +493,121 @@ const removeLastLine = (
     blockIndex: last.blockIndex,
     lineIndex: trimmed.toLineExclusive,
   };
+};
+
+/**
+ * "Висячая строка" (вдова) — единственное слово на последней строке страницы,
+ * оставшееся там только из-за разрыва по высоте (не конец абзаца). Дальше
+ * слов на этой строке физически быть не может: строка выше уже заняла всю
+ * ширину, иначе слово перенеслось бы туда — а не сюда — при построчной
+ * раскладке. Единственный способ убрать "сироту" — перенести всю строку на
+ * следующую страницу целиком.
+ */
+const avoidWidowLastLine = (
+  result: { placements: Placement[]; nextBlockIndex: number; nextLineIndex: number },
+  blocks: LayoutBlock[]
+): { placements: Placement[]; nextBlockIndex: number; nextLineIndex: number } => {
+  const { placements } = result;
+  if (placements.length === 0) return result;
+
+  const last = placements[placements.length - 1];
+  const block = blocks[last.blockIndex];
+  if (!block.splittable) return result;
+
+  // Строка — собственный конец абзаца (не разрыв страницы): короткая
+  // последняя строка абзаца — обычное дело, трогать не нужно.
+  if (last.toLineExclusive >= block.lines.length) return result;
+
+  // Единственная строка на всей странице — переносить её некуда.
+  if (placements.length === 1 && last.toLineExclusive - last.fromLine <= 1) return result;
+
+  const line = block.lines[last.toLineExclusive - 1];
+  const lineText = getBlockFlatText(block).slice(line.start, line.end).trim();
+  if (!lineText || BREAKABLE_SPACE_RE.test(lineText)) return result; // не одно слово
+
+  const rolledBack = removeLastLine(placements, blocks);
+  if (!rolledBack) return result;
+
+  return {
+    placements: rolledBack.placements,
+    nextBlockIndex: rolledBack.blockIndex,
+    nextLineIndex: rolledBack.lineIndex,
+  };
+};
+
+/** Ширина строки текста через реальный (не canvas) DOM-рендер — временно
+ * добавляет элемент нужного тега в measureEl (уже стилизован под страницу,
+ * см. createMeasureElement), меряет и убирает. */
+const measureLineWidthDOM = (measureEl: HTMLElement, tag: string, text: string): number => {
+  const el = document.createElement(tag.toLowerCase());
+  el.style.whiteSpace = "nowrap";
+  el.style.display = "inline-block";
+  el.style.margin = "0";
+  el.style.padding = "0";
+  el.textContent = text;
+  measureEl.appendChild(el);
+  const width = el.getBoundingClientRect().width;
+  measureEl.removeChild(el);
+  return width;
+};
+
+const DOM_TOP_OFF_MAX_WORDS = 5;
+
+/**
+ * Финальная точечная докрутка: пробуем "дотянуть" последнюю строку страницы
+ * словами из начала следующей строки того же блока — той, что иначе целиком
+ * ушла бы на следующую страницу. Это защита от остаточных расхождений
+ * canvas-модели с реальным рендером (после дожима по высоте и защиты от
+ * вдовы): здесь единственный источник истины — сам DOM, а не canvas.measureText,
+ * поэтому слово переносится только тогда, когда оно ФАКТИЧЕСКИ влезает в
+ * ширину страницы у браузера. Не трогает перенос по мягкому дефису и не
+ * переходит на другой блок (следующий блок может быть, например, заголовком).
+ */
+const domTopOffLastLine = (
+  result: { placements: Placement[]; nextBlockIndex: number; nextLineIndex: number },
+  blocks: LayoutBlock[],
+  measureEl: HTMLElement,
+  fontMetrics: FontMetricsByTag,
+  contentWidth: number
+): void => {
+  const { placements } = result;
+  if (placements.length === 0) return;
+
+  const last = placements[placements.length - 1];
+  const block = blocks[last.blockIndex];
+  if (!block.splittable) return;
+
+  const flatText = getBlockFlatText(block);
+  const lineIdx = last.toLineExclusive - 1;
+
+  for (let i = 0; i < DOM_TOP_OFF_MAX_WORDS; i++) {
+    if (lineIdx + 1 >= block.lines.length) break; // блок и так кончился на этой странице
+
+    const currentLine = block.lines[lineIdx];
+    if (currentLine.endsWithHyphen) break; // перенос по мягкому дефису — отдельная логика
+
+    const nextLine = block.lines[lineIdx + 1];
+    if (nextLine.start !== currentLine.end) break; // строки не смежные — не трогаем
+
+    const nextLineText = flatText.slice(nextLine.start, nextLine.end);
+    const spaceMatch = nextLineText.match(BREAKABLE_SPACE_RE);
+    const wordEnd = spaceMatch && spaceMatch.index !== undefined ? nextLine.start + spaceMatch.index : nextLine.end;
+    if (wordEnd <= nextLine.start) break;
+
+    const candidateText = stripSoftHyphens(flatText.slice(currentLine.start, wordEnd));
+    const width = measureLineWidthDOM(measureEl, block.tag, candidateText);
+    if (width > contentWidth) break; // в реальном браузере правда не влезает
+
+    const metrics = fontMetrics[block.tag];
+    const tailLines = rewrapBlockLinesFrom(block, wordEnd, metrics, contentWidth);
+    block.lines = [
+      ...block.lines.slice(0, lineIdx),
+      { start: currentLine.start, end: wordEnd, endsWithHyphen: false },
+      ...tailLines,
+    ];
+    // last.toLineExclusive (= lineIdx + 1) по-прежнему указывает на эту же,
+    // теперь более длинную строку — саму placement трогать не нужно.
+  }
 };
 
 const addNextLine = (
@@ -553,7 +669,9 @@ const validateAndCorrectPage = (
   availableHeight: number,
   nextBlockIndex: number,
   nextLineIndex: number,
-  chromeOffset: number
+  chromeOffset: number,
+  fontMetrics: FontMetricsByTag,
+  contentWidth: number
 ): { placements: Placement[]; nextBlockIndex: number; nextLineIndex: number } => {
   let placements = initialPlacements;
   let curNextBlock = nextBlockIndex;
@@ -616,6 +734,24 @@ const validateAndCorrectPage = (
     curNextBlock = forced.blockIndex;
     curNextLine = forced.toLineExclusive;
     height = render(placements);
+  }
+
+  // Если после урезания страница обрывается на мягком переносе, снимаем его
+  // ДО фазы добавления строк, а не после неё: рендер обрезанного ровно на
+  // слоге HTML-фрагмента иногда заставляет браузер перенести всё слово
+  // целиком (не через дефис), из-за чего он визуально съедает на одну
+  // строку больше, чем предсказывает модель. Из-за этого добавление
+  // следующей "логической" строки в цикле ниже ошибочно выглядит как
+  // переполнение и отвергается, хотя на самом деле место ещё есть.
+  // Переразбивка слова здесь убирает саму причину скачка ещё до измерений.
+  if (placements.length > 0) {
+    const last = placements[placements.length - 1];
+    const block = blocks[last.blockIndex];
+    if (block.splittable && block.lines[last.toLineExclusive - 1]?.endsWithHyphen) {
+      if (avoidHyphenAtPageBreak(placements, blocks, fontMetrics, contentWidth)) {
+        height = render(placements);
+      }
+    }
   }
 
   // Пакетное добавление: оцениваем по остатку места и высоте следующей строки,
@@ -693,22 +829,27 @@ export const paginateText = async (
   const pageWidth = getPageWidth(container);
   const pageHeight = getPageHeight(container);
 
+  const pages: string[] = [];
+  const headers: Header[] = [];
+  const measureEl = createMeasureElement(pageWidth, cssClasses);
+
+  // Шрифты нужно дождаться ДО сбора метрик (buildCache -> collectFontMetrics):
+  // иначе canvas.measureText посчитает переносы строк по запасному системному
+  // шрифту, а результат осядет в paginationCache и останется неверным до
+  // ресайза контейнера — дожим ниже уже не успеет это исправить.
+  await loadFonts(measureEl);
+
   if (!cache || cache.pageWidth !== pageWidth || cache.pageHeight !== pageHeight) {
     cache = buildCache(pageWidth, pageHeight, container, cssClasses, cacheKey);
     paginationCache.set(cacheKey, cache);
   }
 
-  const pages: string[] = [];
-  const headers: Header[] = [];
-  const measureEl = createMeasureElement(pageWidth, cssClasses);
   // measureEl рендерится с height:auto, поэтому его scrollHeight включает
   // паддинги/бордер страницы (в отличие от cache.availableHeight — высоты
   // только под контент). Разница нужна дожиму, чтобы сравнивать в одних
   // единицах — см. validateAndCorrectPage.
   const chromeOffset = pageHeight - cache.availableHeight;
   const availableHeight = cache.availableHeight;
-
-  await loadFonts(measureEl);
 
   try {
     const fragment = parseHTML(html);
@@ -738,14 +879,18 @@ export const paginateText = async (
         availableHeight,
         mathResult.nextBlockIndex,
         mathResult.nextLineIndex,
-        chromeOffset
+        chromeOffset,
+        cache!.fontMetrics,
+        cache!.contentWidth
       );
-      const corrected = finalizeHyphenAtPageBreak(
+      const hyphenFixed = finalizeHyphenAtPageBreak(
         dojimResult,
         layoutBlocks,
         cache!.fontMetrics,
         cache!.contentWidth
       );
+      const corrected = avoidWidowLastLine(hyphenFixed, layoutBlocks);
+      domTopOffLastLine(corrected, layoutBlocks, measureEl, cache!.fontMetrics, cache!.contentWidth);
 
       pages.push(placementsToHtml(corrected.placements, layoutBlocks));
 
