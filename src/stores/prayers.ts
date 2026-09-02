@@ -267,10 +267,9 @@ export const usePrayersStore = defineStore("prayers", () => {
         if (prayer.text_cs_cf) allLanguages.add('cs-cf');
         if (prayer.text_ru) allLanguages.add('ru');
       });
-      
+
       const text = hasCommonText ? header + buildSectionText(sectionId, prayerTexts, 2, '') : '';
 
-      // Строим тексты для каждого языка
       const text_cs_cf = allLanguages.has('cs-cf') ? header + buildSectionText(sectionId, prayerTexts, 2, 'cs-cf') : '';
       const text_cs = allLanguages.has('cs') ? header + buildSectionText(sectionId, prayerTexts, 2, 'cs') : '';
       const text_ru = allLanguages.has('ru') ? header + buildSectionText(sectionId, prayerTexts, 2, 'ru') : '';
@@ -310,19 +309,16 @@ export const usePrayersStore = defineStore("prayers", () => {
     let result = '';
     const maxHeaderLevel = 6;
     
-    // Получаем элементы текущего раздела
     const items = getItemsBySection(sectionId);
     
     for (const item of items) {
       if ('parent' in item && 'parents' in item) {
-        // Это элемент (молитва) - ищем его в полученных данных
         const prayerText = prayerTexts.find(p => p.id === item.id);
         if (prayerText) {
           const currentHeaderLevel = Math.min(headerLevel, maxHeaderLevel);
           const headerTag = `h${currentHeaderLevel}`;
           result += `<${headerTag}>${item.name}</${headerTag}>\n\n`;
           
-          // Выбираем текст в зависимости от языка
           let text = '';
           switch (language) {
             case '':
@@ -341,7 +337,6 @@ export const usePrayersStore = defineStore("prayers", () => {
               text = prayerText.text_cs_cf || '';
           }
 
-          // Понижаем существующие заголовки на один уровень
           text = text.replace(/<h([1-6])([^>]*>.*?<\/h)[1-6]>/g, (match, level, content) => {
             const currentLevel = parseInt(level);
             if (currentLevel >= currentHeaderLevel) {
@@ -354,14 +349,10 @@ export const usePrayersStore = defineStore("prayers", () => {
           result += text + '\n\n';
         }
       } else {
-        // Это подраздел - добавляем заголовок и рекурсивно обрабатываем
         const currentHeaderLevel = Math.min(headerLevel, maxHeaderLevel);
         const headerTag = `h${currentHeaderLevel}`;
         result += `<${headerTag}>${item.name}</${headerTag}>\n\n`;
-        
-        // Рекурсивно обрабатываем подраздел с теми же полученными данными
-        const subsectionText = buildSectionText(item.id, prayerTexts, headerLevel + 1, language);
-        result += subsectionText;
+        result += buildSectionText(item.id, prayerTexts, headerLevel + 1, language);
       }
     }
     

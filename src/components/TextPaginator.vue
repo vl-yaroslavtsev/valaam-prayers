@@ -60,9 +60,7 @@ import { useDelayed } from "@/composables/useDelayed";
 import type { PaginationCacheItemHeader } from "@/services/storage/PaginationCacheStorage";
 import type { Swiper } from "swiper";
 import type { Language } from "@/types/common";
-import {
-  paginateText
-} from "@/text-processing";
+import { paginateText } from "@/text-processing-v2";
 
 import TextPagerHorizontal from "./text-paginator/TextPagerHorizontal.vue";
 import TextPagerVertical from "./text-paginator/TextPagerVertical.vue";
@@ -180,7 +178,6 @@ async () => {
       pages.value = cached.pages;
       headers.value = cached.headers;
     } else {
-
       if (text.length > 38000) {
         isShowCalculating.value = true;
       }
