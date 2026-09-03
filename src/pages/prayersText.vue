@@ -59,6 +59,7 @@
       </div>
     </f7-page-content>
     <TextSettingsSelector 
+      ref="textSettingsSelector"
       v-model:isOpened="isTextSettingsSheetOpened"
       :disabled="isTextCalculating"
       :language="currentLanguage"
@@ -100,6 +101,7 @@
       @close="closeChapterNav"
     />
     <PageNavigationToolbar
+      ref="pageNavToolbar"
       v-show="!isBrightnessTouching"
       :current-page="currentPage"
       :total-pages="totalPages"
@@ -112,6 +114,7 @@
       @scrub-end="onPageScrubEnd"
     />
     <PrayersTextContentPopup
+      ref="contentPopup"
       v-model:isOpened="isContentPopupOpened"
       :itemId="itemId"
       :title="title"
@@ -135,6 +138,21 @@
       @selectMatch="onSelectMatch"
       @closeSearch="onCloseSearch"
     />
+
+    <ReadingBasicsTutorial
+      v-if="isBasicsTutorialActive"
+      :page-mode="settingsStore.pageMode"
+      :step="basicsStep"
+      :steps-count="basicsStepsCount"
+      @next="nextBasicsStep"
+      @prev="prevBasicsStep"
+      @close="skipBasicsTutorial"
+    />
+    <SpotlightHint
+      v-if="activeHintTargets"
+      :targets="activeHintTargets"
+      @close="closeActiveHint"
+    />
   </f7-page>
 </template>
 
@@ -157,6 +175,7 @@ import { useSettingsStore } from "@/stores/settings";
 import { useUndoToast } from "@/composables/useUndoToast";
 import { useTextSearch } from "@/composables/useTextSearch";
 import { useBookmarks, progressToPage } from "@/composables/useBookmarks";
+import { useReadingTutorial } from "@/composables/useReadingTutorial";
 
 import PrayersTextContentPopup from "@/components/PrayersTextContentPopup.vue";
 import PrayersTextSearchPage from "@/components/PrayersTextSearchPage.vue";
@@ -167,6 +186,8 @@ import PageNavigationToolbar from "@/components/PageNavigationToolbar.vue";
 import SearchNavigationToolbar from "@/components/SearchNavigationToolbar.vue";
 import BookmarkNavigationToolbar from "@/components/BookmarkNavigationToolbar.vue";
 import ChapterNavigationToolbar from "@/components/ChapterNavigationToolbar.vue";
+import ReadingBasicsTutorial from "@/components/reading-tutorial/ReadingBasicsTutorial.vue";
+import SpotlightHint, { type SpotlightTarget } from "@/components/reading-tutorial/SpotlightHint.vue";
 import SvgIcon from "@/components/SvgIcon.vue";
 import { useApiState } from "@/composables/useApiState";
 import { device } from "@/js/device";
@@ -179,6 +200,9 @@ const { elementId, sectionId, f7router } = defineProps<{
 
 const { isDarkMode } = useTheme();
 const navbarRef = useTemplateRef<InstanceType<typeof PrayersTextNavbar>>("navbar");
+const pageNavToolbarRef = useTemplateRef<InstanceType<typeof PageNavigationToolbar>>("pageNavToolbar");
+const contentPopupRef = useTemplateRef<InstanceType<typeof PrayersTextContentPopup>>("contentPopup");
+const textSettingsSelectorRef = useTemplateRef<InstanceType<typeof TextSettingsSelector>>("textSettingsSelector");
 
 const prayersStore = usePrayersStore();
 const historyStore = useReadingHistoryStore();
@@ -413,6 +437,18 @@ const onTextPaginatorTap = (payload: { type: "center" | "left" | "right" | "top"
     return;
   }
 
+  if (
+    shouldShowBasicsTutorial.value &&
+    !isLoading.value &&
+    !isTextCalculating.value &&
+    !isSearchModeActive.value &&
+    !isBookmarkNavActive.value &&
+    !isChapterNavActive.value
+  ) {
+    startBasicsTutorial();
+    return;
+  }
+
   if (type === "center") {
     if (!isNavbarHiding) {
       isNavbarHidden.value = false;
@@ -479,6 +515,67 @@ const {
   openEditDialog: openBookmarkEditDialog,
   deleteBookmarkWithUndo,
 } = useBookmarks(itemId, progress, totalPages);
+
+// Обучающий режим читалки — уровень 1 "Основы" (см. useReadingTutorial.ts)
+const {
+  isBasicsTutorialActive,
+  basicsStep,
+  basicsStepsCount,
+  shouldShowBasicsTutorial,
+  startBasicsTutorial,
+  nextBasicsStep,
+  prevBasicsStep,
+  skipBasicsTutorial,
+  shouldShowTopMenuHint,
+  shouldShowResetProgressHint,
+  markTopMenuHintSeen,
+  markResetProgressHintSeen,
+} = useReadingTutorial();
+
+// Уровень 2 обучающего режима — контекстные подсказки (см. SpotlightHint.vue).
+// Триггеры (watch) находятся ниже, рядом с объявлением isPageNavHidden — нужны
+// isNavbarHidden/isPageNavHidden/isTextSettingsSheetOpened, которые объявляются позже
+const activeHintTargets = ref<SpotlightTarget[] | null>(null);
+let activeHintDone: (() => void) | null = null;
+
+const showSpotlightHint = (targets: SpotlightTarget[], onDone: () => void) => {
+  if (!targets.length) return;
+  activeHintTargets.value = targets;
+  activeHintDone = onDone;
+};
+
+const closeActiveHint = () => {
+  activeHintTargets.value = null;
+  activeHintDone?.();
+  activeHintDone = null;
+};
+
+const TOP_MENU_HINT_COPY: Record<string, { title: string; text: string }> = {
+  menu: {
+    title: "Меню и содержание",
+    text: "Открывает список глав и ваши закладки для этого текста.",
+  },
+  language: {
+    title: "Смена языка",
+    text: "Переключает язык текста молитвы.",
+  },
+  favorite: {
+    title: "На главный экран",
+    text: "Добавляет молитву на главный экран для быстрого доступа.",
+  },
+  settings: {
+    title: "Настройки текста",
+    text: "Изменяет размер шрифта, межстрочный интервал и тему чтения.",
+  },
+  share: {
+    title: "Поделиться",
+    text: "Отправляет ссылку на этот текст другим приложениям.",
+  },
+  search: {
+    title: "Поиск по тексту",
+    text: "Ищет слово или фразу внутри текущей молитвы.",
+  },
+};
 
 const bookmarkedPages = computed(() =>
   [...new Set(bookmarksForItem.value.map((bookmark) => bookmark.page))]
@@ -603,6 +700,46 @@ watch(progress, () => {
 });
 
 const isPageNavHidden = ref(true);
+
+// Уровень 2 обучающего режима читалки — контекстные подсказки по иконкам верхнего
+// меню и сбросу прогресса (см. SpotlightHint.vue). Показываются один раз, при
+// первом раскрытии соответствующей панели, с небольшой задержкой, чтобы не
+// подсвечивать элементы посреди анимации появления navbar/toolbar
+watch(isNavbarHidden, (hidden) => {
+  if (hidden || !shouldShowTopMenuHint.value) return;
+  setTimeout(() => {
+    if (isNavbarHidden.value) return;
+    const targets: SpotlightTarget[] = (navbarRef.value?.getIconTargets() ?? [])
+      .filter((target) => target.el)
+      .map((target) => ({
+        title: TOP_MENU_HINT_COPY[target.key].title,
+        text: TOP_MENU_HINT_COPY[target.key].text,
+        getTargetEl: () => target.el,
+        shape: "circle" as const,
+      }));
+    showSpotlightHint(targets, markTopMenuHintSeen);
+  }, 350);
+});
+
+watch(isPageNavHidden, (hidden) => {
+  if (hidden || !shouldShowResetProgressHint.value) return;
+  setTimeout(() => {
+    if (isPageNavHidden.value) return;
+    const el = pageNavToolbarRef.value?.getResetLinkEl();
+    if (!el) return;
+    showSpotlightHint(
+      [
+        {
+          title: "Сбросить прогресс чтения",
+          text: "Возвращает вас к началу текста. Действие можно отменить — после сброса появится кнопка «Отменить».",
+          getTargetEl: () => el,
+          shape: "circle",
+        },
+      ],
+      markResetProgressHintSeen
+    );
+  }, 350);
+});
 
 // Пока ползунок страниц двигается, реальный переход по тексту отложен
 // (дебаунс в PageNavigationToolbar), поэтому видимый текст не соответствует

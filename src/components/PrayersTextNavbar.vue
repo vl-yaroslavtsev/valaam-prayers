@@ -7,31 +7,32 @@
     <f7-nav-left :back-link="true"></f7-nav-left>
     <f7-nav-title sliding></f7-nav-title>
     <f7-nav-right>
-      <f7-link icon-only @click="emit('open-content-popup')">
+      <f7-link ref="menuLink" icon-only @click="emit('open-content-popup')">
         <SvgIcon icon="menu" :color="navIconColor" :size="24" />
       </f7-link>
       <LanguageSelector 
         v-if="currentLanguage && availableLanguages.length > 1"
+        ref="languageSelector"
         v-model="currentLanguage" 
         :available-languages="availableLanguages" />
-      <f7-link icon-only>
+      <f7-link ref="favoriteLink" icon-only>
         <SvgIcon 
           :icon="isElementFavorite ? 'favorite-filled' : 'favorite'" 
           :color="navIconColor" 
           :size="24"
           @click="toggleFavorite" />
       </f7-link>
-      <f7-link icon-only>
+      <f7-link ref="settingsLink" icon-only>
         <SvgIcon 
           icon="settings-2" 
           :color="navIconColor" 
           :size="24" 
           @click="$emit('toggle-text-settings')" />
       </f7-link>
-      <f7-link icon-only>
+      <f7-link ref="shareLink" icon-only>
         <SvgIcon icon="share" :color="navIconColor" :size="24" @click="shareItem" />
       </f7-link>
-      <f7-link icon-only @click="emit('open-search')">
+      <f7-link ref="searchLink" icon-only @click="emit('open-search')">
         <SvgIcon icon="search" :color="navIconColor" :size="24" />
       </f7-link>
     </f7-nav-right>
@@ -103,6 +104,15 @@ const props = defineProps<Props>();
 const emit = defineEmits<Emits>();
 
 const navbarRef = useTemplateRef<ComponentPublicInstance>("navbar");
+
+// Refs на иконки верхнего меню — используются обучающим режимом читалки
+// для точечной подсветки (см. SpotlightHint.vue)
+const menuLinkRef = useTemplateRef<ComponentPublicInstance>("menuLink");
+const languageSelectorRef = useTemplateRef<ComponentPublicInstance>("languageSelector");
+const favoriteLinkRef = useTemplateRef<ComponentPublicInstance>("favoriteLink");
+const settingsLinkRef = useTemplateRef<ComponentPublicInstance>("settingsLink");
+const shareLinkRef = useTemplateRef<ComponentPublicInstance>("shareLink");
+const searchLinkRef = useTemplateRef<ComponentPublicInstance>("searchLink");
 
 const { isDarkMode } = useTheme();
 const navIconColor = computed(() => (isDarkMode.value ? "baige-90" : "black-primary"));
@@ -213,9 +223,29 @@ watch(isBrightnessTouching, (isTouching) => {
   }
 });
 
+// Ключи иконок верхнего меню в порядке их отображения в navbar
+export type NavbarIconKey =
+  | "menu"
+  | "language"
+  | "favorite"
+  | "settings"
+  | "share"
+  | "search";
+
+// Возвращает DOM-элементы иконок верхнего меню для точечной подсветки в обучающем режиме
+const getIconTargets = (): { key: NavbarIconKey; el: HTMLElement | null }[] => [
+  { key: "menu", el: menuLinkRef.value?.$el ?? null },
+  { key: "language", el: languageSelectorRef.value?.$el ?? null },
+  { key: "favorite", el: favoriteLinkRef.value?.$el ?? null },
+  { key: "settings", el: settingsLinkRef.value?.$el ?? null },
+  { key: "share", el: shareLinkRef.value?.$el ?? null },
+  { key: "search", el: searchLinkRef.value?.$el ?? null },
+];
+
 // Экспортируем ref для внешнего доступа
 defineExpose({
-  isBrightnessTouching: readonly(isBrightnessTouching)
+  isBrightnessTouching: readonly(isBrightnessTouching),
+  getIconTargets,
 });
 </script>
 

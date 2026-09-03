@@ -28,6 +28,9 @@ const SETTINGS_KEYS = {
   VOLUME_BUTTONS_SCROLL: `${SETTINGS_PREFIX}volume-buttons-scroll`,
   PAGE_TURN_ANIMATION: `${SETTINGS_PREFIX}page-turn-animation`,
   AUTO_UPDATE_OFFLINE_DATA: `${SETTINGS_PREFIX}auto-update-offline`,
+  HAS_SEEN_READING_BASICS_TUTORIAL: `${SETTINGS_PREFIX}has-seen-reading-basics-tutorial`,
+  HAS_SEEN_TOP_MENU_HINT: `${SETTINGS_PREFIX}has-seen-top-menu-hint`,
+  HAS_SEEN_RESET_PROGRESS_HINT: `${SETTINGS_PREFIX}has-seen-reset-progress-hint`,
 } as const;
 
 // Интерфейс настроек приложения
@@ -93,6 +96,11 @@ interface AppSettings {
 
   // Автообновление скачанных офлайн-данных (см. src/services/download/AutoUpdate.ts)
   isAutoUpdateOfflineDataEnabled: boolean;
+
+  // Обучающий режим читалки (см. src/composables/useReadingTutorial.ts)
+  hasSeenReadingBasicsTutorial: boolean;
+  hasSeenTopMenuHint: boolean;
+  hasSeenResetProgressHint: boolean;
 }
 
 // Настройки по умолчанию
@@ -117,6 +125,9 @@ const DEFAULT_SETTINGS: AppSettings = {
   isVolumeButtonsScrollEnabled: false,
   isPageTurnAnimationEnabled: true,
   isAutoUpdateOfflineDataEnabled: true,
+  hasSeenReadingBasicsTutorial: false,
+  hasSeenTopMenuHint: false,
+  hasSeenResetProgressHint: false,
 };
 
 export const useSettingsStore = defineStore("settings", () => {
@@ -164,6 +175,9 @@ export const useSettingsStore = defineStore("settings", () => {
       isVolumeButtonsScrollEnabled: SETTINGS_KEYS.VOLUME_BUTTONS_SCROLL,
       isPageTurnAnimationEnabled: SETTINGS_KEYS.PAGE_TURN_ANIMATION,
       isAutoUpdateOfflineDataEnabled: SETTINGS_KEYS.AUTO_UPDATE_OFFLINE_DATA,
+      hasSeenReadingBasicsTutorial: SETTINGS_KEYS.HAS_SEEN_READING_BASICS_TUTORIAL,
+      hasSeenTopMenuHint: SETTINGS_KEYS.HAS_SEEN_TOP_MENU_HINT,
+      hasSeenResetProgressHint: SETTINGS_KEYS.HAS_SEEN_RESET_PROGRESS_HINT,
     };
     return keyMap[key];
   };
@@ -204,6 +218,13 @@ export const useSettingsStore = defineStore("settings", () => {
   );
   const isAutoUpdateOfflineDataEnabled = computed(
     () => settings.value.isAutoUpdateOfflineDataEnabled
+  );
+  const hasSeenReadingBasicsTutorial = computed(
+    () => settings.value.hasSeenReadingBasicsTutorial
+  );
+  const hasSeenTopMenuHint = computed(() => settings.value.hasSeenTopMenuHint);
+  const hasSeenResetProgressHint = computed(
+    () => settings.value.hasSeenResetProgressHint
   );
 
   // Получение языка с приоритетом из доступных языков
@@ -263,6 +284,9 @@ export const useSettingsStore = defineStore("settings", () => {
     isVolumeButtonsScrollEnabled,
     isPageTurnAnimationEnabled,
     isAutoUpdateOfflineDataEnabled,
+    hasSeenReadingBasicsTutorial,
+    hasSeenTopMenuHint,
+    hasSeenResetProgressHint,
 
     // Универсальный метод
     setSetting,
@@ -305,6 +329,12 @@ export const useSettingsStore = defineStore("settings", () => {
       setSetting("isPageTurnAnimationEnabled", enabled),
     setIsAutoUpdateOfflineDataEnabled: (enabled: boolean) =>
       setSetting("isAutoUpdateOfflineDataEnabled", enabled),
+    setHasSeenReadingBasicsTutorial: (seen: boolean) =>
+      setSetting("hasSeenReadingBasicsTutorial", seen),
+    setHasSeenTopMenuHint: (seen: boolean) =>
+      setSetting("hasSeenTopMenuHint", seen),
+    setHasSeenResetProgressHint: (seen: boolean) =>
+      setSetting("hasSeenResetProgressHint", seen),
 
     // Утилиты
     getLanguageFromAvailable,

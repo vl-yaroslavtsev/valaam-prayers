@@ -7,6 +7,7 @@
   >
     <div class="header">
       <f7-link 
+        ref="resetLink"
         class="reset-link" 
         icon-only 
         href="#"
@@ -71,6 +72,7 @@ const emit = defineEmits<Emits>();
 
 const pageNavToolbar = useTemplateRef<ComponentPublicInstance>("pageNavToolbar");
 const pageRangeSlider = useTemplateRef<ComponentPublicInstance>("pageRangeSlider");
+const resetLinkRef = useTemplateRef<ComponentPublicInstance>("resetLink");
 
 // f7-range считает своё значение по абсолютной позиции пальца на треке (см.
 // handleTouchStart в node_modules/framework7/components/range/range-class.js),
@@ -281,6 +283,13 @@ onBeforeUnmount(() => {
 const handleResetProgress = () => {
   emit('reset-progress');
 };
+
+// Возвращает DOM-элемент иконки сброса прогресса для точечной подсветки в обучающем режиме
+const getResetLinkEl = (): HTMLElement | null => resetLinkRef.value?.$el ?? null;
+
+defineExpose({
+  getResetLinkEl,
+});
 </script>
 
 <style scoped lang="less">

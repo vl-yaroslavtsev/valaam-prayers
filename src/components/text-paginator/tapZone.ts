@@ -3,7 +3,17 @@ export type TapZoneType = "center" | "left" | "right" | "top" | "bottom" | "book
 // Область тапа для закладки в правом верхнем углу — задана в абсолютных px, так как
 // угол физически всегда сверху-справа на экране, независимо от orientation (в отличие
 // от along/across осей ниже, которые переставляются между горизонтальным и вертикальным режимом)
-const BOOKMARK_ZONE_SIZE = 56;
+export const BOOKMARK_ZONE_SIZE = 56;
+
+// Доли по "продольной" оси (см. detectTapZone) — экспортированы, чтобы обучающий тур
+// рисовал зоны листания/меню той же геометрией, без риска разойтись с реальным поведением
+export const TAP_ZONE_ALONG_START_RATIO = 0.25;
+export const TAP_ZONE_ALONG_END_RATIO = 0.75;
+
+// Доли по "поперечной" оси, определяющие вертикальную (для горизонтального режима)
+// полосу центральной зоны тапа
+export const TAP_ZONE_ACROSS_START_RATIO = 0.3;
+export const TAP_ZONE_ACROSS_END_RATIO = 0.7;
 
 /**
  * Определяет зону тапа внутри прямоугольника читалки.
@@ -40,12 +50,12 @@ export function detectTapZone(
   const primaryZone: TapZoneType = isHorizontal ? "left" : "top";
   const secondaryZone: TapZoneType = isHorizontal ? "right" : "bottom";
 
-  const alongStart = alongSize * 0.25;
-  const alongEnd = alongSize * 0.75;
+  const alongStart = alongSize * TAP_ZONE_ALONG_START_RATIO;
+  const alongEnd = alongSize * TAP_ZONE_ALONG_END_RATIO;
   const alongCenter = alongSize * 0.5;
 
-  const acrossStart = acrossSize * 0.3;
-  const acrossEnd = acrossSize * 0.7;
+  const acrossStart = acrossSize * TAP_ZONE_ACROSS_START_RATIO;
+  const acrossEnd = acrossSize * TAP_ZONE_ACROSS_END_RATIO;
 
   if (along < alongStart) {
     return primaryZone;
