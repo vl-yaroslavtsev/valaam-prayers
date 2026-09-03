@@ -2,16 +2,16 @@ import { computed, ref } from "vue";
 import { useSettingsStore } from "@/stores/settings";
 
 // Количество шагов обязательного тура "Основы" (см. ReadingBasicsTutorial.vue):
-// 1) зоны листания + центр-меню, 2) угол — добавление закладки
-const BASICS_TUTORIAL_STEPS_COUNT = 2;
+// 1) листание назад, 2) листание вперёд, 3) показ меню, 4) угол — добавление закладки
+const BASICS_TUTORIAL_STEPS_COUNT = 4;
 
 /**
  * Обучающий режим читалки — два независимых механизма (см. src/pages/prayersText.vue):
  *
  * - Уровень 1 "Основы" — обязательный короткий тур из BASICS_TUTORIAL_STEPS_COUNT шагов,
  *   показывается один раз при первом тапе пользователя по области чтения.
- * - Уровень 2 — четыре контекстные одноразовые подсказки, каждая появляется по факту
- *   первого использования соответствующего элемента интерфейса (см. SpotlightHint.vue).
+ * - Уровень 2 — одноразовая подсказка по иконкам верхнего и нижнего меню,
+ *   появляется при первом раскрытии панелей (см. SpotlightHint.vue).
  */
 export function useReadingTutorial() {
   const settingsStore = useSettingsStore();
@@ -48,17 +48,17 @@ export function useReadingTutorial() {
     }
   };
 
-  // --- Уровень 2: контекстные подсказки (каждая — один раз) ---
-  const shouldShowTopMenuHint = computed(
-    () => !settingsStore.hasSeenTopMenuHint
-  );
-  const shouldShowResetProgressHint = computed(
-    () => !settingsStore.hasSeenResetProgressHint
+  // --- Уровень 2: контекстные подсказки по иконкам меню (один раз) ---
+  const shouldShowBarsHint = computed(
+    () =>
+      !settingsStore.hasSeenTopMenuHint ||
+      !settingsStore.hasSeenResetProgressHint
   );
 
-  const markTopMenuHintSeen = () => settingsStore.setHasSeenTopMenuHint(true);
-  const markResetProgressHintSeen = () =>
+  const markBarsHintSeen = () => {
+    settingsStore.setHasSeenTopMenuHint(true);
     settingsStore.setHasSeenResetProgressHint(true);
+  };
 
   // Сброс всех флагов сразу — используется пунктом "Обучение" в настройках
   const resetAllTutorialFlags = () => {
@@ -80,10 +80,8 @@ export function useReadingTutorial() {
     skipBasicsTutorial: finishBasicsTutorial,
 
     // Уровень 2
-    shouldShowTopMenuHint,
-    shouldShowResetProgressHint,
-    markTopMenuHintSeen,
-    markResetProgressHintSeen,
+    shouldShowBarsHint,
+    markBarsHintSeen,
 
     resetAllTutorialFlags,
   };

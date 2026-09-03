@@ -526,10 +526,8 @@ const {
   nextBasicsStep,
   prevBasicsStep,
   skipBasicsTutorial,
-  shouldShowTopMenuHint,
-  shouldShowResetProgressHint,
-  markTopMenuHintSeen,
-  markResetProgressHintSeen,
+  shouldShowBarsHint,
+  markBarsHintSeen,
 } = useReadingTutorial();
 
 // Уровень 2 обучающего режима — контекстные подсказки (см. SpotlightHint.vue).
@@ -575,6 +573,11 @@ const TOP_MENU_HINT_COPY: Record<string, { title: string; text: string }> = {
     title: "Поиск по тексту",
     text: "Ищет слово или фразу внутри текущей молитвы.",
   },
+};
+
+const RESET_PROGRESS_HINT = {
+  title: "Сбросить прогресс чтения",
+  text: "Возвращает вас к началу текста. Действие можно отменить — после сброса появится кнопка «Отменить».",
 };
 
 const bookmarkedPages = computed(() =>
@@ -701,14 +704,14 @@ watch(progress, () => {
 
 const isPageNavHidden = ref(true);
 
-// Уровень 2 обучающего режима читалки — контекстные подсказки по иконкам верхнего
-// меню и сбросу прогресса (см. SpotlightHint.vue). Показываются один раз, при
-// первом раскрытии соответствующей панели, с небольшой задержкой, чтобы не
-// подсвечивать элементы посреди анимации появления navbar/toolbar
-watch(isNavbarHidden, (hidden) => {
-  if (hidden || !shouldShowTopMenuHint.value) return;
+// Уровень 2 обучающего режима читалки — один тур по иконкам верхнего меню
+// и иконке сброса прогресса в нижнем (см. SpotlightHint.vue). Показывается
+// один раз при первом раскрытии обеих панелей, с небольшой задержкой, чтобы
+// не подсвечивать элементы посреди анимации появления navbar/toolbar
+watch([isNavbarHidden, isPageNavHidden], ([navHidden, pageNavHidden]) => {
+  if (navHidden || pageNavHidden || !shouldShowBarsHint.value) return;
   setTimeout(() => {
-    if (isNavbarHidden.value) return;
+    if (isNavbarHidden.value || isPageNavHidden.value) return;
     const targets: SpotlightTarget[] = (navbarRef.value?.getIconTargets() ?? [])
       .filter((target) => target.el)
       .map((target) => ({
@@ -717,27 +720,16 @@ watch(isNavbarHidden, (hidden) => {
         getTargetEl: () => target.el,
         shape: "circle" as const,
       }));
-    showSpotlightHint(targets, markTopMenuHintSeen);
-  }, 350);
-});
-
-watch(isPageNavHidden, (hidden) => {
-  if (hidden || !shouldShowResetProgressHint.value) return;
-  setTimeout(() => {
-    if (isPageNavHidden.value) return;
-    const el = pageNavToolbarRef.value?.getResetLinkEl();
-    if (!el) return;
-    showSpotlightHint(
-      [
-        {
-          title: "Сбросить прогресс чтения",
-          text: "Возвращает вас к началу текста. Действие можно отменить — после сброса появится кнопка «Отменить».",
-          getTargetEl: () => el,
-          shape: "circle",
-        },
-      ],
-      markResetProgressHintSeen
-    );
+    const resetEl = pageNavToolbarRef.value?.getResetLinkEl();
+    if (resetEl) {
+      targets.push({
+        title: RESET_PROGRESS_HINT.title,
+        text: RESET_PROGRESS_HINT.text,
+        getTargetEl: () => resetEl,
+        shape: "circle",
+      });
+    }
+    showSpotlightHint(targets, markBarsHintSeen);
   }, 350);
 });
 

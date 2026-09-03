@@ -4,11 +4,12 @@
 
     <div class="sh-hole" :style="holeStyle"></div>
 
-    <div class="sh-hand" :style="handStyle">
-      <SvgIcon icon="cursor-hand" :size="36" />
-    </div>
-
-    <div class="sh-card" :style="cardStyle">
+    <div
+      class="sh-card"
+      :class="placeBelow ? 'sh-card--caret-top' : 'sh-card--caret-bottom'"
+      :style="cardStyle"
+    >
+      <div class="sh-caret" :style="caretStyle"></div>
       <f7-link class="sh-close" icon-only @click="close">
         <SvgIcon icon="cancel" :size="20" color="black-40" />
       </f7-link>
@@ -53,8 +54,10 @@ export interface SpotlightTarget {
 
 // Отступ вокруг подсвечиваемого элемента (px)
 const HOLE_PADDING = 6;
-const HAND_ICON_SIZE = 36;
 const CARD_MARGIN = 12;
+const CARD_SIDE_INSET = 16;
+const MIN_SPACE_BELOW = 160;
+const CARET_EDGE_PAD = 20;
 
 const { targets } = defineProps<{
   targets: SpotlightTarget[];
@@ -139,24 +142,28 @@ const holeStyle = computed(() => {
   };
 });
 
-// Указатель-рука перекрывает нижний правый край выреза, как бы "указывая" на него
-const handStyle = computed(() => {
-  if (!rect.value) return {};
-  const overlap = HAND_ICON_SIZE * 0.35;
-  return {
-    left: `${rect.value.left + rect.value.width - overlap}px`,
-    top: `${rect.value.top + rect.value.height - overlap}px`,
-  };
+// Карточка размещается под целью, если снизу достаточно места, иначе — над ней.
+// Уголок caret указывает на центр подсвеченного элемента.
+const placeBelow = computed(() => {
+  if (!rect.value) return true;
+  return window.innerHeight - rect.value.bottom >= MIN_SPACE_BELOW;
 });
 
-// Карточка размещается под целью, если снизу достаточно места, иначе — над ней
 const cardStyle = computed(() => {
   if (!rect.value) return {};
-  const spaceBelow = window.innerHeight - rect.value.bottom;
-  const placeBelow = spaceBelow >= 160;
-  return placeBelow
+  return placeBelow.value
     ? { top: `${rect.value.bottom + CARD_MARGIN}px` }
     : { bottom: `${window.innerHeight - rect.value.top + CARD_MARGIN}px` };
+});
+
+const caretStyle = computed(() => {
+  if (!rect.value) return {};
+  const centerX = rect.value.left + rect.value.width / 2;
+  const cardWidth = window.innerWidth - CARD_SIDE_INSET * 2;
+  const minLeft = CARET_EDGE_PAD;
+  const maxLeft = cardWidth - CARET_EDGE_PAD;
+  const left = Math.min(maxLeft, Math.max(minLeft, centerX - CARD_SIDE_INSET));
+  return { left: `${left}px` };
 });
 </script>
 
@@ -184,12 +191,6 @@ const cardStyle = computed(() => {
   pointer-events: none;
 }
 
-.sh-hand {
-  position: fixed;
-  pointer-events: none;
-  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.35));
-}
-
 .sh-card {
   position: fixed;
   left: 16px;
@@ -198,6 +199,26 @@ const cardStyle = computed(() => {
   border-radius: 12px;
   padding: 12px 16px 16px;
   box-shadow: 0px 1px 2px 0px rgba(0, 0, 0, 0.3), 0px 2px 6px 2px rgba(0, 0, 0, 0.15);
+}
+
+.sh-caret {
+  position: absolute;
+  width: 0;
+  height: 0;
+  pointer-events: none;
+  transform: translateX(-50%);
+  border-left: 8px solid transparent;
+  border-right: 8px solid transparent;
+}
+
+.sh-card--caret-top .sh-caret {
+  top: -10px;
+  border-bottom: 10px solid var(--content-color-white-100);
+}
+
+.sh-card--caret-bottom .sh-caret {
+  bottom: -10px;
+  border-top: 10px solid var(--content-color-white-100);
 }
 
 .sh-close {
@@ -228,7 +249,7 @@ const cardStyle = computed(() => {
 
 .sh-text {
   margin: 0 0 16px;
-  font-size: 15px;
+  font-size: 16px;
   line-height: 1.4;
   color: var(--content-color-black-secondary);
 }
@@ -245,6 +266,14 @@ const cardStyle = computed(() => {
 :global(.dark) {
   .sh-card {
     background-color: var(--content-color-baige-10-no-opacity);
+  }
+
+  .sh-card--caret-top .sh-caret {
+    border-bottom-color: var(--content-color-baige-10-no-opacity);
+  }
+
+  .sh-card--caret-bottom .sh-caret {
+    border-top-color: var(--content-color-baige-10-no-opacity);
   }
 
   .sh-progress {
