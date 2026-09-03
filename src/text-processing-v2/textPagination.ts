@@ -30,6 +30,11 @@ export interface PaginationResult {
 
 const UNSPLITTABLE_TAGS = new Set(["H1", "H2", "H3", "H4", "H5", "H6"]);
 const SPLITTABLE_TAGS = new Set(["P", "BLOCKQUOTE"]);
+// Теги, чей margin-top может быть обнулён при "collapseFirstMargin".
+const FIRST_MARGIN_TOP_TAGS = new Set([
+  ...UNSPLITTABLE_TAGS,
+  ...SPLITTABLE_TAGS,
+]);
 
 /** Субпиксельный запас: сравнение bottom с лимитом страницы. */
 const FIT_EPSILON_PX = 0.5;
@@ -59,6 +64,8 @@ const yieldToMainThread = (): Promise<void> =>
 /** Граница слова для разрыва страницы: только пробелы, не мягкий перенос. */
 const isBreakChar = (ch: string): boolean => /\s/.test(ch);
 
+const INLINE_BREAK_TAGS = new Set(["BR", "HR"]);
+
 const closestElement = (node: Node, tags: Set<string>): HTMLElement | null => {
   let el: HTMLElement | null =
     node.nodeType === Node.ELEMENT_NODE
@@ -69,6 +76,125 @@ const closestElement = (node: Node, tags: Set<string>): HTMLElement | null => {
     el = el.parentElement;
   }
   return null;
+};
+
+const adjacentTextInBlock = (
+  container: HTMLElement,
+  node: Text,
+  direction: "prev" | "next"
+): Text | null => {
+  const block = closestElement(node, SPLITTABLE_TAGS);
+  if (!block) return null;
+  const walker = document.createTreeWalker(container, NodeFilter.SHOW_TEXT);
+  walker.currentNode = node;
+  let n = (
+    direction === "next" ? walker.nextNode() : walker.previousNode()
+  ) as Text | null;
+  while (n) {
+    if (!block.contains(n)) return null;
+    if (n.data.length > 0) return n;
+    n = (
+      direction === "next" ? walker.nextNode() : walker.previousNode()
+    ) as Text | null;
+  }
+  return null;
+};
+
+/**
+ * Два соседних текстовых узла — части одного слова: нет пробела на стыке
+ * и нет <br> между ними. Типичный случай: <strong>П</strong>реславную.
+ */
+const nodesJoinAsWord = (prev: Text, next: Text): boolean => {
+  if (isBreakChar(prev.data[prev.data.length - 1])) return false;
+  if (isBreakChar(next.data[0])) return false;
+
+  const range = document.createRange();
+  range.setStart(prev, prev.data.length);
+  range.setEnd(next, 0);
+  if (range.toString().length > 0) return false;
+
+  const walker = document.createTreeWalker(
+    range.commonAncestorContainer,
+    NodeFilter.SHOW_ELEMENT
+  );
+  let el = walker.nextNode() as Element | null;
+  while (el) {
+    if (INLINE_BREAK_TAGS.has(el.tagName) && range.intersectsNode(el)) {
+      return false;
+    }
+    el = walker.nextNode() as Element | null;
+  }
+  return true;
+};
+
+const startOfCurrentWord = (
+  container: HTMLElement,
+  node: Text,
+  offset: number
+): PageStart => {
+  let n = node;
+  let o = offset;
+  while (true) {
+    while (o > 0 && !isBreakChar(n.data[o - 1])) o -= 1;
+    if (o > 0) return { node: n, offset: o };
+    const prev = adjacentTextInBlock(container, n, "prev");
+    if (!prev || !nodesJoinAsWord(prev, n)) {
+      return { node: n, offset: 0 };
+    }
+    n = prev;
+    o = prev.data.length;
+  }
+};
+
+const endOfWordAcrossNodes = (
+  container: HTMLElement,
+  node: Text,
+  from: number
+): BreakPoint => {
+  let n = node;
+  let o = from;
+  while (true) {
+    while (o < n.data.length && !isBreakChar(n.data[o])) o += 1;
+    if (o < n.data.length) {
+      return { kind: "text", node: n, offset: o };
+    }
+    const next = adjacentTextInBlock(container, n, "next");
+    if (!next || !nodesJoinAsWord(n, next)) {
+      return { kind: "text", node: n, offset: n.data.length };
+    }
+    n = next;
+    o = 0;
+  }
+};
+
+const isWordChar = (ch: string | null): boolean =>
+  ch !== null && !isBreakChar(ch);
+
+/** Разрыв (node, offset) стоит внутри слова, в том числе на стыке узлов. */
+const breakSplitsWord = (
+  container: HTMLElement,
+  node: Text,
+  offset: number
+): boolean => {
+  let before: string | null = null;
+  let after: string | null = null;
+  if (offset > 0) {
+    before = node.data[offset - 1];
+  } else {
+    const prev = adjacentTextInBlock(container, node, "prev");
+    if (prev && nodesJoinAsWord(prev, node)) {
+      before = prev.data[prev.data.length - 1];
+    }
+  }
+  if (offset < node.data.length) {
+    after = node.data[offset];
+  } else {
+    const next = adjacentTextInBlock(container, node, "next");
+    if (next && nodesJoinAsWord(node, next)) {
+      after = next.data[0];
+    }
+  }
+  return isWordChar(before) && isWordChar(after);
 };
 
 /**
@@ -137,14 +263,13 @@ const measureMaxHeight = (
   });
   document.body.appendChild(probe);
   const style = window.getComputedStyle(probe);
-  const verticalChrome =
-    parseFloat(style.paddingTop) +
-    parseFloat(style.paddingBottom) +
-    (parseFloat(style.borderTopWidth) || 0) +
-    (parseFloat(style.borderBottomWidth) || 0);
+  // clientHeight уже без бордеров: это padding+content, как у реальной .text-page.
+  const contentHeight =
+    probe.clientHeight -
+    parseFloat(style.paddingTop) -
+    parseFloat(style.paddingBottom);
   document.body.removeChild(probe);
-  // 2px — субпиксельное округление getBoundingClientRect vs scrollHeight.
-  return Math.max(pageHeight - verticalChrome - 2, MIN_PAGE_HEIGHT_PX);
+  return Math.max(contentHeight, MIN_PAGE_HEIGHT_PX);
 };
 
 const insertHtml = (container: HTMLElement, html: string): void => {
@@ -203,25 +328,41 @@ const skipLeadingWhitespace = (
   return null;
 };
 
+const SOFT_HYPHEN = "\u00AD";
+
 const rangeBottomAtOffset = (range: Range, node: Text, endOffset: number): number => {
-  if (endOffset <= 0) {
+  // Пробел (и мягкий перенос) после слова, севшего впритык к правому краю,
+  // даёт нулевой client rect и на следующей строке. Низ этого rect нельзя
+  // считать «слово не влезло» — буквы слова остаются на текущей строке.
+  let end = endOffset;
+  while (
+    end > 0 &&
+    (isBreakChar(node.data[end - 1]) || node.data[end - 1] === SOFT_HYPHEN)
+  ) {
+    end -= 1;
+  }
+  if (end <= 0) {
     range.setStart(node, 0);
     range.collapse(true);
     return range.getBoundingClientRect().bottom;
   }
-  // Один символ в конце диапазона: bottom = низ строки, на которой он рисуется.
-  range.setStart(node, endOffset - 1);
-  range.setEnd(node, endOffset);
+  range.setStart(node, end - 1);
+  range.setEnd(node, end);
   const rects = range.getClientRects();
   if (rects.length === 0) {
     return range.getBoundingClientRect().bottom;
   }
-  return rects[rects.length - 1].bottom;
+  for (let i = rects.length - 1; i >= 0; i--) {
+    if (rects[i].width > 0) return rects[i].bottom;
+  }
+  return rects[0].bottom;
 };
 
 /**
  * Точки разрыва по словам: после каждого пробельного промежутка
  * (начало следующего слова) и конец узла.
+ * Мягкий перенос не считается границей: слово уходит на следующую
+ * страницу целиком.
  */
 const collectWordBreakOffsets = (text: string, from: number): number[] => {
   const offsets: number[] = [];
@@ -243,7 +384,8 @@ const findBreakOffset = (
   node: Text,
   from: number,
   limitBottom: number,
-  range: Range
+  range: Range,
+  container: HTMLElement
 ): number => {
   const text = node.data;
   if (from >= text.length) return from;
@@ -252,6 +394,17 @@ const findBreakOffset = (
     rangeBottomAtOffset(range, node, end) <= limitBottom + FIT_EPSILON_PX;
 
   const wordOffsets = collectWordBreakOffsets(text, from);
+  // Конец узла — граница слова, только если следующее слово не продолжается
+  // в соседнем узле (<strong>П</strong>реславную).
+  if (
+    wordOffsets.length > 0 &&
+    wordOffsets[wordOffsets.length - 1] === text.length
+  ) {
+    const next = adjacentTextInBlock(container, node, "next");
+    if (next && nodesJoinAsWord(node, next)) {
+      wordOffsets.pop();
+    }
+  }
   if (wordOffsets.length === 0) {
     return from;
   }
@@ -273,10 +426,24 @@ const findBreakOffset = (
   return bestWord;
 };
 
-const endOfWord = (text: string, from: number): number => {
-  let i = from;
-  while (i < text.length && !isBreakChar(text[i])) i += 1;
-  return i > from ? i : Math.min(from + 1, text.length);
+const snapBreakToWordBoundary = (
+  container: HTMLElement,
+  start: PageStart,
+  end: BreakPoint
+): BreakPoint => {
+  if (end.kind !== "text") return end;
+  if (!breakSplitsWord(container, end.node, end.offset)) return end;
+
+  const wordStart = startOfCurrentWord(container, end.node, end.offset);
+  const snapped: BreakPoint = {
+    kind: "text",
+    node: wordStart.node,
+    offset: wordStart.offset,
+  };
+  if (!isRangeEmpty(start, snapped, container)) {
+    return snapped;
+  }
+  return endOfWordAcrossNodes(container, end.node, end.offset);
 };
 
 const isRangeEmpty = (
@@ -340,12 +507,20 @@ const isBlockContinuation = (start: PageStart): boolean => {
   return range.toString().length > 0;
 };
 
+// cloneContents может оставить пустые <strong>/<em>. Не трогаем void-теги:
+// <br> имеет пустой textContent, но задаёт разрыв строки.
+const KEEP_EMPTY_TAGS = new Set(["BR", "IMG", "HR", "WBR"]);
+
 const pruneEmptyElements = (root: ParentNode): void => {
   const empty: Element[] = [];
   const walker = document.createTreeWalker(root, NodeFilter.SHOW_ELEMENT);
   let node = walker.nextNode() as Element | null;
   while (node) {
-    if (!node.textContent && node.childElementCount === 0) {
+    if (
+      !KEEP_EMPTY_TAGS.has(node.tagName) &&
+      !node.textContent &&
+      node.childElementCount === 0
+    ) {
       empty.push(node);
     }
     node = walker.nextNode() as Element | null;
@@ -425,9 +600,11 @@ const paginateHtmlChunk = function* (
   html: string,
   pageWidth: number,
   maxHeight: number,
-  cssClasses?: string
+  cssClasses?: string,
+  pageIndexOffset: number = 0
 ): Generator<{ html: string; headers: PaginationHeader[] }> {
   const measureEl = createMeasureContainer(pageWidth, cssClasses);
+  const midLineProbe = createMeasureContainer(pageWidth, cssClasses);
   const serializeWrap = document.createElement("div");
 
   try {
@@ -443,10 +620,112 @@ const paginateHtmlChunk = function* (
     const measureRange = document.createRange();
     const walker = document.createTreeWalker(measureEl, NodeFilter.SHOW_TEXT);
 
+    /**
+     * Страницы сериализуются отдельно и рисуются с y=0, поэтому лимит нельзя
+     * ставить сеткой n*maxHeight в непрерывном потоке: недобор на разрыве
+     * (заголовок, граница слова) «перетекает» в следующую страницу и на
+     * реальном боксе даёт вылезание за padding.
+     * Первая страница: origin = верх контейнера, чтобы margin-top первого
+     * блока вошёл в бюджет. Дальше collapseFirstMargin обнуляет его —
+     * origin = верх первой строки этой страницы.
+     */
+    const pageOriginTop = (start: PageStart, isFirstPage: boolean): number => {
+      if (isFirstPage) {
+        return containerRect.top;
+      }
+      const { node, offset } = start;
+      if (offset < node.data.length) {
+        measureRange.setStart(node, offset);
+        measureRange.setEnd(node, offset + 1);
+        return measureRange.getBoundingClientRect().top;
+      }
+      measureRange.setStart(node, offset);
+      measureRange.collapse(true);
+      return measureRange.getBoundingClientRect().top;
+    };
+
+    /**
+     * В непрерывном потоке слово, которое мы целиком унесли на следующую
+     * страницу (мягкий перенос не граница), может всё ещё начинаться в хвосте
+     * предыдущей строки. На реальной странице оно рисуется с левого края
+     * колонки — на одну строку компактнее, чем measure.
+     */
+    const isStartMidLine = (start: PageStart): boolean => {
+      const { node, offset } = start;
+      if (offset >= node.data.length) return false;
+      measureRange.setStart(node, offset);
+      measureRange.setEnd(node, offset + 1);
+      const charRect = measureRange.getBoundingClientRect();
+      if (charRect.height === 0) return false;
+      const block =
+        closestElement(start.node, FIRST_MARGIN_TOP_TAGS) ?? node.parentElement;
+      if (!block) return false;
+      const cs = window.getComputedStyle(block);
+      const contentLeft =
+        block.getBoundingClientRect().left + (parseFloat(cs.paddingLeft) || 0);
+      return charRect.left > contentLeft + 1;
+    };
+
+    const lineSpan = (rects: DOMRectList | DOMRect[]): number => {
+      let top = Infinity;
+      let bottom = -Infinity;
+      for (let i = 0; i < rects.length; i++) {
+        const r = rects[i];
+        if (r.height <= 0) continue;
+        if (r.top < top) top = r.top;
+        if (r.bottom > bottom) bottom = r.bottom;
+      }
+      return bottom > top ? bottom - top : 0;
+    };
+
+    /**
+     * Насколько хвост первого блока выше в непрерывном потоке, чем на
+     * реальной странице (полное ширинное начало). Обычно 0 или высота строки.
+     */
+    const continuationReflowExtra = (start: PageStart): number => {
+      if (!isStartMidLine(start)) return 0;
+      const block = closestElement(start.node, SPLITTABLE_TAGS);
+      if (!block) return 0;
+
+      measureRange.setStart(start.node, start.offset);
+      measureRange.setEnd(block, block.childNodes.length);
+      const measureH = lineSpan(measureRange.getClientRects());
+      if (measureH <= 0) return 0;
+
+      const probeRange = document.createRange();
+      probeRange.setStart(start.node, start.offset);
+      probeRange.setEnd(block, block.childNodes.length);
+      const fragment = probeRange.cloneContents();
+      const first = fragment.firstElementChild;
+      if (first && SPLITTABLE_TAGS.has(first.tagName)) {
+        first.classList.add("splitted");
+      }
+      midLineProbe.replaceChildren(fragment);
+      void midLineProbe.offsetHeight;
+      probeRange.selectNodeContents(midLineProbe);
+      const probeH = lineSpan(probeRange.getClientRects());
+      midLineProbe.replaceChildren();
+
+      const extra = measureH - probeH;
+      return extra > 1 ? extra : 0;
+    };
+
+    const getLimitBottom = (start: PageStart, globalPageIndex: number): number => {
+      const isFirstOverall = globalPageIndex === 0;
+      const originTop = pageOriginTop(start, isFirstOverall);
+      // serializePage обнуляет marginTop первого блока на не-первых страницах,
+      // если старт не continuation. Origin уже верх первой строки, а не
+      // край margin — прибавлять marginTop к лимиту нельзя: это даёт
+      // вылезание примерно на величину отступа заголовка.
+      if (!isFirstOverall && isBlockContinuation(start)) {
+        return originTop + maxHeight + continuationReflowExtra(start);
+      }
+      return originTop + maxHeight;
+    };
+
     let pageStart: PageStart | null = { node: first, offset: 0 };
-    let currentPageLimit = maxHeight;
-    let limitBottom = containerRect.top + currentPageLimit;
     let committed = 0;
+    let limitBottom = getLimitBottom(pageStart, pageIndexOffset + committed);
 
     const commitPage = (
       start: PageStart,
@@ -455,12 +734,13 @@ const paginateHtmlChunk = function* (
       next: PageStart | null;
       page: { html: string; headers: PaginationHeader[] } | null;
     } => {
+      const collapseFirstMargin = pageIndexOffset + committed > 0;
       const pageHtml = serializePage(
         measureEl,
         start,
         end,
         serializeWrap,
-        committed > 0
+        collapseFirstMargin
       );
       let page: { html: string; headers: PaginationHeader[] } | null = null;
       if (pageHtml) {
@@ -470,8 +750,6 @@ const paginateHtmlChunk = function* (
           headers: collectHeadersFromRoot(serializeWrap, committed),
         };
         serializeWrap.replaceChildren();
-        currentPageLimit += maxHeight;
-        limitBottom = containerRect.top + currentPageLimit;
       }
 
       const next = nextStartAfterBreak(measureEl, end);
@@ -504,6 +782,7 @@ const paginateHtmlChunk = function* (
       if (!next) return false;
       walker.currentNode = next.node;
       node = next.node;
+      limitBottom = getLimitBottom(next, pageIndexOffset + committed);
       return true;
     };
 
@@ -537,20 +816,62 @@ const paginateHtmlChunk = function* (
       }
 
       const from = node === pageStart.node ? pageStart.offset : 0;
-      const breakOffset = findBreakOffset(node, from, limitBottom, measureRange);
+      const breakOffset = findBreakOffset(
+        node,
+        from,
+        limitBottom,
+        measureRange,
+        measureEl
+      );
 
       let end: BreakPoint;
       if (breakOffset <= from) {
         const breakBeforeNode: BreakPoint = { kind: "text", node, offset: from };
         if (isRangeEmpty(pageStart, breakBeforeNode, measureEl)) {
           // Страница пуста, а слово не влезает — берём его целиком, иначе цикл.
-          end = { kind: "text", node, offset: endOfWord(node.data, from) };
+          end = endOfWordAcrossNodes(measureEl, node, from);
         } else {
           end = breakBeforeNode;
         }
       } else {
         end = { kind: "text", node, offset: breakOffset };
       }
+
+      // Если страница закончилась заметно раньше limitBottom, можно
+      // "дотянуть" конец: попробовать взять часть следующего фрагмента
+      // (без доп. рендеров, только Range-измерения).
+      if (end.kind === "text") {
+        let attempts = 0;
+        while (attempts < 4) {
+          const endBottom = rangeBottomAtOffset(
+            measureRange,
+            end.node,
+            end.offset
+          );
+          const gap = limitBottom - endBottom;
+          if (gap <= 5) break;
+
+          const nextStart = nextStartAfterBreak(measureEl, end);
+          if (!nextStart) break;
+
+          const nextHeading = closestElement(nextStart.node, UNSPLITTABLE_TAGS);
+          if (nextHeading) break;
+
+          const extOffset = findBreakOffset(
+            nextStart.node,
+            nextStart.offset,
+            limitBottom,
+            measureRange,
+            measureEl
+          );
+          if (extOffset <= nextStart.offset) break;
+
+          end = { kind: "text", node: nextStart.node, offset: extOffset };
+          attempts += 1;
+        }
+      }
+
+      end = snapBreakToWordBoundary(measureEl, pageStart, end);
 
       const { next, page } = commitPage(pageStart, end);
       if (page) yield page;
@@ -576,6 +897,7 @@ const paginateHtmlChunk = function* (
     }
   } finally {
     measureEl.remove();
+    midLineProbe.remove();
   }
 };
 
@@ -594,6 +916,9 @@ export const paginateText = async (
   const startTime = performance.now();
   const { width: pageWidth, height: pageHeight } = getPageSize(container);
   const maxHeight = measureMaxHeight(pageWidth, pageHeight, cssClasses);
+  console.log('pageHeight', pageHeight);
+  console.log('maxHeight', maxHeight);
+  console.log('cssClasses', cssClasses);
   const charsPerChunk = estimateCharsForPages(
     pageWidth,
     pageHeight,
@@ -620,12 +945,14 @@ export const paginateText = async (
     const isLastChunk = i === chunks.length - 1;
     const chunkPages: string[] = [];
     const chunkHeaders: PaginationHeader[] = [];
+    const pageIndexOffset = pages.length;
 
     for (const item of paginateHtmlChunk(
       leftover + chunks[i],
       pageWidth,
       maxHeight,
-      cssClasses
+      cssClasses,
+      pageIndexOffset
     )) {
       chunkPages.push(item.html);
       chunkHeaders.push(...item.headers);
