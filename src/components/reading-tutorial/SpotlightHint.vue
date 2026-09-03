@@ -54,7 +54,7 @@ export interface SpotlightTarget {
 
 // Отступ вокруг подсвечиваемого элемента (px)
 const HOLE_PADDING = 6;
-const CARD_MARGIN = 12;
+const CARD_MARGIN = 16;
 const CARD_SIDE_INSET = 16;
 const MIN_SPACE_BELOW = 160;
 const CARET_EDGE_PAD = 20;
@@ -213,12 +213,12 @@ const caretStyle = computed(() => {
 
 .sh-card--caret-top .sh-caret {
   top: -10px;
-  border-bottom: 10px solid var(--content-color-white-100);
+  border-bottom: 12px solid var(--content-color-white-100);
 }
 
 .sh-card--caret-bottom .sh-caret {
   bottom: -10px;
-  border-top: 10px solid var(--content-color-white-100);
+  border-top: 12px solid var(--content-color-white-100);
 }
 
 .sh-close {
@@ -263,17 +263,22 @@ const caretStyle = computed(() => {
   flex: 1 0 0;
 }
 
-:global(.dark) {
+.dark {
   .sh-card {
-    background-color: var(--content-color-baige-10-no-opacity);
+    background-color: var(--content-color-black-primary);
+    box-shadow: 0px 2px 8px rgba(0, 0, 0, 0.5);
   }
 
   .sh-card--caret-top .sh-caret {
-    border-bottom-color: var(--content-color-baige-10-no-opacity);
+    border-bottom-color: var(--content-color-black-primary);
   }
 
   .sh-card--caret-bottom .sh-caret {
-    border-top-color: var(--content-color-baige-10-no-opacity);
+    border-top-color: var(--content-color-black-primary);
+  }
+
+  .sh-close :deep(.icon) {
+    color: var(--content-color-baige-60);
   }
 
   .sh-progress {
@@ -285,7 +290,7 @@ const caretStyle = computed(() => {
   }
 
   .sh-text {
-    color: var(--content-color-baige-90);
+    color: var(--content-color-baige-60);
   }
 }
 </style>

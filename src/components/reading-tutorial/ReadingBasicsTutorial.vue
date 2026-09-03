@@ -153,7 +153,7 @@ const currentContent = computed(
 
 // Плашка на всю ширину, по вертикали рядом с подсветкой — как в SpotlightHint:
 // под кружком, если снизу хватает места, иначе над ним
-const CARD_MARGIN = 12;
+const CARD_MARGIN = 16;
 const CARD_SIDE_INSET = 16;
 const MIN_SPACE_BELOW = 160;
 const CARET_EDGE_PAD = 20;
@@ -370,17 +370,22 @@ onBeforeUnmount(() => {
   flex: 1 0 0;
 }
 
-:global(.dark) {
+.dark {
   .rbt-card {
-    background-color: var(--content-color-baige-10-no-opacity);
+    background-color: var(--content-color-black-primary);
+    box-shadow: 0px 2px 8px rgba(0, 0, 0, 0.5);
   }
 
   .rbt-card--caret-top .rbt-caret {
-    border-bottom-color: var(--content-color-baige-10-no-opacity);
+    border-bottom-color: var(--content-color-black-primary);
   }
 
   .rbt-card--caret-bottom .rbt-caret {
-    border-top-color: var(--content-color-baige-10-no-opacity);
+    border-top-color: var(--content-color-black-primary);
+  }
+
+  .rbt-close :deep(.icon) {
+    color: var(--content-color-baige-60);
   }
 
   .rbt-progress {
@@ -392,7 +397,7 @@ onBeforeUnmount(() => {
   }
 
   .rbt-text {
-    color: var(--content-color-baige-90);
+    color: var(--content-color-baige-60);
   }
 }
 </style>
