@@ -528,6 +528,24 @@ const pruneEmptyElements = (root: ParentNode): void => {
   empty.forEach((el) => el.remove());
 };
 
+/** Continuation, целиком внутри текстового узла: cloneContents не создаёт <p>. */
+const ensureContinuationBlock = (
+  fragment: DocumentFragment,
+  start: PageStart
+): void => {
+  const first = fragment.firstElementChild;
+  if (first && SPLITTABLE_TAGS.has(first.tagName)) {
+    first.classList.add("splitted");
+    return;
+  }
+  const block = closestElement(start.node, SPLITTABLE_TAGS);
+  if (!block) return;
+  const wrapEl = block.cloneNode(false) as HTMLElement;
+  wrapEl.classList.add("splitted");
+  while (fragment.firstChild) wrapEl.appendChild(fragment.firstChild);
+  fragment.appendChild(wrapEl);
+};
+
 const collectHeadersFromRoot = (
   root: ParentNode,
   pageNumber: number
@@ -566,10 +584,7 @@ const serializePage = (
 
   const continuation = isBlockContinuation(start);
   if (continuation) {
-    const first = fragment.firstElementChild;
-    if (first && SPLITTABLE_TAGS.has(first.tagName)) {
-      first.classList.add("splitted");
-    }
+    ensureContinuationBlock(fragment, start);
   }
 
   wrap.replaceChildren(fragment);
@@ -679,35 +694,48 @@ const paginateHtmlChunk = function* (
     };
 
     /**
-     * Насколько хвост первого блока выше в непрерывном потоке, чем на
-     * реальной странице (полное ширинное начало). Обычно 0 или высота строки.
+     * Mid-line старт на реальной странице переносится влево. Высоту считаем
+     * по префиксу, который влезает в maxHeight в measure: полный хвост блока
+     * даёт «+строка» даже когда внутри окна страницы каскад переносов
+     * делает префикс выше, а не ниже.
      */
     const continuationReflowExtra = (start: PageStart): number => {
       if (!isStartMidLine(start)) return 0;
       const block = closestElement(start.node, SPLITTABLE_TAGS);
       if (!block) return 0;
 
-      measureRange.setStart(start.node, start.offset);
-      measureRange.setEnd(block, block.childNodes.length);
-      const measureH = lineSpan(measureRange.getClientRects());
-      if (measureH <= 0) return 0;
+      const { node, offset } = start;
+      if (offset >= node.data.length) return 0;
+      measureRange.setStart(node, offset);
+      measureRange.setEnd(node, offset + 1);
+      const originTop = measureRange.getBoundingClientRect().top;
+      const trialLimit = originTop + maxHeight;
+      const endOffset = findBreakOffset(
+        node,
+        offset,
+        trialLimit,
+        measureRange,
+        measureEl
+      );
+      if (endOffset <= offset) return 0;
 
-      const probeRange = document.createRange();
-      probeRange.setStart(start.node, start.offset);
-      probeRange.setEnd(block, block.childNodes.length);
-      const fragment = probeRange.cloneContents();
-      const first = fragment.firstElementChild;
-      if (first && SPLITTABLE_TAGS.has(first.tagName)) {
-        first.classList.add("splitted");
-      }
+      measureRange.setStart(node, offset);
+      measureRange.setEnd(node, endOffset);
+      const fragment = measureRange.cloneContents();
+      ensureContinuationBlock(fragment, start);
       midLineProbe.replaceChildren(fragment);
       void midLineProbe.offsetHeight;
+      const probeRange = document.createRange();
       probeRange.selectNodeContents(midLineProbe);
       const probeH = lineSpan(probeRange.getClientRects());
       midLineProbe.replaceChildren();
+      if (probeH <= 0) return 0;
 
-      const extra = measureH - probeH;
-      return extra > 1 ? extra : 0;
+      const extra = maxHeight - probeH;
+      const lineHeight = parseFloat(getComputedStyle(block).lineHeight) || 26;
+      if (Math.abs(extra) <= 1) return 0;
+      if (extra > 0) return Math.min(extra, lineHeight + 1);
+      return Math.max(extra, -lineHeight - 1);
     };
 
     const getLimitBottom = (start: PageStart, globalPageIndex: number): number => {
