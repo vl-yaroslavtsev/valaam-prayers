@@ -246,51 +246,106 @@ export const usePrayersStore = defineStore("prayers", () => {
   };
 
   /**
-   * Получает тексты всех элементов в разделе (рекурсивно)
+   * Id листовых молитв в разделе (любая вложенность), тем же обходом что buildSectionText.
+   */
+  const collectDescendantPrayerIds = (sectionId: number): number[] => {
+    const ids: number[] = [];
+    const walk = (id: number) => {
+      for (const item of getItemsBySection(id)) {
+        if ("parents" in item) {
+          ids.push(item.id);
+        } else {
+          walk(item.id);
+        }
+      }
+    };
+    walk(sectionId);
+    return ids;
+  };
+
+  /**
+   * Собирает составной текст раздела из уже полученных текстов молитв
+   */
+  const composeFromPrayerTexts = (
+    sectionId: number,
+    prayerTexts: PrayerTextApiResponse[]
+  ): PrayerText => {
+    const section = getItemById(sectionId) as PrayerSection;
+    const sectionName = section?.name || "";
+    const header = `<h1>${sectionName}</h1>\n\n`;
+
+    const allLanguages = new Set<Language>();
+    let hasCommonText = false;
+    prayerTexts.forEach((prayer) => {
+      if (prayer.text && !hasCommonText) hasCommonText = true;
+      if (prayer.text_cs) allLanguages.add("cs");
+      if (prayer.text_cs_cf) allLanguages.add("cs-cf");
+      if (prayer.text_ru) allLanguages.add("ru");
+    });
+
+    const text = hasCommonText
+      ? header + buildSectionText(sectionId, prayerTexts, 2, "")
+      : "";
+
+    const text_cs_cf = allLanguages.has("cs-cf")
+      ? header + buildSectionText(sectionId, prayerTexts, 2, "cs-cf")
+      : "";
+    const text_cs = allLanguages.has("cs")
+      ? header + buildSectionText(sectionId, prayerTexts, 2, "cs")
+      : "";
+    const text_ru = allLanguages.has("ru")
+      ? header + buildSectionText(sectionId, prayerTexts, 2, "ru")
+      : "";
+
+    const modified_ts = prayerTexts.reduce(
+      (max, prayer) => Math.max(max, prayer.modified_ts || 0),
+      0
+    );
+
+    return {
+      id: sectionId,
+      name: sectionName,
+      parent: section?.parent ?? null,
+      text,
+      text_cs,
+      text_cs_cf,
+      text_ru,
+      modified_ts,
+      lang: Array.from(allLanguages),
+    };
+  };
+
+  /**
+   * Получает тексты всех элементов в разделе (рекурсивно).
+   * Сначала полный офлайн-набор из IndexedDB, иначе сеть.
    */
   const getComposedPrayerText = async (sectionId: number): Promise<PrayerText> => {
     try {
-      // Получаем все тексты молитв в разделе с сервера
+      const ids = collectDescendantPrayerIds(sectionId);
+
+      if (ids.length > 0) {
+        const cached = await prayerDetailsStorage?.getMany(ids);
+        if (cached) {
+          const prayerTexts: PrayerTextApiResponse[] = [];
+          let complete = true;
+          for (const item of cached) {
+            if (!item) {
+              complete = false;
+              break;
+            }
+            prayerTexts.push({
+              ...item,
+              modified_ts: item.modified_ts ?? 0,
+            });
+          }
+          if (complete) {
+            return composeFromPrayerTexts(sectionId, prayerTexts);
+          }
+        }
+      }
+
       const prayerTexts = await prayersApi.getPrayerTextsBySection(sectionId);
-      
-      // Получаем информацию о самом разделе
-      const section = getItemById(sectionId) as PrayerSection;
-      const sectionName = section?.name || '';
-      const header = `<h1>${sectionName}</h1>\n\n`;
-      
-      // Собираем все доступные языки
-      const allLanguages = new Set<Language>();
-      let hasCommonText = false;
-      prayerTexts.forEach(prayer => {
-        if (prayer.text && !hasCommonText)  hasCommonText = true;
-        if (prayer.text_cs) allLanguages.add('cs');
-        if (prayer.text_cs_cf) allLanguages.add('cs-cf');
-        if (prayer.text_ru) allLanguages.add('ru');
-      });
-
-      const text = hasCommonText ? header + buildSectionText(sectionId, prayerTexts, 2, '') : '';
-
-      const text_cs_cf = allLanguages.has('cs-cf') ? header + buildSectionText(sectionId, prayerTexts, 2, 'cs-cf') : '';
-      const text_cs = allLanguages.has('cs') ? header + buildSectionText(sectionId, prayerTexts, 2, 'cs') : '';
-      const text_ru = allLanguages.has('ru') ? header + buildSectionText(sectionId, prayerTexts, 2, 'ru') : '';
-      
-      const modified_ts = prayerTexts.reduce(
-        (max, prayer) => Math.max(max, prayer.modified_ts || 0),
-        0
-      );
-
-      // Возвращаем в том же формате, что и getPrayerText
-      return {
-        id: sectionId,
-        name: sectionName,
-        parent: section?.parent ?? null,
-        text,
-        text_cs,
-        text_cs_cf,
-        text_ru,
-        modified_ts,
-        lang: Array.from(allLanguages)
-      };
+      return composeFromPrayerTexts(sectionId, prayerTexts);
     } catch (err) {
       console.error(`Failed to get prayer texts for section ${sectionId}:`, err);
       throw err;

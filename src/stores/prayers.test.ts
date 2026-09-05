@@ -8,7 +8,7 @@ import {
   sectionsStorage,
 } from "@/services/storage";
 import { usePrayersStore } from "@/stores/prayers";
-import { prayerElement, prayerSection, prayerText } from "@/test/helpers";
+import { prayerDetail, prayerElement, prayerSection, prayerText } from "@/test/helpers";
 
 vi.mock("@/services/storage", () => ({
   prayersIndexStorage: {
@@ -27,6 +27,7 @@ vi.mock("@/services/storage", () => ({
   },
   prayerDetailsStorage: {
     get: vi.fn(),
+    getMany: vi.fn(),
     put: vi.fn(),
   },
   metadataStorage: {
@@ -39,6 +40,7 @@ vi.mock("@/services/api", () => ({
   prayersApi: {
     getPrayers: vi.fn(),
     getPrayerText: vi.fn(),
+    getPrayerTextsBySection: vi.fn(),
   },
 }));
 
@@ -56,6 +58,9 @@ describe("usePrayersStore", () => {
     vi.mocked(prayersIndexStorage!.delete).mockResolvedValue(undefined);
     vi.mocked(sectionsStorage!.delete).mockResolvedValue(undefined);
     vi.mocked(prayerDetailsStorage!.get).mockResolvedValue(undefined);
+    vi.mocked(prayerDetailsStorage!.getMany).mockResolvedValue([]);
+    vi.mocked(prayerDetailsStorage!.put).mockResolvedValue(0);
+    vi.mocked(prayersApi.getPrayerTextsBySection).mockResolvedValue([]);
     vi.mocked(metadataStorage!.getLastSyncTime).mockResolvedValue(null);
     vi.mocked(metadataStorage!.setLastSyncTime).mockResolvedValue(undefined);
     vi.mocked(prayersApi.getPrayers).mockResolvedValue({
@@ -133,5 +138,63 @@ describe("usePrayersStore", () => {
     expect(prayersIndexStorage!.clear).not.toHaveBeenCalled();
     expect(prayersIndexStorage!.put).toHaveBeenCalled();
     expect(prayersIndexStorage!.putAll).not.toHaveBeenCalled();
+  });
+
+  async function initComposedTree() {
+    vi.mocked(prayersIndexStorage!.getAll).mockResolvedValue([
+      prayerElement(1, [11]),
+      prayerElement(2, [11]),
+    ]);
+    vi.mocked(sectionsStorage!.getAll).mockResolvedValue([
+      prayerSection(10),
+      prayerSection(11, 10),
+    ]);
+    await usePrayersStore().initStore();
+  }
+
+  it("getComposedPrayerText при полном кэше не вызывает сеть", async () => {
+    await initComposedTree();
+    vi.mocked(prayerDetailsStorage!.getMany).mockImplementation(async (ids) =>
+      ids.map((id) => ({ ...prayerDetail(id, "liturgicalBooks"), text_ru: `cached-${id}` }))
+    );
+
+    const result = await usePrayersStore().getComposedPrayerText(10);
+
+    expect(result.text_ru).toContain("cached-1");
+    expect(result.text_ru).toContain("cached-2");
+    expect(prayersApi.getPrayerTextsBySection).not.toHaveBeenCalled();
+  });
+
+  it("getComposedPrayerText при частичном кэше идёт в сеть и не пишет в IndexedDB", async () => {
+    await initComposedTree();
+    vi.mocked(prayerDetailsStorage!.getMany).mockImplementation(async (ids) =>
+      ids.map((id) => (id === 1 ? prayerDetail(1, "liturgicalBooks") : undefined))
+    );
+    vi.mocked(prayersApi.getPrayerTextsBySection).mockResolvedValue([
+      { ...prayerText(1), text_ru: "network-1" },
+      { ...prayerText(2), text_ru: "network-2" },
+    ]);
+
+    const result = await usePrayersStore().getComposedPrayerText(10);
+
+    expect(result.text_ru).toContain("network-1");
+    expect(result.text_ru).toContain("network-2");
+    expect(prayersApi.getPrayerTextsBySection).toHaveBeenCalledWith(10);
+    expect(prayerDetailsStorage!.put).not.toHaveBeenCalled();
+  });
+
+  it("getComposedPrayerText при пустом кэше идёт в сеть и не пишет в IndexedDB", async () => {
+    await initComposedTree();
+    vi.mocked(prayerDetailsStorage!.getMany).mockResolvedValue([undefined, undefined]);
+    vi.mocked(prayersApi.getPrayerTextsBySection).mockResolvedValue([
+      { ...prayerText(1), text_ru: "network-1" },
+      { ...prayerText(2), text_ru: "network-2" },
+    ]);
+
+    const result = await usePrayersStore().getComposedPrayerText(10);
+
+    expect(result.text_ru).toContain("network-1");
+    expect(prayersApi.getPrayerTextsBySection).toHaveBeenCalledWith(10);
+    expect(prayerDetailsStorage!.put).not.toHaveBeenCalled();
   });
 });

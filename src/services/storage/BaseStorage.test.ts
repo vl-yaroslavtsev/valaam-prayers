@@ -26,4 +26,18 @@ describe("BaseStorage", () => {
     await storage.clear();
     expect(await storage.getAll()).toEqual([]);
   });
+
+  it("getMany возвращает записи в порядке ключей и undefined для отсутствующих", async () => {
+    await storage.putAll([
+      { key: "a", value: 1, updatedAt: new Date() },
+      { key: "c", value: 3, updatedAt: new Date() },
+    ]);
+
+    const results = await storage.getMany(["c", "b", "a"]);
+
+    expect(results).toHaveLength(3);
+    expect(results[0]).toMatchObject({ key: "c", value: 3 });
+    expect(results[1]).toBeUndefined();
+    expect(results[2]).toMatchObject({ key: "a", value: 1 });
+  });
 });

@@ -15,6 +15,13 @@ export class BaseStorage<T extends StoreNames<ValaamDB>> {
     return this.db.get(this.name, id);
   }
 
+  async getMany(ids: ValaamDB[T]['key'][]) {
+    const tx = this.db.transaction(this.name, "readonly");
+    const results = await Promise.all(ids.map((id) => tx.store.get(id)));
+    await tx.done;
+    return results;
+  }
+
   async getAll() {
     return this.db.getAll(this.name);
   }
