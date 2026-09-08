@@ -81,12 +81,6 @@
         </template>
       </f7-list-item>
 
-      <f7-list-item title="Обучение" link="#" @click.prevent="onResetReadingTutorial">
-        <template #media>
-          <SvgIcon icon="question" :color="iconColor" :size="24" />
-        </template>
-      </f7-list-item>
-
       <f7-list-item
         title="Техническая информация"
         link="#"
@@ -107,8 +101,6 @@ import SvgIcon from "@/components/SvgIcon.vue";
 import { useTheme } from "@/composables/useTheme";
 import { useSettingsStore } from "@/stores/settings";
 import { testBrowser } from "@/js/device/browser-test";
-import { useReadingTutorial } from "@/composables/useReadingTutorial";
-import { useInfoToast } from "@/composables/useInfoToast";
 
 type AppTheme = "light" | "dark" | "auto";
 
@@ -165,15 +157,6 @@ const testBrowserFeatures = async () => {
   f7.dialog.alert(msg);
 };
 
-const { resetAllTutorialFlags } = useReadingTutorial();
-const { showInfoToast: showReadingTutorialResetToast } = useInfoToast({
-  text: "Подсказки появятся заново при открытии текста для чтения",
-});
-
-const onResetReadingTutorial = () => {
-  resetAllTutorialFlags();
-  showReadingTutorialResetToast();
-};
 </script>
 
 <style scoped lang="less">
