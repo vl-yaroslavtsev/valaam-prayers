@@ -59,6 +59,28 @@
         </template>
       </f7-list-item>
 
+      <f7-list-item
+        title="Листание по главам"
+        footer="Показывать нижнее меню при переходе к главе из содержания">
+        <template #after>
+          <f7-toggle small v-model:checked="chapterNavToolbar" />
+        </template>
+        <template #media>
+          <SvgIcon icon="menu" :color="iconColor" :size="24" />
+        </template>
+      </f7-list-item>
+
+      <f7-list-item
+        title="Листание по закладкам"
+        footer="Показывать нижнее меню при переходе к закладке">
+        <template #after>
+          <f7-toggle small v-model:checked="bookmarkNavToolbar" />
+        </template>
+        <template #media>
+          <SvgIcon icon="bookmark" :color="iconColor" :size="24" />
+        </template>
+      </f7-list-item>
+
       <f7-list-item title="Обучение" link="#" @click.prevent="onResetReadingTutorial">
         <template #media>
           <SvgIcon icon="question" :color="iconColor" :size="24" />
@@ -124,6 +146,16 @@ const pageTurnAnimation = computed({
 const volumeButtonsScroll = computed({
   get: () => settingsStore.isVolumeButtonsScrollEnabled,
   set: (value: boolean) => settingsStore.setIsVolumeButtonsScrollEnabled(value),
+});
+
+const chapterNavToolbar = computed({
+  get: () => settingsStore.isChapterNavToolbarEnabled,
+  set: (value: boolean) => settingsStore.setIsChapterNavToolbarEnabled(value),
+});
+
+const bookmarkNavToolbar = computed({
+  get: () => settingsStore.isBookmarkNavToolbarEnabled,
+  set: (value: boolean) => settingsStore.setIsBookmarkNavToolbarEnabled(value),
 });
 
 const iconColor = computed(() => (isDarkMode.value ? "baige-60" : "black-40"));

@@ -27,6 +27,8 @@ const SETTINGS_KEYS = {
   PAGE_MODE: `${SETTINGS_PREFIX}page-mode`,
   VOLUME_BUTTONS_SCROLL: `${SETTINGS_PREFIX}volume-buttons-scroll`,
   PAGE_TURN_ANIMATION: `${SETTINGS_PREFIX}page-turn-animation`,
+  CHAPTER_NAV_TOOLBAR: `${SETTINGS_PREFIX}chapter-nav-toolbar`,
+  BOOKMARK_NAV_TOOLBAR: `${SETTINGS_PREFIX}bookmark-nav-toolbar`,
   AUTO_UPDATE_OFFLINE_DATA: `${SETTINGS_PREFIX}auto-update-offline`,
   HAS_SEEN_READING_BASICS_TUTORIAL: `${SETTINGS_PREFIX}has-seen-reading-basics-tutorial`,
   HAS_SEEN_TOP_MENU_HINT: `${SETTINGS_PREFIX}has-seen-top-menu-hint`,
@@ -93,6 +95,8 @@ interface AppSettings {
   // Другие настройки
   isVolumeButtonsScrollEnabled: boolean;
   isPageTurnAnimationEnabled: boolean;
+  isChapterNavToolbarEnabled: boolean;
+  isBookmarkNavToolbarEnabled: boolean;
 
   // Автообновление скачанных офлайн-данных (см. src/services/download/AutoUpdate.ts)
   isAutoUpdateOfflineDataEnabled: boolean;
@@ -124,6 +128,8 @@ const DEFAULT_SETTINGS: AppSettings = {
   isStatusBarVisible: true,
   isVolumeButtonsScrollEnabled: false,
   isPageTurnAnimationEnabled: true,
+  isChapterNavToolbarEnabled: true,
+  isBookmarkNavToolbarEnabled: true,
   isAutoUpdateOfflineDataEnabled: true,
   hasSeenReadingBasicsTutorial: false,
   hasSeenTopMenuHint: false,
@@ -174,6 +180,8 @@ export const useSettingsStore = defineStore("settings", () => {
       isStatusBarVisible: SETTINGS_KEYS.IS_STATUS_BAR_VISIBLE,
       isVolumeButtonsScrollEnabled: SETTINGS_KEYS.VOLUME_BUTTONS_SCROLL,
       isPageTurnAnimationEnabled: SETTINGS_KEYS.PAGE_TURN_ANIMATION,
+      isChapterNavToolbarEnabled: SETTINGS_KEYS.CHAPTER_NAV_TOOLBAR,
+      isBookmarkNavToolbarEnabled: SETTINGS_KEYS.BOOKMARK_NAV_TOOLBAR,
       isAutoUpdateOfflineDataEnabled: SETTINGS_KEYS.AUTO_UPDATE_OFFLINE_DATA,
       hasSeenReadingBasicsTutorial: SETTINGS_KEYS.HAS_SEEN_READING_BASICS_TUTORIAL,
       hasSeenTopMenuHint: SETTINGS_KEYS.HAS_SEEN_TOP_MENU_HINT,
@@ -215,6 +223,12 @@ export const useSettingsStore = defineStore("settings", () => {
   );
   const isPageTurnAnimationEnabled = computed(
     () => settings.value.isPageTurnAnimationEnabled
+  );
+  const isChapterNavToolbarEnabled = computed(
+    () => settings.value.isChapterNavToolbarEnabled
+  );
+  const isBookmarkNavToolbarEnabled = computed(
+    () => settings.value.isBookmarkNavToolbarEnabled
   );
   const isAutoUpdateOfflineDataEnabled = computed(
     () => settings.value.isAutoUpdateOfflineDataEnabled
@@ -283,6 +297,8 @@ export const useSettingsStore = defineStore("settings", () => {
     keepScreenOn,
     isVolumeButtonsScrollEnabled,
     isPageTurnAnimationEnabled,
+    isChapterNavToolbarEnabled,
+    isBookmarkNavToolbarEnabled,
     isAutoUpdateOfflineDataEnabled,
     hasSeenReadingBasicsTutorial,
     hasSeenTopMenuHint,
@@ -327,6 +343,10 @@ export const useSettingsStore = defineStore("settings", () => {
       setSetting("pageMode", mode),
     setIsPageTurnAnimationEnabled: (enabled: boolean) =>
       setSetting("isPageTurnAnimationEnabled", enabled),
+    setIsChapterNavToolbarEnabled: (enabled: boolean) =>
+      setSetting("isChapterNavToolbarEnabled", enabled),
+    setIsBookmarkNavToolbarEnabled: (enabled: boolean) =>
+      setSetting("isBookmarkNavToolbarEnabled", enabled),
     setIsAutoUpdateOfflineDataEnabled: (enabled: boolean) =>
       setSetting("isAutoUpdateOfflineDataEnabled", enabled),
     setHasSeenReadingBasicsTutorial: (seen: boolean) =>

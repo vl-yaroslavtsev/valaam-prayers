@@ -79,7 +79,7 @@
       @close-search="onCloseSearch"
     />
     <BookmarkNavigationToolbar
-      v-if="isBookmarkNavActive"
+      v-if="isBookmarkNavActive && settingsStore.isBookmarkNavToolbarEnabled"
       v-show="!isBrightnessTouching"
       :current-index="activeBookmarkIndex"
       :total="bookmarksForItem.length"
@@ -90,7 +90,7 @@
       @close="closeBookmarkNav"
     />
     <ChapterNavigationToolbar
-      v-if="isChapterNavActive"
+      v-if="isChapterNavActive && settingsStore.isChapterNavToolbarEnabled"
       v-show="!isBrightnessTouching"
       :current-index="activeHeaderIndex"
       :total="headers.length"
@@ -589,7 +589,15 @@ const onGoToBookmarkFromPopup = (id: string) => {
     onCloseSearch();
   }
   closeChapterNav();
-  goToBookmark(id);
+  if (settingsStore.isBookmarkNavToolbarEnabled) {
+    goToBookmark(id);
+  } else {
+    closeBookmarkNav();
+    const bookmark = bookmarksForItem.value.find((b) => b.id === id);
+    if (bookmark) {
+      textPaginator.value?.goToPage(bookmark.page, false);
+    }
+  }
   readingBarsAnimate.value = false;
   isNavbarHidden.value = true;
   isPageNavHidden.value = true;
@@ -651,7 +659,15 @@ const onGoToHeaderFromPopup = (index: number) => {
     onCloseSearch();
   }
   closeBookmarkNav();
-  goToHeader(index);
+  if (settingsStore.isChapterNavToolbarEnabled) {
+    goToHeader(index);
+  } else {
+    closeChapterNav();
+    const header = headers.value[index];
+    if (header) {
+      textPaginator.value?.goToPage(header.page, false);
+    }
+  }
   readingBarsAnimate.value = false;
   isNavbarHidden.value = true;
   isPageNavHidden.value = true;
@@ -841,6 +857,18 @@ watch(currentLanguage, () => {
   onCloseSearch();
   closeBookmarkNav();
   closeChapterNav();
+});
+
+watch(() => settingsStore.isChapterNavToolbarEnabled, (enabled) => {
+  if (!enabled) {
+    closeChapterNav();
+  }
+});
+
+watch(() => settingsStore.isBookmarkNavToolbarEnabled, (enabled) => {
+  if (!enabled) {
+    closeBookmarkNav();
+  }
 });
 
 const { showUndoToast: showUndoResetToast } = useUndoToast({
