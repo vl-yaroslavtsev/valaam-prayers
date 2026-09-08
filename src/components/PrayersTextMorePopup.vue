@@ -209,7 +209,6 @@ const onOpen = (popover: Popover.Popover) => {
 <style lang="less">
 .prayers-text-more-popup.popover {
   --f7-list-item-title-text-color: var(--content-color-black-primary);
-  --f7-popover-bg-color: var(--content-color-baige-100);
   --f7-list-chevron-icon-area: 0;
   --f7-popover-width: 280px;
 
@@ -222,7 +221,6 @@ const onOpen = (popover: Popover.Popover) => {
 .dark .prayers-text-more-popup.popover,
 .prayers-text-more-popup.popover.dark {
   --f7-list-item-title-text-color: var(--content-color-white-100);
-  --f7-popover-bg-color: var(--content-color-black-primary);
   --separator-color: var(--content-color-baige-30);
 
   .share-list,
