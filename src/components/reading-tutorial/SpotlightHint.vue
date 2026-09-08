@@ -4,6 +4,14 @@
 
     <div class="sh-hole" :style="holeStyle"></div>
 
+    <SvgIcon
+      v-if="currentTarget?.hand === 'swipe-left' && rect"
+      icon="cursor-hand"
+      :size="46"
+      class="sh-hand sh-hand--swipe-left"
+      :style="handStyle"
+    />
+
     <div
       class="sh-card"
       :class="placeBelow ? 'sh-card--caret-top' : 'sh-card--caret-bottom'"
@@ -19,7 +27,19 @@
       </div>
 
       <h3 class="sh-title">{{ currentTarget?.title }}</h3>
-      <p class="sh-text">{{ currentTarget?.text }}</p>
+      <p v-if="currentTarget?.text" class="sh-text">
+        <template v-for="(part, i) in textParts" :key="i">
+          <template v-if="part.type === 'text'">{{ part.value }}</template>
+          <f7-link
+            v-else
+            href="#"
+            class="sh-text-link no-ripple"
+            @click.prevent="onLinkClick"
+          >
+            {{ part.value }}
+          </f7-link>
+        </template>
+      </p>
 
       <div class="sh-actions">
         <f7-button
@@ -41,15 +61,27 @@
 
 <script setup lang="ts">
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from "vue";
+import { isAndroid } from "@/js/device";
 import SvgIcon from "@/components/SvgIcon.vue";
+
+export interface SpotlightLink {
+  label: string;
+  onClick: () => void;
+}
 
 export interface SpotlightTarget {
   title: string;
   text: string;
   getTargetEl: () => HTMLElement | null | undefined;
   // "circle" — для круглых/квадратных иконок-кнопок, "rounded" — для прямоугольных
-  // блоков (переключатель вкладок, пункт списка настроек)
+  // блоков (переключатель вкладок, пункт списка настроек, строка списка)
   shape: "circle" | "rounded";
+  // Вставка в text на место {link} — например ссылка на настройки
+  link?: SpotlightLink;
+  // Перед измерением цели: открыть swipeout, проскроллить элемент и т.п.
+  prepare?: () => void | Promise<void>;
+  // Декоративная лапка — шаг «смахните влево» на главной
+  hand?: "swipe-left";
 }
 
 // Отступ вокруг подсвечиваемого элемента (px)
@@ -73,10 +105,41 @@ const rect = ref<DOMRect | null>(null);
 const currentTarget = computed(() => targets[activeIndex.value]);
 const isLastTarget = computed(() => activeIndex.value >= targets.length - 1);
 
+const textParts = computed(() => {
+  const target = currentTarget.value;
+  if (!target) return [];
+  if (!target.link || !target.text.includes("{link}")) {
+    return [{ type: "text" as const, value: target.text }];
+  }
+  const [before, after = ""] = target.text.split("{link}");
+  return [
+    { type: "text" as const, value: before },
+    { type: "link" as const, value: target.link.label },
+    { type: "text" as const, value: after },
+  ];
+});
+
 const close = () => emit("close");
 
-const updateRect = () => {
-  const el = currentTarget.value?.getTargetEl();
+const onLinkClick = () => {
+  currentTarget.value?.link?.onClick();
+};
+
+const updateRect = async () => {
+  const target = currentTarget.value;
+  if (!target) {
+    rect.value = null;
+    close();
+    return;
+  }
+
+  if (target.prepare) {
+    await target.prepare();
+    await nextTick();
+    if (currentTarget.value !== target) return;
+  }
+
+  const el = target.getTargetEl();
   const nextRect = el ? el.getBoundingClientRect() : null;
   // Элемент-цель может быть недоступен (например, скрыт другим взаимодействием
   // между шагами) — в этом случае просто закрываем подсказку, а не показываем пустоту
@@ -102,17 +165,41 @@ const prev = () => {
   }
 };
 
-watch(activeIndex, () => nextTick(updateRect));
+watch(activeIndex, () => {
+  void updateRect();
+});
+
+const handStyle = computed(() => {
+  if (!rect.value) return {};
+  return {
+    left: `${rect.value.left + rect.value.width * 0.62}px`,
+    top: `${rect.value.top + rect.value.height / 2}px`,
+  };
+});
+
+// Аппаратная кнопка "Назад" на Android должна закрывать подсказку.
+// device.onBackKey — единственный глобальный слот (см. src/js/viewsManager.ts)
+let previousOnBackPressed: (() => boolean) | undefined;
 
 onMounted(() => {
-  updateRect();
+  void updateRect();
   window.addEventListener("resize", updateRect);
   window.addEventListener("orientationchange", updateRect);
+
+  if (!isAndroid || typeof window === "undefined") return;
+  previousOnBackPressed = window.onBackPressed;
+  window.onBackPressed = () => {
+    close();
+    return true;
+  };
 });
 
 onBeforeUnmount(() => {
   window.removeEventListener("resize", updateRect);
   window.removeEventListener("orientationchange", updateRect);
+
+  if (!isAndroid || typeof window === "undefined") return;
+  window.onBackPressed = previousOnBackPressed;
 });
 
 // "Вырез" в затемнении — реализован через box-shadow с огромным растяжением
@@ -239,6 +326,27 @@ const caretStyle = computed(() => {
   margin-bottom: 4px;
 }
 
+.sh-hand {
+  position: fixed;
+  pointer-events: none;
+  z-index: 13001;
+  transform: translate(-50%, -50%);
+}
+
+.sh-hand--swipe-left {
+  animation: sh-swipe-left 1.6s ease-in-out infinite;
+}
+
+@keyframes sh-swipe-left {
+  0%,
+  100% {
+    transform: translate(-20%, -50%);
+  }
+  50% {
+    transform: translate(-80%, -50%);
+  }
+}
+
 .sh-title {
   margin: 0 0 6px;
   font-size: 18px;
@@ -247,11 +355,31 @@ const caretStyle = computed(() => {
   padding-right: 28px;
 }
 
+.sh-title + .sh-actions {
+  margin-top: 10px;
+}
+
 .sh-text {
   margin: 0 0 16px;
   font-size: 16px;
   line-height: 1.4;
   color: var(--content-color-black-secondary);
+}
+
+.sh-text :deep(.sh-text-link) {
+  display: inline-block;
+  height: auto;
+  min-height: 0;
+  margin: 0;
+  padding: 0;
+  vertical-align: baseline;
+  font-size: inherit;
+  font-weight: inherit;
+  line-height: inherit;
+  letter-spacing: inherit;
+  color: var(--brand-color-primary-accent-50);
+  text-decoration: underline;
+  text-underline-offset: 0.15em;
 }
 
 .sh-actions {
@@ -291,6 +419,10 @@ const caretStyle = computed(() => {
 
   .sh-text {
     color: var(--content-color-baige-60);
+  }
+
+  .sh-text :deep(.sh-text-link) {
+    color: var(--brand-color-primary-accent-70);
   }
 }
 </style>

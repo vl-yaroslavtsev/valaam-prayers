@@ -81,6 +81,7 @@
     />
     <BookmarkNavigationToolbar
       v-if="isBookmarkNavActive && settingsStore.isBookmarkNavToolbarEnabled"
+      ref="bookmarkNavToolbar"
       v-show="!isBrightnessTouching"
       :current-index="activeBookmarkIndex"
       :total="bookmarksForItem.length"
@@ -92,6 +93,7 @@
     />
     <ChapterNavigationToolbar
       v-if="isChapterNavActive && settingsStore.isChapterNavToolbarEnabled"
+      ref="chapterNavToolbar"
       v-show="!isBrightnessTouching"
       :current-index="activeHeaderIndex"
       :total="headers.length"
@@ -202,6 +204,8 @@ const { elementId, sectionId, f7router } = defineProps<{
 const { isDarkMode } = useTheme();
 const navbarRef = useTemplateRef<InstanceType<typeof PrayersTextNavbar>>("navbar");
 const pageNavToolbarRef = useTemplateRef<InstanceType<typeof PageNavigationToolbar>>("pageNavToolbar");
+const chapterNavToolbarRef = useTemplateRef<InstanceType<typeof ChapterNavigationToolbar>>("chapterNavToolbar");
+const bookmarkNavToolbarRef = useTemplateRef<InstanceType<typeof BookmarkNavigationToolbar>>("bookmarkNavToolbar");
 const contentPopupRef = useTemplateRef<InstanceType<typeof PrayersTextContentPopup>>("contentPopup");
 const textSettingsSelectorRef = useTemplateRef<InstanceType<typeof TextSettingsSelector>>("textSettingsSelector");
 
@@ -533,6 +537,10 @@ const {
   skipBasicsTutorial,
   shouldShowBarsHint,
   markBarsHintSeen,
+  shouldShowChapterNavHint,
+  markChapterNavHintSeen,
+  shouldShowBookmarkNavHint,
+  markBookmarkNavHintSeen,
   resetAllTutorialFlags,
 } = useReadingTutorial();
 
@@ -580,6 +588,30 @@ const TOP_MENU_HINT_COPY: Record<string, { title: string; text: string }> = {
 const RESET_PROGRESS_HINT = {
   title: "Сбросить прогресс чтения",
   text: "Возвращает вас к началу текста. Действие можно отменить — после сброса появится кнопка «Отменить».",
+};
+
+const CHAPTER_NAV_HINT_COPY = {
+  toolbar: {
+    title: "Листание по главам",
+    text: "Стрелками можно переходить от главы к главе. В центре показано, какая глава сейчас открыта и сколько глав всего. Эту панель можно скрыть в {link}.",
+    linkLabel: "настройках",
+  },
+  content: {
+    title: "Содержание",
+    text: "Открывает список глав, чтобы сразу перейти к нужной.",
+  },
+};
+
+const BOOKMARK_NAV_HINT_COPY = {
+  toolbar: {
+    title: "Листание по закладкам",
+    text: "Стрелками можно переходить от закладки к закладке. В центре показано, какая закладка сейчас открыта и сколько закладок всего. Эту панель можно скрыть в {link}.",
+    linkLabel: "настройках",
+  },
+  list: {
+    title: "Закладки",
+    text: "Открывает список ваших закладок, чтобы сразу перейти к нужной.",
+  },
 };
 
 const bookmarkedPages = computed(() =>
@@ -699,6 +731,129 @@ watch(headers, (list) => {
   if (activeHeaderIndex.value >= list.length) {
     activeHeaderIndex.value = list.length - 1;
   }
+});
+
+const openSettingsFromHint = () => {
+  closeActiveHint();
+  f7router.navigate("/settings/");
+};
+
+const showChapterNavHint = () => {
+  const toolbarEl = chapterNavToolbarRef.value?.getToolbarEl();
+  if (!toolbarEl) return;
+
+  const targets: SpotlightTarget[] = [
+    {
+      title: CHAPTER_NAV_HINT_COPY.toolbar.title,
+      text: CHAPTER_NAV_HINT_COPY.toolbar.text,
+      getTargetEl: () => chapterNavToolbarRef.value?.getToolbarEl(),
+      shape: "rounded",
+      link: {
+        label: CHAPTER_NAV_HINT_COPY.toolbar.linkLabel,
+        onClick: openSettingsFromHint,
+      },
+    },
+  ];
+
+  if (chapterNavToolbarRef.value?.getContentLinkEl()) {
+    targets.push({
+      title: CHAPTER_NAV_HINT_COPY.content.title,
+      text: CHAPTER_NAV_HINT_COPY.content.text,
+      getTargetEl: () => chapterNavToolbarRef.value?.getContentLinkEl(),
+      shape: "circle",
+    });
+  }
+
+  showSpotlightHint(targets, markChapterNavHintSeen);
+};
+
+// Уровень 2 — подсказка по нижнему меню листания по главам.
+// Показывается один раз при первом появлении панели после перехода из содержания.
+watch(isChapterNavActive, (active) => {
+  if (!active) {
+    if (activeHintDone === markChapterNavHintSeen) {
+      closeActiveHint();
+    }
+    return;
+  }
+  if (
+    !shouldShowChapterNavHint.value ||
+    isBasicsTutorialActive.value ||
+    activeHintTargets.value
+  ) {
+    return;
+  }
+  nextTick(() => {
+    setTimeout(() => {
+      if (
+        !isChapterNavActive.value ||
+        !shouldShowChapterNavHint.value ||
+        activeHintTargets.value
+      ) {
+        return;
+      }
+      showChapterNavHint();
+    }, 350);
+  });
+});
+
+const showBookmarkNavHint = () => {
+  const toolbarEl = bookmarkNavToolbarRef.value?.getToolbarEl();
+  if (!toolbarEl) return;
+
+  const targets: SpotlightTarget[] = [
+    {
+      title: BOOKMARK_NAV_HINT_COPY.toolbar.title,
+      text: BOOKMARK_NAV_HINT_COPY.toolbar.text,
+      getTargetEl: () => bookmarkNavToolbarRef.value?.getToolbarEl(),
+      shape: "rounded",
+      link: {
+        label: BOOKMARK_NAV_HINT_COPY.toolbar.linkLabel,
+        onClick: openSettingsFromHint,
+      },
+    },
+  ];
+
+  if (bookmarkNavToolbarRef.value?.getListLinkEl()) {
+    targets.push({
+      title: BOOKMARK_NAV_HINT_COPY.list.title,
+      text: BOOKMARK_NAV_HINT_COPY.list.text,
+      getTargetEl: () => bookmarkNavToolbarRef.value?.getListLinkEl(),
+      shape: "circle",
+    });
+  }
+
+  showSpotlightHint(targets, markBookmarkNavHintSeen);
+};
+
+// Уровень 2 — подсказка по нижнему меню листания по закладкам.
+// Показывается один раз при первом появлении панели после перехода к закладке.
+watch(isBookmarkNavActive, (active) => {
+  if (!active) {
+    if (activeHintDone === markBookmarkNavHintSeen) {
+      closeActiveHint();
+    }
+    return;
+  }
+  if (
+    !shouldShowBookmarkNavHint.value ||
+    isBasicsTutorialActive.value ||
+    activeHintTargets.value
+  ) {
+    return;
+  }
+  nextTick(() => {
+    setTimeout(() => {
+      if (
+        !isBookmarkNavActive.value ||
+        !shouldShowBookmarkNavHint.value ||
+        activeHintTargets.value
+      ) {
+        return;
+      }
+      showBookmarkNavHint();
+    }, 350);
+  });
 });
 
 const saveProgress = () => {

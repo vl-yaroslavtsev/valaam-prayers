@@ -33,6 +33,9 @@ const SETTINGS_KEYS = {
   HAS_SEEN_READING_BASICS_TUTORIAL: `${SETTINGS_PREFIX}has-seen-reading-basics-tutorial`,
   HAS_SEEN_TOP_MENU_HINT: `${SETTINGS_PREFIX}has-seen-top-menu-hint`,
   HAS_SEEN_RESET_PROGRESS_HINT: `${SETTINGS_PREFIX}has-seen-reset-progress-hint`,
+  HAS_SEEN_CHAPTER_NAV_HINT: `${SETTINGS_PREFIX}has-seen-chapter-nav-hint`,
+  HAS_SEEN_BOOKMARK_NAV_HINT: `${SETTINGS_PREFIX}has-seen-bookmark-nav-hint`,
+  HAS_SEEN_HOME_FAVORITES_TUTORIAL: `${SETTINGS_PREFIX}has-seen-home-favorites-tutorial`,
 } as const;
 
 // Интерфейс настроек приложения
@@ -101,10 +104,13 @@ interface AppSettings {
   // Автообновление скачанных офлайн-данных (см. src/services/download/AutoUpdate.ts)
   isAutoUpdateOfflineDataEnabled: boolean;
 
-  // Обучающий режим читалки (см. src/composables/useReadingTutorial.ts)
+  // Обучающий режим читалки и главной (см. useReadingTutorial.ts, useHomeTutorial.ts)
   hasSeenReadingBasicsTutorial: boolean;
   hasSeenTopMenuHint: boolean;
   hasSeenResetProgressHint: boolean;
+  hasSeenChapterNavHint: boolean;
+  hasSeenBookmarkNavHint: boolean;
+  hasSeenHomeFavoritesTutorial: boolean;
 }
 
 // Настройки по умолчанию
@@ -134,6 +140,9 @@ const DEFAULT_SETTINGS: AppSettings = {
   hasSeenReadingBasicsTutorial: false,
   hasSeenTopMenuHint: false,
   hasSeenResetProgressHint: false,
+  hasSeenChapterNavHint: false,
+  hasSeenBookmarkNavHint: false,
+  hasSeenHomeFavoritesTutorial: false,
 };
 
 export const useSettingsStore = defineStore("settings", () => {
@@ -186,6 +195,9 @@ export const useSettingsStore = defineStore("settings", () => {
       hasSeenReadingBasicsTutorial: SETTINGS_KEYS.HAS_SEEN_READING_BASICS_TUTORIAL,
       hasSeenTopMenuHint: SETTINGS_KEYS.HAS_SEEN_TOP_MENU_HINT,
       hasSeenResetProgressHint: SETTINGS_KEYS.HAS_SEEN_RESET_PROGRESS_HINT,
+      hasSeenChapterNavHint: SETTINGS_KEYS.HAS_SEEN_CHAPTER_NAV_HINT,
+      hasSeenBookmarkNavHint: SETTINGS_KEYS.HAS_SEEN_BOOKMARK_NAV_HINT,
+      hasSeenHomeFavoritesTutorial: SETTINGS_KEYS.HAS_SEEN_HOME_FAVORITES_TUTORIAL,
     };
     return keyMap[key];
   };
@@ -239,6 +251,15 @@ export const useSettingsStore = defineStore("settings", () => {
   const hasSeenTopMenuHint = computed(() => settings.value.hasSeenTopMenuHint);
   const hasSeenResetProgressHint = computed(
     () => settings.value.hasSeenResetProgressHint
+  );
+  const hasSeenChapterNavHint = computed(
+    () => settings.value.hasSeenChapterNavHint
+  );
+  const hasSeenBookmarkNavHint = computed(
+    () => settings.value.hasSeenBookmarkNavHint
+  );
+  const hasSeenHomeFavoritesTutorial = computed(
+    () => settings.value.hasSeenHomeFavoritesTutorial
   );
 
   // Получение языка с приоритетом из доступных языков
@@ -303,6 +324,9 @@ export const useSettingsStore = defineStore("settings", () => {
     hasSeenReadingBasicsTutorial,
     hasSeenTopMenuHint,
     hasSeenResetProgressHint,
+    hasSeenChapterNavHint,
+    hasSeenBookmarkNavHint,
+    hasSeenHomeFavoritesTutorial,
 
     // Универсальный метод
     setSetting,
@@ -355,6 +379,12 @@ export const useSettingsStore = defineStore("settings", () => {
       setSetting("hasSeenTopMenuHint", seen),
     setHasSeenResetProgressHint: (seen: boolean) =>
       setSetting("hasSeenResetProgressHint", seen),
+    setHasSeenChapterNavHint: (seen: boolean) =>
+      setSetting("hasSeenChapterNavHint", seen),
+    setHasSeenBookmarkNavHint: (seen: boolean) =>
+      setSetting("hasSeenBookmarkNavHint", seen),
+    setHasSeenHomeFavoritesTutorial: (seen: boolean) =>
+      setSetting("hasSeenHomeFavoritesTutorial", seen),
 
     // Утилиты
     getLanguageFromAvailable,

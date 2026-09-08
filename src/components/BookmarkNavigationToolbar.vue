@@ -5,8 +5,8 @@
     bottom
     hidden
   >
-    <div class="header">
-      <f7-link class="side-link" icon-only href="#" @click="emit('openList')">
+    <div ref="header" class="header">
+      <f7-link ref="listLink" class="side-link" icon-only href="#" @click="emit('openList')">
         <SvgIcon icon="bookmark" :color="iconColor" />
       </f7-link>
 
@@ -52,6 +52,13 @@ const emit = defineEmits<Emits>();
 const currentNumber = computed(() => (props.currentIndex >= 0 ? props.currentIndex + 1 : 0));
 
 const bookmarkNavToolbar = useTemplateRef<ComponentPublicInstance>("bookmarkNavToolbar");
+const headerRef = useTemplateRef<HTMLElement>("header");
+const listLinkRef = useTemplateRef<ComponentPublicInstance>("listLink");
+
+const getToolbarEl = (): HTMLElement | null =>
+  bookmarkNavToolbar.value?.$el ?? headerRef.value ?? null;
+const getListLinkEl = (): HTMLElement | null =>
+  listLinkRef.value?.$el ?? null;
 
 const { isDarkMode } = useTheme();
 const iconColor = computed(() => (isDarkMode.value ? "baige-60" : "black-40"));
@@ -68,6 +75,11 @@ const applyVisibility = (isHidden: boolean) => {
 
 watch(() => props.isHidden, applyVisibility);
 onMounted(() => applyVisibility(props.isHidden));
+
+defineExpose({
+  getToolbarEl,
+  getListLinkEl,
+});
 </script>
 
 <style scoped lang="less">

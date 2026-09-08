@@ -10,8 +10,10 @@ const BASICS_TUTORIAL_STEPS_COUNT = 4;
  *
  * - Уровень 1 "Основы" — обязательный короткий тур из BASICS_TUTORIAL_STEPS_COUNT шагов,
  *   показывается один раз при первом тапе пользователя по области чтения.
- * - Уровень 2 — одноразовая подсказка по иконкам верхнего и нижнего меню,
- *   появляется при первом раскрытии панелей (см. SpotlightHint.vue).
+ * - Уровень 2 — одноразовые подсказки SpotlightHint:
+ *   иконки верхнего меню / сброс прогресса при первом раскрытии панелей;
+ *   нижнее меню листания по главам при первом переходе к главе из содержания;
+ *   нижнее меню листания по закладкам при первом переходе к закладке.
  */
 export function useReadingTutorial() {
   const settingsStore = useSettingsStore();
@@ -60,11 +62,29 @@ export function useReadingTutorial() {
     settingsStore.setHasSeenResetProgressHint(true);
   };
 
-  // Сброс всех флагов сразу — используется пунктом "Обучение" в настройках
+  const shouldShowChapterNavHint = computed(
+    () => !settingsStore.hasSeenChapterNavHint
+  );
+
+  const markChapterNavHintSeen = () => {
+    settingsStore.setHasSeenChapterNavHint(true);
+  };
+
+  const shouldShowBookmarkNavHint = computed(
+    () => !settingsStore.hasSeenBookmarkNavHint
+  );
+
+  const markBookmarkNavHintSeen = () => {
+    settingsStore.setHasSeenBookmarkNavHint(true);
+  };
+
+  // Сброс всех флагов сразу — используется пунктом "Обучение" в меню «Ещё»
   const resetAllTutorialFlags = () => {
     settingsStore.setHasSeenReadingBasicsTutorial(false);
     settingsStore.setHasSeenTopMenuHint(false);
     settingsStore.setHasSeenResetProgressHint(false);
+    settingsStore.setHasSeenChapterNavHint(false);
+    settingsStore.setHasSeenBookmarkNavHint(false);
   };
 
   return {
@@ -82,6 +102,10 @@ export function useReadingTutorial() {
     // Уровень 2
     shouldShowBarsHint,
     markBarsHintSeen,
+    shouldShowChapterNavHint,
+    markChapterNavHintSeen,
+    shouldShowBookmarkNavHint,
+    markBookmarkNavHintSeen,
 
     resetAllTutorialFlags,
   };
