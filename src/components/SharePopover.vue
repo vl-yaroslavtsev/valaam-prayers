@@ -6,7 +6,7 @@
   >
     <f7-block-title class="share-title">Поделиться</f7-block-title>
     <f7-list>
-      <f7-list-item title="ВКонтакте" @click="shareToVK">
+      <f7-list-item title="ВКонтакте" @click="shareToVK" link no-chevron>
         <template #media>
           <SvgIcon
             icon="vk"
@@ -16,7 +16,7 @@
           />
         </template>
       </f7-list-item>
-      <f7-list-item title="Одноклассники" @click="shareToOK">
+      <f7-list-item title="Одноклассники" @click="shareToOK" link no-chevron>
         <template #media>
           <SvgIcon
             icon="odnoklassniki"
@@ -26,7 +26,7 @@
           />
         </template>
       </f7-list-item>
-      <f7-list-item title="WhatsApp" @click="shareToWhatsApp">
+      <f7-list-item title="WhatsApp" @click="shareToWhatsApp" link no-chevron>
         <template #media>
           <SvgIcon
             icon="whatsapp"
@@ -36,7 +36,7 @@
           />
         </template>
       </f7-list-item>
-      <f7-list-item title="Telegram" @click="shareToTelegram">
+      <f7-list-item title="Telegram" @click="shareToTelegram" link no-chevron>
         <template #media>
           <SvgIcon
             icon="telegram"
@@ -53,6 +53,7 @@
         class="footer-item"
         title="Скопировать ссылку"
         @click="copyLink"
+        link no-chevron
       >
         <template #media>
           <SvgIcon
@@ -68,28 +69,47 @@
 </template>
 
 <script setup lang="ts">
-import { onUnmounted, ref,watch } from "vue";
+import { nextTick, ref } from "vue";
 import { Dom7 as $$ } from "framework7";
-import type { Popover, Toast } from "framework7/types";
 import { f7 } from "framework7-vue";
+import type { Popover } from "framework7/types";
 import { useTheme } from "@/composables/useTheme";
+import { useShare, type SharePayload } from "@/composables/useShare";
 
 import SvgIcon from "@/components/SvgIcon.vue";
 
-interface ShareItem {
-  title: string;
-  url: string;
-}
-const isOpened = defineModel<boolean>();
-const shareItem = ref<ShareItem | null>(null);
+const isOpened = defineModel<boolean>({ default: false });
+const shareItem = ref<SharePayload | null>(null);
 const targetEl = ref<Element | null>(null);
 const hasArrow = ref(true);
+const { shareToVK: openVK, shareToOK: openOK, shareToWhatsApp: openWhatsApp, shareToTelegram: openTelegram, copyLink: copyShareLink } = useShare();
 
-const open = (item: ShareItem, target?: Element, isArrow: boolean = true) => {
+const open = (item: SharePayload, target?: Element, isArrow: boolean = true) => {
   shareItem.value = item;
   targetEl.value = target || null;
   hasArrow.value = isArrow;
-  isOpened.value = true;
+
+  const reveal = () => {
+    isOpened.value = true;
+    nextTick(() => {
+      if (!target) return;
+      const el = document.querySelector(".share-popover") as HTMLElement | null;
+      if (!el) return;
+      f7.popover.open(el, target as unknown as HTMLElement);
+    });
+  };
+
+  const el = document.querySelector(".share-popover") as HTMLElement | null;
+  if (isOpened.value || el?.classList.contains("modal-in")) {
+    isOpened.value = false;
+    if (el) {
+      f7.popover.close(el, false);
+    }
+    nextTick(reveal);
+    return;
+  }
+
+  reveal();
 };
 
 const close = () => {
@@ -103,12 +123,6 @@ defineExpose({
   open,
   close,
 });
-
-const baseUrl = "https://app.valaam.ru/app/";
-
-const getShareUrl = (url: string) => {
-  return `${baseUrl}#view-prayers:${url}`;
-};
 
 const { isDarkMode } = useTheme();
 
@@ -125,66 +139,35 @@ const onOpen = (popover: Popover.Popover) => {
 
 const shareToVK = () => {
   if (!shareItem.value) return;
-  const shareUrl = getShareUrl(shareItem.value.url);
-  const url = `https://vk.com/share.php?url=${encodeURIComponent(shareUrl)}&title=${encodeURIComponent(shareItem.value.title)}`;
-  window.open(url, "_blank");
+  openVK(shareItem.value);
   close();
 };
 
 const shareToOK = () => {
   if (!shareItem.value) return;
-  const shareUrl = getShareUrl(shareItem.value.url);
-  const url = `https://connect.ok.ru/offer?url=${encodeURIComponent(shareUrl)}&title=${encodeURIComponent(shareItem.value.title)}`;
-  window.open(url, "_blank");
+  openOK(shareItem.value);
   close();
 };
 
 const shareToWhatsApp = () => {
   if (!shareItem.value) return;
-  const shareUrl = getShareUrl(shareItem.value.url);
-  const text = `${shareItem.value.title} ${shareUrl}`;
-  const url = `https://wa.me/?text=${encodeURIComponent(text)}`;
-  window.open(url, "_blank");
+  openWhatsApp(shareItem.value);
   close();
 };
 
 const shareToTelegram = () => {
   if (!shareItem.value) return;
-  const shareUrl = getShareUrl(shareItem.value.url);
-  const url = `https://t.me/share/url?url=${encodeURIComponent(shareUrl)}&text=${encodeURIComponent(shareItem.value.title)}`;
-  window.open(url, "_blank");
+  openTelegram(shareItem.value);
   close();
 };
 
-let toast: Toast.Toast | null = null;
-
 const copyLink = async () => {
   if (!shareItem.value) return;
-  try {
-    const shareUrl = getShareUrl(shareItem.value.url);
-    await navigator.clipboard.writeText(shareUrl);
-    showToast("Ссылка скопирована");
+  const copied = await copyShareLink(shareItem.value);
+  if (copied) {
     close();
-  } catch (err) {
-    console.error("Ошибка копирования:", err);
   }
 };
-
-const showToast = (text: string) => {
-  if (!toast) {
-    toast = f7.toast.create({
-      text,
-      closeTimeout: 2000,
-    });
-  }
-  toast.open();
-};
-
-onUnmounted(() => {
-  if (toast) {
-    toast.destroy();
-  }
-});
 </script>
 
 <style scoped lang="less">

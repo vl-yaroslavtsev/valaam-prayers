@@ -1,5 +1,5 @@
 <template>
-  <f7-page :page-content="false" @page:beforein="onPageBeforeIn" @page:afterout="onPageAfterOut">
+  <f7-page :page-content="false" @page:beforein="onPageBeforeIn" @page:beforeout="onPageBeforeOut" @page:afterout="onPageAfterOut">
     <PrayersTextNavbar
       ref="navbar"
       :title="title"
@@ -14,6 +14,7 @@
       @toggle-text-settings="toggleTextSettingsSheet"
       @open-content-popup="openContentPopup"
       @open-search="onOpenSearch"
+      @start-tutorial="onStartTutorial"
     />
     <f7-page-content>
       <TextPaginator 
@@ -400,6 +401,10 @@ const onPageBeforeIn = () => {
   }
 };
 
+const onPageBeforeOut = () => {
+  navbarRef.value?.closeMorePopup();
+};
+
 const onPageAfterOut = () => {
   if (saveProgressTimer) {
     clearTimeout(saveProgressTimer);
@@ -528,6 +533,7 @@ const {
   skipBasicsTutorial,
   shouldShowBarsHint,
   markBarsHintSeen,
+  resetAllTutorialFlags,
 } = useReadingTutorial();
 
 // Уровень 2 обучающего режима — контекстные подсказки (см. SpotlightHint.vue).
@@ -550,7 +556,7 @@ const closeActiveHint = () => {
 
 const TOP_MENU_HINT_COPY: Record<string, { title: string; text: string }> = {
   menu: {
-    title: "Меню и содержание",
+    title: "Содержание и закладки",
     text: "Открывает список глав и ваши закладки для этого текста.",
   },
   language: {
@@ -565,13 +571,9 @@ const TOP_MENU_HINT_COPY: Record<string, { title: string; text: string }> = {
     title: "Настройки текста",
     text: "Изменяет размер шрифта, межстрочный интервал и тему чтения.",
   },
-  share: {
-    title: "Поделиться",
-    text: "Отправляет ссылку на этот текст другим приложениям.",
-  },
-  search: {
-    title: "Поиск по тексту",
-    text: "Ищет слово или фразу внутри текущей молитвы.",
+  more: {
+    title: "Ещё",
+    text: "Поиск по тексту, поделиться ссылкой и повторное обучение.",
   },
 };
 
@@ -892,6 +894,18 @@ const resetProgress = () => {
   textPaginator.value?.goToPage(1, false);
   showUndoResetToast();
 }
+
+const onStartTutorial = () => {
+  closeActiveHint();
+  resetAllTutorialFlags();
+  readingBarsAnimate.value = false;
+  isNavbarHidden.value = true;
+  isPageNavHidden.value = true;
+  nextTick(() => {
+    readingBarsAnimate.value = true;
+    startBasicsTutorial();
+  });
+};
 
 // Управление яркостью
 const isBrightnessTouching = computed(() => navbarRef.value?.isBrightnessTouching || false);

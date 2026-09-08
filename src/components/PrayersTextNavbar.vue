@@ -24,16 +24,13 @@
       </f7-link>
       <f7-link ref="settingsLink" icon-only>
         <SvgIcon 
-          icon="settings-2" 
+          icon="letter-tt" 
           :color="navIconColor" 
           :size="24" 
           @click="$emit('toggle-text-settings')" />
       </f7-link>
-      <f7-link ref="shareLink" icon-only>
-        <SvgIcon icon="share" :color="navIconColor" :size="24" @click="shareItem" />
-      </f7-link>
-      <f7-link ref="searchLink" icon-only @click="emit('open-search')">
-        <SvgIcon icon="search" :color="navIconColor" :size="24" />
+      <f7-link ref="moreLink" icon-only aria-label="Ещё" @click="isMorePopupOpened = true">
+        <SvgIcon icon="more-vertical" :color="navIconColor" :size="24" />
       </f7-link>
     </f7-nav-right>
     <f7-nav-title-large>{{ title }}
@@ -64,16 +61,23 @@
       </div>
     </div>
   </f7-navbar>
+  <PrayersTextMorePopup
+    v-model:isOpened="isMorePopupOpened"
+    :title="title"
+    :item-url="itemUrl"
+    :target-el="moreLinkEl"
+    @open-search="emit('open-search')"
+    @start-tutorial="emit('start-tutorial')"
+  />
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch, useTemplateRef, watchEffect, ComponentPublicInstance, readonly } from "vue";
+import { ref, computed, watch, useTemplateRef, watchEffect, onBeforeUnmount, ComponentPublicInstance, readonly } from "vue";
 import { f7 } from "framework7-vue";
 import type { Router } from "framework7/types";
 import type { Language } from "@/types/common";
 
 import { usePrayersStore } from "@/stores/prayers";
-import { useComponentsStore } from "@/stores/components";
 import { useSettingsStore } from "@/stores/settings";
 import { useFavoritesStore } from "@/stores/favorites";
 import { useInfoToast } from "@/composables/useInfoToast";
@@ -82,6 +86,7 @@ import { device } from "@/js/device";
 
 import SvgIcon from "@/components/SvgIcon.vue";
 import LanguageSelector from "@/components/LanguageSelector.vue";
+import PrayersTextMorePopup from "@/components/PrayersTextMorePopup.vue";
 
 interface Props {
   title: string;
@@ -98,6 +103,7 @@ interface Emits {
   (e: 'toggle-text-settings'): void;
   (e: 'open-content-popup'): void;
   (e: 'open-search'): void;
+  (e: 'start-tutorial'): void;
 }
 
 const props = defineProps<Props>();
@@ -111,15 +117,19 @@ const menuLinkRef = useTemplateRef<ComponentPublicInstance>("menuLink");
 const languageSelectorRef = useTemplateRef<ComponentPublicInstance>("languageSelector");
 const favoriteLinkRef = useTemplateRef<ComponentPublicInstance>("favoriteLink");
 const settingsLinkRef = useTemplateRef<ComponentPublicInstance>("settingsLink");
-const shareLinkRef = useTemplateRef<ComponentPublicInstance>("shareLink");
-const searchLinkRef = useTemplateRef<ComponentPublicInstance>("searchLink");
+const moreLinkRef = useTemplateRef<ComponentPublicInstance>("moreLink");
+const isMorePopupOpened = ref(false);
+const moreLinkEl = computed(() => (moreLinkRef.value?.$el as HTMLElement | undefined) ?? null);
+
+onBeforeUnmount(() => {
+  isMorePopupOpened.value = false;
+});
 
 const { isDarkMode } = useTheme();
 const navIconColor = computed(() => (isDarkMode.value ? "baige-90" : "black-primary"));
 
 const prayersStore = usePrayersStore();
 const settingsStore = useSettingsStore();
-const { getComponent } = useComponentsStore();
 const { addFavorite, deleteFavorite, isFavorite } = useFavoritesStore();
 
 const currentLanguage = defineModel<Language | null>('current-language');
@@ -131,6 +141,7 @@ watch(() => props.isHidden, (isHidden) => {
   const animate = props.animateVisibility !== false;
 
   if (isHidden) {
+    isMorePopupOpened.value = false;
     f7.navbar.hide(navbarEl, animate);
     f7.navbar.collapseLargeTitle(navbarEl);
   } else {
@@ -160,19 +171,6 @@ const toggleFavorite = async () => {
     await addFavorite(props.itemId, type);
     showAddedToFavoritesToast();
   }
-};
-
-// Поделиться
-const shareItem = (e: Event) => {
-  const target = (e.target as HTMLElement).closest("a") as HTMLElement;
-
-  const sharePopover = getComponent("sharePopover");
-  if (!sharePopover) return;
-
-  sharePopover.open({
-    title: props.title,
-    url: props.itemUrl,
-  }, target, false);
 };
 
 // Управление яркостью
@@ -229,8 +227,7 @@ export type NavbarIconKey =
   | "language"
   | "favorite"
   | "settings"
-  | "share"
-  | "search";
+  | "more";
 
 // Возвращает DOM-элементы иконок верхнего меню для точечной подсветки в обучающем режиме
 const getIconTargets = (): { key: NavbarIconKey; el: HTMLElement | null }[] => [
@@ -238,14 +235,16 @@ const getIconTargets = (): { key: NavbarIconKey; el: HTMLElement | null }[] => [
   { key: "language", el: languageSelectorRef.value?.$el ?? null },
   { key: "favorite", el: favoriteLinkRef.value?.$el ?? null },
   { key: "settings", el: settingsLinkRef.value?.$el ?? null },
-  { key: "share", el: shareLinkRef.value?.$el ?? null },
-  { key: "search", el: searchLinkRef.value?.$el ?? null },
+  { key: "more", el: moreLinkRef.value?.$el ?? null },
 ];
 
 // Экспортируем ref для внешнего доступа
 defineExpose({
   isBrightnessTouching: readonly(isBrightnessTouching),
   getIconTargets,
+  closeMorePopup: () => {
+    isMorePopupOpened.value = false;
+  },
 });
 </script>
 
