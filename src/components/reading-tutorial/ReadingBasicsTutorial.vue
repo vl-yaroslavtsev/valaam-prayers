@@ -3,15 +3,21 @@
     <div class="rbt-backdrop"></div>
 
     <template v-if="step === 0 || step === 1">
-      <div class="rbt-circle rbt-circle-edge" :style="edgeCircleStyle"></div>
+      <div class="rbt-circle rbt-circle-edge" :style="edgeCircleStyle">
+        <SvgIcon icon="cursor-hand" :size="46" class="rbt-paw" :style="pawStyle" />
+      </div>
     </template>
 
     <template v-else-if="step === 2">
-      <div class="rbt-circle rbt-circle-center" :style="centerCircleStyle"></div>
+      <div class="rbt-circle rbt-circle-center" :style="centerCircleStyle">
+        <SvgIcon icon="cursor-hand" :size="46" class="rbt-paw" />
+      </div>
     </template>
 
     <template v-else>
-      <div class="rbt-circle rbt-circle-corner" :style="cornerCircleStyle"></div>
+      <div class="rbt-circle rbt-circle-corner" :style="cornerCircleStyle">
+        <SvgIcon icon="cursor-hand" :size="46" class="rbt-paw" />
+      </div>
     </template>
 
     <div
@@ -81,7 +87,7 @@ const isLastStep = computed(() => step >= stepsCount - 1);
 // не разъезжаться с фактическим поведением тапа
 const EDGE_CIRCLE_SIZE = 132;
 const CENTER_CIRCLE_SIZE = 168;
-const CORNER_CIRCLE_SIZE = 110;
+const CORNER_CIRCLE_SIZE = 130;
 
 const alongZonePercent = TAP_ZONE_ALONG_START_RATIO * 100;
 const edgeCenterPercent = alongZonePercent / 2;
@@ -120,9 +126,25 @@ const centerCircleStyle = {
 const cornerCircleStyle = {
   width: `${CORNER_CIRCLE_SIZE}px`,
   height: `${CORNER_CIRCLE_SIZE}px`,
-  top: `${BOOKMARK_ZONE_SIZE / 2}px`,
+  top: `${ 2 * BOOKMARK_ZONE_SIZE / 3}px`,
   right: `${BOOKMARK_ZONE_SIZE / 2}px`,
 };
+
+// Ориентация лапки как в макете:
+// горизонтально назад — rotate(90deg) + отражение по Y (не просто -90°),
+// горизонтально вперёд — rotate(90deg), вертикально вниз — 180°
+const pawStyle = computed(() => {
+  if (isHorizontal.value && step === 0) {
+    return { transform: "rotate(90deg) scaleY(-1)" };
+  }
+  if (isHorizontal.value && step === 1) {
+    return { transform: "rotate(90deg)" };
+  }
+  if (!isHorizontal.value && step === 1) {
+    return { transform: "rotate(180deg)" };
+  }
+  return {};
+});
 
 const stepsContent = computed(() => [
   {
@@ -266,11 +288,19 @@ onBeforeUnmount(() => {
 
 .rbt-circle {
   position: absolute;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   transform: translate(-50%, -50%);
   border-radius: 50%;
   background-color: transparent;
   box-shadow: 0 0 0 9999px rgba(69, 69, 69, 0.5);
   animation: rbt-pulse 2.2s ease-in-out infinite;
+}
+
+.rbt-paw {
+  pointer-events: none;
+  flex-shrink: 0;
 }
 
 .rbt-circle-corner {
