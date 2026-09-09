@@ -1,5 +1,12 @@
 <template>
-  <f7-page name="home">
+  <f7-page
+    name="home"
+    :class="{ 'home-tutorial-lock-navbar': lockHomeNavbar }"
+    @page:afterin="isHomeVisible = true"
+    @page:tabshow="isHomeVisible = true"
+    @page:afterout="isHomeVisible = false"
+    @page:tabhide="isHomeVisible = false"
+  >
     <!-- Top Navbar -->
     <f7-navbar transparent>
       <f7-nav-left>
@@ -41,10 +48,12 @@
       :style="favoritesSectionMinHeight ? { minHeight: favoritesSectionMinHeight } : undefined"
     >
       <FavoritesList
+        ref="favoritesList"
         :isLoading="isLoading"
         sortable
         :sortable-enabled="sortableEnabled"
         :favorites="currentFavorites"
+        :tutorial-item-id="tutorialItemId"
         @delete-item="onDeleteItem"
         @undo-delete-item="onUndoDeleteItem"
         @reset-item-progress="onResetItemProgress"
@@ -55,6 +64,11 @@
     <SeparatorLine
       class="separator"
       :color="isDarkMode ? 'baige-10' : 'black-10'"
+    />
+    <SpotlightHint
+      v-if="isTutorialActive && hintTargets"
+      :targets="hintTargets"
+      @close="onHomeTutorialClose"
     />
   </f7-page>
 </template>
@@ -68,12 +82,16 @@ import { useSaintsStore } from "@/stores/saints";
 import { useThoughtsStore } from "@/stores/thoughts";
 import { useReadingHistoryStore } from "@/stores/readingHistory";
 import { useErrorToast } from "@/composables/useErrorToast";
+import { useHomeTutorial } from "@/composables/useHomeTutorial";
 import type { Language } from "@/types/common";
 
 import SvgIcon from "@/components/SvgIcon.vue";
 import SeparatorLine from "@/components/SeparatorLine.vue";
 import HistorySlider from "@/components/HistorySlider.vue";
 import { FavoritesList } from "@/components/prayers";
+import SpotlightHint, {
+  type SpotlightTarget,
+} from "@/components/reading-tutorial/SpotlightHint.vue";
 
 const { isDarkMode } = useTheme();
 const pencilInactiveColor = computed(() => (isDarkMode.value ? "baige-90" : "black-60"));
@@ -122,7 +140,167 @@ watch(chips, (availableChips) => {
 
 const chipsBlockRef = useTemplateRef("chipsBlockRef");
 const favoritesSectionRef = useTemplateRef<HTMLElement>("favoritesSectionRef");
+const favoritesListRef = useTemplateRef("favoritesList");
 const favoritesSectionMinHeight = ref<string | null>(null);
+
+const isHomeVisible = ref(true);
+const tutorialItemId = ref<number | null>(null);
+const hintTargets = ref<SpotlightTarget[] | null>(null);
+const lockHomeNavbar = ref(false);
+const isTutorialStarting = ref(false);
+
+const {
+  isTutorialActive,
+  shouldShowTutorial,
+  startTutorial,
+  finishTutorial,
+} = useHomeTutorial();
+
+const TUTORIAL_NAVBAR_SETTLE_MS = 500;
+
+const isTutorialItemInView = (el: HTMLElement) => {
+  const pageContent = el.closest(".page-content") as HTMLElement | null;
+  const elRect = el.getBoundingClientRect();
+  const box = pageContent?.getBoundingClientRect() ?? {
+    top: 0,
+    bottom: window.innerHeight,
+  };
+  return elRect.top >= box.top && elRect.bottom <= box.bottom;
+};
+
+const buildHomeTutorialTargets = (): SpotlightTarget[] => {
+  const list = favoritesListRef.value;
+  return [
+    {
+      title: "Избранное",
+      text: "Вы добавили этот текст в Избранное. Нажмите на карточку, чтобы открыть его и продолжить чтение.",
+      shape: "rounded",
+      getTargetEl: () => list?.getTutorialItemEl(),
+      prepare: async () => {
+        await list?.closeTutorialSwipeout();
+      },
+    },
+    {
+      title: "Скрытое меню",
+      text: "Смахните строку влево, чтобы открыть быстрые действия с этим текстом.",
+      shape: "rounded",
+      hand: "swipe-left",
+      getTargetEl: () => list?.getTutorialItemEl(),
+      prepare: async () => {
+        await list?.openTutorialSwipeout();
+      },
+    },
+    {
+      title: "Поделиться",
+      text: "Отправьте ссылку на этот материал близким или сохраните себе.",
+      shape: "rounded",
+      getTargetEl: () => list?.getTutorialActionEl("share"),
+      prepare: async () => {
+        await list?.openTutorialSwipeout();
+      },
+    },
+    {
+      title: "Читать сначала",
+      text: "Сбрасывает прогресс чтения. Удобно, когда вы дочитали молитвы до конца и хотите, чтобы завтра они снова открылись с первой страницы.",
+      shape: "rounded",
+      getTargetEl: () => list?.getTutorialActionEl("reset"),
+      prepare: async () => {
+        await list?.openTutorialSwipeout();
+      },
+    },
+    {
+      title: "Убрать с экрана",
+      text: "Удаляет карточку с главного экрана. Сам текст останется в разделах приложения.",
+      shape: "rounded",
+      getTargetEl: () => list?.getTutorialActionEl("delete"),
+      prepare: async () => {
+        await list?.openTutorialSwipeout();
+      },
+    },
+  ];
+};
+
+const tryStartHomeTutorial = async () => {
+  if (
+    !shouldShowTutorial.value ||
+    isTutorialActive.value ||
+    isTutorialStarting.value ||
+    tutorialItemId.value != null ||
+    !isHomeVisible.value ||
+    isLoading.value ||
+    sortableEnabled.value ||
+    currentFavorites.value.length === 0
+  ) {
+    return;
+  }
+
+  const tutorialItem = currentFavorites.value[0];
+  if (!tutorialItem) return;
+
+  sortableEnabled.value = false;
+  isTutorialStarting.value = true;
+
+  // Сначала даём navbar доехать до конца collapse/expand — оверлей иначе
+  // фиксирует его в промежуточном положении («Избранное» + «Сейчас читаю»).
+  await new Promise<void>((resolve) => {
+    setTimeout(resolve, TUTORIAL_NAVBAR_SETTLE_MS);
+  });
+
+  if (
+    !shouldShowTutorial.value ||
+    !isHomeVisible.value ||
+    isTutorialActive.value ||
+    tutorialItemId.value != null
+  ) {
+    isTutorialStarting.value = false;
+    return;
+  }
+
+  lockHomeNavbar.value = true;
+  tutorialItemId.value = tutorialItem.id;
+  await nextTick();
+
+  const itemEl = favoritesListRef.value?.getTutorialItemEl();
+  if (!itemEl) {
+    lockHomeNavbar.value = false;
+    tutorialItemId.value = null;
+    isTutorialStarting.value = false;
+    return;
+  }
+
+  if (!isTutorialItemInView(itemEl)) {
+    itemEl.scrollIntoView({ block: "nearest", behavior: "auto" });
+    await new Promise<void>((resolve) => {
+      requestAnimationFrame(() => requestAnimationFrame(() => resolve()));
+    });
+  }
+
+  if (!shouldShowTutorial.value || !isHomeVisible.value) {
+    lockHomeNavbar.value = false;
+    tutorialItemId.value = null;
+    isTutorialStarting.value = false;
+    return;
+  }
+  if (!favoritesListRef.value?.getTutorialItemEl()) {
+    lockHomeNavbar.value = false;
+    tutorialItemId.value = null;
+    isTutorialStarting.value = false;
+    return;
+  }
+
+  hintTargets.value = buildHomeTutorialTargets();
+  startTutorial();
+  isTutorialStarting.value = false;
+};
+
+const onHomeTutorialClose = async () => {
+  await favoritesListRef.value?.closeTutorialSwipeout();
+  hintTargets.value = null;
+  tutorialItemId.value = null;
+  lockHomeNavbar.value = false;
+  isTutorialStarting.value = false;
+  finishTutorial();
+};
 
 const getF7El = (refValue: unknown): HTMLElement | null => {
   if (!refValue) return null;
@@ -313,6 +491,20 @@ const toggleSortable = () => {
   sortableEnabled.value = !sortableEnabled.value;
 };
 
+watch(
+  [
+    shouldShowTutorial,
+    isHomeVisible,
+    isLoading,
+    currentFavorites,
+    sortableEnabled,
+  ],
+  () => {
+    void tryStartHomeTutorial();
+  },
+  { immediate: true, flush: "post" }
+);
+
 const onSorted = (id: number, prevId: number | null) => {
   favoritesStore.moveFavorite(id, prevId);
 };
@@ -349,6 +541,16 @@ const onSorted = (id: number, prevId: number | null) => {
 
 .separator {
   margin-top: 30px;
+}
+
+.home-tutorial-lock-navbar {
+  :deep(.navbar),
+  :deep(.navbar-bg),
+  :deep(.navbar-inner),
+  :deep(.title),
+  :deep(.title-large) {
+    transition: none !important;
+  }
 }
 
 .now-reading-title {

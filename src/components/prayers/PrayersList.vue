@@ -242,11 +242,11 @@ const { isSection } = usePrayersStore();
 const { addFavorite, deleteFavorite, isFavorite } = useFavoritesStore();
 
 const { showInfoToast: showAddedToFavoritesToast } = useInfoToast({
-  text: "Добавлено на главный экран",
+  text: "Добавлено в избранное",
 });
 
 const { showInfoToast: showRemovedFromFavoritesToast } = useInfoToast({
-  text: "Удалено с главного экрана",
+  text: "Удалено из избранного",
 });
 
 const toggleFavorite = async (item: PrayerListItem) => {

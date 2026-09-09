@@ -23,7 +23,7 @@
         v-for="item in localItems" 
         :key="item.id" 
         :title="item.name"
-        :link="isSortableMode ? 'javascript:void(0)' : item.url" 
+        :link="isSortableMode || tutorialItemId != null ? 'javascript:void(0)' : item.url" 
         :data-id="item.id" 
         @contextmenu="handleContextMenu">
         <template #root-start>
@@ -38,13 +38,25 @@
           <LanguageBadges :languages="item.lang" />
         </template>
         <f7-swipeout-actions right v-if="!isSortableMode && !isSortingByTapHold">
-          <f7-swipeout-button close @click="shareItem(item, $event)">
+          <f7-swipeout-button
+            data-tutorial-action="share"
+            close
+            @click="shareItem(item, $event)"
+          >
             <SvgIcon icon="share" :color="isDarkMode ? 'baige-90' : 'black-60'" />
           </f7-swipeout-button>
-          <f7-swipeout-button close @click="resetItem(item)" v-if="item.progress && item.pages">
+          <f7-swipeout-button
+            data-tutorial-action="reset"
+            close
+            @click="resetItem(item)"
+            v-if="shouldShowResetButton(item)"
+          >
             <SvgIcon icon="reset" :color="isDarkMode ? 'baige-90' : 'black-60'" />
           </f7-swipeout-button>
-          <f7-swipeout-button @click="deleteItem(item)">
+          <f7-swipeout-button
+            data-tutorial-action="delete"
+            @click="deleteItem(item)"
+          >
             <SvgIcon icon="delete" color="primary-accent-50" />
           </f7-swipeout-button>
         </f7-swipeout-actions>
@@ -54,7 +66,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watchEffect, computed, useTemplateRef, onBeforeUpdate, type ComponentPublicInstance } from "vue";
+import { ref, watchEffect, computed, useTemplateRef, onBeforeUpdate, onBeforeUnmount, type ComponentPublicInstance } from "vue";
 import { f7 } from "framework7-vue";
 import { useTheme } from "@/composables/useTheme";
 import { useUndoToast } from "@/composables/useUndoToast";
@@ -84,13 +96,19 @@ const {
   sortableEnabled = false,
   cssClass = "",
   isLoading = false,
+  tutorialItemId = null,
 } = defineProps<{
   favorites: FavoriteListItem[];
   sortable?: boolean;
   sortableEnabled?: boolean;
   cssClass?: string;
   isLoading?: boolean;
+  // Во время тура на главной всегда показываем кнопку сброса на этой строке
+  tutorialItemId?: number | null;
 }>();
+
+const shouldShowResetButton = (item: FavoriteListItem) =>
+  Boolean((item.progress && item.pages) || item.id === tutorialItemId);
 
 // Events
 const emit = defineEmits<{
@@ -251,6 +269,119 @@ const handleContextMenu = (e: Event) => {
   e.preventDefault();
   return false;
 };
+
+const getTutorialItemEl = (): HTMLElement | null => {
+  const listEl = listRef.value?.$el as HTMLElement | undefined;
+  if (!listEl) return null;
+  if (tutorialItemId != null) {
+    return listEl.querySelector<HTMLElement>(`li[data-id="${tutorialItemId}"]`);
+  }
+  return listEl.querySelector<HTMLElement>("li.swipeout");
+};
+
+const getTutorialActionEl = (action: string): HTMLElement | null => {
+  return (
+    getTutorialItemEl()?.querySelector<HTMLElement>(
+      `[data-tutorial-action="${action}"]`
+    ) ?? null
+  );
+};
+
+// Тап по карточке тура F7 считает «тапом снаружи» и закрывает swipeout
+// (swipeout.js: app.on('touchstart') → close). Строка схлопывается и
+// на следующем шаге снова открывается — отсюда дёрганье на шагах 3–5.
+type SwipeoutWithEl = { el?: HTMLElement; close: (...args: unknown[]) => void };
+
+const resolveSwipeoutEl = (el: unknown): HTMLElement | null => {
+  if (!el) return null;
+  if (typeof el === "string") return document.querySelector(el);
+  if (el instanceof HTMLElement) return el;
+  if (typeof el === "object" && el !== null && "0" in el) {
+    const first = (el as { 0: unknown })[0];
+    return first instanceof HTMLElement ? first : null;
+  }
+  return null;
+};
+
+type SwipeoutCloseFn = (this: unknown, el: unknown, callback?: () => void) => void;
+
+let keepTutorialSwipeoutOpen = false;
+let originalSwipeoutClose: SwipeoutCloseFn | null = null;
+
+const releaseTrackedSwipeout = () => {
+  const swipeout = f7.swipeout as SwipeoutWithEl | undefined;
+  if (swipeout) swipeout.el = undefined;
+};
+
+const onPointerStartCapture = () => {
+  if (keepTutorialSwipeoutOpen) releaseTrackedSwipeout();
+};
+
+const installSwipeoutCloseGuard = () => {
+  if (originalSwipeoutClose) return;
+  originalSwipeoutClose = f7.swipeout.close as unknown as SwipeoutCloseFn;
+  f7.swipeout.close = function (this: unknown, el: unknown, callback?: () => void) {
+    if (keepTutorialSwipeoutOpen) {
+      const tutorialEl = getTutorialItemEl();
+      const targetEl = resolveSwipeoutEl(el);
+      if (tutorialEl && targetEl && (targetEl === tutorialEl || tutorialEl.contains(targetEl))) {
+        return;
+      }
+    }
+    return originalSwipeoutClose?.call(this, el, callback);
+  } as typeof f7.swipeout.close;
+  document.addEventListener("touchstart", onPointerStartCapture, true);
+  document.addEventListener("mousedown", onPointerStartCapture, true);
+};
+
+const uninstallSwipeoutCloseGuard = () => {
+  document.removeEventListener("touchstart", onPointerStartCapture, true);
+  document.removeEventListener("mousedown", onPointerStartCapture, true);
+  if (!originalSwipeoutClose) return;
+  f7.swipeout.close = originalSwipeoutClose as typeof f7.swipeout.close;
+  originalSwipeoutClose = null;
+};
+
+const openTutorialSwipeout = (): Promise<void> => {
+  const el = getTutorialItemEl();
+  if (!el) return Promise.resolve();
+  keepTutorialSwipeoutOpen = true;
+  installSwipeoutCloseGuard();
+  if (el.classList.contains("swipeout-opened")) {
+    releaseTrackedSwipeout();
+    return Promise.resolve();
+  }
+  swipeoutClearCache(el);
+  return new Promise((resolve) => {
+    f7.swipeout.open(el, "right", () => {
+      releaseTrackedSwipeout();
+      resolve();
+    });
+  });
+};
+
+const closeTutorialSwipeout = (): Promise<void> => {
+  keepTutorialSwipeoutOpen = false;
+  const el = getTutorialItemEl();
+  if (!el || !el.classList.contains("swipeout-opened")) {
+    return Promise.resolve();
+  }
+  return new Promise((resolve) => {
+    f7.swipeout.close(el, () => resolve());
+  });
+};
+
+onBeforeUnmount(() => {
+  keepTutorialSwipeoutOpen = false;
+  uninstallSwipeoutCloseGuard();
+});
+
+defineExpose({
+  getTutorialItemEl,
+  getTutorialActionEl,
+  openTutorialSwipeout,
+  closeTutorialSwipeout,
+});
 
 </script>
 

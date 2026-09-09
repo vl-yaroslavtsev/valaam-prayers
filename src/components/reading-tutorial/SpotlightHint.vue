@@ -1,6 +1,10 @@
 <template>
+  <!-- Вне .view/.page: иначе tabbar (.views > .tabbar, z-index 5001) остаётся
+       поверх затемнения и принимает клики. #framework7-root — тот же stacking
+       context, что у sheet/popup/dialog. -->
+  <Teleport to="#framework7-root">
   <div v-if="rect" class="spotlight-hint">
-    <div class="sh-backdrop" @click="close"></div>
+    <div class="sh-backdrop"></div>
 
     <div class="sh-hole" :style="holeStyle"></div>
 
@@ -12,13 +16,14 @@
       :style="handStyle"
     />
 
+    <div class="dialog modal-in sh-swipeout-safe">
     <div
-      class="sh-card"
+      class="sh-card modal-in"
       :class="placeBelow ? 'sh-card--caret-top' : 'sh-card--caret-bottom'"
       :style="cardStyle"
     >
       <div class="sh-caret" :style="caretStyle"></div>
-      <f7-link class="sh-close" icon-only @click="close">
+      <f7-link class="sh-close modal-in" icon-only @click="close">
         <SvgIcon icon="cancel" :size="20" color="black-40" />
       </f7-link>
 
@@ -46,17 +51,19 @@
           v-if="activeIndex > 0"
           outline
           round
-          class="sh-button"
+          class="sh-button modal-in"
           @click="prev"
         >
           Назад
         </f7-button>
-        <f7-button fill round class="sh-button" @click="next">
+        <f7-button fill round class="sh-button modal-in" @click="next">
           {{ isLastTarget ? "Понятно" : "Далее" }}
         </f7-button>
       </div>
     </div>
+    </div>
   </div>
+  </Teleport>
 </template>
 
 <script setup lang="ts">
@@ -185,6 +192,9 @@ onMounted(() => {
   void updateRect();
   window.addEventListener("resize", updateRect);
   window.addEventListener("orientationchange", updateRect);
+  // Tabbar (.views > .tabbar, transform + z-index 5001) рисуется своим
+  // compositing-слоем поверх оверлея — класс глушит клики и даёт ::after.
+  document.documentElement.classList.add("spotlight-hint-open");
 
   if (!isAndroid || typeof window === "undefined") return;
   previousOnBackPressed = window.onBackPressed;
@@ -197,6 +207,7 @@ onMounted(() => {
 onBeforeUnmount(() => {
   window.removeEventListener("resize", updateRect);
   window.removeEventListener("orientationchange", updateRect);
+  document.documentElement.classList.remove("spotlight-hint-open");
 
   if (!isAndroid || typeof window === "undefined") return;
   window.onBackPressed = previousOnBackPressed;
@@ -258,17 +269,33 @@ const caretStyle = computed(() => {
 .spotlight-hint {
   position: fixed;
   inset: 0;
-  // Выше f7-sheet/f7-popup (используется и для подсказок внутри шторки настроек
-  // текста, и внутри попапа со списком закладок), но ниже f7-dialog
+  // На #framework7-root: выше .views (5000), tabbar (5001), sheet/popup,
+  // ниже f7-dialog. Иначе затемнение не накрывает нижнее меню.
   z-index: 13000;
+  // Тень выреза 9999px не должна раздувать документ и сдвигать navbar
+  overflow: hidden;
 }
 
 .sh-backdrop {
   position: fixed;
   inset: 0;
   // Само затемнение рисует .sh-hole через box-shadow — здесь только перехват
-  // кликов вне выреза, чтобы подсказку можно было закрыть тапом мимо
+  // кликов, чтобы они не прошли в UI под оверлеем. Закрытие — крестик,
+  // системная «Назад» или кнопка на карточке, как в ReadingBasicsTutorial.
   background-color: transparent;
+}
+
+// F7 закрывает swipeout на тап снаружи, кроме .dialog.modal-in (см. swipeout.js).
+// display:contents — только для обхода этой проверки, на раскладку карточки не влияет.
+.spotlight-hint .sh-swipeout-safe.dialog.modal-in {
+  display: contents !important;
+  position: static;
+  transform: none;
+  width: auto;
+  height: auto;
+  margin: 0;
+  background: none;
+  box-shadow: none;
 }
 
 .sh-hole {
@@ -276,6 +303,10 @@ const caretStyle = computed(() => {
   background-color: transparent;
   box-shadow: 0 0 0 9999px rgba(69, 69, 69, 0.5);
   pointer-events: none;
+}
+
+.dark .sh-hole {
+  box-shadow: 0 0 0 9999px rgba(217, 217, 217, 0.1);
 }
 
 .sh-card {

@@ -82,6 +82,17 @@
       </f7-list-item>
 
       <f7-list-item
+        title="Обучение на главном экране"
+        footer="Показать подсказки по избранному"
+        link="#"
+        @click.prevent="restartHomeTutorial"
+      >
+        <template #media>
+          <SvgIcon icon="question" :color="iconColor" :size="24" />
+        </template>
+      </f7-list-item>
+
+      <f7-list-item
         title="Техническая информация"
         link="#"
         @click.prevent="testBrowserFeatures"
@@ -100,6 +111,7 @@ import { f7 } from "framework7-vue";
 import SvgIcon from "@/components/SvgIcon.vue";
 import { useTheme } from "@/composables/useTheme";
 import { useSettingsStore } from "@/stores/settings";
+import { useHomeTutorial } from "@/composables/useHomeTutorial";
 import { testBrowser } from "@/js/device/browser-test";
 
 type AppTheme = "light" | "dark" | "auto";
@@ -151,6 +163,13 @@ const bookmarkNavToolbar = computed({
 });
 
 const iconColor = computed(() => (isDarkMode.value ? "baige-60" : "black-40"));
+
+const { resetTutorialFlag } = useHomeTutorial();
+
+const restartHomeTutorial = () => {
+  resetTutorialFlag();
+  f7.views.main.router.back();
+};
 
 const testBrowserFeatures = async () => {
   const msg = await testBrowser(f7.device);
