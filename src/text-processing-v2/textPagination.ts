@@ -38,7 +38,8 @@ const FIRST_MARGIN_TOP_TAGS = new Set([
 
 /** Субпиксельный запас: сравнение bottom с лимитом страницы. */
 const FIT_EPSILON_PX = 0.5;
-const MAX_PAGES_PER_YIELD = 10;
+/** Бюджет непрерывной работы до паузы для UI (порог long task). */
+const YIELD_AFTER_MS = 50;
 const MIN_PAGE_HEIGHT_PX = 50;
 
 type PageStart = {
@@ -52,14 +53,17 @@ type BreakPoint =
   | { kind: "after"; node: Node }
   | { kind: "end"; container: HTMLElement };
 
-const yieldToMainThread = (): Promise<void> =>
-  new Promise((resolve) => {
-    if ("requestIdleCallback" in window) {
-      requestIdleCallback(() => resolve(), { timeout: 50 });
-    } else {
-      setTimeout(resolve, 0);
-    }
+const yieldToMainThread = (): Promise<void> => {
+  const scheduler = (
+    window as Window & { scheduler?: { yield?: () => Promise<void> } }
+  ).scheduler;
+  if (scheduler?.yield) {
+    return scheduler.yield();
+  }
+  return new Promise((resolve) => {
+    setTimeout(resolve, 0);
   });
+};
 
 /** Граница слова для разрыва страницы: только пробелы, не мягкий перенос. */
 const isBreakChar = (ch: string): boolean => /\s/.test(ch);
@@ -965,7 +969,7 @@ export const paginateText = async (
   const pages: string[] = [];
   const headers: PaginationHeader[] = [];
   let leftover = "";
-  let pagesSinceYield = 0;
+  let lastYieldAt = performance.now();
   let processedPages = 0;
   const estimatedPages = Math.max(chunks.length * PAGES_PER_CHUNK, 1);
 
@@ -984,11 +988,10 @@ export const paginateText = async (
     )) {
       chunkPages.push(item.html);
       chunkHeaders.push(...item.headers);
-      pagesSinceYield += 1;
       processedPages += 1;
-      if (pagesSinceYield >= MAX_PAGES_PER_YIELD) {
+      if (performance.now() - lastYieldAt >= YIELD_AFTER_MS) {
         await yieldToMainThread();
-        pagesSinceYield = 0;
+        lastYieldAt = performance.now();
         progressCb?.(Math.min(1, processedPages / estimatedPages));
       }
     }
