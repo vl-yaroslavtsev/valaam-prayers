@@ -231,7 +231,7 @@ const shareItem = (item: PrayerListItem, $event: Event) => {
 };
 
 const { showUndoToast: showUndoResetItemProgressToast } = useUndoToast({
-  text: "Прогресс сброшен",
+  text: "Чтение начнется сначала",
   onUndo: () => {
     emit("undoResetItemProgress");
   },
@@ -242,11 +242,11 @@ const { isSection } = usePrayersStore();
 const { addFavorite, deleteFavorite, isFavorite } = useFavoritesStore();
 
 const { showInfoToast: showAddedToFavoritesToast } = useInfoToast({
-  text: "Добавлено в избранное",
+  text: "Добавлено в Избранное",
 });
 
 const { showInfoToast: showRemovedFromFavoritesToast } = useInfoToast({
-  text: "Удалено из избранного",
+  text: "Убрано из Избранного",
 });
 
 const toggleFavorite = async (item: PrayerListItem) => {

@@ -9,10 +9,11 @@
     <div class="sh-hole" :style="holeStyle"></div>
 
     <SvgIcon
-      v-if="currentTarget?.hand === 'swipe-left' && rect"
+      v-if="currentTarget?.hand && rect"
       icon="cursor-hand"
       :size="46"
-      class="sh-hand sh-hand--swipe-left"
+      class="sh-hand"
+      :class="`sh-hand--${currentTarget.hand}`"
       :style="handStyle"
     />
 
@@ -23,7 +24,7 @@
       :style="cardStyle"
     >
       <div class="sh-caret" :style="caretStyle"></div>
-      <f7-link class="sh-close modal-in" icon-only @click="close">
+      <f7-link class="sh-close modal-in no-ripple" icon-only @click="close">
         <SvgIcon icon="cancel" :size="20" color="black-40" />
       </f7-link>
 
@@ -51,12 +52,13 @@
           v-if="activeIndex > 0"
           outline
           round
+          no-ripple
           class="sh-button modal-in"
           @click="prev"
         >
           Назад
         </f7-button>
-        <f7-button fill round class="sh-button modal-in" @click="next">
+        <f7-button fill round no-ripple class="sh-button modal-in" @click="next">
           {{ isLastTarget ? "Понятно" : "Далее" }}
         </f7-button>
       </div>
@@ -89,8 +91,8 @@ export interface SpotlightTarget {
   link?: SpotlightLink;
   // Перед измерением цели: открыть swipeout, проскроллить элемент и т.п.
   prepare?: () => void | Promise<void>;
-  // Декоративная лапка — шаг «смахните влево» на главной
-  hand?: "swipe-left";
+  // Декоративная лапка: свайп влево, удержание
+  hand?: "swipe-left" | "tap-hold";
 }
 
 // Отступ вокруг подсвечиваемого элемента (px)
@@ -111,6 +113,9 @@ const emit = defineEmits<{ close: [] }>();
 const activeIndex = ref(0);
 const rect = ref<DOMRect | null>(null);
 const caretRect = ref<DOMRect | null>(null);
+// Форма выреза хранится вместе с rect: иначе при смене шага shape
+// меняется сразу, а rect ещё старый — из строки получается огромный круг.
+const holeShape = ref<"circle" | "rounded" | null>(null);
 
 const currentTarget = computed(() => targets[activeIndex.value]);
 const isLastTarget = computed(() => activeIndex.value >= targets.length - 1);
@@ -147,6 +152,7 @@ const updateRect = async () => {
   if (!target) {
     rect.value = null;
     caretRect.value = null;
+    holeShape.value = null;
     close();
     return;
   }
@@ -163,10 +169,12 @@ const updateRect = async () => {
   if (!nextRect) {
     rect.value = null;
     caretRect.value = null;
+    holeShape.value = null;
     close();
     return;
   }
   rect.value = nextRect;
+  holeShape.value = target.shape;
   caretRect.value = measureRect(target.getCaretEl?.()) ?? nextRect;
 };
 
@@ -189,10 +197,16 @@ watch(activeIndex, () => {
 });
 
 const handStyle = computed(() => {
-  if (!rect.value) return {};
+  if (!rect.value || !currentTarget.value?.hand) return {};
+  if (currentTarget.value.hand === "swipe-left") {
+    return {
+      left: `${rect.value.left + rect.value.width * 0.62}px`,
+      top: `${rect.value.top + rect.value.height / 2}px`,
+    };
+  }
   return {
-    left: `${rect.value.left + rect.value.width * 0.62}px`,
-    top: `${rect.value.top + rect.value.height / 2}px`,
+    left: `${rect.value.left + rect.value.width * 0.5}px`,
+    top: `${rect.value.top + rect.value.height * 0.55}px`,
   };
 });
 
@@ -229,9 +243,9 @@ onBeforeUnmount(() => {
 // вместо отдельного затемняющего слоя: сам div остаётся прозрачным, поэтому
 // настоящий элемент интерфейса виден под ним в своём реальном цвете/фоне
 const holeStyle = computed(() => {
-  if (!rect.value || !currentTarget.value) return {};
+  if (!rect.value || !holeShape.value) return {};
   const padding = HOLE_PADDING;
-  if (currentTarget.value.shape === "circle") {
+  if (holeShape.value === "circle") {
     const diameter = Math.max(rect.value.width, rect.value.height) + padding * 2;
     const centerX = rect.value.left + rect.value.width / 2;
     const centerY = rect.value.top + rect.value.height / 2;
@@ -316,6 +330,7 @@ const caretStyle = computed(() => {
   background-color: transparent;
   box-shadow: 0 0 0 9999px rgba(69, 69, 69, 0.5);
   pointer-events: none;
+  transition: none;
 }
 
 // .dark .sh-hole {
@@ -381,6 +396,10 @@ const caretStyle = computed(() => {
   animation: sh-swipe-left 1.6s ease-in-out infinite;
 }
 
+.sh-hand--tap-hold {
+  animation: sh-tap-hold 1.6s ease-in-out infinite;
+}
+
 @keyframes sh-swipe-left {
   0%,
   100% {
@@ -388,6 +407,17 @@ const caretStyle = computed(() => {
   }
   50% {
     transform: translate(-80%, -50%);
+  }
+}
+
+@keyframes sh-tap-hold {
+  0%,
+  100% {
+    transform: translate(-50%, -50%) scale(1);
+  }
+  35%,
+  70% {
+    transform: translate(-50%, -42%) scale(0.82);
   }
 }
 

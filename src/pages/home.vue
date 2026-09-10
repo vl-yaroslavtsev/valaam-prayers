@@ -16,12 +16,17 @@
       </f7-nav-left>
       <f7-nav-title sliding>Избранное</f7-nav-title>
       <f7-nav-right>
-        <f7-link @click="toggleSortable"
-          ><SvgIcon
+        <f7-link
+          ref="editButtonRef"
+          class="home-edit-link"
+          @click="toggleSortable"
+        >
+          <SvgIcon
             icon="pencil"
             :color="sortableEnabled ? 'primary-accent-50' : pencilInactiveColor"
             :size="24"
-        /></f7-link>
+          />
+        </f7-link>
       </f7-nav-right>
       <!-- <f7-nav-title-large>
         Сейчас читаю
@@ -82,7 +87,10 @@ import { useSaintsStore } from "@/stores/saints";
 import { useThoughtsStore } from "@/stores/thoughts";
 import { useReadingHistoryStore } from "@/stores/readingHistory";
 import { useErrorToast } from "@/composables/useErrorToast";
-import { useHomeTutorial } from "@/composables/useHomeTutorial";
+import {
+  useHomeTutorial,
+  type HomeTutorialKind,
+} from "@/composables/useHomeTutorial";
 import type { Language } from "@/types/common";
 
 import SvgIcon from "@/components/SvgIcon.vue";
@@ -139,6 +147,7 @@ watch(chips, (availableChips) => {
 });
 
 const chipsBlockRef = useTemplateRef("chipsBlockRef");
+const editButtonRef = useTemplateRef("editButtonRef");
 const favoritesSectionRef = useTemplateRef<HTMLElement>("favoritesSectionRef");
 const favoritesListRef = useTemplateRef("favoritesList");
 const favoritesSectionMinHeight = ref<string | null>(null);
@@ -151,12 +160,19 @@ const isTutorialStarting = ref(false);
 
 const {
   isTutorialActive,
-  shouldShowTutorial,
+  shouldShowFavoritesTutorial,
+  shouldShowSortTutorial,
   startTutorial,
   finishTutorial,
 } = useHomeTutorial();
 
 const TUTORIAL_NAVBAR_SETTLE_MS = 500;
+const SORTABLE_TRANSITION_MS = 320;
+
+const waitMs = (ms: number) =>
+  new Promise<void>((resolve) => {
+    setTimeout(resolve, ms);
+  });
 
 const isTutorialItemInView = (el: HTMLElement) => {
   const pageContent = el.closest(".page-content") as HTMLElement | null;
@@ -192,7 +208,7 @@ const buildHomeTutorialTargets = (): SpotlightTarget[] => {
     },
     {
       title: "Поделиться",
-      text: "Отправьте ссылку на этот материал близким или сохраните себе.",
+      text: "Отправьте ссылку на этот текст близким.",
       shape: "rounded",
       getTargetEl: () => list?.getTutorialItemEl(),
       getCaretEl: () => list?.getTutorialActionEl("share"),
@@ -223,34 +239,114 @@ const buildHomeTutorialTargets = (): SpotlightTarget[] => {
   ];
 };
 
+const getEditButtonEl = (): HTMLElement | null => {
+  return getF7El(editButtonRef.value);
+};
+
+const setTutorialSortable = async (enabled: boolean) => {
+  if (sortableEnabled.value === enabled) return;
+  sortableEnabled.value = enabled;
+  await nextTick();
+  await waitMs(SORTABLE_TRANSITION_MS);
+};
+
+const buildSortTutorialTargets = (): SpotlightTarget[] => {
+  const list = favoritesListRef.value;
+  return [
+    {
+      title: "Сортировка касанием",
+      text: "Нажмите и удерживайте любой текст, чтобы переместить его. Так вы сможете расставить Избранное в удобном для вас порядке.",
+      shape: "rounded",
+      hand: "tap-hold",
+      getTargetEl: () => list?.getTutorialItemEl(),
+      prepare: async () => {
+        await list?.closeTutorialSwipeout();
+        await setTutorialSortable(false);
+      },
+    },
+    {
+      title: "Настройка списка",
+      text: "Нажмите на значок карандаша, чтобы перейти в режим управления вашим Избранным.",
+      shape: "circle",
+      getTargetEl: () => getEditButtonEl(),
+      prepare: async () => {
+        await list?.closeTutorialSwipeout();
+        if (!sortableEnabled.value) {
+          sortableEnabled.value = true;
+          await nextTick();
+        }
+      },
+    },
+    {
+      title: "Убрать из Избранного",
+      text: "Нажмите на корзину слева, чтобы убрать этот текст из списка. Вы по-прежнему сможете найти его в основных разделах приложения.",
+      shape: "rounded",
+      getTargetEl: () => list?.getTutorialItemEl(),
+      getCaretEl: () => list?.getTutorialDeleteHandlerEl(),
+      prepare: async () => {
+        await list?.closeTutorialSwipeout();
+        await setTutorialSortable(true);
+      },
+    },
+    {
+      title: "Изменение порядка",
+      text: "Потяните за значок с двумя полосками справа, чтобы переместить текст выше или ниже.",
+      shape: "rounded",
+      getTargetEl: () => list?.getTutorialItemEl(),
+      getCaretEl: () => list?.getTutorialSortHandlerEl(),
+      prepare: async () => {
+        await list?.closeTutorialSwipeout();
+        await setTutorialSortable(true);
+      },
+    },
+  ];
+};
+
+const abortTutorialPrepare = () => {
+  lockHomeNavbar.value = false;
+  tutorialItemId.value = null;
+  isTutorialStarting.value = false;
+};
+
 const tryStartHomeTutorial = async () => {
   if (
-    !shouldShowTutorial.value ||
     isTutorialActive.value ||
     isTutorialStarting.value ||
     tutorialItemId.value != null ||
     !isHomeVisible.value ||
     isLoading.value ||
-    sortableEnabled.value ||
     currentFavorites.value.length === 0
   ) {
     return;
   }
 
+  const nextKind: HomeTutorialKind | null = shouldShowFavoritesTutorial.value
+    ? sortableEnabled.value
+      ? null
+      : "favorites"
+    : shouldShowSortTutorial.value
+      ? "sort"
+      : null;
+
+  if (!nextKind) return;
+
   const tutorialItem = currentFavorites.value[0];
   if (!tutorialItem) return;
 
-  sortableEnabled.value = false;
   isTutorialStarting.value = true;
+  sortableEnabled.value = false;
 
   // Сначала даём navbar доехать до конца collapse/expand — оверлей иначе
   // фиксирует его в промежуточном положении («Избранное» + «Сейчас читаю»).
-  await new Promise<void>((resolve) => {
-    setTimeout(resolve, TUTORIAL_NAVBAR_SETTLE_MS);
-  });
+  await waitMs(TUTORIAL_NAVBAR_SETTLE_MS);
+
+  const stillWanted =
+    nextKind === "favorites"
+      ? shouldShowFavoritesTutorial.value && !sortableEnabled.value
+      : shouldShowSortTutorial.value && !shouldShowFavoritesTutorial.value;
 
   if (
-    !shouldShowTutorial.value ||
+    !stillWanted ||
     !isHomeVisible.value ||
     isTutorialActive.value ||
     tutorialItemId.value != null
@@ -264,10 +360,8 @@ const tryStartHomeTutorial = async () => {
   await nextTick();
 
   const itemEl = favoritesListRef.value?.getTutorialItemEl();
-  if (!itemEl) {
-    lockHomeNavbar.value = false;
-    tutorialItemId.value = null;
-    isTutorialStarting.value = false;
+  if (!itemEl || (nextKind === "sort" && !getEditButtonEl())) {
+    abortTutorialPrepare();
     return;
   }
 
@@ -278,31 +372,37 @@ const tryStartHomeTutorial = async () => {
     });
   }
 
-  if (!shouldShowTutorial.value || !isHomeVisible.value) {
-    lockHomeNavbar.value = false;
-    tutorialItemId.value = null;
-    isTutorialStarting.value = false;
+  if (!isHomeVisible.value || !stillWanted) {
+    abortTutorialPrepare();
     return;
   }
   if (!favoritesListRef.value?.getTutorialItemEl()) {
-    lockHomeNavbar.value = false;
-    tutorialItemId.value = null;
-    isTutorialStarting.value = false;
+    abortTutorialPrepare();
+    return;
+  }
+  if (nextKind === "sort" && !getEditButtonEl()) {
+    abortTutorialPrepare();
     return;
   }
 
-  hintTargets.value = buildHomeTutorialTargets();
-  startTutorial();
+  hintTargets.value =
+    nextKind === "favorites"
+      ? buildHomeTutorialTargets()
+      : buildSortTutorialTargets();
+  startTutorial(nextKind);
   isTutorialStarting.value = false;
 };
 
 const onHomeTutorialClose = async () => {
   await favoritesListRef.value?.closeTutorialSwipeout();
+  sortableEnabled.value = false;
   hintTargets.value = null;
   tutorialItemId.value = null;
   lockHomeNavbar.value = false;
   isTutorialStarting.value = false;
   finishTutorial();
+  await nextTick();
+  void tryStartHomeTutorial();
 };
 
 const getF7El = (refValue: unknown): HTMLElement | null => {
@@ -491,12 +591,14 @@ const onUndoResetItemProgress = historyStore.undoResetProgress;
 const sortableEnabled = ref(false);
 
 const toggleSortable = () => {
+  if (isTutorialActive.value || isTutorialStarting.value) return;
   sortableEnabled.value = !sortableEnabled.value;
 };
 
 watch(
   [
-    shouldShowTutorial,
+    shouldShowFavoritesTutorial,
+    shouldShowSortTutorial,
     isHomeVisible,
     isLoading,
     currentFavorites,
@@ -563,5 +665,11 @@ const onSorted = (id: number, prevId: number | null) => {
 
 .favorites-title {
   --f7-block-margin-vertical: 22px;
+}
+
+.home-edit-link {
+  width: 44px;
+  height: 44px;
+  justify-content: center;
 }
 </style>

@@ -36,6 +36,7 @@ const SETTINGS_KEYS = {
   HAS_SEEN_CHAPTER_NAV_HINT: `${SETTINGS_PREFIX}has-seen-chapter-nav-hint`,
   HAS_SEEN_BOOKMARK_NAV_HINT: `${SETTINGS_PREFIX}has-seen-bookmark-nav-hint`,
   HAS_SEEN_HOME_FAVORITES_TUTORIAL: `${SETTINGS_PREFIX}has-seen-home-favorites-tutorial`,
+  HAS_SEEN_HOME_SORT_TUTORIAL: `${SETTINGS_PREFIX}has-seen-home-sort-tutorial`,
 } as const;
 
 // Интерфейс настроек приложения
@@ -111,6 +112,7 @@ interface AppSettings {
   hasSeenChapterNavHint: boolean;
   hasSeenBookmarkNavHint: boolean;
   hasSeenHomeFavoritesTutorial: boolean;
+  hasSeenHomeSortTutorial: boolean;
 }
 
 // Настройки по умолчанию
@@ -143,6 +145,7 @@ const DEFAULT_SETTINGS: AppSettings = {
   hasSeenChapterNavHint: false,
   hasSeenBookmarkNavHint: false,
   hasSeenHomeFavoritesTutorial: false,
+  hasSeenHomeSortTutorial: false,
 };
 
 export const useSettingsStore = defineStore("settings", () => {
@@ -198,6 +201,7 @@ export const useSettingsStore = defineStore("settings", () => {
       hasSeenChapterNavHint: SETTINGS_KEYS.HAS_SEEN_CHAPTER_NAV_HINT,
       hasSeenBookmarkNavHint: SETTINGS_KEYS.HAS_SEEN_BOOKMARK_NAV_HINT,
       hasSeenHomeFavoritesTutorial: SETTINGS_KEYS.HAS_SEEN_HOME_FAVORITES_TUTORIAL,
+      hasSeenHomeSortTutorial: SETTINGS_KEYS.HAS_SEEN_HOME_SORT_TUTORIAL,
     };
     return keyMap[key];
   };
@@ -260,6 +264,9 @@ export const useSettingsStore = defineStore("settings", () => {
   );
   const hasSeenHomeFavoritesTutorial = computed(
     () => settings.value.hasSeenHomeFavoritesTutorial
+  );
+  const hasSeenHomeSortTutorial = computed(
+    () => settings.value.hasSeenHomeSortTutorial
   );
 
   // Получение языка с приоритетом из доступных языков
@@ -327,6 +334,7 @@ export const useSettingsStore = defineStore("settings", () => {
     hasSeenChapterNavHint,
     hasSeenBookmarkNavHint,
     hasSeenHomeFavoritesTutorial,
+    hasSeenHomeSortTutorial,
 
     // Универсальный метод
     setSetting,
@@ -385,6 +393,8 @@ export const useSettingsStore = defineStore("settings", () => {
       setSetting("hasSeenBookmarkNavHint", seen),
     setHasSeenHomeFavoritesTutorial: (seen: boolean) =>
       setSetting("hasSeenHomeFavoritesTutorial", seen),
+    setHasSeenHomeSortTutorial: (seen: boolean) =>
+      setSetting("hasSeenHomeSortTutorial", seen),
 
     // Утилиты
     getLanguageFromAvailable,

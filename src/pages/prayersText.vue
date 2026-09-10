@@ -572,8 +572,8 @@ const TOP_MENU_HINT_COPY: Record<string, { title: string; text: string }> = {
     text: "Переключает язык текста молитвы.",
   },
   favorite: {
-    title: "Добавить в избранное",
-    text: "Добавляет молитву в избранное для быстрого доступа.",
+    title: "Добавить в Избранное",
+    text: "Добавляет молитву в Избранное для быстрого доступа.",
   },
   settings: {
     title: "Настройки текста",
@@ -1029,7 +1029,7 @@ watch(() => settingsStore.isBookmarkNavToolbarEnabled, (enabled) => {
 });
 
 const { showUndoToast: showUndoResetToast } = useUndoToast({
-  text: "Прогресс сброшен",
+  text: "Чтение начнется сначала",
   onUndo: () => {    
     historyStore.undoResetProgress();
     const { progress } = historyStore.getItem(itemId) || {};

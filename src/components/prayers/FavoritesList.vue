@@ -6,7 +6,7 @@
       { 'is-deleting': showListAnimation },
     ]"
     :sortable="sortable" 
-    :sortable-tap-hold="sortable"
+    :sortable-tap-hold="sortable && tutorialItemId == null"
     :sortable-enabled="isSortableMode" 
     @sortable:sort="onSortableSort" 
     @taphold.passive="onTapHold"
@@ -246,7 +246,7 @@ const shareItem = (item: FavoriteListItem, $event: Event) => {
 };
 
 const { showUndoToast: showUndoDeleteToast } = useUndoToast({
-  text: "Элемент удален",
+  text: "Убрано из Избранного",
   onUndo: () => {
     showListAnimation.value = 1;
     setTimeout(() => {
@@ -257,7 +257,7 @@ const { showUndoToast: showUndoDeleteToast } = useUndoToast({
 });
 
 const { showUndoToast: showUndoResetToast } = useUndoToast({
-  text: "Прогресс сброшен",
+  text: "Чтение начнется сначала",
   onUndo: () => {
     emit("undoResetItemProgress");
   },
@@ -284,6 +284,18 @@ const getTutorialActionEl = (action: string): HTMLElement | null => {
     getTutorialItemEl()?.querySelector<HTMLElement>(
       `[data-tutorial-action="${action}"]`
     ) ?? null
+  );
+};
+
+const getTutorialDeleteHandlerEl = (): HTMLElement | null => {
+  return (
+    getTutorialItemEl()?.querySelector<HTMLElement>(".delete-handler") ?? null
+  );
+};
+
+const getTutorialSortHandlerEl = (): HTMLElement | null => {
+  return (
+    getTutorialItemEl()?.querySelector<HTMLElement>(".sortable-handler") ?? null
   );
 };
 
@@ -379,6 +391,8 @@ onBeforeUnmount(() => {
 defineExpose({
   getTutorialItemEl,
   getTutorialActionEl,
+  getTutorialDeleteHandlerEl,
+  getTutorialSortHandlerEl,
   openTutorialSwipeout,
   closeTutorialSwipeout,
 });
