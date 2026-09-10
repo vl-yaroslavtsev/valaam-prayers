@@ -4,7 +4,8 @@ import { useSettingsStore } from "@/stores/settings";
 /**
  * Обучающий режим главной — одноразовый тур по избранному
  * (см. src/pages/home.vue и SpotlightHint.vue):
- * 1) подсветка строки, 2) свайп влево, 3–5) кнопки swipeout.
+ * 1) подсветка строки, 2) свайп влево, 3–5) кнопки swipeout
+ *    (вырез — вся строка, caret — на кнопке).
  */
 export function useHomeTutorial() {
   const settingsStore = useSettingsStore();

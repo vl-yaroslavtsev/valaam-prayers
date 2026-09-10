@@ -80,6 +80,8 @@ export interface SpotlightTarget {
   title: string;
   text: string;
   getTargetEl: () => HTMLElement | null | undefined;
+  // Куда указывает caret; если нет — центр выреза (getTargetEl)
+  getCaretEl?: () => HTMLElement | null | undefined;
   // "circle" — для круглых/квадратных иконок-кнопок, "rounded" — для прямоугольных
   // блоков (переключатель вкладок, пункт списка настроек, строка списка)
   shape: "circle" | "rounded";
@@ -108,6 +110,7 @@ const emit = defineEmits<{ close: [] }>();
 
 const activeIndex = ref(0);
 const rect = ref<DOMRect | null>(null);
+const caretRect = ref<DOMRect | null>(null);
 
 const currentTarget = computed(() => targets[activeIndex.value]);
 const isLastTarget = computed(() => activeIndex.value >= targets.length - 1);
@@ -132,10 +135,18 @@ const onLinkClick = () => {
   currentTarget.value?.link?.onClick();
 };
 
+const measureRect = (el: HTMLElement | null | undefined): DOMRect | null => {
+  if (!el) return null;
+  const nextRect = el.getBoundingClientRect();
+  if (nextRect.width === 0 && nextRect.height === 0) return null;
+  return nextRect;
+};
+
 const updateRect = async () => {
   const target = currentTarget.value;
   if (!target) {
     rect.value = null;
+    caretRect.value = null;
     close();
     return;
   }
@@ -146,16 +157,17 @@ const updateRect = async () => {
     if (currentTarget.value !== target) return;
   }
 
-  const el = target.getTargetEl();
-  const nextRect = el ? el.getBoundingClientRect() : null;
+  const nextRect = measureRect(target.getTargetEl());
   // Элемент-цель может быть недоступен (например, скрыт другим взаимодействием
   // между шагами) — в этом случае просто закрываем подсказку, а не показываем пустоту
-  if (!nextRect || (nextRect.width === 0 && nextRect.height === 0)) {
+  if (!nextRect) {
     rect.value = null;
+    caretRect.value = null;
     close();
     return;
   }
   rect.value = nextRect;
+  caretRect.value = measureRect(target.getCaretEl?.()) ?? nextRect;
 };
 
 const next = () => {
@@ -240,8 +252,8 @@ const holeStyle = computed(() => {
   };
 });
 
-// Карточка размещается под целью, если снизу достаточно места, иначе — над ней.
-// Уголок caret указывает на центр подсвеченного элемента.
+// Карточка размещается под вырезом, если снизу достаточно места, иначе — над ним.
+// Уголок caret — на центре getCaretEl, иначе на центре выреза.
 const placeBelow = computed(() => {
   if (!rect.value) return true;
   return window.innerHeight - rect.value.bottom >= MIN_SPACE_BELOW;
@@ -255,8 +267,9 @@ const cardStyle = computed(() => {
 });
 
 const caretStyle = computed(() => {
-  if (!rect.value) return {};
-  const centerX = rect.value.left + rect.value.width / 2;
+  const pointer = caretRect.value ?? rect.value;
+  if (!pointer) return {};
+  const centerX = pointer.left + pointer.width / 2;
   const cardWidth = window.innerWidth - CARD_SIDE_INSET * 2;
   const minLeft = CARET_EDGE_PAD;
   const maxLeft = cardWidth - CARET_EDGE_PAD;
@@ -305,9 +318,9 @@ const caretStyle = computed(() => {
   pointer-events: none;
 }
 
-.dark .sh-hole {
-  box-shadow: 0 0 0 9999px rgba(217, 217, 217, 0.1);
-}
+// .dark .sh-hole {
+//   box-shadow: 0 0 0 9999px rgba(217, 217, 217, 0.1);
+// }
 
 .sh-card {
   position: fixed;

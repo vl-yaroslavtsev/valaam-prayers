@@ -44,7 +44,7 @@
     <div :class="`navbar-footer theme-${textTheme}`">
       <SvgIcon
         icon="sun" 
-        :color="textTheme === 'dark' ? 'baige-60' : 'black-40'" 
+        :color="textTheme === 'dark' ? 'baige-30' : 'black-40'" 
         class="flex-shrink-0" 
         :size="24" />
       <f7-range
@@ -336,10 +336,10 @@ defineExpose({
   }
 
   &.theme-dark {
-    color: var(--content-color-baige-60);
-    --f7-range-bar-bg-color: var(--content-color-baige-30);
-    --f7-range-bar-active-bg-color: var(--brand-color-primary-accent-70);
-    --f7-range-knob-color: var(--brand-color-primary-accent-70);
+    color: var(--content-color-baige-30);
+    --f7-range-bar-bg-color: var(--content-color-baige-10);
+    --f7-range-bar-active-bg-color: var(--brand-color-primary-accent-30);
+    --f7-range-knob-color: var(--brand-color-primary-accent-30);
   }
 }
 

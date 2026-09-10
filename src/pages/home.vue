@@ -173,7 +173,7 @@ const buildHomeTutorialTargets = (): SpotlightTarget[] => {
   return [
     {
       title: "Избранное",
-      text: "Вы добавили этот текст в Избранное. Нажмите на карточку, чтобы открыть его и продолжить чтение.",
+      text: "Вы добавили этот текст в Избранное. Нажмите на него, чтобы открыть и продолжить чтение.",
       shape: "rounded",
       getTargetEl: () => list?.getTutorialItemEl(),
       prepare: async () => {
@@ -194,7 +194,8 @@ const buildHomeTutorialTargets = (): SpotlightTarget[] => {
       title: "Поделиться",
       text: "Отправьте ссылку на этот материал близким или сохраните себе.",
       shape: "rounded",
-      getTargetEl: () => list?.getTutorialActionEl("share"),
+      getTargetEl: () => list?.getTutorialItemEl(),
+      getCaretEl: () => list?.getTutorialActionEl("share"),
       prepare: async () => {
         await list?.openTutorialSwipeout();
       },
@@ -203,16 +204,18 @@ const buildHomeTutorialTargets = (): SpotlightTarget[] => {
       title: "Читать сначала",
       text: "Сбрасывает прогресс чтения. Удобно, когда вы дочитали молитвы до конца и хотите, чтобы завтра они снова открылись с первой страницы.",
       shape: "rounded",
-      getTargetEl: () => list?.getTutorialActionEl("reset"),
+      getTargetEl: () => list?.getTutorialItemEl(),
+      getCaretEl: () => list?.getTutorialActionEl("reset"),
       prepare: async () => {
         await list?.openTutorialSwipeout();
       },
     },
     {
-      title: "Убрать с экрана",
-      text: "Удаляет карточку с главного экрана. Сам текст останется в разделах приложения.",
+      title: "Убрать из Избранного",
+      text: "Убирает этот текст из списка. Вы по-прежнему сможете найти его в основных разделах приложения.",
       shape: "rounded",
-      getTargetEl: () => list?.getTutorialActionEl("delete"),
+      getTargetEl: () => list?.getTutorialItemEl(),
+      getCaretEl: () => list?.getTutorialActionEl("delete"),
       prepare: async () => {
         await list?.openTutorialSwipeout();
       },
