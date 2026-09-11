@@ -6,8 +6,8 @@ export type HomeTutorialKind = "favorites" | "sort";
 /**
  * Обучающий режим главной — два одноразовых тура (см. src/pages/home.vue
  * и SpotlightHint.vue):
- * 1) favorites — строка избранного и кнопки swipeout;
- * 2) sort — долгий тап, карандаш и иконки режима редактирования.
+ * 1) favorites — строка избранного, кнопки swipeout и карандаш;
+ * 2) sort — режим редактирования (запускается по нажатию на карандаш).
  */
 export function useHomeTutorial() {
   const settingsStore = useSettingsStore();

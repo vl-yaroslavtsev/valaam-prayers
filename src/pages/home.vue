@@ -160,6 +160,7 @@ const isTutorialStarting = ref(false);
 
 const {
   isTutorialActive,
+  activeTutorial,
   shouldShowFavoritesTutorial,
   shouldShowSortTutorial,
   startTutorial,
@@ -198,7 +199,7 @@ const buildHomeTutorialTargets = (): SpotlightTarget[] => {
     },
     {
       title: "Скрытое меню",
-      text: "Смахните строку влево, чтобы открыть быстрые действия с этим текстом.",
+      text: "Смахните строку влево, чтобы открыть быстрые действия с текстом.",
       shape: "rounded",
       hand: "swipe-left",
       getTargetEl: () => list?.getTutorialItemEl(),
@@ -218,7 +219,7 @@ const buildHomeTutorialTargets = (): SpotlightTarget[] => {
     },
     {
       title: "Читать сначала",
-      text: "Сбрасывает прогресс чтения. Удобно, когда вы дочитали молитвы до конца и хотите, чтобы завтра они снова открылись с первой страницы.",
+      text: "Удобно, если вы дочитали молитвы до конца и хотите, чтобы завтра они открылись с первой страницы.",
       shape: "rounded",
       getTargetEl: () => list?.getTutorialItemEl(),
       getCaretEl: () => list?.getTutorialActionEl("reset"),
@@ -228,12 +229,21 @@ const buildHomeTutorialTargets = (): SpotlightTarget[] => {
     },
     {
       title: "Убрать из Избранного",
-      text: "Убирает этот текст из списка. Вы по-прежнему сможете найти его в основных разделах приложения.",
+      text: "Убирает текст из списка. Вы по-прежнему сможете найти его в основных разделах приложения.",
       shape: "rounded",
       getTargetEl: () => list?.getTutorialItemEl(),
       getCaretEl: () => list?.getTutorialActionEl("delete"),
       prepare: async () => {
         await list?.openTutorialSwipeout();
+      },
+    },
+    {
+      title: "Настройка Избранного",
+      text: "Нажмите на этот карандаш, если захотите поменять тексты местами или убрать лишние.",
+      shape: "circle",
+      getTargetEl: () => getEditButtonEl(),
+      prepare: async () => {
+        await list?.closeTutorialSwipeout();
       },
     },
   ];
@@ -253,30 +263,6 @@ const setTutorialSortable = async (enabled: boolean) => {
 const buildSortTutorialTargets = (): SpotlightTarget[] => {
   const list = favoritesListRef.value;
   return [
-    {
-      title: "Сортировка касанием",
-      text: "Нажмите и удерживайте любой текст, чтобы переместить его. Так вы сможете расставить Избранное в удобном для вас порядке.",
-      shape: "rounded",
-      hand: "tap-hold",
-      getTargetEl: () => list?.getTutorialItemEl(),
-      prepare: async () => {
-        await list?.closeTutorialSwipeout();
-        await setTutorialSortable(false);
-      },
-    },
-    {
-      title: "Настройка списка",
-      text: "Нажмите на значок карандаша, чтобы перейти в режим управления вашим Избранным.",
-      shape: "circle",
-      getTargetEl: () => getEditButtonEl(),
-      prepare: async () => {
-        await list?.closeTutorialSwipeout();
-        if (!sortableEnabled.value) {
-          sortableEnabled.value = true;
-          await nextTick();
-        }
-      },
-    },
     {
       title: "Убрать из Избранного",
       text: "Нажмите на корзину слева, чтобы убрать этот текст из списка. Вы по-прежнему сможете найти его в основных разделах приложения.",
@@ -299,6 +285,16 @@ const buildSortTutorialTargets = (): SpotlightTarget[] => {
         await setTutorialSortable(true);
       },
     },
+    {
+      title: "Готово",
+      text: "Когда закончите настройку, нажмите сюда еще раз, чтобы сохранить изменения.",
+      shape: "circle",
+      getTargetEl: () => getEditButtonEl(),
+      prepare: async () => {
+        await list?.closeTutorialSwipeout();
+        await setTutorialSortable(true);
+      },
+    },
   ];
 };
 
@@ -308,7 +304,7 @@ const abortTutorialPrepare = () => {
   isTutorialStarting.value = false;
 };
 
-const tryStartHomeTutorial = async () => {
+const tryStartHomeTutorial = async (kind: HomeTutorialKind = "favorites") => {
   if (
     isTutorialActive.value ||
     isTutorialStarting.value ||
@@ -320,30 +316,29 @@ const tryStartHomeTutorial = async () => {
     return;
   }
 
-  const nextKind: HomeTutorialKind | null = shouldShowFavoritesTutorial.value
-    ? sortableEnabled.value
-      ? null
-      : "favorites"
-    : shouldShowSortTutorial.value
-      ? "sort"
-      : null;
-
-  if (!nextKind) return;
+  if (kind === "favorites") {
+    if (!shouldShowFavoritesTutorial.value || sortableEnabled.value) return;
+  } else if (!shouldShowSortTutorial.value || !sortableEnabled.value) {
+    return;
+  }
 
   const tutorialItem = currentFavorites.value[0];
   if (!tutorialItem) return;
 
   isTutorialStarting.value = true;
-  sortableEnabled.value = false;
-
-  // Сначала даём navbar доехать до конца collapse/expand — оверлей иначе
-  // фиксирует его в промежуточном положении («Избранное» + «Сейчас читаю»).
-  await waitMs(TUTORIAL_NAVBAR_SETTLE_MS);
+  if (kind === "favorites") {
+    sortableEnabled.value = false;
+    // Сначала даём navbar доехать до конца collapse/expand — оверлей иначе
+    // фиксирует его в промежуточном положении («Избранное» + «Сейчас читаю»).
+    await waitMs(TUTORIAL_NAVBAR_SETTLE_MS);
+  } else {
+    await waitMs(SORTABLE_TRANSITION_MS);
+  }
 
   const stillWanted =
-    nextKind === "favorites"
+    kind === "favorites"
       ? shouldShowFavoritesTutorial.value && !sortableEnabled.value
-      : shouldShowSortTutorial.value && !shouldShowFavoritesTutorial.value;
+      : shouldShowSortTutorial.value && sortableEnabled.value;
 
   if (
     !stillWanted ||
@@ -360,7 +355,7 @@ const tryStartHomeTutorial = async () => {
   await nextTick();
 
   const itemEl = favoritesListRef.value?.getTutorialItemEl();
-  if (!itemEl || (nextKind === "sort" && !getEditButtonEl())) {
+  if (!itemEl || !getEditButtonEl()) {
     abortTutorialPrepare();
     return;
   }
@@ -376,26 +371,24 @@ const tryStartHomeTutorial = async () => {
     abortTutorialPrepare();
     return;
   }
-  if (!favoritesListRef.value?.getTutorialItemEl()) {
-    abortTutorialPrepare();
-    return;
-  }
-  if (nextKind === "sort" && !getEditButtonEl()) {
+  if (!favoritesListRef.value?.getTutorialItemEl() || !getEditButtonEl()) {
     abortTutorialPrepare();
     return;
   }
 
   hintTargets.value =
-    nextKind === "favorites"
+    kind === "favorites"
       ? buildHomeTutorialTargets()
       : buildSortTutorialTargets();
-  startTutorial(nextKind);
+  startTutorial(kind);
   isTutorialStarting.value = false;
 };
 
 const onHomeTutorialClose = async () => {
   await favoritesListRef.value?.closeTutorialSwipeout();
-  sortableEnabled.value = false;
+  if (activeTutorial.value !== "sort") {
+    sortableEnabled.value = false;
+  }
   hintTargets.value = null;
   tutorialItemId.value = null;
   lockHomeNavbar.value = false;
@@ -593,12 +586,14 @@ const sortableEnabled = ref(false);
 const toggleSortable = () => {
   if (isTutorialActive.value || isTutorialStarting.value) return;
   sortableEnabled.value = !sortableEnabled.value;
+  if (sortableEnabled.value) {
+    void tryStartHomeTutorial("sort");
+  }
 };
 
 watch(
   [
     shouldShowFavoritesTutorial,
-    shouldShowSortTutorial,
     isHomeVisible,
     isLoading,
     currentFavorites,
