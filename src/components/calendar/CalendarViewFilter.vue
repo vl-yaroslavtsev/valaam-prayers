@@ -1,80 +1,61 @@
 <template>
-  <div class="calendar-view-filter">
-    <div class="calendar-view-filter__title">Просмотр календаря</div>
-    <button
+  <f7-list>
+    <f7-list-item class="calendar-view-filter-heading" title="Просмотр календаря" />
+  </f7-list>
+  <f7-list>
+    <f7-list-item
       v-for="option in options"
       :key="option.value"
-      type="button"
-      class="calendar-view-filter__item"
+      :title="option.label"
       :class="{ 'is-active': model === option.value }"
-      @click="model = option.value"
+      link
+      no-chevron
+      @click.prevent="model = option.value"
     >
-      <SvgIcon
-        :icon="option.icon"
-        :color="model === option.value ? 'white' : 'baige-60'"
-        :size="24"
-      />
-      <span>{{ option.label }}</span>
-    </button>
-  </div>
+      <template #media>
+        <SvgIcon
+          :icon="option.icon"
+          :color="itemIconColor(option.value)"
+          :size="24"
+        />
+      </template>
+    </f7-list-item>
+  </f7-list>
 </template>
 
 <script setup lang="ts">
+import { useTheme } from "@/composables/useTheme";
 import SvgIcon from "@/components/SvgIcon.vue";
 
 export type CalendarViewMode = "month" | "week" | "day";
 
 const model = defineModel<CalendarViewMode>({ default: "month" });
+const { isDarkMode } = useTheme();
 
 const options = [
   { value: "month" as const, label: "Месяц", icon: "calendar-month" as const },
   { value: "week" as const, label: "Неделя", icon: "calendar-week" as const },
   { value: "day" as const, label: "День", icon: "calendar-day" as const },
 ];
+
+const itemIconColor = (value: CalendarViewMode) => {
+  if (model.value === value) {
+    return isDarkMode.value ? "white" : "black-primary";
+  }
+  return isDarkMode.value ? "baige-60" : "black-60";
+};
 </script>
 
 <style scoped lang="less">
-.calendar-view-filter {
-  display: flex;
-  flex-direction: column;
-  align-items: stretch;
-  padding: 8px 4px 8px 8px;
-  border-radius: 8px;
-  background-color: var(--content-color-black-primary);
-  box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
-  overflow: clip;
+.calendar-view-filter-heading {
+  pointer-events: none;
+  --f7-list-item-title-font-size: 22px;
+  --f7-list-item-title-font-weight: 700;
+  --f7-list-item-title-line-height: 1.3;
+  --f7-list-item-title-text-color: var(--content-color-black-primary);
+}
 
-  &__title {
-    padding: 8px;
-    font-family: var(--font-family);
-    font-size: 22px;
-    font-weight: 700;
-    line-height: 1.3;
-    color: var(--content-color-baige-100);
-  }
-
-  &__item {
-    display: flex;
-    align-items: flex-start;
-    gap: 10px;
-    width: 100%;
-    padding: 8px;
-    border: 0;
-    border-radius: 8px;
-    background: transparent;
-    font-family: var(--font-family);
-    font-size: 16px;
-    font-weight: 400;
-    line-height: 1.3;
-    color: var(--content-color-baige-60);
-    text-align: left;
-    cursor: pointer;
-    appearance: none;
-    -webkit-appearance: none;
-
-    &.is-active {
-      color: var(--content-color-white-100);
-    }
-  }
+.is-active {
+  --f7-list-item-title-text-color: var(--content-color-black-primary);
 }
 </style>
