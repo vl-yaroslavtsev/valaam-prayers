@@ -95,8 +95,8 @@
       v-if="isChapterNavActive && settingsStore.isChapterNavToolbarEnabled"
       ref="chapterNavToolbar"
       v-show="!isBrightnessTouching"
-      :current-index="activeHeaderIndex"
-      :total="headers.length"
+      :current-index="activeChapterPageIndex"
+      :total="chapterPageIndices.length"
       :is-hidden="false"
       @next="goToNextHeader"
       @prev="goToPrevHeader"
@@ -663,6 +663,27 @@ watch(activeBookmark, (bookmark) => {
 const isChapterNavActive = ref(false);
 const activeHeaderIndex = ref(-1);
 
+// Несколько глав на одной странице — один шаг листания: стрелки всегда меняют страницу.
+const chapterPageIndices = computed(() => {
+  const indices: number[] = [];
+  let lastPage: number | null = null;
+  headers.value.forEach((header, index) => {
+    if (header.page !== lastPage) {
+      indices.push(index);
+      lastPage = header.page;
+    }
+  });
+  return indices;
+});
+
+const activeChapterPageIndex = computed(() => {
+  const header = headers.value[activeHeaderIndex.value];
+  if (!header) return -1;
+  return chapterPageIndices.value.findIndex(
+    (index) => headers.value[index].page === header.page
+  );
+});
+
 const goToHeader = (index: number) => {
   if (index < 0 || index >= headers.value.length) return;
   activeHeaderIndex.value = index;
@@ -670,17 +691,19 @@ const goToHeader = (index: number) => {
 };
 
 const goToNextHeader = () => {
-  const list = headers.value;
-  if (list.length === 0) return;
-  const idx = (activeHeaderIndex.value + 1 + list.length) % list.length;
-  activeHeaderIndex.value = idx;
+  const steps = chapterPageIndices.value;
+  if (steps.length <= 1) return;
+  const current = activeChapterPageIndex.value;
+  const next = (current + 1 + steps.length) % steps.length;
+  activeHeaderIndex.value = steps[next];
 };
 
 const goToPrevHeader = () => {
-  const list = headers.value;
-  if (list.length === 0) return;
-  const idx = (activeHeaderIndex.value - 1 + list.length) % list.length;
-  activeHeaderIndex.value = idx;
+  const steps = chapterPageIndices.value;
+  if (steps.length <= 1) return;
+  const current = activeChapterPageIndex.value;
+  const prev = (current - 1 + steps.length) % steps.length;
+  activeHeaderIndex.value = steps[prev];
 };
 
 const closeChapterNav = () => {
