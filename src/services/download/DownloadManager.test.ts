@@ -123,7 +123,7 @@ describe("DownloadManager", () => {
 
   it("checkForUpdate передаёт lastSync как since, если since не задан", async () => {
     const download = vi.fn().mockResolvedValue(undefined);
-    getModuleMock.mockReturnValue(mockModule({ download }));
+    getModuleMock.mockReturnValue(mockModule({ download, getSize: vi.fn().mockResolvedValue(2 * 1024) }));
     await metadataStorage?.setLastSyncTime("download_saints");
     const lastSync = await metadataStorage?.getLastSyncTime("download_saints");
 
@@ -135,7 +135,7 @@ describe("DownloadManager", () => {
   it("checkForUpdate передаёт явный since в getSize и download", async () => {
     const since = new Date("2026-01-01T00:00:00.000Z");
     const download = vi.fn().mockResolvedValue(undefined);
-    const getSize = vi.fn().mockResolvedValue(50);
+    const getSize = vi.fn().mockResolvedValue(2 * 1024);
     getModuleMock.mockReturnValue(mockModule({ download, getSize }));
     await metadataStorage?.setLastSyncTime("download_saints");
 
@@ -207,5 +207,136 @@ describe("DownloadManager", () => {
     await vi.waitFor(() => expect(downloads.saints).toHaveBeenCalled());
 
     expect(downloads.calendar).not.toHaveBeenCalled();
+  });
+
+  describe("размер скачанного модуля", () => {
+    it("полная загрузка сохраняет размер, getDownloadedSize его возвращает", async () => {
+      getModuleMock.mockReturnValue(mockModule({ getSize: vi.fn().mockResolvedValue(100) }));
+      expect(await manager.getDownloadedSize("saints")).toBeNull();
+
+      await manager.startDownload("saints");
+
+      expect(await manager.getDownloadedSize("saints")).toBe(100);
+    });
+
+    it("обновление пересчитывает размер по актуальному полному размеру, а не по дельте", async () => {
+      let fullSize = 100;
+      const getSize = vi.fn(async (since?: Date) => (since ? 5 * 1024 : fullSize));
+      getModuleMock.mockReturnValue(mockModule({ getSize }));
+      await manager.startDownload("saints");
+
+      fullSize = 130;
+      await manager.checkForUpdate("saints");
+
+      expect(await manager.getDownloadedSize("saints")).toBe(130);
+    });
+
+    it("если актуальный размер после обновления не получен - остаётся прежний, обновление успешно", async () => {
+      let failFullSize = false;
+      const getSize = vi.fn(async (since?: Date) => {
+        if (!since && failFullSize) throw new Error("offline");
+        return since ? 5 * 1024 : 100;
+      });
+      getModuleMock.mockReturnValue(mockModule({ getSize }));
+      await manager.startDownload("saints");
+
+      failFullSize = true;
+      await manager.checkForUpdate("saints");
+
+      expect(await manager.getDownloadedSize("saints")).toBe(100);
+      expect((await downloadProgressStorage?.getState("saints"))?.status).toBe("completed");
+    });
+
+    it("deleteDownload стирает сохранённый размер", async () => {
+      await manager.startDownload("saints");
+      expect(await manager.getDownloadedSize("saints")).toBe(100);
+
+      await manager.deleteDownload("saints");
+
+      expect(await manager.getDownloadedSize("saints")).toBeNull();
+    });
+
+    it("getUpdateSize: null для нескачанного модуля, иначе размер данных с lastSync", async () => {
+      const getSize = vi.fn().mockResolvedValue(5 * 1024);
+      getModuleMock.mockReturnValue(mockModule({ getSize }));
+
+      expect(await manager.getUpdateSize("saints")).toBeNull();
+      expect(getSize).not.toHaveBeenCalled();
+
+      await metadataStorage?.setLastSyncTime("download_saints");
+      const lastSync = await metadataStorage?.getLastSyncTime("download_saints");
+
+      expect(await manager.getUpdateSize("saints")).toBe(5 * 1024);
+      expect(getSize).toHaveBeenCalledWith(lastSync);
+    });
+
+    it("getUpdateSize: размер пустой выборки (2 байта от API) не считается обновлением", async () => {
+      getModuleMock.mockReturnValue(mockModule({ getSize: vi.fn().mockResolvedValue(2) }));
+      await metadataStorage?.setLastSyncTime("download_saints");
+
+      expect(await manager.getUpdateSize("saints")).toBe(0);
+    });
+
+    it("пустое обновление не качается и не публикует прогресс", async () => {
+      await manager.startDownload("saints");
+      const download = vi.fn();
+      getModuleMock.mockReturnValue(mockModule({ download, getSize: vi.fn().mockResolvedValue(2) }));
+      const listener = vi.fn();
+      manager.subscribe(listener);
+
+      await manager.checkForUpdate("saints");
+
+      expect(download).not.toHaveBeenCalled();
+      expect(listener).not.toHaveBeenCalled();
+      expect(await manager.getDownloadedSize("saints")).toBe(100);
+      expect((await downloadProgressStorage?.getState("saints"))?.status).toBe("completed");
+    });
+
+    it("к моменту статуса completed размер и lastSync уже сохранены", async () => {
+      let snapshot: Promise<[number | null, boolean]> | undefined;
+      manager.subscribe((progress) => {
+        if (progress.status === "completed") {
+          snapshot = Promise.all([manager.getDownloadedSize("saints"), manager.isDownloaded("saints")]);
+        }
+      });
+
+      await manager.startDownload("saints");
+
+      expect(await snapshot).toEqual([100, true]);
+    });
+  });
+
+  describe("subscribe", () => {
+    it("получает прогресс любого запуска и перестаёт после отписки", async () => {
+      const listener = vi.fn();
+      const unsubscribe = manager.subscribe(listener);
+
+      await manager.startDownload("saints");
+      expect(listener.mock.calls.map(([progress]) => progress.status)).toEqual(["downloading", "completed"]);
+      expect(listener.mock.calls[0][0].totalBytes).toBe(100);
+
+      listener.mockClear();
+      unsubscribe();
+      await manager.startDownload("calendar");
+
+      expect(listener).not.toHaveBeenCalled();
+    });
+
+    it("уведомляет и при докачке через resumeInterrupted (без колбэка onProgress)", async () => {
+      await downloadProgressStorage?.setState({
+        moduleId: "saints",
+        status: "downloading",
+        totalBytes: 100,
+        downloadedBytes: 1,
+        updatedAt: Date.now(),
+      });
+      const listener = vi.fn();
+      manager.subscribe(listener);
+
+      await manager.resumeInterrupted();
+      await vi.waitFor(() =>
+        expect(listener.mock.calls.some(([progress]) => progress.status === "completed")).toBe(true),
+      );
+    });
   });
 });

@@ -6,7 +6,7 @@ import type { DownloadModuleId, DownloadProgress } from "@/services/download/typ
 
 /**
  * Тонкая реактивная обёртка над DownloadManager - без какой-либо вёрстки,
- * только состояние прогресса для будущего UI страницы "Доступ без интернета".
+ * только состояние прогресса для будущего UI страницы "Материалы без интернета".
  */
 export const useDownloadsStore = defineStore("downloads", () => {
   const progress = reactive<Partial<Record<DownloadModuleId, DownloadProgress>>>({});
@@ -21,11 +21,22 @@ export const useDownloadsStore = defineStore("downloads", () => {
   };
 
   const initStore = async (): Promise<void> => {
+    // Прогресс докачки после перезапуска и автообновления идёт мимо колбэков стора -
+    // подписываемся на менеджер, чтобы progress отражал любые скачивания
+    downloadManager.subscribe((p) => {
+      progress[p.moduleId] = p;
+    });
     await Promise.all(ALL_MODULE_IDS.map(refreshProgress));
   };
 
   const getModuleSize = (moduleId: DownloadModuleId, since?: Date): Promise<number> =>
     downloadManager.getModuleSize(moduleId, since);
+
+  const getDownloadedSize = (moduleId: DownloadModuleId): Promise<number | null> =>
+    downloadManager.getDownloadedSize(moduleId);
+
+  const getUpdateSize = (moduleId: DownloadModuleId): Promise<number | null> =>
+    downloadManager.getUpdateSize(moduleId);
 
   const isDownloaded = (moduleId: DownloadModuleId): Promise<boolean> => downloadManager.isDownloaded(moduleId);
 
@@ -59,6 +70,8 @@ export const useDownloadsStore = defineStore("downloads", () => {
     progress,
     initStore,
     getModuleSize,
+    getDownloadedSize,
+    getUpdateSize,
     isDownloaded,
     startDownload,
     checkForUpdate,

@@ -2,6 +2,7 @@ import { downloadProgressStorage, metadataStorage } from "@/services/storage";
 import { getModule } from "@/services/download/modules";
 import {
   ALL_MODULE_IDS,
+  downloadSizeKey,
   downloadSyncKey,
   type DownloadContext,
   type DownloadModuleId,
@@ -10,6 +11,12 @@ import {
 } from "@/services/download/types";
 
 const PERSIST_THROTTLE_MS = 100;
+
+/**
+ * API отдаёт размер даже для пустой выборки (например, 2 байта на "[]"), поэтому
+ * обновлением считаем только данные от этого порога.
+ */
+const MIN_UPDATE_BYTES = 1024;
 
 function createEmptyState(moduleId: DownloadModuleId): ModuleDownloadState {
   return {
@@ -40,9 +47,41 @@ function toProgress(state: ModuleDownloadState): DownloadProgress {
 export class DownloadManager {
   private controllers = new Map<DownloadModuleId, AbortController>();
   private runningPromises = new Map<DownloadModuleId, Promise<void>>();
+  private listeners = new Set<(progress: DownloadProgress) => void>();
+
+  /**
+   * Подписка на прогресс всех модулей: вручную запущенные скачивания, докачка
+   * после перезапуска и автообновление. Возвращает функцию отписки.
+   */
+  subscribe(listener: (progress: DownloadProgress) => void): () => void {
+    this.listeners.add(listener);
+    return () => {
+      this.listeners.delete(listener);
+    };
+  }
 
   async getModuleSize(moduleId: DownloadModuleId, since?: Date): Promise<number> {
     return getModule(moduleId).getSize(since);
+  }
+
+  /**
+   * Полный размер скачанного модуля, сохранённый при последней успешной загрузке/обновлении.
+   * null - модуль не скачан или размер не сохранялся (скачан до появления этой возможности).
+   */
+  async getDownloadedSize(moduleId: DownloadModuleId): Promise<number | null> {
+    const size = await metadataStorage?.getValue(downloadSizeKey(moduleId));
+    return typeof size === "number" ? size : null;
+  }
+
+  /**
+   * Размер доступного обновления (данные, изменённые с момента последней синхронизации).
+   * null - модуль ещё не скачан, 0 - обновлений нет.
+   */
+  async getUpdateSize(moduleId: DownloadModuleId): Promise<number | null> {
+    const lastSync = await metadataStorage?.getLastSyncTime(downloadSyncKey(moduleId));
+    if (!lastSync) return null;
+    const size = await getModule(moduleId).getSize(lastSync);
+    return size >= MIN_UPDATE_BYTES ? size : 0;
   }
 
   async getProgress(moduleId: DownloadModuleId): Promise<DownloadProgress | null> {
@@ -140,6 +179,28 @@ export class DownloadManager {
     await getModule(moduleId).remove();
     await downloadProgressStorage?.deleteState(moduleId);
     await metadataStorage?.delete(`last_sync_${downloadSyncKey(moduleId)}`);
+    await metadataStorage?.delete(downloadSizeKey(moduleId));
+  }
+
+  /**
+   * Сохраняет полный размер модуля. После полной загрузки это totalBytes, а при обновлении
+   * totalBytes - размер только изменённых данных, поэтому запрашиваем актуальный полный размер.
+   * Если запрос не удался - остаётся прежнее значение, обновление при этом не считается неуспешным.
+   */
+  private async saveDownloadedSize(
+    moduleId: DownloadModuleId,
+    isUpdate: boolean,
+    totalBytes: number
+  ): Promise<void> {
+    let size = totalBytes;
+    if (isUpdate) {
+      try {
+        size = await getModule(moduleId).getSize();
+      } catch {
+        return;
+      }
+    }
+    await metadataStorage?.setValue(downloadSizeKey(moduleId), size);
   }
 
   private async executeDownload(
@@ -151,9 +212,6 @@ export class DownloadManager {
     const controller = new AbortController();
     this.controllers.set(moduleId, controller);
 
-    state.status = "downloading";
-    state.error = undefined;
-
     let lastPersistedAt = 0;
     const persist = async (force = false): Promise<void> => {
       const now = Date.now();
@@ -161,9 +219,12 @@ export class DownloadManager {
       lastPersistedAt = now;
       state.updatedAt = now;
       await downloadProgressStorage?.setState({ ...state });
-      onProgress?.(toProgress(state));
+      // После отмены не уведомляем: иначе подписчики вернут в UI уже откатанный прогресс
+      if (controller.signal.aborted) return;
+      const progress = toProgress(state);
+      onProgress?.(progress);
+      this.listeners.forEach((listener) => listener(progress));
     };
-    await persist(true);
 
     const ctx: DownloadContext = {
       signal: controller.signal,
@@ -181,16 +242,28 @@ export class DownloadManager {
 
     try {
       const module = getModule(moduleId);
+      // Размер узнаём до публикации статуса, иначе в списке мелькает «0 из 0 МБ»
       if (!state.totalBytes) {
         state.totalBytes = await module.getSize(since);
       }
+      if (controller.signal.aborted) return;
+      // Пустое обновление не качаем и не показываем: проверка размера остаётся незаметной
+      if (since !== undefined && state.totalBytes < MIN_UPDATE_BYTES) return;
+
+      state.status = "downloading";
+      state.error = undefined;
+      await persist(true);
 
       await module.download(ctx);
+
+      // Размер и lastSync пишем до публикации статуса "completed", чтобы подписчик,
+      // отреагировав на него, сразу увидел модуль скачанным и с актуальным размером
+      await this.saveDownloadedSize(moduleId, since !== undefined, state.totalBytes);
+      await metadataStorage?.setLastSyncTime(downloadSyncKey(moduleId));
 
       state.status = "completed";
       state.downloadedBytes = state.totalBytes;
       await persist(true);
-      await metadataStorage?.setLastSyncTime(downloadSyncKey(moduleId));
     } catch (err) {
       if (controller.signal.aborted) {
         // Отмена уже обработана resetModule() - не перезаписываем состояние

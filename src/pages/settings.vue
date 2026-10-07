@@ -1,6 +1,6 @@
 <template>
   <f7-page name="settings">
-    <f7-navbar title="Настройки" back-link></f7-navbar>
+    <f7-navbar large transparent title="Настройки" back-link></f7-navbar>
 
     <f7-list dividers class="settings-list">
       <f7-list-item

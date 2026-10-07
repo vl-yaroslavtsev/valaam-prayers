@@ -2,11 +2,15 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { createPinia, setActivePinia } from "pinia";
 import { downloadManager } from "@/services/download/DownloadManager";
 import { useDownloadsStore } from "@/stores/downloads";
+import type { DownloadProgress } from "@/services/download/types";
 
 vi.mock("@/services/download/DownloadManager", () => ({
   downloadManager: {
     getProgress: vi.fn(),
     getModuleSize: vi.fn(),
+    getDownloadedSize: vi.fn(),
+    getUpdateSize: vi.fn(),
+    subscribe: vi.fn(),
     isDownloaded: vi.fn(),
     startDownload: vi.fn(),
     checkForUpdate: vi.fn(),
@@ -88,5 +92,38 @@ describe("useDownloadsStore", () => {
 
     expect(store.progress.calendar).toBeUndefined();
     expect(downloadManager.deleteDownload).toHaveBeenCalledWith("calendar");
+  });
+
+  it("initStore подписывается на менеджер и progress обновляется по его уведомлениям", async () => {
+    let listener: ((progress: DownloadProgress) => void) | undefined;
+    vi.mocked(downloadManager.subscribe).mockImplementation((fn) => {
+      listener = fn;
+      return () => {};
+    });
+    vi.mocked(downloadManager.getProgress).mockResolvedValue(null);
+
+    const store = useDownloadsStore();
+    await store.initStore();
+    listener?.({
+      moduleId: "saintIcons",
+      status: "downloading",
+      downloadedBytes: 5,
+      totalBytes: 50,
+      updatedAt: 1,
+    });
+
+    expect(store.progress.saintIcons?.downloadedBytes).toBe(5);
+  });
+
+  it("getDownloadedSize и getUpdateSize проксируются в менеджер", async () => {
+    vi.mocked(downloadManager.getDownloadedSize).mockResolvedValue(21);
+    vi.mocked(downloadManager.getUpdateSize).mockResolvedValue(5);
+
+    const store = useDownloadsStore();
+
+    expect(await store.getDownloadedSize("calendar")).toBe(21);
+    expect(await store.getUpdateSize("calendar")).toBe(5);
+    expect(downloadManager.getDownloadedSize).toHaveBeenCalledWith("calendar");
+    expect(downloadManager.getUpdateSize).toHaveBeenCalledWith("calendar");
   });
 });

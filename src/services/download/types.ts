@@ -37,6 +37,14 @@ export function downloadSyncKey(moduleId: DownloadModuleId): string {
 }
 
 /**
+ * Ключ, под которым полный размер скачанного модуля (в байтах) хранится
+ * в MetadataStorage (getValue/setValue), например "download_size_calendar".
+ */
+export function downloadSizeKey(moduleId: DownloadModuleId): string {
+  return `download_size_${moduleId}`;
+}
+
+/**
  * Публичное состояние прогресса модуля (то, что видит внешний код/будущий UI)
  */
 export interface DownloadProgress {
