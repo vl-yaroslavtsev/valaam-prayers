@@ -51,7 +51,7 @@
   </div>  
 </template>
 <script setup lang="ts">
-import { useTemplateRef, ref, shallowRef, watch, computed, nextTick, readonly } from "vue";
+import { useTemplateRef, ref, shallowRef, watch, computed, nextTick, readonly, onUnmounted } from "vue";
 import { useSettingsStore } from "@/stores/settings";
 import { useTextSettings } from "@/composables/useTextSettings";
 import { usePaginationCache } from "@/composables/usePaginationCache";
@@ -60,7 +60,7 @@ import { useDelayed } from "@/composables/useDelayed";
 import type { PaginationCacheItemHeader } from "@/services/storage/PaginationCacheStorage";
 import type { Swiper } from "swiper";
 import type { Language } from "@/types/common";
-import { paginateText } from "@/text-processing-v2";
+import { paginateText } from "@/text-processing-v3";
 
 import TextPagerHorizontal from "./text-paginator/TextPagerHorizontal.vue";
 import TextPagerVertical from "./text-paginator/TextPagerVertical.vue";
@@ -118,6 +118,58 @@ const { delayed: isShowLoading } = useDelayed<boolean>(() => isLoading, false, 1
 const currentProgress = ref<number>(initialProgress);
 const isTransitioning = ref(false);
 const calculatingProgress = ref<number>(0);
+let calculatingTarget = 0;
+let calculatingFrame = 0;
+
+const stopCalculatingProgress = () => {
+  if (calculatingFrame) {
+    cancelAnimationFrame(calculatingFrame);
+    calculatingFrame = 0;
+  }
+};
+
+// Цель приходит рывками (кусок текста то гуще, то реже). Полоска догоняет её
+// плавно и не откатывается назад.
+const tickCalculatingProgress = () => {
+  const delta = calculatingTarget - calculatingProgress.value;
+  if (delta <= 0.004) {
+    calculatingProgress.value = calculatingTarget;
+    calculatingFrame = 0;
+    return;
+  }
+  calculatingProgress.value += delta * 0.22;
+  calculatingFrame = requestAnimationFrame(tickCalculatingProgress);
+};
+
+const pushCalculatingProgress = (progress: number) => {
+  calculatingTarget = Math.max(calculatingTarget, Math.min(1, progress));
+  if (!calculatingFrame) {
+    calculatingFrame = requestAnimationFrame(tickCalculatingProgress);
+  }
+};
+
+const resetCalculatingProgress = () => {
+  stopCalculatingProgress();
+  calculatingTarget = 0;
+  calculatingProgress.value = 0;
+};
+
+const waitCalculatingProgress = () => new Promise<void>((resolve) => {
+  const started = performance.now();
+  const finish = () => {
+    const caughtUp = calculatingTarget - calculatingProgress.value <= 0.004;
+    if (caughtUp || performance.now() - started > 800) {
+      calculatingProgress.value = calculatingTarget;
+      stopCalculatingProgress();
+      resolve();
+      return;
+    }
+    requestAnimationFrame(finish);
+  };
+  finish();
+});
+
+onUnmounted(stopCalculatingProgress);
 
 const pages = shallowRef<string[]>([]);
 const headers = shallowRef<PaginationCacheItemHeader[]>([]);
@@ -169,7 +221,7 @@ async () => {
   if (text && container) {
     
     isCalculating.value = true;
-    calculatingProgress.value = 0;    
+    resetCalculatingProgress();    
     const cssClasses = `text-page reading-text ${lang ? 'prayer-text lang-' + lang : ''} theme-${theme.value}`;
     
     // Используем кэш если доступен itemId
@@ -183,7 +235,7 @@ async () => {
       }
 
       const result = await paginateText(text, container, cssClasses, (progress) => {
-        calculatingProgress.value = progress;
+        pushCalculatingProgress(progress);
       });
       pages.value = result.pages;
       headers.value = result.headers;
@@ -193,6 +245,11 @@ async () => {
     applyPages();
 
     restoreProgress();
+
+    if (isShowCalculating.value) {
+      pushCalculatingProgress(1);
+      await waitCalculatingProgress();
+    }
 
     isShowCalculating.value = false;
     isCalculating.value = false;
