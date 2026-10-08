@@ -133,7 +133,7 @@ const DEFAULT_SETTINGS: AppSettings = {
   readingBrightness: -1,
   keepScreenOn: false,
   pageMode: "horizontal",
-  isStatusBarVisible: true,
+  isStatusBarVisible: false,
   isVolumeButtonsScrollEnabled: false,
   isPageTurnAnimationEnabled: true,
   isChapterNavToolbarEnabled: true,

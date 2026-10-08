@@ -204,13 +204,13 @@
           </template>
         </f7-list-item>
         <f7-list-item 
-          title="Строка состояния"
+          title="Полноэкранный режим"
           :disabled="disabled"
         >
           <template #after>
             <f7-toggle 
               small
-              v-model:checked="showStatusBar"
+              v-model:checked="isFullscreenMode"
             />
           </template>
           <template #media>
@@ -285,10 +285,11 @@ const onLineHeightChange = (value: number) => {
     settingsStore.setLineHeight(Number(value.toFixed(2)));
 };
 
-const showStatusBar = computed({
-  get: () => settingsStore.isStatusBarVisible,
+// Включённый полноэкранный режим прячет статусбар и системную панель.
+const isFullscreenMode = computed({
+  get: () => !settingsStore.isStatusBarVisible,
   set: (value: boolean) => {
-    settingsStore.setIsStatusBarVisible(value);
+    settingsStore.setIsStatusBarVisible(!value);
   }
 });
 
