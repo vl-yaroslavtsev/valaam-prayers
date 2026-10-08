@@ -21,27 +21,27 @@ describe("getDaysRange", () => {
 
 describe("parseMarkers", () => {
   it("день без маркеров (null и пустая строка) ничем не выделяется", () => {
-    expect(parseMarkers(null)).toEqual({ background: null, outline: null });
-    expect(parseMarkers("")).toEqual({ background: null, outline: null });
+    expect(parseMarkers(null)).toEqual({ backgrounds: [], outlines: [] });
+    expect(parseMarkers("")).toEqual({ backgrounds: [], outlines: [] });
   });
 
-  it("порядок букв в строке не важен: побеждает самый приоритетный фон", () => {
-    expect(parseMarkers("hwf").background).toBe("holiday");
-    expect(parseMarkers("fwh").background).toBe("holiday");
-    expect(parseMarkers("ef").background).toBe("easter");
-    expect(parseMarkers("vh").background).toBe("holiday");
-    expect(parseMarkers("wvg").background).toBe("valaam");
-    expect(parseMarkers("fw").background).toBe("week");
-    expect(parseMarkers("wl").background).toBe("week");
-    expect(parseMarkers("l").background).toBe("week");
+  it("возвращает все фоны по убыванию приоритета, порядок букв не важен", () => {
+    expect(parseMarkers("hwf").backgrounds).toEqual(["holiday", "week", "fast"]);
+    expect(parseMarkers("fwh").backgrounds).toEqual(["holiday", "week", "fast"]);
+    expect(parseMarkers("ef").backgrounds).toEqual(["easter", "fast"]);
+    expect(parseMarkers("vh").backgrounds).toEqual(["holiday", "valaam"]);
+    expect(parseMarkers("wvg").backgrounds).toEqual(["valaam", "week"]);
+    expect(parseMarkers("fw").backgrounds).toEqual(["week", "fast"]);
+    expect(parseMarkers("wl").backgrounds).toEqual(["week"]);
+    expect(parseMarkers("l").backgrounds).toEqual(["week"]);
   });
 
-  it("контур выбирается отдельно от фона: g приоритетнее c", () => {
-    expect(parseMarkers("wvg")).toEqual({ background: "valaam", outline: "great" });
-    expect(parseMarkers("gf")).toEqual({ background: "fast", outline: "great" });
-    expect(parseMarkers("cf")).toEqual({ background: "fast", outline: "memorial" });
-    expect(parseMarkers("cg").outline).toBe("great");
-    expect(parseMarkers("c")).toEqual({ background: null, outline: "memorial" });
+  it("контуры собираются отдельно от фона, g приоритетнее c", () => {
+    expect(parseMarkers("wvg")).toEqual({ backgrounds: ["valaam", "week"], outlines: ["great"] });
+    expect(parseMarkers("gf")).toEqual({ backgrounds: ["fast"], outlines: ["great"] });
+    expect(parseMarkers("cf")).toEqual({ backgrounds: ["fast"], outlines: ["memorial"] });
+    expect(parseMarkers("cg").outlines).toEqual(["great", "memorial"]);
+    expect(parseMarkers("c")).toEqual({ backgrounds: [], outlines: ["memorial"] });
   });
 });
 
@@ -62,15 +62,15 @@ describe("buildDayStyles", () => {
       "20260709": null,
     });
 
-    expect(styles.get("20260706")).toEqual(["cal-band", "cal-band-fast", "cal-band-start"]);
-    expect(styles.get("20260707")).toEqual(["cal-band", "cal-band-fast", "cal-outline-great"]);
-    expect(styles.get("20260708")).toEqual(["cal-band", "cal-band-fast", "cal-band-end"]);
+    expect(styles.get("20260706")).toEqual(["cal-band-fast", "cal-fast-start"]);
+    expect(styles.get("20260707")).toEqual(["cal-band-fast", "cal-outline-great"]);
+    expect(styles.get("20260708")).toEqual(["cal-band-fast", "cal-fast-end"]);
   });
 
-  it("одиночный постный день - серо-бежевый круг, без плашки", () => {
+  it("одиночный постный день — круглая плашка того же вида, что и многодневный пост", () => {
     const styles = buildDayStyles({ "20260715": "f", "20260714": null, "20260716": null });
 
-    expect(styles.get("20260715")).toEqual(["cal-fast-single"]);
+    expect(styles.get("20260715")).toEqual(["cal-band-fast", "cal-fast-start", "cal-fast-end"]);
   });
 
   it("плашка разрывается на границе недельной строки (Пн/Вс)", () => {
@@ -81,13 +81,13 @@ describe("buildDayStyles", () => {
       "20260714": "f",
     });
 
-    expect(styles.get("20260711")).toContain("cal-band-start");
-    expect(styles.get("20260711")).not.toContain("cal-band-end");
-    expect(styles.get("20260712")).toContain("cal-band-end");
-    expect(styles.get("20260712")).not.toContain("cal-band-start");
-    expect(styles.get("20260713")).toContain("cal-band-start");
-    expect(styles.get("20260713")).not.toContain("cal-band-end");
-    expect(styles.get("20260714")).toContain("cal-band-end");
+    expect(styles.get("20260711")).toContain("cal-fast-start");
+    expect(styles.get("20260711")).not.toContain("cal-fast-end");
+    expect(styles.get("20260712")).toContain("cal-fast-end");
+    expect(styles.get("20260712")).not.toContain("cal-fast-start");
+    expect(styles.get("20260713")).toContain("cal-fast-start");
+    expect(styles.get("20260713")).not.toContain("cal-fast-end");
+    expect(styles.get("20260714")).toContain("cal-fast-end");
   });
 
   it("плашка обрывается на границе месяца: соседние месяцы в календаре не раскрашиваются", () => {
@@ -99,13 +99,13 @@ describe("buildDayStyles", () => {
       "20260802": "w",
     });
 
-    expect(styles.get("20260730")).toContain("cal-band-start");
-    expect(styles.get("20260730")).not.toContain("cal-band-end");
-    expect(styles.get("20260731")).toContain("cal-band-end");
-    expect(styles.get("20260731")).not.toContain("cal-band-start");
-    expect(styles.get("20260801")).toContain("cal-band-start");
-    expect(styles.get("20260801")).not.toContain("cal-band-end");
-    expect(styles.get("20260802")).toContain("cal-band-end");
+    expect(styles.get("20260730")).toContain("cal-week-start");
+    expect(styles.get("20260730")).not.toContain("cal-week-end");
+    expect(styles.get("20260731")).toContain("cal-week-end");
+    expect(styles.get("20260731")).not.toContain("cal-week-start");
+    expect(styles.get("20260801")).toContain("cal-week-start");
+    expect(styles.get("20260801")).not.toContain("cal-week-end");
+    expect(styles.get("20260802")).toContain("cal-week-end");
   });
 
   it("w и l образуют одну плашку седмицы, даже одиночный день седмицы остаётся плашкой-кругом", () => {
@@ -115,30 +115,59 @@ describe("buildDayStyles", () => {
       "20260715": "w",
     });
 
-    expect(styles.get("20260706")).toEqual(["cal-band", "cal-band-week", "cal-band-start"]);
-    expect(styles.get("20260707")).toEqual(["cal-band", "cal-band-week", "cal-band-end"]);
-    expect(styles.get("20260715")).toEqual(["cal-band", "cal-band-week", "cal-band-start", "cal-band-end"]);
+    expect(styles.get("20260706")).toEqual(["cal-band-week", "cal-week-start"]);
+    expect(styles.get("20260707")).toEqual(["cal-band-week", "cal-week-end"]);
+    expect(styles.get("20260715")).toEqual(["cal-band-week", "cal-week-start", "cal-week-end"]);
   });
 
-  it("день с более приоритетным фоном прерывает плашку и сам не входит в неё", () => {
+  it("круглый маркер рисуется поверх плашки и не разрывает её", () => {
+    // 4 декабря 2026 — пятница, fh; 6 декабря — воскресенье, fv
     const styles = buildDayStyles({
-      "20260706": "f",
-      "20260707": "fv",
-      "20260708": "f",
-      "20260709": "ef",
+      "20261203": "f",
+      "20261204": "fh",
+      "20261205": "f",
+      "20261206": "fv",
     });
 
-    expect(styles.get("20260706")).toEqual(["cal-fast-single"]);
-    expect(styles.get("20260707")).toEqual(["cal-valaam"]);
-    expect(styles.get("20260708")).toEqual(["cal-fast-single"]);
-    expect(styles.get("20260709")).toEqual(["cal-easter"]);
+    expect(styles.get("20261203")).toEqual(["cal-band-fast", "cal-fast-start"]);
+    expect(styles.get("20261204")).toEqual(["cal-band-fast", "cal-holiday"]);
+    expect(styles.get("20261205")).toEqual(["cal-band-fast"]);
+    expect(styles.get("20261206")).toEqual(["cal-band-fast", "cal-fast-end", "cal-valaam"]);
   });
 
-  it("круглые фоны и контуры сочетаются; праздник побеждает пост", () => {
+  it("седмица и пост на одном дне дают две плашки: седмица в классах позже поста", () => {
+    const styles = buildDayStyles({
+      "20260706": "f",
+      "20260707": "fw",
+      "20260708": "f",
+    });
+
+    expect(styles.get("20260706")).toEqual(["cal-band-fast", "cal-fast-start"]);
+    expect(styles.get("20260707")).toEqual([
+      "cal-band-fast",
+      "cal-band-week",
+      "cal-week-start",
+      "cal-week-end",
+    ]);
+    expect(styles.get("20260708")).toEqual(["cal-band-fast", "cal-fast-end"]);
+  });
+
+  it("круглые фоны, плашка и контур сочетаются", () => {
     const styles = buildDayStyles({ "20260711": "hf", "20260714": "wvg" });
 
-    expect(styles.get("20260711")).toEqual(["cal-holiday"]);
-    expect(styles.get("20260714")).toEqual(["cal-valaam", "cal-outline-great"]);
+    expect(styles.get("20260711")).toEqual([
+      "cal-band-fast",
+      "cal-fast-start",
+      "cal-fast-end",
+      "cal-holiday",
+    ]);
+    expect(styles.get("20260714")).toEqual([
+      "cal-band-week",
+      "cal-week-start",
+      "cal-week-end",
+      "cal-valaam",
+      "cal-outline-great",
+    ]);
   });
 
   it("все выдаваемые классы перечислены в DAY_CLASSES (иначе rangesClasses их не применит)", () => {

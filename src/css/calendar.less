@@ -6,7 +6,6 @@
   --calendar-holiday: rgba(235, 87, 87, 0.3);
   --calendar-valaam: #c1ddbc;
   --calendar-fast-band: rgba(204, 230, 250, 0.5);
-  --calendar-fast-single: #ece2dc;
   --calendar-week-band: #f4e6c7;
   --calendar-outline-great: #f2a59d;
   --calendar-outline-memorial: var(--content-color-black-primary);
@@ -19,7 +18,6 @@
 .dark {
   --calendar-valaam: rgba(165, 221, 155, 0.2);
   --calendar-fast-band: rgba(204, 230, 250, 0.2);
-  --calendar-fast-single: rgba(236, 192, 165, 0.2);
   --calendar-week-band: rgba(244, 221, 171, 0.2);
   --calendar-outline-memorial: var(--content-color-white-100);
 
@@ -45,7 +43,89 @@
 
   height: auto;
   padding-bottom: 20px;
+  overflow: visible;
   background: transparent;
+
+  // Шапка с выбором месяца и года — штатный toolbar календаря (monthPicker / yearPicker)
+  > .toolbar {
+    --f7-toolbar-height: auto;
+    --f7-toolbar-bg-color: transparent;
+    --f7-toolbar-border-color: transparent;
+    --f7-toolbar-text-color: var(--calendar-text);
+    --f7-bars-link-color: var(--calendar-text);
+
+    // Штатный toolbar — absolute и схлопывает родителя. Здесь он в потоке, над сеткой дней.
+    position: relative;
+    top: auto;
+    left: auto;
+    right: auto;
+    z-index: auto;
+    height: auto;
+    min-height: 0;
+    margin: 0;
+    overflow: visible;
+    background: transparent;
+
+    &::before,
+    &::after {
+      display: none;
+    }
+
+    .toolbar-inner {
+      position: relative;
+      top: auto;
+      height: auto;
+      min-height: 0;
+      padding: 20px 24px;
+      justify-content: space-between;
+      overflow: visible;
+      border-bottom: 1px solid var(--content-color-black-20);
+    }
+  }
+
+  .calendar-month-selector,
+  .calendar-year-selector {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 8px;
+    width: auto;
+    max-width: none;
+    margin: 0;
+    flex-shrink: 0;
+
+    a.link {
+      min-width: 0;
+      min-height: 0;
+      height: auto;
+      padding: 0;
+      color: var(--calendar-text);
+    }
+
+    a.icon-only {
+      width: 24px;
+      min-width: 24px;
+    }
+
+    .is-disabled {
+      opacity: 0.3;
+      pointer-events: none;
+    }
+
+    .current-month-value,
+    .current-year-value {
+      font-size: var(--mobile-main-text-bold-b3);
+      font-weight: 700;
+      line-height: var(--mobile-main-text-bold-b3-line-height);
+      text-decoration: none;
+    }
+
+    svg {
+      display: block;
+      width: 24px;
+      height: 24px;
+    }
+  }
 
   .calendar-week-header {
     padding: 0 var(--calendar-side-padding);
@@ -77,6 +157,11 @@
     font-weight: 700;
   }
 
+  // Цифра поверх плашек (::before поста и ::after седмицы)
+  .calendar-day-number {
+    z-index: 1;
+  }
+
   // Воскресенье - красным
   .calendar-day-weekend .calendar-day-number {
     color: var(--red-r-100);
@@ -88,62 +173,66 @@
     color: var(--calendar-text);
   }
 
-  // Плашки (пост, седмица): подряд идущие дни недельной строки, края скруглены, один день - круг
-  .cal-band::before {
+  // Правила ниже идут по возрастанию приоритета: следующее перекрывает предыдущее.
+  // Плашки: пост (::before), поверх неё седмица (::after). Края скруглены, один день — круг.
+  .cal-band-fast::before,
+  .cal-band-week::after {
     content: "";
     position: absolute;
     top: 0;
     bottom: 0;
     left: 0;
     right: 0;
-    z-index: -1;
+    z-index: 0;
+    pointer-events: none;
   }
 
   .cal-band-fast::before {
     background-color: var(--calendar-fast-band);
   }
 
-  .cal-band-week::before {
-    background-color: var(--calendar-week-band);
-  }
-
-  .cal-band-start::before {
+  .cal-fast-start::before,
+  .cal-week-start::after {
     left: calc((100% - var(--calendar-day-size)) / 2);
     border-top-left-radius: calc(var(--calendar-day-size) / 2);
     border-bottom-left-radius: calc(var(--calendar-day-size) / 2);
   }
 
-  .cal-band-end::before {
+  .cal-fast-end::before,
+  .cal-week-end::after {
     right: calc((100% - var(--calendar-day-size)) / 2);
     border-top-right-radius: calc(var(--calendar-day-size) / 2);
     border-bottom-right-radius: calc(var(--calendar-day-size) / 2);
   }
 
-  // Круглая заливка
-  .cal-holiday .calendar-day-number {
-    background-color: var(--calendar-holiday);
+  .cal-band-week::after {
+    background-color: var(--calendar-week-band);
   }
 
+  // Круги. Полупрозрачный цвет лежит на фоне карточки, чтобы плашка под кругом не просвечивала.
   .cal-valaam .calendar-day-number {
-    background-color: var(--calendar-valaam);
+    background-color: var(--calendar-card-bg);
+    background-image: linear-gradient(var(--calendar-valaam), var(--calendar-valaam));
   }
 
-  .cal-fast-single .calendar-day-number {
-    background-color: var(--calendar-fast-single);
+  .cal-holiday .calendar-day-number {
+    background-color: var(--calendar-card-bg);
+    background-image: linear-gradient(var(--calendar-holiday), var(--calendar-holiday));
   }
 
-  // Контуры (могут сочетаться с любой заливкой)
+  // Контуры: поминовение, поверх него великий праздник
+  .cal-outline-memorial .calendar-day-number {
+    box-shadow: inset 0 0 0 1px var(--calendar-outline-memorial);
+  }
+
   .cal-outline-great .calendar-day-number {
     box-shadow: inset 0 0 0 1px var(--calendar-outline-great);
     color: var(--calendar-outline-great);
   }
 
-  .cal-outline-memorial .calendar-day-number {
-    box-shadow: inset 0 0 0 1px var(--calendar-outline-memorial);
-  }
-
   .cal-easter .calendar-day-number {
     background-color: var(--calendar-easter);
+    background-image: none;
     color: var(--content-color-white-100);
   }
 
@@ -154,12 +243,14 @@
   .calendar-day-disabled {
     cursor: default;
 
-    &::before {
+    &::before,
+    &::after {
       display: none;
     }
 
     .calendar-day-number {
       background-color: transparent;
+      background-image: none;
       box-shadow: none;
       color: var(--calendar-text-muted);
     }
@@ -168,5 +259,17 @@
   .calendar-day-prev,
   .calendar-day-next {
     pointer-events: none;
+  }
+}
+
+// Поповер выбора месяца/года вешается внутрь inline-календаря (position: relative),
+// а координаты Framework7 считает от окна. fixed совпадает с этим расчётом.
+.calendar-month-picker-popover,
+.calendar-year-picker-popover {
+  position: fixed;
+  z-index: 13500;
+
+  .picker {
+    height: 100%;
   }
 }

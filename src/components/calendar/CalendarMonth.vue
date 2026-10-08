@@ -2,50 +2,6 @@
   <div class="calendar-month-view">
     <div class="calendar-month-card">
       <template v-if="range">
-        <div class="calendar-month-header">
-          <div class="calendar-month-nav">
-            <button
-              type="button"
-              class="calendar-month-nav-button"
-              aria-label="Предыдущий месяц"
-              :disabled="!canPrevMonth"
-              @click="prevMonth"
-            >
-              <SvgIcon icon="chevron-left" :color="iconColor" :size="24" />
-            </button>
-            <span class="calendar-month-title">{{ MONTH_NAMES[viewMonth] }}</span>
-            <button
-              type="button"
-              class="calendar-month-nav-button"
-              aria-label="Следующий месяц"
-              :disabled="!canNextMonth"
-              @click="nextMonth"
-            >
-              <SvgIcon icon="chevron-right" :color="iconColor" :size="24" />
-            </button>
-          </div>
-          <div class="calendar-month-nav">
-            <button
-              type="button"
-              class="calendar-month-nav-button"
-              aria-label="Предыдущий год"
-              :disabled="!canPrevYear"
-              @click="prevYear"
-            >
-              <SvgIcon icon="chevron-left" :color="iconColor" :size="24" />
-            </button>
-            <span class="calendar-month-title">{{ viewYear }}</span>
-            <button
-              type="button"
-              class="calendar-month-nav-button"
-              aria-label="Следующий год"
-              :disabled="!canNextYear"
-              @click="nextYear"
-            >
-              <SvgIcon icon="chevron-right" :color="iconColor" :size="24" />
-            </button>
-          </div>
-        </div>
         <div ref="calendarEl" />
       </template>
       <div v-else-if="markersError" class="calendar-month-state">
@@ -72,8 +28,8 @@ import { storeToRefs } from "pinia";
 import { f7 } from "framework7-vue";
 import type { Calendar } from "framework7/types";
 
-import SvgIcon from "@/components/SvgIcon.vue";
-import { useTheme } from "@/composables/useTheme";
+import chevronLeft from "@/assets/icons/chevron-left.svg?raw";
+import chevronRight from "@/assets/icons/chevron-right.svg?raw";
 import { useCalendarStore } from "@/stores/calendar";
 import { DAY_CLASSES, buildDayStyles, getDaysRange, toDateCode } from "./calendarMarkers";
 
@@ -106,9 +62,6 @@ const LEGEND = [
   { title: "Особые дни поминовения усопших", markClass: "is-memorial" },
 ];
 
-const { isDarkMode } = useTheme();
-const iconColor = computed(() => (isDarkMode.value ? "white" : "black-primary"));
-
 const calendarStore = useCalendarStore();
 const { markers, markersError } = storeToRefs(calendarStore);
 
@@ -133,12 +86,26 @@ const canNextYear = computed(() => viewIndex.value + 12 <= maxIndex.value);
 function syncView(instance: Calendar.Calendar) {
   viewYear.value = instance.currentYear;
   viewMonth.value = instance.currentMonth;
+  const root = instance.$el?.[0];
+  if (!root) return;
+  const toggle = (selector: string, enabled: boolean) => {
+    root.querySelector(selector)?.classList.toggle("is-disabled", !enabled);
+  };
+  toggle(".calendar-prev-month-button", canPrevMonth.value);
+  toggle(".calendar-next-month-button", canNextMonth.value);
+  toggle(".calendar-prev-year-button", canPrevYear.value);
+  toggle(".calendar-next-year-button", canNextYear.value);
 }
 
-const prevMonth = () => calendar?.prevMonth(300);
-const nextMonth = () => calendar?.nextMonth(300);
-const prevYear = () => calendar?.prevYear();
-const nextYear = () => calendar?.nextYear();
+function navSelector(kind: "month" | "year"): string {
+  const prevClass = kind === "month" ? "calendar-prev-month-button" : "calendar-prev-year-button";
+  const nextClass = kind === "month" ? "calendar-next-month-button" : "calendar-next-year-button";
+  const valueClass = kind === "month" ? "current-month-value" : "current-year-value";
+  const prevLabel = kind === "month" ? "Предыдущий месяц" : "Предыдущий год";
+  const nextLabel = kind === "month" ? "Следующий месяц" : "Следующий год";
+  const valueLabel = kind === "month" ? "Выбор месяца" : "Выбор года";
+  return `<div class="calendar-${kind}-selector toolbar-pane"><a class="link icon-only ${prevClass}" aria-label="${prevLabel}">${chevronLeft}</a><a class="${valueClass} link" aria-label="${valueLabel}"></a><a class="link icon-only ${nextClass}" aria-label="${nextLabel}">${chevronRight}</a></div>`;
+}
 
 function destroyCalendar() {
   calendar?.destroy();
@@ -151,7 +118,13 @@ function createCalendar(days: { min: Date; max: Date }) {
   const instance = f7.calendar.create({
     containerEl: calendarEl.value,
     cssClass: "month-calendar",
-    toolbar: false,
+    toolbar: true,
+    monthPicker: true,
+    yearPicker: true,
+    yearPickerMin: days.min.getFullYear(),
+    yearPickerMax: days.max.getFullYear(),
+    renderMonthSelector: () => navSelector("month"),
+    renderYearSelector: () => navSelector("year"),
     firstDay: 1,
     weekendDays: [0],
     monthNames: MONTH_NAMES,
@@ -195,7 +168,10 @@ function syncCalendar() {
   }
   calendar.params.minDate = days.min;
   calendar.params.maxDate = days.max;
+  calendar.params.yearPickerMin = days.min.getFullYear();
+  calendar.params.yearPickerMax = days.max.getFullYear();
   calendar.update();
+  syncView(calendar);
 }
 
 onMounted(syncCalendar);
@@ -218,39 +194,6 @@ onBeforeUnmount(destroyCalendar);
   border-radius: 16px;
   background: var(--calendar-card-bg);
   color: var(--calendar-text);
-}
-
-.calendar-month-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 20px 24px;
-  border-bottom: 1px solid var(--content-color-black-20);
-}
-
-.calendar-month-nav {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.calendar-month-nav-button {
-  display: flex;
-  padding: 0;
-  border: 0;
-  background: none;
-  cursor: pointer;
-
-  &:disabled {
-    opacity: 0.3;
-    cursor: default;
-  }
-}
-
-.calendar-month-title {
-  font-size: var(--mobile-main-text-bold-b3);
-  font-weight: 700;
-  line-height: var(--mobile-main-text-bold-b3-line-height);
 }
 
 .calendar-month-state {

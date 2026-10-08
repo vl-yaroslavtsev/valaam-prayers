@@ -5,19 +5,24 @@
  * e - Пасха, h - двунадесятый праздник, g - великий праздник, v - праздник Валаамской обители,
  * f - постный день, w - сплошная седмица, l - светлая седмица, c - поминовение усопших.
  *
- * На день показывается один маркер-фон (самый приоритетный) и один маркер-контур (самый приоритетный),
- * фон и контур отображаются одновременно.
+ * На день попадают все маркеры. При наложении побеждает тот, чьё CSS-правило ниже в calendar.less
+ * (приоритет ниже — правило выше в файле).
+ * Плашки поста и седмицы рисуются отдельно и не прерываются круглыми маркерами:
+ * праздник в середине поста остаётся на непрерывной плашке.
  */
 
 export type DayBackground = "easter" | "holiday" | "valaam" | "week" | "fast";
 export type DayOutline = "great" | "memorial";
+export type DayBand = "fast" | "week";
 
 export interface DayMarkers {
-  background: DayBackground | null;
-  outline: DayOutline | null;
+  /** Все фоны дня, по убыванию приоритета */
+  backgrounds: DayBackground[];
+  /** Все контуры дня, по убыванию приоритета */
+  outlines: DayOutline[];
 }
 
-/** Фоны по убыванию приоритета. `f` в приоритетах не указан, поэтому он самый низкий. `w` и `l` отображаются одинаково */
+/** Фоны по убыванию приоритета. `w` и `l` — одна плашка седмицы */
 const BACKGROUND_PRIORITY: ReadonlyArray<[marker: string, background: DayBackground]> = [
   ["e", "easter"],
   ["h", "holiday"],
@@ -33,24 +38,25 @@ const OUTLINE_PRIORITY: ReadonlyArray<[marker: string, outline: DayOutline]> = [
   ["c", "memorial"],
 ];
 
-const CLASS_BAND = "cal-band";
-const CLASS_BAND_START = "cal-band-start";
-const CLASS_BAND_END = "cal-band-end";
-const CLASS_FAST_SINGLE = "cal-fast-single";
+/** Плашки по возрастанию приоритета: седмица рисуется поверх поста */
+const BANDS: readonly DayBand[] = ["fast", "week"];
+
+/** Круги по возрастанию приоритета. Пасха ниже контуров в CSS, чтобы белый текст Пасхи не перебивался */
+const CIRCLES: readonly DayBackground[] = ["valaam", "holiday"];
 
 /** Все CSS-классы, которые могут быть у дня (для rangesClasses календаря) */
 export const DAY_CLASSES = [
-  "cal-easter",
-  "cal-holiday",
-  "cal-valaam",
-  CLASS_FAST_SINGLE,
-  CLASS_BAND,
   "cal-band-fast",
+  "cal-fast-start",
+  "cal-fast-end",
   "cal-band-week",
-  CLASS_BAND_START,
-  CLASS_BAND_END,
-  "cal-outline-great",
+  "cal-week-start",
+  "cal-week-end",
+  "cal-valaam",
+  "cal-holiday",
   "cal-outline-memorial",
+  "cal-outline-great",
+  "cal-easter",
 ] as const;
 
 /** Код дня (YYYYMMDD) -> CSS-классы. Дня нет в карте - в API его нет (неактивный) */
@@ -80,17 +86,24 @@ export function getDaysRange(days: Record<string, string | null>): { min: Date; 
 
 export function parseMarkers(raw: string | null | undefined): DayMarkers {
   const value = raw ?? "";
-  const background = BACKGROUND_PRIORITY.find(([marker]) => value.includes(marker))?.[1] ?? null;
-  const outline = OUTLINE_PRIORITY.find(([marker]) => value.includes(marker))?.[1] ?? null;
-  return { background, outline };
+  const backgrounds: DayBackground[] = [];
+  for (const [marker, background] of BACKGROUND_PRIORITY) {
+    if (value.includes(marker) && !backgrounds.includes(background)) backgrounds.push(background);
+  }
+  const outlines: DayOutline[] = [];
+  for (const [marker, outline] of OUTLINE_PRIORITY) {
+    if (value.includes(marker) && !outlines.includes(outline)) outlines.push(outline);
+  }
+  return { backgrounds, outlines };
 }
 
 /**
  * Строит CSS-классы для каждого дня из API.
  *
- * Фон поста (`f`) и седмицы (`w`/`l`) рисуется плашкой: подряд идущие дни с одним фоном
- * в пределах недельной строки (Пн-Вс) сливаются в плашку со скруглёнными краями (один день - круг).
- * Одиночный постный день (соседи не постные) - отдельный серо-бежевый круг.
+ * Пост (`f`) и седмица (`w`/`l`) — плашки. Подряд идущие дни с одним маркером
+ * в пределах недельной строки (Пн–Вс) сливаются, края скруглены, один день — круг.
+ * Одиночный пост использует ту же плашку, что и многодневный.
+ * Круг (Пасха, двунадесятый, Валаам) и контур не убирают плашку.
  */
 export function buildDayStyles(days: Record<string, string | null>): DayStylesMap {
   const markersByCode = new Map<string, DayMarkers>();
@@ -98,36 +111,33 @@ export function buildDayStyles(days: Record<string, string | null>): DayStylesMa
     markersByCode.set(code, parseMarkers(raw));
   }
 
-  const backgroundOf = (date: Date): DayBackground | null =>
-    markersByCode.get(toDateCode(date))?.background ?? null;
+  const hasBand = (date: Date, band: DayBand) =>
+    markersByCode.get(toDateCode(date))?.backgrounds.includes(band) ?? false;
 
   const styles: DayStylesMap = new Map();
-  for (const [code, { background, outline }] of markersByCode) {
+  for (const [code, { backgrounds, outlines }] of markersByCode) {
     const classes: string[] = [];
+    const date = fromDateCode(code);
+    const weekDay = date.getDay();
+    const isFirstOfMonth = date.getDate() === 1;
+    const isLastOfMonth = addDays(date, 1).getDate() === 1;
 
-    if (background === "easter" || background === "holiday" || background === "valaam") {
-      classes.push(`cal-${background}`);
-    } else if (background === "fast" || background === "week") {
-      const date = fromDateCode(code);
-      const previous = backgroundOf(addDays(date, -1));
-      const next = backgroundOf(addDays(date, 1));
-
-      if (background === "fast" && previous !== "fast" && next !== "fast") {
-        classes.push(CLASS_FAST_SINGLE);
-      } else {
-        // Дни соседних месяцев в календаре не раскрашиваются, поэтому на границе месяца плашка тоже обрывается
-        const weekDay = date.getDay();
-        const isFirstOfMonth = date.getDate() === 1;
-        const isLastOfMonth = addDays(date, 1).getDate() === 1;
-        classes.push(CLASS_BAND, `cal-band-${background}`);
-        if (weekDay === 1 || isFirstOfMonth || previous !== background) classes.push(CLASS_BAND_START);
-        if (weekDay === 0 || isLastOfMonth || next !== background) classes.push(CLASS_BAND_END);
-      }
+    for (const band of BANDS) {
+      if (!backgrounds.includes(band)) continue;
+      // Дни соседних месяцев в календаре не раскрашиваются, поэтому на границе месяца плашка обрывается
+      const continuesBefore = weekDay !== 1 && !isFirstOfMonth && hasBand(addDays(date, -1), band);
+      const continuesAfter = weekDay !== 0 && !isLastOfMonth && hasBand(addDays(date, 1), band);
+      classes.push(`cal-band-${band}`);
+      if (!continuesBefore) classes.push(`cal-${band}-start`);
+      if (!continuesAfter) classes.push(`cal-${band}-end`);
     }
 
-    if (outline) {
-      classes.push(`cal-outline-${outline}`);
+    for (const circle of CIRCLES) {
+      if (backgrounds.includes(circle)) classes.push(`cal-${circle}`);
     }
+    if (outlines.includes("memorial")) classes.push("cal-outline-memorial");
+    if (outlines.includes("great")) classes.push("cal-outline-great");
+    if (backgrounds.includes("easter")) classes.push("cal-easter");
 
     styles.set(code, classes);
   }
