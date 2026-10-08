@@ -1,0 +1,172 @@
+// Календарь, вкладка "Месяц": раскраска дней и оформление inline Calendar (Framework7).
+// Классы cal-* выставляет calendarMarkers.ts через rangesClasses календаря.
+
+:root {
+  --calendar-easter: var(--red-r-100);
+  --calendar-holiday: rgba(235, 87, 87, 0.3);
+  --calendar-valaam: #c1ddbc;
+  --calendar-fast-band: rgba(204, 230, 250, 0.5);
+  --calendar-fast-single: #ece2dc;
+  --calendar-week-band: #f4e6c7;
+  --calendar-outline-great: #f2a59d;
+  --calendar-outline-memorial: var(--content-color-black-primary);
+
+  --calendar-card-bg: var(--content-color-white-100);
+  --calendar-text: var(--content-color-black-primary);
+  --calendar-text-muted: var(--content-color-black-60);
+}
+
+.dark {
+  --calendar-valaam: rgba(165, 221, 155, 0.2);
+  --calendar-fast-band: rgba(204, 230, 250, 0.2);
+  --calendar-fast-single: rgba(236, 192, 165, 0.2);
+  --calendar-week-band: rgba(244, 221, 171, 0.2);
+  --calendar-outline-memorial: var(--content-color-white-100);
+
+  --calendar-card-bg: var(--content-color-baige-5);
+  --calendar-text: var(--content-color-white-100);
+  --calendar-text-muted: var(--content-color-baige-60);
+}
+
+.calendar.month-calendar {
+  --calendar-day-size: 40px;
+  --calendar-row-gap: 6px;
+  --calendar-side-padding: 24px;
+
+  --f7-calendar-day-size: var(--calendar-day-size);
+  --f7-calendar-day-font-size: var(--mobile-main-text-bold-b2);
+  --f7-calendar-week-header-height: 48px;
+  --f7-calendar-week-header-font-size: 12px;
+  --f7-calendar-week-header-text-color: var(--calendar-text-muted);
+  --f7-calendar-day-text-color: var(--calendar-text);
+  --f7-calendar-today-text-color: var(--calendar-text);
+  --f7-calendar-prev-next-text-color: var(--calendar-text-muted);
+  --f7-calendar-disabled-text-color: var(--calendar-text-muted);
+
+  height: auto;
+  padding-bottom: 20px;
+  background: transparent;
+
+  .calendar-week-header {
+    padding: 0 var(--calendar-side-padding);
+
+    .calendar-week-day {
+      opacity: 0.7;
+    }
+  }
+
+  // 6 строк по 40px и 5 зазоров по 6px (F7 растягивает месяц на всю высоту календаря)
+  .calendar-months {
+    flex-shrink: 0;
+    height: calc(var(--calendar-day-size) * 6 + var(--calendar-row-gap) * 5);
+  }
+
+  .calendar-month {
+    gap: var(--calendar-row-gap);
+  }
+
+  .calendar-row {
+    flex-shrink: 0;
+    height: var(--calendar-day-size);
+    padding: 0 var(--calendar-side-padding);
+  }
+
+  .calendar-day {
+    position: relative;
+    height: var(--calendar-day-size);
+    font-weight: 700;
+  }
+
+  // Воскресенье - красным
+  .calendar-day-weekend .calendar-day-number {
+    color: var(--red-r-100);
+  }
+
+  // Выбор дня не показываем: клик по дню сразу открывает его страницу
+  .calendar-day-selected .calendar-day-number {
+    background-color: transparent;
+    color: var(--calendar-text);
+  }
+
+  // Плашки (пост, седмица): подряд идущие дни недельной строки, края скруглены, один день - круг
+  .cal-band::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: -1;
+  }
+
+  .cal-band-fast::before {
+    background-color: var(--calendar-fast-band);
+  }
+
+  .cal-band-week::before {
+    background-color: var(--calendar-week-band);
+  }
+
+  .cal-band-start::before {
+    left: calc((100% - var(--calendar-day-size)) / 2);
+    border-top-left-radius: calc(var(--calendar-day-size) / 2);
+    border-bottom-left-radius: calc(var(--calendar-day-size) / 2);
+  }
+
+  .cal-band-end::before {
+    right: calc((100% - var(--calendar-day-size)) / 2);
+    border-top-right-radius: calc(var(--calendar-day-size) / 2);
+    border-bottom-right-radius: calc(var(--calendar-day-size) / 2);
+  }
+
+  // Круглая заливка
+  .cal-holiday .calendar-day-number {
+    background-color: var(--calendar-holiday);
+  }
+
+  .cal-valaam .calendar-day-number {
+    background-color: var(--calendar-valaam);
+  }
+
+  .cal-fast-single .calendar-day-number {
+    background-color: var(--calendar-fast-single);
+  }
+
+  // Контуры (могут сочетаться с любой заливкой)
+  .cal-outline-great .calendar-day-number {
+    box-shadow: inset 0 0 0 1px var(--calendar-outline-great);
+    color: var(--calendar-outline-great);
+  }
+
+  .cal-outline-memorial .calendar-day-number {
+    box-shadow: inset 0 0 0 1px var(--calendar-outline-memorial);
+  }
+
+  .cal-easter .calendar-day-number {
+    background-color: var(--calendar-easter);
+    color: var(--content-color-white-100);
+  }
+
+  // Дни соседних месяцев и дни, которых нет в API: без раскраски, приглушены, не кликабельны.
+  // Должно идти после правил раскраски выше (одинаковая специфичность).
+  .calendar-day-prev,
+  .calendar-day-next,
+  .calendar-day-disabled {
+    cursor: default;
+
+    &::before {
+      display: none;
+    }
+
+    .calendar-day-number {
+      background-color: transparent;
+      box-shadow: none;
+      color: var(--calendar-text-muted);
+    }
+  }
+
+  .calendar-day-prev,
+  .calendar-day-next {
+    pointer-events: none;
+  }
+}

@@ -22,9 +22,7 @@
       <CalendarViewFilter v-model="calendarView" @update:model-value="closeViewFilter" />
     </f7-popover>
 
-    <div v-if="calendarView === 'month'" class="calendar-placeholder">
-      Календарь: месяц
-    </div>
+    <CalendarMonth v-if="calendarView === 'month'" @select-day="openDay" />
     <div v-else-if="calendarView === 'week'" class="calendar-placeholder">
       Календарь: неделя
     </div>
@@ -39,6 +37,11 @@ import { f7 } from "framework7-vue";
 import { useTheme } from "@/composables/useTheme";
 import SvgIcon from "@/components/SvgIcon.vue";
 import CalendarViewFilter from "@/components/calendar/CalendarViewFilter.vue";
+import CalendarMonth from "@/components/calendar/CalendarMonth.vue";
+
+const props = defineProps({
+  f7router: Object,
+});
 
 const { isDarkMode } = useTheme();
 const calendarView = ref("month");
@@ -46,6 +49,10 @@ const navIconColor = computed(() => (isDarkMode.value ? "baige-90" : "black-prim
 
 const closeViewFilter = () => {
   f7.popover.close(".calendar-view-filter-popover");
+};
+
+const openDay = (code) => {
+  props.f7router.navigate(`/days/${code}`);
 };
 </script>
 

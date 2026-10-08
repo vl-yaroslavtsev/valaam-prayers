@@ -55,6 +55,25 @@ export interface CalendarDayIconApiElement {
   prayers_url: string;
 }
 
+/**
+ * Маркеры дней для календаря: код дня (YYYYMMDD) -> строка маркеров (`e`, `h`, `g`, `v`, `f`, `w`, `l`, `c`
+ * в произвольном порядке) или null, если у дня нет маркеров. Дни, которых нет в карте, в API отсутствуют
+ */
+export interface CalendarMarkersResponse {
+  /** Начало диапазона календаря, unix-секунды */
+  min: number;
+  /** Конец диапазона календаря, unix-секунды */
+  max: number;
+  days: Record<string, string | null>;
+}
+
+/**
+ * Сырой ответ /days/calendar: кроме кодов дней содержит служебные ключи min и max
+ */
+type CalendarMarkersRawResponse = Record<string, string | number | null>;
+
+const DAY_CODE_REGEXP = /^\d{8}$/;
+
 interface PageFetchOptions {
   since?: Date;
   signal?: AbortSignal;
@@ -104,6 +123,22 @@ class DaysApi extends ApiClient {
    */
   async getDayByCode(code: string): Promise<CalendarDayApiElement> {
     return this.get<CalendarDayApiElement>(`/days/${code}`);
+  }
+
+  /**
+   * Маркеры (раскраска) всех дней календаря и границы диапазона min/max
+   */
+  async getCalendarMarkers(): Promise<CalendarMarkersResponse> {
+    const raw = await this.get<CalendarMarkersRawResponse>('/days/calendar');
+
+    const days: Record<string, string | null> = {};
+    for (const [key, value] of Object.entries(raw)) {
+      if (DAY_CODE_REGEXP.test(key)) {
+        days[key] = typeof value === 'string' ? value : null;
+      }
+    }
+
+    return { min: Number(raw.min), max: Number(raw.max), days };
   }
 
   /**

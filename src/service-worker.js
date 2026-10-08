@@ -89,6 +89,20 @@ registerRoute(
   }),
 );
 
+// Раскраска календаря (см. src/stores/calendar.ts refreshMarkers): быстрый ответ из кэша + обновление в фоне
+registerRoute(
+  ({ url }) => url.pathname === "/api/days/calendar",
+  new StaleWhileRevalidate({
+    cacheName: "calendar-markers",
+    plugins: [
+      new ExpirationPlugin({
+        maxEntries: 1,
+        purgeOnQuotaError: true,
+      }),
+    ],
+  }),
+);
+
 self.addEventListener("message", (event) => {
   if (event.data && event.data.type === "SKIP_WAITING") self.skipWaiting();
 });

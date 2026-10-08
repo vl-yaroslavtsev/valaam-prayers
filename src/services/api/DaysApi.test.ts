@@ -38,6 +38,27 @@ describe("DaysApi", () => {
     });
   });
 
+  describe("getCalendarMarkers", () => {
+    it("запрашивает /days/calendar и отделяет min/max от дней", async () => {
+      const fetchMock = stubJsonFetch({
+        min: 1515877200,
+        max: 1799787600,
+        "20260101": "f",
+        "20260102": null,
+        "20260103": "wvg",
+      });
+
+      const result = await daysApi.getCalendarMarkers();
+
+      expect(fetchUrl(fetchMock).pathname).toBe("/api/days/calendar");
+      expect(result).toEqual({
+        min: 1515877200,
+        max: 1799787600,
+        days: { "20260101": "f", "20260102": null, "20260103": "wvg" },
+      });
+    });
+  });
+
   describe("getDaysIconsCount", () => {
     it("строит URL с from_date, to_date, image_size и modified_since", async () => {
       const since = new Date("2026-04-01T00:00:00.000Z");

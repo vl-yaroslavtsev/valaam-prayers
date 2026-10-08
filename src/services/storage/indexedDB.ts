@@ -3,7 +3,7 @@ import defaultFavorites from './data/defaultFavorites.json';
 import type { Language } from '@/types/common';
 import type { PaginationCacheItemHeader } from './PaginationCacheStorage';
 import type { IconBlobRecord } from './IconBlobStorage';
-import type { CalendarDayApiElement } from '@/services/api/DaysApi';
+import type { CalendarDayApiElement, CalendarMarkersResponse } from '@/services/api/DaysApi';
 import type { SaintDetailApiElement } from '@/services/api/SaintsApi';
 import type { DownloadModuleId, ModuleDownloadState, PrayerDownloadModuleId } from '@/services/download/types';
 
@@ -151,6 +151,11 @@ interface ValaamDB extends DBSchema {
     key: string;
     value: CalendarDayApiElement;
   };
+  // Раскраска дней календаря (/days/calendar). API отдаёт полный снимок, поэтому хранится одной записью
+  'calendar-markers': {
+    key: string;
+    value: CalendarMarkersResponse & { id: string };
+  };
   // Файлы иконок календаря, ключ - абсолютный URL
   'calendar-icons': {
     key: string;
@@ -169,7 +174,7 @@ interface ValaamDB extends DBSchema {
 }
 
 const DB_NAME: string = 'valaam-prayers';
-const DB_VERSION: number = 6;
+const DB_VERSION: number = 7;
 
 let db: IDBPDatabase<ValaamDB> | null = null;
 let initPromise: Promise<void> | null = null;
@@ -271,8 +276,8 @@ async function initIndexedDB() {
         });
       }
 
-       // Создаем хранилище истории чтения
-       if (!db.objectStoreNames.contains('reading-history')) {
+      // Создаем хранилище истории чтения
+      if (!db.objectStoreNames.contains('reading-history')) {
         const historyStore = db.createObjectStore('reading-history', {
           keyPath: 'id'
         });
@@ -299,6 +304,13 @@ async function initIndexedDB() {
       if (!db.objectStoreNames.contains('calendar-days')) {
         db.createObjectStore('calendar-days', {
           keyPath: 'code'
+        });
+      }
+
+      // Создаем хранилище раскраски дней календаря
+      if (!db.objectStoreNames.contains('calendar-markers')) {
+        db.createObjectStore('calendar-markers', {
+          keyPath: 'id'
         });
       }
 

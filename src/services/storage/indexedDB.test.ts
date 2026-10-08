@@ -17,6 +17,7 @@ const EXPECTED_STORES = [
   "pagination-cache",
   "bookmarks",
   "calendar-days",
+  "calendar-markers",
   "calendar-icons",
   "saint-icons",
   "download-progress",
