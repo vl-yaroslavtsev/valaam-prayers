@@ -1,6 +1,7 @@
 <template>
   <f7-page
-    :class="`theme-${settingsStore.textTheme}`"
+    ref="readingPage"
+    class="reading-page"
     :page-content="false"
     @page:beforein="onPageBeforeIn"
     @page:beforeout="onPageBeforeOut"
@@ -22,7 +23,7 @@
       @open-search="onOpenSearch"
       @start-tutorial="onStartTutorial"
     />
-    <f7-page-content>
+    <f7-page-content :class="`theme-${settingsStore.textTheme}`">
       <TextPaginator 
         :isLoading="isLoading" 
         :text="text" 
@@ -166,11 +167,11 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watchEffect, useTemplateRef, ComponentPublicInstance, watch, nextTick } from "vue";
+import { ref, computed, watchEffect, useTemplateRef, ComponentPublicInstance, watch, nextTick, onMounted } from "vue";
 import type { Router } from "framework7/types";
 import { f7 } from "framework7-vue";
 import type { Swiper } from "swiper";
-import type { Language } from "@/types/common";
+import type { Language, TextTheme } from "@/types/common";
 
 import { useTheme } from "@/composables/useTheme";
 import { 
@@ -412,6 +413,9 @@ const onPageBeforeIn = () => {
 
 const onPageBeforeOut = () => {
   navbarRef.value?.closeMorePopup();
+  // Sheet живёт с внешним backdrop вне страницы. destroy() его не закрывает,
+  // и прозрачный backdrop остаётся поверх главной и съедает тапы.
+  isTextSettingsSheetOpened.value = false;
 };
 
 const onPageAfterOut = () => {
@@ -1137,13 +1141,9 @@ const isBrightnessTouching = computed(() => navbarRef.value?.isBrightnessTouchin
 </script>
 <style scoped lang="less">
 // Стили перенесены в компонент PrayersTextNavbar
-.page[class*="theme-"] {
-  --f7-page-bg-color: var(--reading-text-background-color);
-  background-color: var(--reading-text-background-color);
-}
 
-:deep(.page-content) {
-  background-color: transparent;
+.page-content[class*="theme-"] {
+  background-color: var(--reading-text-background-color);
 }
 
 .dark .page {
