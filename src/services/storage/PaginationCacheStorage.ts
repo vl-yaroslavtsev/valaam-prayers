@@ -36,6 +36,9 @@ export interface PaginationHashSettings {
   isTextBold: boolean;
 }
 
+/** Меняется вместе с алгоритмом нарезки, чтобы не показывать страницы из старого кэша. */
+const PAGINATION_ALGO = "columns-v3-classes";
+
 /**
  * Storage для кэширования страниц пагинации текста
  */
@@ -62,6 +65,7 @@ export class PaginationCacheStorage extends BaseStorage<"pagination-cache"> {
 
     if (language == 'cs') {
       settingsString = JSON.stringify({
+        algo: PAGINATION_ALGO,
         fontFamilyCs: settings.fontFamilyCs,
         fontSizeCs: settings.fontSizeCs,
         lineHeightCs: settings.lineHeightCs,
@@ -71,6 +75,7 @@ export class PaginationCacheStorage extends BaseStorage<"pagination-cache"> {
       });
     } else {
       settingsString = JSON.stringify({
+        algo: PAGINATION_ALGO,
         fontFamily: settings.fontFamily,
         fontSize: settings.fontSize,
         lineHeight: settings.lineHeight,        

@@ -199,6 +199,23 @@ html.reading-compact-padding {
       color: var(--reading-text-kinovar-color);
     }
 
+    // Заголовок не рвётся между колонками при измерении страницы.
+    .no-break {
+      break-inside: avoid;
+      page-break-inside: avoid;
+      -webkit-column-break-inside: avoid;
+    }
+
+    // Первая часть разрезанного блока: последняя строка — не конец абзаца.
+    .justify-last {
+      text-align-last: justify;
+
+      p,
+      blockquote {
+        text-align-last: auto;
+      }
+    }
+
     strong,
     b {
       font-weight: var(--text-font-weight);

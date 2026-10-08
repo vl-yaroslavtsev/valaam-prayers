@@ -2,8 +2,12 @@
   <f7-navbar 
     ref="navbar" 
     large
-    hidden 
-    class="prayers-text-navbar navbar-large-collapsed">
+    :hidden="isHidden"
+    class="prayers-text-navbar navbar-large-collapsed"
+    :class="{
+      'navbar-hidden-statusbar': isHidden,
+      'navbar-transitioning': animateVisibility !== false,
+    }">
     <f7-nav-left :back-link="true"></f7-nav-left>
     <f7-nav-title sliding></f7-nav-title>
     <f7-nav-right>
@@ -134,7 +138,10 @@ const { addFavorite, deleteFavorite, isFavorite } = useFavoritesStore();
 
 const currentLanguage = defineModel<Language | null>('current-language');
 
-// Управление видимостью navbar
+// Управление видимостью navbar.
+// flush: 'post' — после рендера, когда класс navbar-hidden уже выставлен
+// пропом hidden. hide() в этом случае выходит сразу, поэтому класс
+// navbar-hidden-statusbar добавляем сами: он уводит навбар вместе с safe-area.
 watch(() => props.isHidden, (isHidden) => {
   if (!navbarRef.value) return;
   const navbarEl = navbarRef.value.$el;
@@ -142,13 +149,17 @@ watch(() => props.isHidden, (isHidden) => {
 
   if (isHidden) {
     isMorePopupOpened.value = false;
-    f7.navbar.hide(navbarEl, animate);
+    f7.navbar.hide(navbarEl, animate, true);
+    if (!navbarEl.classList.contains("navbar-hidden-statusbar")) {
+      navbarEl.classList.add("navbar-hidden-statusbar");
+    }
     f7.navbar.collapseLargeTitle(navbarEl);
   } else {
     f7.navbar.show(navbarEl, animate);
+    navbarEl.classList.remove("navbar-hidden-statusbar");
     f7.navbar.expandLargeTitle(navbarEl);
   }
-});
+}, { flush: "post" });
 
 // Управление избранными
 const { showInfoToast: showAddedToFavoritesToast } = useInfoToast({

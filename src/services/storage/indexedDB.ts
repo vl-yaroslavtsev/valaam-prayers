@@ -174,7 +174,7 @@ interface ValaamDB extends DBSchema {
 }
 
 const DB_NAME: string = 'valaam-prayers';
-const DB_VERSION: number = 7;
+const DB_VERSION: number = 8;
 
 let db: IDBPDatabase<ValaamDB> | null = null;
 let initPromise: Promise<void> | null = null;

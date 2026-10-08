@@ -1,5 +1,11 @@
 <template>
-  <f7-page :page-content="false" @page:beforein="onPageBeforeIn" @page:beforeout="onPageBeforeOut" @page:afterout="onPageAfterOut">
+  <f7-page
+    :class="`theme-${settingsStore.textTheme}`"
+    :page-content="false"
+    @page:beforein="onPageBeforeIn"
+    @page:beforeout="onPageBeforeOut"
+    @page:afterout="onPageAfterOut"
+  >
     <PrayersTextNavbar
       ref="navbar"
       :title="title"
@@ -385,9 +391,8 @@ const onPageBeforeIn = () => {
     device.setBrightness(settingsStore.readingBrightness);
   }
 
-  if (!settingsStore.isStatusBarVisible) {
-    device.showStatusBar(false);
-  }
+  isReadingPageActive.value = true;
+  syncReadingSystemBars();
 
   device.keepScreenOn(settingsStore.keepScreenOn);
 
@@ -418,7 +423,8 @@ const onPageAfterOut = () => {
   const bottomTabBar = getComponent("bottomTabBar");
   bottomTabBar?.show(true);
   device.resetBrightness();
-  device.showStatusBar(true);
+  isReadingPageActive.value = false;
+  restoreReadingSystemBars();
   device.keepScreenOn(false);
   device.offVolumeKey();
 };
@@ -899,6 +905,46 @@ watch(progress, () => {
 });
 
 const isPageNavHidden = ref(true);
+const isReadingPageActive = ref(false);
+
+const syncReadingSystemBars = () => {
+  const chromeVisible = !isNavbarHidden.value || !isPageNavHidden.value;
+  const keepSystemBars = settingsStore.isStatusBarVisible || chromeVisible;
+
+  if (!keepSystemBars) {
+    device.showStatusBar(false);
+    device.setFullScreen(true);
+  } else {
+    device.setFullScreen(false);
+    device.showStatusBar(true);
+  }
+
+  device.setStatusBarTextColor(
+    chromeVisible
+      ? (isDarkMode.value ? "light" : "dark")
+      : (settingsStore.textTheme === "dark" ? "light" : "dark")
+  );
+};
+
+const restoreReadingSystemBars = () => {
+  device.setFullScreen(false);
+  device.showStatusBar(true);
+  device.setStatusBarTextColor(isDarkMode.value ? "light" : "dark");
+};
+
+watch(
+  [
+    isNavbarHidden,
+    isPageNavHidden,
+    () => settingsStore.isStatusBarVisible,
+    () => settingsStore.textTheme,
+    isDarkMode,
+  ],
+  () => {
+    if (!isReadingPageActive.value) return;
+    syncReadingSystemBars();
+  }
+);
 
 // Уровень 2 обучающего режима читалки — один тур по иконкам верхнего меню
 // и иконке сброса прогресса в нижнем (см. SpotlightHint.vue). Показывается
@@ -1091,6 +1137,15 @@ const isBrightnessTouching = computed(() => navbarRef.value?.isBrightnessTouchin
 </script>
 <style scoped lang="less">
 // Стили перенесены в компонент PrayersTextNavbar
+.page[class*="theme-"] {
+  --f7-page-bg-color: var(--reading-text-background-color);
+  background-color: var(--reading-text-background-color);
+}
+
+:deep(.page-content) {
+  background-color: transparent;
+}
+
 .dark .page {
   --f7-bars-bg-color: var(--content-color-baige-5-no-opacity);
 }

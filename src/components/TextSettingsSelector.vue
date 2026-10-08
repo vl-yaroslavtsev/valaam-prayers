@@ -231,8 +231,6 @@ import SvgIcon from '@/components/SvgIcon.vue';
 import { useTheme } from '@/composables/useTheme';
 import { Language } from '@/types/common';
 import type { SmartSelect } from 'framework7/types';
-import { device } from '@/js/device';
-
 const isOpened = defineModel<boolean>('isOpened');
 
 const { disabled = false, language } = defineProps<{
@@ -291,7 +289,6 @@ const showStatusBar = computed({
   get: () => settingsStore.isStatusBarVisible,
   set: (value: boolean) => {
     settingsStore.setIsStatusBarVisible(value);
-    device.showStatusBar(value);
   }
 });
 

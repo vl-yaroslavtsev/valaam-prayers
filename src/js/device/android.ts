@@ -90,12 +90,54 @@ const onEventsDeleted = (events: string = "[]") => {
   }
 };
 
-// При скрытии статус бара Android сбрасывает env(safe-area-top)
-// Сохраняем это значение, чтобы место под статус бар оставалось после его скрытия.
-const saveStatusBarHeight = () => {
-  const statusBarHeight = getCSSVariable('--f7-safe-area-top');
-  setCSSVariable('--f7-safe-area-top', statusBarHeight);
-  console.log("saveStatusBarHeight: statusBarHeight = ", statusBarHeight);
+/**
+ * Android обнуляет env(safe-area-inset-*), когда прячет панель.
+ * На это время записываем уже посчитанные px, чтобы вёрстка не прыгала.
+ * Снимаем инлайн только после того, как env() снова ненулевой: иначе на один кадр
+ * отступ схлопывается в 0 и лист дёргается. Пока панель видна, переменная живая
+ * и при повороте экрана обновляется сама.
+ */
+type InsetEdge = "top" | "bottom";
+
+const INSET_VARIABLE = {
+  top: "--f7-safe-area-top",
+  bottom: "--f7-safe-area-bottom",
+} as const;
+
+const insetGeneration: Record<InsetEdge, number> = { top: 0, bottom: 0 };
+
+const measureEnvInset = (edge: InsetEdge): number => {
+  const probe = document.createElement("div");
+  probe.style.cssText = "position:fixed;left:0;top:0;visibility:hidden;pointer-events:none;";
+  const padding = edge === "top" ? "paddingTop" : "paddingBottom";
+  probe.style[padding] = `env(safe-area-inset-${edge}, 0px)`;
+  document.documentElement.appendChild(probe);
+  const value = parseFloat(getComputedStyle(probe)[padding]) || 0;
+  probe.remove();
+  return value;
+};
+
+const pinSafeAreaInset = (edge: InsetEdge) => {
+  insetGeneration[edge] += 1;
+  const value = getCSSVariable(INSET_VARIABLE[edge]);
+  if (!value) return;
+  setCSSVariable(INSET_VARIABLE[edge], value);
+};
+
+const unpinSafeAreaInset = (edge: InsetEdge) => {
+  const generation = insetGeneration[edge];
+  const started = performance.now();
+  const tick = () => {
+    if (insetGeneration[edge] !== generation) return;
+    const restored = measureEnvInset(edge) > 0;
+    if (!restored && performance.now() - started < 600) {
+      requestAnimationFrame(tick);
+      return;
+    }
+    if (insetGeneration[edge] !== generation) return;
+    document.documentElement.style.removeProperty(INSET_VARIABLE[edge]);
+  };
+  requestAnimationFrame(tick);
 };
 
 const android: Device = {
@@ -106,8 +148,6 @@ const android: Device = {
     window.onEventsDeleted = onEventsDeleted;
     window.onEventsAdded = onEventsAdded;
     window.onAreCalendarPermissionsGranted = onAreCalendarPermissionsGranted;
-
-    saveStatusBarHeight();
   },
   /**
    * Устанавливаем яркость от 0 до 100
@@ -147,11 +187,15 @@ const android: Device = {
    * Show and hide status bars
    */
   showStatusBar(visibility: boolean): void {
+    if (!visibility) pinSafeAreaInset("top");
     androidHandler?.setStatusBarVisibility(visibility);
+    if (visibility) unpinSafeAreaInset("top");
   },
 
   setFullScreen(mode: boolean): void {
+    if (mode) pinSafeAreaInset("bottom");
     androidHandler?.setFullScreen(mode);
+    if (!mode) unpinSafeAreaInset("bottom");
   },
 
   /**
