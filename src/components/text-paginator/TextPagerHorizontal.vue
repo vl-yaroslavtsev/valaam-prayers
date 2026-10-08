@@ -1,4 +1,14 @@
 <template>
+  <!--:effect="'creative'"
+    :creativeEffect="{
+      prev: {
+        shadow: true,
+        translate: ['-20%', 0, -1],
+      },
+      next: {
+        translate: ['100%', 0, 0],
+      },
+    }"-->
   <swiper-container
     ref="swiperRef"
     :class="`text-paginator mode-horizontal reading-text ${lang ? 'prayer-text lang-' + lang : ''} theme-${theme}`"
@@ -10,16 +20,7 @@
     direction="horizontal"
     :freeMode="false"
     :speed="pageTurnDuration"
-    :effect="'creative'"
-    :creativeEffect="{
-      prev: {
-        shadow: true,
-        translate: ['-20%', 0, -1],
-      },
-      next: {
-        translate: ['100%', 0, 0],
-      },
-    }"
+    :spaceBetween="20"
     :touchRatio="1"
     :threshold="5"
     @pointerdown.passive="handlePointerDown"

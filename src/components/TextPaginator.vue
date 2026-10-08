@@ -28,10 +28,10 @@
     @update:transitioning="isTransitioning = $event"
   />
   <div :class="`text-paginator-progress theme-${theme}`"
-       v-if="!isLoading && !isCalculating" >
-    <f7-progressbar 
-      :progress="Math.round(currentProgress * 10000) / 100"       
-    />
+       v-if="!isLoading && !isCalculating && pagesCount > 0">
+    <button type="button" class="text-paginator-progress-label" @click.stop="cycleProgressMode">
+      {{ progressLabel }}
+    </button>
   </div>
   <div v-if="isShowLoading" :class="`text-paginator-loading-overlay theme-${theme}`">
     <div class="text-paginator-loading">
@@ -61,6 +61,7 @@ import type { PaginationCacheItemHeader } from "@/services/storage/PaginationCac
 import type { Swiper } from "swiper";
 import type { Language } from "@/types/common";
 import { paginateText } from "@/text-processing-v3";
+import { progressToPage } from "@/composables/useBookmarks";
 
 import TextPagerHorizontal from "./text-paginator/TextPagerHorizontal.vue";
 import TextPagerVertical from "./text-paginator/TextPagerVertical.vue";
@@ -117,6 +118,21 @@ const { delayed: isShowLoading } = useDelayed<boolean>(() => isLoading, false, 1
 // не пересоздаётся при переключении режима (в отличие от активного рендерера ниже)
 const currentProgress = ref<number>(initialProgress);
 const isTransitioning = ref(false);
+
+type ReadingProgressMode = "fraction" | "page" | "percent";
+const PROGRESS_MODES: ReadingProgressMode[] = ["fraction", "page", "percent"];
+const PROGRESS_MODE_KEY = "valaam-prayers-reading-progress-mode";
+
+const readProgressMode = (value: string | null): ReadingProgressMode =>
+  value === "page" || value === "percent" ? value : "fraction";
+
+const progressMode = ref<ReadingProgressMode>(readProgressMode(localStorage.getItem(PROGRESS_MODE_KEY)));
+
+const cycleProgressMode = () => {
+  const next = PROGRESS_MODES[(PROGRESS_MODES.indexOf(progressMode.value) + 1) % PROGRESS_MODES.length];
+  progressMode.value = next;
+  localStorage.setItem(PROGRESS_MODE_KEY, next);
+};
 const calculatingProgress = ref<number>(0);
 let calculatingTarget = 0;
 let calculatingFrame = 0;
@@ -173,6 +189,16 @@ onUnmounted(stopCalculatingProgress);
 
 const pages = shallowRef<string[]>([]);
 const headers = shallowRef<PaginationCacheItemHeader[]>([]);
+const pagesCount = computed(() => pages.value.length);
+const progressLabel = computed(() => {
+  const total = pagesCount.value;
+  const page = progressToPage(currentProgress.value, total);
+  if (progressMode.value === "page") return String(page);
+  if (progressMode.value === "percent") {
+    return `${total > 0 ? Math.round((page / total) * 100) : 0}%`;
+  }
+  return `${page} из ${total}`;
+});
 
 // Активный в данный момент рендерер (Swiper для горизонтального, VirtualList для
 // вертикального) — оба реализуют один и тот же набор методов, см. defineExpose в них
@@ -284,7 +310,7 @@ defineExpose({
   theme: readonly(theme),
   mode: readonly(mode),
   progress: readonly(currentProgress),
-  pagesCount: computed(() => pages.value.length),
+  pagesCount,
   headers: readonly(headers),
   pages: readonly(pages),
   refreshDisplay: () => applyPages(),
@@ -346,21 +372,36 @@ defineExpose({
 }
 
 .text-paginator-progress {
-  --f7-progressbar-bg-color: var(--content-color-black-10);
-  --f7-progressbar-progress-color: var(--content-color-black-20);
-  --f7-progressbar-height: 2px;
-
   position: absolute;
   bottom: 0;
   left: 0;
   right: 0;
-  height: calc(var(--f7-safe-area-bottom) + var(--f7-progressbar-height) + 4px);
-  z-index: 1;
-  padding: 4px 16px 0 16px;
+  z-index: 2;
+  height: calc(28px + var(--f7-safe-area-bottom));
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  pointer-events: none;
+}
 
-  &.theme-dark {
-    --f7-progressbar-bg-color: var(--content-color-baige-10);
-    --f7-progressbar-progress-color: var(--content-color-baige-10);
+.text-paginator-progress-label {
+  pointer-events: auto;
+  width: auto;
+  margin: 0;
+  padding: 4px 12px;
+  border: 0;
+  background: transparent;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 130%;
+  letter-spacing: 0.05em;
+  text-align: center;
+  color: var(--content-color-black-40);
+  user-select: none;
+
+  .theme-dark & {
+    color: var(--content-color-baige-40);
   }
 }
 </style>
