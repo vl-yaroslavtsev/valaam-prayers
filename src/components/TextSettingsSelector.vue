@@ -217,6 +217,15 @@
             <SvgIcon icon="fullscreen" :color="iconColor" :size="24" />
           </template>
         </f7-list-item>
+        <f7-list-item
+          title="Дополнительные настройки"
+          link="/settings/reading/"
+          @click="closeSheetForReadingSettings"
+        >
+          <template #media>
+            <SvgIcon icon="settings-2" :color="iconColor" :size="24" />
+          </template>
+        </f7-list-item>
       </f7-list> 
 
     </f7-page-content>
@@ -226,6 +235,7 @@
 
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue';
+import { f7 } from 'framework7-vue';
 import { useSettingsStore, type AppSettings } from '@/stores/settings';
 import SvgIcon from '@/components/SvgIcon.vue';
 import { useTheme } from '@/composables/useTheme';
@@ -346,6 +356,15 @@ const isTextBold = computed({
 });
 
 const iconColor = computed(() => isDarkMode.value ? 'baige-60' : 'black-40');
+
+const closeSheetForReadingSettings = (event: Event) => {
+  const target = event.target;
+  if (!(target instanceof Element)) return;
+  const sheetEl = target.closest('.text-settings-sheet');
+  if (sheetEl) {
+    f7.sheet.close(sheetEl as HTMLElement, false);
+  }
+};
 
 const onTextThemeSmartSelectOpen = (e: Event) => {
   // console.log(e);
