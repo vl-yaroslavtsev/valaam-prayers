@@ -43,7 +43,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch, onMounted, onBeforeUnmount, useTemplateRef, type ComponentPublicInstance } from "vue";
+import { ref, computed, watch, nextTick, onMounted, onBeforeUnmount, useTemplateRef, type ComponentPublicInstance } from "vue";
 import { f7 } from "framework7-vue";
 import SvgIcon from "@/components/SvgIcon.vue";
 import { useTheme } from "@/composables/useTheme";
@@ -145,19 +145,6 @@ const displayedPage = computed(() =>
   isScrubbing.value ? scrubPage.value : props.currentPage
 );
 
-watch(
-  () => props.currentPage,
-  (page) => {
-    if (!isScrubbing.value) {
-      sliderValue.value = page;
-      // scrubPage тоже должен быть свежим: это то, что покажет счётчик в момент
-      // handlePageSliderStart, ещё до первого движения (иначе мелькнёт значение
-      // с момента монтирования компонента, например 0, если текст ещё не был готов)
-      scrubPage.value = page;
-    }
-  }
-);
-
 // Реальный goToPage — это не просто передвижение ручки, а пересчёт progress/
 // currentPage/subtitle и переход в пагинаторе (скролл/слайд). При быстрой протяжке
 // по ползунку это может вызываться десятки раз в секунду и тормозить даже сам драг.
@@ -175,6 +162,29 @@ let pageChangeTimer: ReturnType<typeof setTimeout> | null = null;
 let hasMoved = false;
 let scrubStartPage = props.currentPage;
 let isCorrectingRangeJump = false;
+
+// f7-range на :value вызывает setValue и шлёт range:changed. Это не жест пользователя:
+// иначе «Отменить» после сброса прогресса тут же откатывает ползунок на scrubStartPage
+// (он остаётся со страницы 1, с которой тулбар смонтировался до расчёта пагинации).
+let syncingSliderFromPage = false;
+
+watch(
+  () => props.currentPage,
+  (page) => {
+    if (!isScrubbing.value) {
+      syncingSliderFromPage = true;
+      sliderValue.value = page;
+      // scrubPage тоже должен быть свежим: это то, что покажет счётчик в момент
+      // handlePageSliderStart, ещё до первого движения (иначе мелькнёт значение
+      // с момента монтирования компонента, например 0, если текст ещё не был готов)
+      scrubPage.value = page;
+      scrubStartPage = page;
+      nextTick(() => {
+        syncingSliderFromPage = false;
+      });
+    }
+  }
+);
 
 const sendPageChange = (page: number) => {
   if (page === lastSentPage) {
@@ -240,7 +250,7 @@ const handlePageSliderEnd = () => {
 };
 
 const handlePageSliderChange = (value: number) => {
-  if (!isScrubbing.value || isCorrectingRangeJump) {
+  if (syncingSliderFromPage || !isScrubbing.value || isCorrectingRangeJump) {
     return;
   }
   if (!hasMoved) {
@@ -257,6 +267,9 @@ const handlePageSliderChange = (value: number) => {
 };
 
 const handlePageSliderChanged = (value: number) => {
+  if (syncingSliderFromPage) {
+    return;
+  }
   // Палец не двигался — не даём просочиться "прыжковому" значению даже на отпускании
   const resolvedValue = hasMoved ? value : scrubStartPage;
   if (typeof resolvedValue === "number" && !Number.isNaN(resolvedValue)) {

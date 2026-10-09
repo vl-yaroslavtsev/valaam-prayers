@@ -305,8 +305,19 @@ watch(isTextSettingsSheetOpened, (isOpen) => {
   }
 });
 
-// Языковые настройки из store
-const currentLanguage = ref<Language | null>(settingsStore.currentLanguage);
+// Предпочтение языка живёт в настройках и меняется только явным выбором в селекторе.
+// Если у текста этого языка нет, показываем запасной и настройку не перезаписываем.
+const displayLanguage = ref<Language | null>(settingsStore.currentLanguage);
+const currentLanguage = computed({
+  get: () => displayLanguage.value,
+  set: (language: Language | null) => {
+    const previous = displayLanguage.value;
+    displayLanguage.value = language;
+    if (language && language !== previous) {
+      settingsStore.setLanguage(language);
+    }
+  },
+});
 const availableLanguages = ref<Language[]>([]);
 
 // Выбираем подходящий метод API в зависимости от типа
@@ -325,9 +336,8 @@ watch(data, async () => {
   // Обновляем доступные языки
   availableLanguages.value = data.value.lang;
   
-  // Получаем подходящий язык из доступных
-  currentLanguage.value = settingsStore.getLanguageFromAvailable(availableLanguages.value);
-
+  // Запасной язык пишем в displayLanguage, не в computed: сеттер сохранил бы его в настройки.
+  displayLanguage.value = settingsStore.getLanguageFromAvailable(availableLanguages.value);
 
   console.log("currentLanguage.value ", currentLanguage.value );
 
@@ -374,12 +384,8 @@ watch(error, async () => {
   text.value = `Данные не найдены`;
 });
 
-// Отслеживание изменений языка
-watch(currentLanguage, (newLanguage) => {
+watch(displayLanguage, (newLanguage) => {
   updatePrayerText(newLanguage);
-  if (newLanguage) {
-    settingsStore.setLanguage(newLanguage);
-  }
 });
 
 const isNavbarHidden = ref(true);
@@ -1083,7 +1089,7 @@ watch(isSearchModeActive, () => {
 }, { flush: 'post' });
 
 // Сбрасываем поиск при смене языка — страницы пересчитываются, старые совпадения не валидны
-watch(currentLanguage, () => {
+watch(displayLanguage, () => {
   onCloseSearch();
   closeBookmarkNav();
   closeChapterNav();
@@ -1101,16 +1107,20 @@ watch(() => settingsStore.isBookmarkNavToolbarEnabled, (enabled) => {
   }
 });
 
+// Снимок в history — последнее сохранённое значение, а не живая позиция:
+// запись прогресса дебаунсится, повторная запись нуля затирает снимок.
+let progressBeforeReset = 0;
+
 const { showUndoToast: showUndoResetToast } = useUndoToast({
   text: "Чтение начнется сначала",
-  onUndo: () => {    
-    historyStore.undoResetProgress();
-    const { progress } = historyStore.getItem(itemId) || {};
-
-    console.log("showUndoResetToast onUndo, progress = ", progress);
-    if (progress) {
-      textPaginator.value?.setProgress(progress);
+  onUndo: () => {
+    if (saveProgressTimer) {
+      clearTimeout(saveProgressTimer);
+      saveProgressTimer = null;
     }
+    textPaginator.value?.setProgress(progressBeforeReset);
+    const type = prayersStore.isBook(itemId) ? "books" : "prayers";
+    void historyStore.updateProgress(itemId, progressBeforeReset, totalPages.value, type);
   },
 });
 
@@ -1119,6 +1129,7 @@ const resetProgress = () => {
     return;
   }
 
+  progressBeforeReset = progress.value;
   textPaginator.value?.goToPage(1, false);
   showUndoResetToast();
 }

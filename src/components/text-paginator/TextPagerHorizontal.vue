@@ -19,7 +19,7 @@
     }"
     direction="horizontal"
     :freeMode="false"
-    :speed="pageTurnDuration"
+    :speed="SWIPE_SPEED"
     :spaceBetween="20"
     :touchRatio="1"
     :threshold="5"
@@ -50,8 +50,10 @@ const { isLoading = false, isCalculating = false } = defineProps<{
 }>();
 
 const settingsStore = useSettingsStore();
-const pageTurnDuration = computed(() =>
-  settingsStore.isPageTurnAnimationEnabled ? 300 : 0
+// Свайп всегда с анимацией. Настройка отключает её только у касания и кнопок громкости.
+const SWIPE_SPEED = 300;
+const programmaticTurnSpeed = computed(() =>
+  settingsStore.isPageTurnAnimationEnabled ? SWIPE_SPEED : 0
 );
 
 const emit = defineEmits<{
@@ -248,16 +250,16 @@ defineExpose({
     if (swiper.activeIndex === index) {
       return;
     }
-    swiper.slideTo(index, animate ? pageTurnDuration.value : 0);
+    swiper.slideTo(index, animate ? programmaticTurnSpeed.value : 0);
   },
   setProgress: (progress: number) => {
     swiperRef.value?.swiper?.setProgress(progress);
   },
   slidePrev: () => {
-    swiperRef.value?.swiper?.slidePrev();
+    swiperRef.value?.swiper?.slidePrev(programmaticTurnSpeed.value);
   },
   slideNext: () => {
-    swiperRef.value?.swiper?.slideNext();
+    swiperRef.value?.swiper?.slideNext(programmaticTurnSpeed.value);
   },
 });
 </script>
