@@ -2,6 +2,7 @@
  * Обработка главный view приложения
  */
 import { Dom7 as $$ } from "framework7";
+import type { Router } from "framework7/types";
 import { f7 } from "framework7-vue";
 import { device } from "./device";
 
@@ -22,7 +23,7 @@ function viewsManager(): void {
 }
 
 function parseHash(): void {
-  const [viewName, url] = document.location.hash.replace("#","").split(":");
+  const [viewName, url] = document.location.hash.replace("#", "").split(":");
   if (!viewName) {
     return;
   }
@@ -31,17 +32,33 @@ function parseHash(): void {
     return;
   }
 
+  // До показа вкладки, иначе первая инициализация роутера допишет hash к стартовому URL.
+  document.location.hash = "";
+
   f7.tab.show("#view-" + viewName);
 
   const view = f7.view.get("#view-" + viewName);
-  if (!view) {
+  if (!view || !url) {
     return;
   }
-  if (url) {
-    view.router.navigate(url);
+
+  navigateWhenReady(view.router, url);
+}
+
+/**
+ * Первое открытие вкладки (initRouterOnTabShow) грузит её стартовую страницу
+ * и на это время запрещает другие переходы. navigate в этот момент отбрасывается,
+ * поэтому ждём pageAfterIn — к нему allowPageChange уже снова true.
+ */
+export function navigateWhenReady(router: Router.Router, url: string): void {
+  if (router.allowPageChange) {
+    router.navigate(url);
+    return;
   }
 
-  document.location.hash = "";
+  router.once("pageAfterIn", () => {
+    router.navigate(url);
+  });
 }
 
 /**
