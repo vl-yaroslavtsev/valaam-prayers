@@ -6,40 +6,105 @@ import type { ApiNav } from '@/services/api/types';
  */
 export type ImageSize = 's' | 'm';
 
-interface CalendarDayPrayerBlock {
-  text: string;
-  picture: string;
-  picture_2x: string;
-  picture_3x: string;
-  picture_desc: string;
-  items: unknown[];
-  taks: { id: number; name: string }[];
+export type FastingTypeCode = 'none' | 'day' | 'great' | 'nativity' | 'apostles' | 'dormition';
+export type FastingRuleCode = 'none' | 'no_meat' | 'oil' | 'fish' | 'no_oil' | 'dry' | 'no_food';
+
+export interface FastingRule {
+  code: FastingRuleCode;
+  title: string;
 }
 
-interface CalendarDayReading {
+export interface FastingInfo {
+  type: FastingTypeCode;
+  /** «Поста нет», «День постный», «Великий пост» и т.д. (без точки) */
+  title: string;
+  rules: {
+    /** Монастырский устав (по Типикону). Всегда есть */
+    monastic: FastingRule | null;
+    /** Мирской устав. Пока всегда null: карточку мирского правила не показываем */
+    lay: FastingRule | null;
+  };
+}
+
+export interface ReadingItem {
+  /** Id чтения (readings[].id). null: ссылка в данных битая, чтение не открывается */
+  id: number | null;
+  /** Адрес чтения, например «Лк. 6:17–23» */
+  ref: string;
+  /** Серый текст перед адресом: «Ев. 8-е», «1-е» */
+  prefix: string | null;
+  /** Примечание, скобки ставит приложение: «зач. 24» */
+  note: string | null;
+  /** Знак сноски: «**» (пояснение лежит в notes) */
+  footnote: string | null;
+}
+
+export interface ReadingsSection {
+  /** Служба: «Утреня», «Литургия», «На 6-м часе»… null, если службы в данных нет */
+  title: string | null;
+  /** Уточнение секции: «Прп.», «Ев. составное», «Апп.» */
+  label: string | null;
+  items: ReadingItem[];
+}
+
+export interface ReadingsSchedule {
+  sections: ReadingsSection[];
+  /** Примечания под карточкой: HTML абзацев `<p>`, ссылки `/readings/ID` сохранены */
+  notes: string | null;
+}
+
+export interface DayTak {
   id: number;
   name: string;
+}
+
+/** Мысль дня: свой текст и своя картинка */
+export interface DayThought {
+  /** Подпись картинки. null, если картинки нет; '' если описание пустое */
+  title: string | null;
+  /** HTML абзацев `<p>`. '' если текста нет */
+  text: string;
+  picture: string | null;
+  picture_2x: string | null;
+  picture_3x: string | null;
+}
+
+export interface DayReading {
+  id: number;
+  name: string;
+  /** Текст с маркерами стихов `#r#5:22` (русский) и `#c#5:22` (церковнославянский) */
   text: string;
 }
 
 /**
- * Элемент ответа /days/list
+ * День календаря: ответ /days/{code} и элемент ответа /days/list
  */
 export interface CalendarDayApiElement {
   id: number;
   /** Дата в формате YYYYMMDD */
   code: string;
-  text: string | null;
-  picture: string;
-  picture_2x: string;
-  picture_3x: string;
-  picture_desc: string;
-  prayers: CalendarDayPrayerBlock;
+  /** Икона дня (PREVIEW_PICTURE): 414 / 828 / 1245 */
+  picture: string | null;
+  picture_2x: string | null;
+  picture_3x: string | null;
+  /** Описание иконы. null, если иконы нет */
+  picture_desc: string | null;
+  /** Тропари и молитвы, дательный падеж. id совпадает с id молитвы */
+  taks: DayTak[];
+  thought: DayThought;
+  /** HTML, '' если нет */
   parabel: string;
   synaxarion: string | null;
-  readings: CalendarDayReading[];
-  readings_text: string;
-  saints: unknown[];
+  readings: DayReading[];
+  readings_schedule: ReadingsSchedule;
+  /** Седмица, HTML (ссылки сохранены), без точки в конце */
+  week: string | null;
+  /** Глас 1..8 */
+  tone: number | null;
+  fasting: FastingInfo;
+  /** Блоки -> строки HTML. Строка может начинаться с токена знака праздника */
+  saints_blocks: string[][];
+  /** HTML, '' если нет */
   instructions: string;
   date_ts: number;
 }

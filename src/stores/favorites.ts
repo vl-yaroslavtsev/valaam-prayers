@@ -6,12 +6,16 @@ export type FavoriteType =
   | "prayers"
   | "books"
   | "saints"
-  | "thoughts";
+  | "thoughts"
+  | "days";
 
 export interface FavoritesItem {
   id: number;
   type: FavoriteType;
   sort: number;
+  /** Название и адрес хранятся у текстов дня календаря: по id их не восстановить */
+  title?: string;
+  url?: string;
 }
 
 export const useFavoritesStore = defineStore("favorites", () => {
@@ -77,7 +81,11 @@ export const useFavoritesStore = defineStore("favorites", () => {
     }
   };
 
-  const addFavorite = async (id: number, type: FavoriteType) => {
+  const addFavorite = async (
+    id: number,
+    type: FavoriteType,
+    meta?: { title: string; url: string }
+  ) => {
     const item = favorites.value.find((p) => p.id === id);
     if (item) return;
 
@@ -85,6 +93,7 @@ export const useFavoritesStore = defineStore("favorites", () => {
       id,
       type,
       sort: -1,
+      ...meta,
     };
     favorites.value.push(newItem);
     const sortedItems = favorites.value.sort((a, b) => a.sort - b.sort);

@@ -101,6 +101,8 @@ interface Props {
   textTheme: string;
   isHidden: boolean;
   animateVisibility?: boolean;
+  /** Задан у текстов дня календаря: они попадают в избранное с типом "days" и своим названием и адресом */
+  dayFavorite?: { title: string; url: string };
 }
 
 interface Emits {
@@ -173,12 +175,14 @@ const { showInfoToast: showRemovedFromFavoritesToast } = useInfoToast({
 const isElementFavorite = computed(() => isFavorite(props.itemId));
 
 const toggleFavorite = async () => {
-  const type = prayersStore.isBook(props.itemId) ? "books" : "prayers";
-
   if (isFavorite(props.itemId)) {
     await deleteFavorite(props.itemId);
     showRemovedFromFavoritesToast();
+  } else if (props.dayFavorite) {
+    await addFavorite(props.itemId, "days", props.dayFavorite);
+    showAddedToFavoritesToast();
   } else {
+    const type = prayersStore.isBook(props.itemId) ? "books" : "prayers";
     await addFavorite(props.itemId, type);
     showAddedToFavoritesToast();
   }

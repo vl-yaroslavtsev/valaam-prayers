@@ -1,5 +1,5 @@
 <template>
-  <f7-page name="calendar">
+  <f7-page name="calendar" :page-content="false">
     <f7-navbar>
       <f7-nav-left>
         <f7-link panel-open="left">
@@ -22,13 +22,13 @@
       <CalendarViewFilter v-model="calendarView" @update:model-value="closeViewFilter" />
     </f7-popover>
 
-    <CalendarMonth v-if="calendarView === 'month'" @select-day="openDay" />
-    <div v-else-if="calendarView === 'week'" class="calendar-placeholder">
-      Календарь: неделя
-    </div>
-    <div v-else class="calendar-placeholder">
-      Календарь: день
-    </div>
+    <f7-page-content v-if="calendarView !== 'day'">
+      <CalendarMonth v-if="calendarView === 'month'" @select-day="openDay" />
+      <div v-else class="calendar-placeholder">
+        Календарь: неделя
+      </div>
+    </f7-page-content>
+    <CalendarDay v-else v-model="selectedDayCode" :f7router="f7router" />
   </f7-page>
 </template>
 <script setup>
@@ -38,13 +38,16 @@ import { useTheme } from "@/composables/useTheme";
 import SvgIcon from "@/components/SvgIcon.vue";
 import CalendarViewFilter from "@/components/calendar/CalendarViewFilter.vue";
 import CalendarMonth from "@/components/calendar/CalendarMonth.vue";
+import CalendarDay from "@/components/calendar/CalendarDay.vue";
 
-const props = defineProps({
+defineProps({
   f7router: Object,
 });
 
 const { isDarkMode } = useTheme();
 const calendarView = ref("month");
+// День, открытый в виде «день»; null - сегодняшний
+const selectedDayCode = ref(null);
 const navIconColor = computed(() => (isDarkMode.value ? "baige-90" : "black-primary"));
 
 const closeViewFilter = () => {
@@ -52,7 +55,8 @@ const closeViewFilter = () => {
 };
 
 const openDay = (code) => {
-  props.f7router.navigate(`/days/${code}`);
+  selectedDayCode.value = code;
+  calendarView.value = "day";
 };
 </script>
 

@@ -12,12 +12,13 @@
       :title="title"
       :subtitle="subtitle"
       :item-id="itemId"
-      :item-url="item?.url || ''"
+      :item-url="itemUrl"
       v-model:current-language="currentLanguage"
       :available-languages="availableLanguages"
       :text-theme="textTheme"
       :is-hidden="isNavbarHidden"
       :animate-visibility="readingBarsAnimate"
+      :day-favorite="dayFavorite"
       @toggle-text-settings="toggleTextSettingsSheet"
       @open-content-popup="openContentPopup"
       @open-search="onOpenSearch"
@@ -177,8 +178,10 @@ import { useTheme } from "@/composables/useTheme";
 import { 
   usePrayersStore, 
   BOOKS_SECTION_ID,
-  type PrayerElement 
+  type PrayerElement,
+  type PrayerText
 } from "@/stores/prayers";
+import { useCalendarStore } from "@/stores/calendar";
 import { useReadingHistoryStore } from "@/stores/readingHistory";
 import { useComponentsStore } from "@/stores/components";
 import { useSettingsStore } from "@/stores/settings";
@@ -201,10 +204,23 @@ import SpotlightHint, { type SpotlightTarget } from "@/components/reading-tutori
 import SvgIcon from "@/components/SvgIcon.vue";
 import { useApiState } from "@/composables/useApiState";
 import { device } from "@/js/device";
+import {
+  buildDayText,
+  buildReadingText,
+  getDayTextId,
+  getDayTextTitle,
+  getDayTextUrl,
+  getReadingUrl,
+  isDayTextKind,
+} from "@/components/calendar/dayText";
 
-const { elementId, sectionId, f7router } = defineProps<{
+const { elementId, sectionId, code, kind, readingId, f7router } = defineProps<{
   elementId?: string;
   sectionId?: string;
+  // Тексты дня календаря: /days/:code/text/:kind и /days/:code/readings/:readingId
+  code?: string;
+  kind?: string;
+  readingId?: string;
   f7router: Router.Router;
 }>();
 
@@ -217,19 +233,36 @@ const contentPopupRef = useTemplateRef<InstanceType<typeof PrayersTextContentPop
 const textSettingsSelectorRef = useTemplateRef<InstanceType<typeof TextSettingsSelector>>("textSettingsSelector");
 
 const prayersStore = usePrayersStore();
+const calendarStore = useCalendarStore();
 const historyStore = useReadingHistoryStore();
 const settingsStore = useSettingsStore();
 const { getComponent } = useComponentsStore();
 
+// Текст дня календаря (мысль, притча, указания, чтение): не молитва, поэтому
+// историю чтения для него не ведём, а в избранное он попадает с типом "days"
+const isDayText = !!code;
+const dayTextKind = isDayTextKind(kind) ? kind : null;
+
 // Определяем ID и тип элемента
-const itemId = Number(elementId || sectionId);
+const itemId = isDayText
+  ? dayTextKind
+    ? getDayTextId(code, dayTextKind)
+    : Number(readingId)
+  : Number(elementId || sectionId);
 const isSection = !!sectionId;
 
 if (!Number.isFinite(itemId)) {
   throw new Error("Neither elementId nor sectionId provided");
 }
 
-const item = prayersStore.getItemById(itemId);
+const item = isDayText ? undefined : prayersStore.getItemById(itemId);
+
+const dayUrl = isDayText
+  ? dayTextKind
+    ? getDayTextUrl(code, dayTextKind)
+    : getReadingUrl(code, itemId)
+  : "";
+const itemUrl = isDayText ? dayUrl : item?.url || "";
 
 // Пока палец на слайдере — считаем заголовок по странице ползунка, а не по
 // отложенному goToPage (иначе подзаголовок отстаёт на debounce)
@@ -267,7 +300,11 @@ const subtitle = computed<string[]>(() => {
   return result;
 });
 
-const title = item?.name || '';
+// Название чтения известно только после загрузки дня, поэтому title - ref
+const title = ref(isDayText && dayTextKind ? getDayTextTitle(code, dayTextKind) : item?.name || '');
+const dayFavorite = computed(() =>
+  isDayText ? { title: title.value, url: dayUrl } : undefined
+);
 const text = ref<string>("");
 
 const isContentPopupOpened = ref(false);
@@ -320,10 +357,26 @@ const currentLanguage = computed({
 });
 const availableLanguages = ref<Language[]>([]);
 
+const loadDayText = async (): Promise<PrayerText> => {
+  const day = await calendarStore.getDayByCode(code!);
+  const dayText = day
+    ? dayTextKind
+      ? buildDayText(day, dayTextKind)
+      : buildReadingText(day, itemId)
+    : null;
+  if (!dayText) {
+    throw new Error(`Day text not found: ${code}`);
+  }
+  title.value = dayText.name;
+  return dayText.prayerText;
+};
+
 // Выбираем подходящий метод API в зависимости от типа
-const apiCall = isSection 
-  ? prayersStore.getComposedPrayerText(itemId)
-  : prayersStore.getPrayerText(itemId);
+const apiCall = isDayText
+  ? loadDayText()
+  : isSection 
+    ? prayersStore.getComposedPrayerText(itemId)
+    : prayersStore.getPrayerText(itemId);
 
 console.time('prayersText: apiCall');
 
@@ -372,11 +425,13 @@ const updatePrayerText = (language: Language | null) => {
     prayerText = prayerText.replace(/^(\s*)<h2([^>]*)>/i, '$1<h1$2>').replace(/<\/h2>/i, '</h1>');
     text.value = prayerText;
   } else {
-    text.value = `<h1>${title}</h1>\n\n${prayerText}`;
+    text.value = `<h1>${title.value}</h1>\n\n${prayerText}`;
   }
 };
 
-const initialProgress = computed(() => historyStore.getItem(itemId)?.progress || 0);
+const initialProgress = computed(() =>
+  isDayText ? 0 : historyStore.getItem(itemId)?.progress || 0
+);
 
 watch(error, async () => {
   if (!error.value) return;
@@ -896,7 +951,7 @@ watch(isBookmarkNavActive, (active) => {
 });
 
 const saveProgress = () => {
-  if (!textPaginator.value || !totalPages.value) return;
+  if (isDayText || !textPaginator.value || !totalPages.value) return;
   const type = prayersStore.isBook(itemId) ? "books" : "prayers";
   historyStore.updateProgress(itemId, progress.value, totalPages.value, type);
 };
@@ -1119,6 +1174,7 @@ const { showUndoToast: showUndoResetToast } = useUndoToast({
       saveProgressTimer = null;
     }
     textPaginator.value?.setProgress(progressBeforeReset);
+    if (isDayText) return;
     const type = prayersStore.isBook(itemId) ? "books" : "prayers";
     void historyStore.updateProgress(itemId, progressBeforeReset, totalPages.value, type);
   },

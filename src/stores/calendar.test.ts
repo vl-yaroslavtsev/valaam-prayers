@@ -120,4 +120,49 @@ describe("useCalendarStore", () => {
     expect(daysApi.getDaysPage).toHaveBeenCalledWith("20260102", "20260102", 1, 1);
     expect(calendarDaysStorage!.put).not.toHaveBeenCalled();
   });
+
+  it("getDayByCode игнорирует день из БД в старом формате и читает его из сети", async () => {
+    const stale = { id: 1, code: "20260103" } as ReturnType<typeof calendarDay>;
+    const fromNetwork = calendarDay("20260103");
+    vi.mocked(calendarDaysStorage!.get).mockResolvedValue(stale);
+    vi.mocked(daysApi.getDaysPage).mockResolvedValue({
+      items: [fromNetwork],
+      nav: { page_count: 1, page_num: 1, page_size: 1, record_count: 1, nav_num: 1 },
+      byteSize: 1,
+    });
+
+    const result = await useCalendarStore().getDayByCode("20260103");
+
+    expect(result).toEqual(fromNetwork);
+  });
+
+  it("getDayByCode не ходит за одним днём дважды", async () => {
+    const day = calendarDay("20260104");
+    vi.mocked(daysApi.getDaysPage).mockResolvedValue({
+      items: [day],
+      nav: { page_count: 1, page_num: 1, page_size: 1, record_count: 1, nav_num: 1 },
+      byteSize: 1,
+    });
+    const store = useCalendarStore();
+
+    await Promise.all([store.getDayByCode("20260104"), store.getDayByCode("20260104")]);
+    await store.getDayByCode("20260104");
+
+    expect(daysApi.getDaysPage).toHaveBeenCalledTimes(1);
+  });
+
+  it("getDayByCode не запоминает неудачу: повторный вызов снова идёт в сеть", async () => {
+    const day = calendarDay("20260105");
+    vi.mocked(daysApi.getDaysPage).mockRejectedValueOnce(new Error("offline"));
+    const store = useCalendarStore();
+
+    expect(await store.getDayByCode("20260105")).toBeNull();
+
+    vi.mocked(daysApi.getDaysPage).mockResolvedValueOnce({
+      items: [day],
+      nav: { page_count: 1, page_num: 1, page_size: 1, record_count: 1, nav_num: 1 },
+      byteSize: 1,
+    });
+    expect(await store.getDayByCode("20260105")).toEqual(day);
+  });
 });

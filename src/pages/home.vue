@@ -123,7 +123,7 @@ const ALL_CHIPS: { id: FilterType; title: string }[] = [
 const hasFavoritesOfType = (filterType: Exclude<FilterType, "all">) => {
   if (filterType === "calendar") {
     return favoritesStore.favorites.some(
-      (f) => f.type === "saints" || f.type === "thoughts"
+      (f) => f.type === "saints" || f.type === "thoughts" || f.type === "days"
     );
   }
   return favoritesStore.favorites.some((f) => f.type === filterType);
@@ -528,6 +528,7 @@ const getFavoritesByType = (filterType: Exclude<FilterType, "all">) => {
     favorites = [
       ...favoritesStore.getFavoritesByType("saints"),
       ...favoritesStore.getFavoritesByType("thoughts"),
+      ...favoritesStore.getFavoritesByType("days"),
     ].sort((a, b) => a.sort - b.sort);
 
   }
@@ -563,6 +564,9 @@ const getFavoritesByType = (filterType: Exclude<FilterType, "all">) => {
         extra.name = thought.name;
       }
       extra.url = "/thoughts/" + f.id;
+    } else if (type === "days") {
+      extra.name = f.title ?? "";
+      extra.url = f.url ?? "";
     }
 
     return {

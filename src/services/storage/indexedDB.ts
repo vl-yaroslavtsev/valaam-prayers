@@ -43,8 +43,10 @@ interface ValaamDB extends DBSchema {
     key: number;
     value: {
       id: number;
-      type: 'prayers' | 'books' | 'saints' | 'thoughts';
+      type: 'prayers' | 'books' | 'saints' | 'thoughts' | 'days';
       sort: number;
+      title?: string;
+      url?: string;
     };
     indexes: {
       'by-type': string;

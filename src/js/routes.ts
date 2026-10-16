@@ -7,6 +7,7 @@ import PrayersPage from "../pages/prayers.vue";
 import PrayersTextPage from "../pages/prayersText.vue";
 import CalendarPage from "../pages/calendar.vue";
 import DayPage from "../pages/day.vue";
+import SaintPage from "../pages/saint.vue";
 import RitesPage from "../pages/rites.vue";
 import SettingsPage from "../pages/settings.vue";
 import SettingsTestPage from "../pages/settingsTest.vue";
@@ -59,6 +60,22 @@ const routes: Router.RouteParameters[] = [
   {
     path: "/days/:id",
     component: DayPage,
+    options: {
+      transition: "fade-slide",
+    },
+  },
+  {
+    // Мысль, притча, богослужебные указания дня в читалке
+    path: "/days/:code/text/:kind",
+    component: PrayersTextPage,
+  },
+  {
+    path: "/days/:code/readings/:readingId",
+    component: PrayersTextPage,
+  },
+  {
+    path: "/saints/:id",
+    component: SaintPage,
     options: {
       transition: "fade-slide",
     },

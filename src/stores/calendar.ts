@@ -92,10 +92,11 @@ export const useCalendarStore = defineStore("calendar", () => {
    * Сначала проверяет офлайн-кэш (наполняется только DownloadManager'ом), иначе идёт в сеть.
    * Результат разового сетевого запроса в IndexedDB не сохраняется - см. Service Worker.
    */
-  const getDayByCode = async (code: string): Promise<CalendarDayApiElement | null> => {
+  const loadDayByCode = async (code: string): Promise<CalendarDayApiElement | null> => {
     try {
       const cached = await calendarDaysStorage?.get(code);
-      if (cached) {
+      // Дни, скачанные до смены формата API, не содержат fasting - их читаем заново из сети
+      if (cached && "fasting" in cached) {
         return cached;
       }
 
@@ -105,6 +106,22 @@ export const useCalendarStore = defineStore("calendar", () => {
       console.error(`Failed to get calendar day for code ${code}:`, err);
       return null;
     }
+  };
+
+  // Дни, уже прочитанные за сессию: слайдер и читалка не ходят за одним днём дважды
+  const dayRequests = new Map<string, Promise<CalendarDayApiElement | null>>();
+
+  const getDayByCode = (code: string): Promise<CalendarDayApiElement | null> => {
+    let request = dayRequests.get(code);
+    if (!request) {
+      request = loadDayByCode(code).then((day) => {
+        // Неудачу не запоминаем, чтобы можно было повторить запрос
+        if (!day) dayRequests.delete(code);
+        return day;
+      });
+      dayRequests.set(code, request);
+    }
+    return request;
   };
 
   return {

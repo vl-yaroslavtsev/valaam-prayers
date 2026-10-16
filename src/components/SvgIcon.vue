@@ -24,6 +24,7 @@ type IconColor =
   | "black-20"
   | "black-40"
   | "black-60"
+  | "primary-accent-70"
   | "primary-accent-50"
   | "primary-accent-30";
 
