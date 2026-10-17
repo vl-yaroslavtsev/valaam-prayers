@@ -31,7 +31,9 @@ export interface SaintDetailApiElement {
   sort: number;
   type: string;
   text: string;
-  picture: string;
+  picture: string | null;
+  picture_2x?: string | null;
+  picture_3x?: string | null;
   prayers_id: number | null;
   akathist_id: number[];
   canon_id: number[];

@@ -56,7 +56,7 @@ export const getReadingUrl = (code: string, readingId: number): string =>
 const escapeHtml = (value: string): string =>
   value.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 
-const createPrayerText = (
+export const createPrayerText = (
   id: number,
   name: string,
   texts: { text?: string; text_cs?: string; text_ru?: string }

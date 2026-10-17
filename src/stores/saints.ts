@@ -9,14 +9,29 @@ export interface SaintIndex {
   name: string;
 }
 
+export interface SaintMemoDayInfo {
+  date_template: string;
+  description: string;
+  is_relative: boolean;
+}
+
 export interface SaintDetails {
   id: number;
   name: string;
-  dates: string[];
+  /** Житие (HTML) */
   life: string;
-  tropars?: string[];
-  canons?: string[];
-  akathists?: string[];
+  picture: string | null;
+  picture2x: string | null;
+  picture3x: string | null;
+  /** Тропари, кондаки, молитвы */
+  prayerId: number | null;
+  akathistIds: number[];
+  canonIds: number[];
+  /** Службы (Минея) */
+  mineaIds: number[];
+  /** Четьи-Минеи */
+  hagiographyIds: number[];
+  memoDays: SaintMemoDayInfo[];
 }
 
 /**
@@ -25,8 +40,20 @@ export interface SaintDetails {
 const transformApiSaintDetail = (e: SaintDetailApiElement): SaintDetails => ({
   id: e.id,
   name: e.name,
-  dates: e.memo_days.map((day) => day.description),
   life: e.text,
+  picture: e.picture || null,
+  picture2x: e.picture_2x || null,
+  picture3x: e.picture_3x || null,
+  prayerId: e.prayers_id ?? null,
+  akathistIds: e.akathist_id ?? [],
+  canonIds: e.canon_id ?? [],
+  mineaIds: e.minea_id ?? [],
+  hagiographyIds: e.hagiography_id ?? [],
+  memoDays: (e.memo_days ?? []).map(({ date_template, description, is_relative }) => ({
+    date_template,
+    description,
+    is_relative,
+  })),
 });
 
 export const useSaintsStore = defineStore("saints", () => {

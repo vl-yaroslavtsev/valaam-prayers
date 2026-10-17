@@ -63,6 +63,44 @@ describe("useSaintsStore", () => {
     expect(saintDetailsStorage!.put).not.toHaveBeenCalled();
   });
 
+  it("getSaintDetails отдаёт картинки, связанные молитвы и дни памяти", async () => {
+    vi.mocked(saintsApi.getSaintDetail).mockResolvedValue({
+      ...saintDetail(5, "Full"),
+      text: "<p>Житие</p>",
+      picture: "/a.jpg",
+      picture_2x: "/a2.jpg",
+      prayers_id: 10,
+      akathist_id: [11],
+      canon_id: [12, 13],
+      minea_id: [14],
+      hagiography_id: [15],
+      memo_days: [{ id: 1, date_template: "Y1015", description: "", is_relative: false }],
+    });
+
+    const result = await useSaintsStore().getSaintDetails(5);
+
+    expect(result).toEqual({
+      id: 5,
+      name: "Full",
+      life: "<p>Житие</p>",
+      picture: "/a.jpg",
+      picture2x: "/a2.jpg",
+      picture3x: null,
+      prayerId: 10,
+      akathistIds: [11],
+      canonIds: [12, 13],
+      mineaIds: [14],
+      hagiographyIds: [15],
+      memoDays: [{ date_template: "Y1015", description: "", is_relative: false }],
+    });
+  });
+
+  it("getSaintDetails при ошибке сети возвращает null", async () => {
+    vi.mocked(saintsApi.getSaintDetail).mockRejectedValue(new Error("offline"));
+
+    expect(await useSaintsStore().getSaintDetails(5)).toBeNull();
+  });
+
   it("saveSaintIndexToCache при отсутствии lastSyncTime делает full sync (clear+putAll)", async () => {
     vi.mocked(metadataStorage!.getLastSyncTime).mockResolvedValue(null);
     vi.mocked(saintsApi.getSaintsIndex).mockResolvedValue([{ id: 1, name: "A" }]);

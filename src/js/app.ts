@@ -18,7 +18,7 @@ import Preloader from "framework7/components/preloader";
 import Progressbar from "framework7/components/progressbar";
 import Sortable from "framework7/components/sortable";
 import Swipeout from "framework7/components/swipeout";
-//import Accordion from "framework7/components/accordion";
+import Accordion from "framework7/components/accordion";
 //import ContactsList from "framework7/components/contacts-list";
 import VirtualList from "framework7/components/virtual-list";
 //import ListIndex from "framework7/components/list-index";
@@ -69,7 +69,7 @@ Framework7.use([
   Progressbar,
   Sortable,
   Swipeout,
-  // Accordion,
+  Accordion,
   // ContactsList,
   VirtualList,
   // ListIndex,
@@ -245,8 +245,8 @@ registerComponents(app);
 })();
 
 function registerComponents(app: TApp<Element>) {
-  // app.component('f7-accordion-content', f7AccordionContent);
-  // app.component('f7-accordion-item', f7AccordionItem);
+  app.component("f7-accordion-content", f7AccordionContent);
+  app.component("f7-accordion-item", f7AccordionItem);
   // app.component('f7-accordion-toggle', f7AccordionToggle);
   // app.component('f7-accordion', f7Accordion);
   app.component("f7-actions-button", f7ActionsButton);

@@ -183,6 +183,7 @@ import {
 } from "@/stores/prayers";
 import { useCalendarStore } from "@/stores/calendar";
 import { useReadingHistoryStore } from "@/stores/readingHistory";
+import { useSaintsStore } from "@/stores/saints";
 import { useComponentsStore } from "@/stores/components";
 import { useSettingsStore } from "@/stores/settings";
 import { useUndoToast } from "@/composables/useUndoToast";
@@ -213,10 +214,13 @@ import {
   getReadingUrl,
   isDayTextKind,
 } from "@/components/calendar/dayText";
+import { buildSaintLifeText, getSaintLifeId, getSaintLifeUrl } from "@/components/saint/saintText";
 
-const { elementId, sectionId, code, kind, readingId, f7router } = defineProps<{
+const { elementId, sectionId, code, kind, readingId, saintId, f7router } = defineProps<{
   elementId?: string;
   sectionId?: string;
+  // Житие святого: /saints/:saintId/life
+  saintId?: string;
   // Тексты дня календаря: /days/:code/text/:kind и /days/:code/readings/:readingId
   code?: string;
   kind?: string;
@@ -234,35 +238,42 @@ const textSettingsSelectorRef = useTemplateRef<InstanceType<typeof TextSettingsS
 
 const prayersStore = usePrayersStore();
 const calendarStore = useCalendarStore();
+const saintsStore = useSaintsStore();
 const historyStore = useReadingHistoryStore();
 const settingsStore = useSettingsStore();
 const { getComponent } = useComponentsStore();
 
-// Текст дня календаря (мысль, притча, указания, чтение): не молитва, поэтому
-// историю чтения для него не ведём, а в избранное он попадает с типом "days"
+// Текст дня календаря (мысль, притча, указания, чтение) и житие святого: не молитвы,
+// поэтому историю чтения для них не ведём, а в избранное они попадают с типом "days"
 const isDayText = !!code;
+const isSaintLife = !!saintId;
+const isStandaloneText = isDayText || isSaintLife;
 const dayTextKind = isDayTextKind(kind) ? kind : null;
 
 // Определяем ID и тип элемента
-const itemId = isDayText
-  ? dayTextKind
-    ? getDayTextId(code, dayTextKind)
-    : Number(readingId)
-  : Number(elementId || sectionId);
+const itemId = isSaintLife
+  ? getSaintLifeId(Number(saintId))
+  : isDayText
+    ? dayTextKind
+      ? getDayTextId(code, dayTextKind)
+      : Number(readingId)
+    : Number(elementId || sectionId);
 const isSection = !!sectionId;
 
 if (!Number.isFinite(itemId)) {
   throw new Error("Neither elementId nor sectionId provided");
 }
 
-const item = isDayText ? undefined : prayersStore.getItemById(itemId);
+const item = isStandaloneText ? undefined : prayersStore.getItemById(itemId);
 
-const dayUrl = isDayText
-  ? dayTextKind
-    ? getDayTextUrl(code, dayTextKind)
-    : getReadingUrl(code, itemId)
-  : "";
-const itemUrl = isDayText ? dayUrl : item?.url || "";
+const dayUrl = isSaintLife
+  ? getSaintLifeUrl(saintId)
+  : isDayText
+    ? dayTextKind
+      ? getDayTextUrl(code, dayTextKind)
+      : getReadingUrl(code, itemId)
+    : "";
+const itemUrl = isStandaloneText ? dayUrl : item?.url || "";
 
 // Пока палец на слайдере — считаем заголовок по странице ползунка, а не по
 // отложенному goToPage (иначе подзаголовок отстаёт на debounce)
@@ -303,7 +314,7 @@ const subtitle = computed<string[]>(() => {
 // Название чтения известно только после загрузки дня, поэтому title - ref
 const title = ref(isDayText && dayTextKind ? getDayTextTitle(code, dayTextKind) : item?.name || '');
 const dayFavorite = computed(() =>
-  isDayText ? { title: title.value, url: dayUrl } : undefined
+  isStandaloneText ? { title: title.value, url: dayUrl } : undefined
 );
 const text = ref<string>("");
 
@@ -371,8 +382,19 @@ const loadDayText = async (): Promise<PrayerText> => {
   return dayText.prayerText;
 };
 
+const loadSaintLife = async (): Promise<PrayerText> => {
+  const saint = await saintsStore.getSaintDetails(Number(saintId));
+  if (!saint) {
+    throw new Error(`Saint not found: ${saintId}`);
+  }
+  title.value = saint.name;
+  return buildSaintLifeText(saint);
+};
+
 // Выбираем подходящий метод API в зависимости от типа
-const apiCall = isDayText
+const apiCall = isSaintLife
+  ? loadSaintLife()
+  : isDayText
   ? loadDayText()
   : isSection 
     ? prayersStore.getComposedPrayerText(itemId)
@@ -430,7 +452,7 @@ const updatePrayerText = (language: Language | null) => {
 };
 
 const initialProgress = computed(() =>
-  isDayText ? 0 : historyStore.getItem(itemId)?.progress || 0
+  isStandaloneText ? 0 : historyStore.getItem(itemId)?.progress || 0
 );
 
 watch(error, async () => {
@@ -951,7 +973,7 @@ watch(isBookmarkNavActive, (active) => {
 });
 
 const saveProgress = () => {
-  if (isDayText || !textPaginator.value || !totalPages.value) return;
+  if (isStandaloneText || !textPaginator.value || !totalPages.value) return;
   const type = prayersStore.isBook(itemId) ? "books" : "prayers";
   historyStore.updateProgress(itemId, progress.value, totalPages.value, type);
 };
@@ -1174,7 +1196,7 @@ const { showUndoToast: showUndoResetToast } = useUndoToast({
       saveProgressTimer = null;
     }
     textPaginator.value?.setProgress(progressBeforeReset);
-    if (isDayText) return;
+    if (isStandaloneText) return;
     const type = prayersStore.isBook(itemId) ? "books" : "prayers";
     void historyStore.updateProgress(itemId, progressBeforeReset, totalPages.value, type);
   },

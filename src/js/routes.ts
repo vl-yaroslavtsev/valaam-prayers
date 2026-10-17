@@ -81,6 +81,11 @@ const routes: Router.RouteParameters[] = [
     },
   },
   {
+    // Житие святого в читалке
+    path: "/saints/:saintId/life",
+    component: PrayersTextPage,
+  },
+  {
     path: "/rites/",
     component: RitesPage,
     options: {

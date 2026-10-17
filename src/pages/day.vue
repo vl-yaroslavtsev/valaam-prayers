@@ -1,35 +1,24 @@
 <template>
-  <f7-page name="day">
-    <f7-navbar :title="day.title" back-link="Back"></f7-navbar>
-    <f7-block-title>День {{ day.id }}</f7-block-title>
-    <f7-block>
-      {{ day.description }}
-    </f7-block>
+  <f7-page name="day" :page-content="false">
+    <f7-navbar :title="title" back-link />
+    <CalendarDay v-model="dayCode" :f7router="f7router" />
   </f7-page>
 </template>
-<script>
-import { useCalendarStore } from "@/stores/calendar";
 
-export default {
-  props: {
-    f7route: Object,
-  },
-  setup(props) {
-    const calendarStore = useCalendarStore();
-    const dayId = props.f7route.params.id;
-    let currentDay = calendarStore.getDayById(dayId);
+<script setup lang="ts">
+import { computed, ref } from "vue";
+import type { Router } from "framework7/types";
+import CalendarDay from "@/components/calendar/CalendarDay.vue";
+import { formatDayTitleDate } from "@/components/calendar/dayFormat";
 
-    if (!currentDay) {
-      currentDay = {
-        id: dayId,
-        title: "День " + dayId,
-        description: "Описание дня " + dayId,
-      };
-    }
+const { id, f7router } = defineProps<{
+  /** Код дня (YYYYMMDD) из адреса /days/:id */
+  id?: string;
+  f7router: Router.Router;
+}>();
 
-    return {
-      day: currentDay,
-    };
-  },
-};
+// День меняется свайпом слайдера, поэтому заголовок следует за ним
+const dayCode = ref<string | null>(/^\d{8}$/.test(id ?? "") ? id! : null);
+
+const title = computed(() => (dayCode.value ? formatDayTitleDate(dayCode.value) : "День"));
 </script>
