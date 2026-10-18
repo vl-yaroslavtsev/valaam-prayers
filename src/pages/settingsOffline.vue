@@ -1,22 +1,20 @@
 <template>
   <f7-page name="settings-offline" class="offline-page" @page:beforeout="dismissErrors">
     <f7-navbar large transparent title="Доступ без интернета" back-link></f7-navbar>
-    <f7-block>
-      <p>
-        Скачайте нужные разделы, чтобы молитвослов и календарь открывались даже там, где нет мобильной связи (например, в храме или в дороге)
+    <f7-block class="offline-intro">
+      <p class="offline-intro-text" :class="{ 'is-hidden': !online }">
+        Скачайте нужные разделы, чтобы читать их даже там, где нет связи (например, в храме или в дороге)
       </p>
+      <div class="offline-banner" :class="{ 'is-hidden': online }" role="status">
+        <SvgIcon class="offline-banner-icon" icon="cloud-off" :size="24" :color="bannerIconColor" />
+        <div class="offline-banner-copy">
+          <div class="offline-banner-title">Вы офлайн</div>
+          <div class="offline-banner-text">
+            Скачанные разделы доступны для чтения. Для загрузки новых подключитесь к сети.
+          </div>
+        </div>
+      </div>
     </f7-block>
-
-    <f7-list no-hairlines class="offline-list offline-list-auto-update">
-      <f7-list-item title="Обновлять автоматически">
-        <template #media>
-          <SvgIcon icon="sync" :color="neutralColor" :size="24" />
-        </template>
-        <template #after>
-          <f7-toggle small v-model:checked="autoUpdate" />
-        </template>
-      </f7-list-item>
-    </f7-list>
 
     <f7-block class="offline-usage">
       <div class="offline-usage-label">
@@ -80,6 +78,7 @@
             <f7-button
               v-if="actionKind(item.moduleId) !== 'none'"
               class="offline-action"
+              :class="{ 'is-unavailable': !online && isNetworkAction(item.moduleId) }"
               :aria-label="actionLabel(item.moduleId)"
               @click="onAction(item)"
             >
@@ -89,6 +88,22 @@
         </f7-list-item>
       </f7-list>
     </template>
+
+    <hr class="offline-separator" />
+
+    <f7-list no-hairlines class="offline-list-auto-update">
+      <f7-list-item
+        title="Обновлять автоматически"
+        footer="Загружать исправления в текстах и календаре при наличии Wi-Fi"
+      >
+        <template #media>
+          <SvgIcon icon="sync" :color="neutralColor" :size="24" />
+        </template>
+        <template #after>
+          <f7-toggle small v-model:checked="autoUpdate" />
+        </template>
+      </f7-list-item>
+    </f7-list>
   </f7-page>
 </template>
 
@@ -97,6 +112,8 @@ import { computed, onMounted, onUnmounted, reactive, ref, watch } from "vue";
 import { f7 } from "framework7-vue";
 import SvgIcon from "@/components/SvgIcon.vue";
 import { useTheme } from "@/composables/useTheme";
+import { useErrorToast } from "@/composables/useErrorToast";
+import { isOnline, onNetworkChange } from "@/services/download/network";
 import { useSettingsStore } from "@/stores/settings";
 import { useDownloadsStore } from "@/stores/downloads";
 import { startAutoUpdate, stopAutoUpdate } from "@/services/download/AutoUpdate";
@@ -106,7 +123,7 @@ import type { DownloadModuleId } from "@/services/download/types";
 import type { IconName } from "@/types/icon-name";
 
 type ActionKind = "download" | "update" | "cancel" | "delete" | "none";
-type ActionIconColor = "baige-60" | "black-60" | "primary-accent-50" | "primary-accent-70";
+type ActionIconColor = "baige-60" | "baige-90" | "black-60" | "black-primary" | "primary-accent-50" | "primary-accent-70";
 
 interface ActionIcon {
   icon: IconName;
@@ -163,6 +180,12 @@ const downloadsStore = useDownloadsStore();
 
 const neutralColor = computed<ActionIconColor>(() => (isDarkMode.value ? "baige-60" : "black-60"));
 const accentColor = computed<ActionIconColor>(() => (isDarkMode.value ? "primary-accent-70" : "primary-accent-50"));
+const bannerIconColor = computed<ActionIconColor>(() => (isDarkMode.value ? "baige-90" : "black-primary"));
+
+const online = ref(isOnline());
+let stopNetworkWatch: (() => void) | null = null;
+
+const { showErrorToast } = useErrorToast({ text: "Нет подключения к сети" });
 
 const autoUpdate = computed({
   get: () => settingsStore.isAutoUpdateOfflineDataEnabled,
@@ -223,11 +246,8 @@ function showProgress(moduleId: DownloadModuleId): boolean {
   return progress?.status === "downloading" && progress.totalBytes > 0;
 }
 
-// Сбой до начала скачивания (размер так и не получили) не показываем: в строке остаётся размер или пусто
 function hasError(moduleId: DownloadModuleId): boolean {
-  const progress = downloadsStore.progress[moduleId];
-  if (progress?.status !== "error") return false;
-  return progress.downloadedBytes > 0 || progress.totalBytes > 0;
+  return downloadsStore.progress[moduleId]?.status === "error";
 }
 
 function hasUpdate(moduleId: DownloadModuleId): boolean {
@@ -267,6 +287,11 @@ function showSizePlaceholder(moduleId: DownloadModuleId): boolean {
 
 function updateMb(moduleId: DownloadModuleId): string {
   return hasUpdate(moduleId) ? formatMbNumber(updateSizes[moduleId]!) : "";
+}
+
+function isNetworkAction(moduleId: DownloadModuleId): boolean {
+  const kind = actionKind(moduleId);
+  return kind === "download" || kind === "update";
 }
 
 function actionKind(moduleId: DownloadModuleId): ActionKind {
@@ -376,8 +401,13 @@ function confirmDelete(item: OfflineItem): Promise<boolean> {
 
 async function onAction(item: OfflineItem): Promise<void> {
   const { moduleId } = item;
+  const kind = actionKind(moduleId);
+  if ((kind === "download" || kind === "update") && !isOnline()) {
+    showErrorToast();
+    return;
+  }
   try {
-    switch (actionKind(moduleId)) {
+    switch (kind) {
       case "download":
         await downloadsStore.startDownload(moduleId);
         break;
@@ -416,6 +446,11 @@ watch(
 );
 
 onMounted(() => {
+  online.value = isOnline();
+  stopNetworkWatch = onNetworkChange((value) => {
+    online.value = value;
+  });
+
   void getQuota()
     .then((result) => {
       if (pageActive) storageQuotaBytes.value = result.quota;
@@ -437,6 +472,7 @@ onMounted(() => {
 
 onUnmounted(() => {
   pageActive = false;
+  stopNetworkWatch?.();
   dismissErrors();
 });
 </script>
@@ -452,6 +488,66 @@ onUnmounted(() => {
   --offline-accent: var(--brand-color-primary-accent-70);
   --offline-downloaded-bg: var(--content-color-black-secondary);
   --offline-usage-track: var(--content-color-baige-10);
+}
+
+.offline-intro {
+  display: grid;
+  margin-top: 0;
+
+  > .offline-intro-text,
+  > .offline-banner {
+    grid-area: 1 / 1;
+  }
+}
+
+.offline-intro .offline-intro-text {
+  display: flex;
+  align-items: center;
+  margin: 0;
+}
+
+.offline-banner {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  box-sizing: border-box;
+  padding: 12px 16px;
+  border-radius: 16px;
+  background: var(--calendar-week-band);
+}
+
+.offline-banner-icon {
+  flex-shrink: 0;
+
+  // У иконок transition-duration на все свойства, из-за него облачко
+  // остаётся поверх описания ещё ~200 мс после скрытия плашки
+  :deep(path) {
+    transition: none;
+  }
+}
+
+.offline-banner-title {
+  color: var(--content-color-black-primary);
+  font-size: var(--mobile-main-text-regular-b2);
+  line-height: var(--mobile-main-text-regular-b2-line-height);
+}
+
+.offline-banner-text {
+  color: var(--content-color-black-60);
+  font-size: var(--mobile-main-text-regular-b3);
+  line-height: var(--mobile-main-text-regular-b3-line-height);
+}
+
+.dark .offline-page .offline-banner-title {
+  color: var(--content-color-baige-90);
+}
+
+.dark .offline-page .offline-banner-text {
+  color: var(--content-color-baige-60);
+}
+
+.is-hidden {
+  visibility: hidden;
 }
 
 .offline-usage {
@@ -512,19 +608,34 @@ onUnmounted(() => {
 }
 
 .offline-item-downloaded {
-  --f7-list-item-padding-horizontal: 8px;
+  // --f7-list-item-padding-horizontal: 8px;
 
   :deep(.item-content) {
-    margin: 2px 8px;
-    border-radius: 12px;
+    // margin: 2px 8px;
+    // border-radius: 12px;
     background: var(--offline-downloaded-bg);
   }
 }
 
+.offline-separator {
+  height: 1px;
+  margin: 8px 16px 0;
+  border: 0;
+  background: var(--content-color-black-10);
+}
+
+.dark .offline-page .offline-separator {
+  background: var(--content-color-baige-10);
+}
+
 .offline-list-auto-update {
-  --f7-list-item-title-font-size: var(--mobile-main-text-regular-b1);
-  --f7-list-item-title-line-height: var(--mobile-main-text-regular-b1-line-height);
-  --f7-list-item-media-margin: 8px;
+  --f7-list-item-title-font-size: var(--mobile-main-text-regular-b2);
+  --f7-list-item-title-line-height: var(--mobile-main-text-regular-b2-line-height);
+  // --f7-list-item-media-margin: 8px;
+  --f7-list-item-padding-vertical: 12px;
+
+  margin-top: 16px;
+  margin-bottom: 24px;
 }
 
 .offline-group-title {
@@ -586,5 +697,9 @@ onUnmounted(() => {
   width: 44px;
   min-width: 44px;
   margin: -6px -6px -6px 0;
+
+  &.is-unavailable {
+    opacity: 0.4;
+  }
 }
 </style>
