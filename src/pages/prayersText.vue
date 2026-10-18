@@ -168,7 +168,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watchEffect, useTemplateRef, ComponentPublicInstance, watch, nextTick, onMounted } from "vue";
+import { ref, computed, watchEffect, useTemplateRef, ComponentPublicInstance, watch, nextTick, onMounted, onUnmounted } from "vue";
 import type { Router } from "framework7/types";
 import { f7 } from "framework7-vue";
 import type { Swiper } from "swiper";
@@ -205,6 +205,7 @@ import SpotlightHint, { type SpotlightTarget } from "@/components/reading-tutori
 import SvgIcon from "@/components/SvgIcon.vue";
 import { useApiState } from "@/composables/useApiState";
 import { device } from "@/js/device";
+import { noteReadingInteraction, startReadingScreenTimeout, stopReadingScreenTimeout } from "@/js/device/readingScreenTimeout";
 import {
   buildDayText,
   buildReadingText,
@@ -467,6 +468,14 @@ watch(displayLanguage, (newLanguage) => {
 
 const isNavbarHidden = ref(true);
 
+let readingScreenTimeoutStarted = false;
+
+const releaseReadingScreenTimeout = () => {
+  if (!readingScreenTimeoutStarted) return;
+  readingScreenTimeoutStarted = false;
+  stopReadingScreenTimeout();
+};
+
 const onPageBeforeIn = () => {
   const bottomTabBar = getComponent("bottomTabBar");
   bottomTabBar?.hide(true);
@@ -478,10 +487,20 @@ const onPageBeforeIn = () => {
   isReadingPageActive.value = true;
   syncReadingSystemBars();
 
-  device.keepScreenOn(settingsStore.keepScreenOn);
+  if (settingsStore.keepScreenOn) {
+    if (!readingScreenTimeoutStarted) {
+      startReadingScreenTimeout();
+      readingScreenTimeoutStarted = true;
+    }
+  } else if (readingScreenTimeoutStarted) {
+    releaseReadingScreenTimeout();
+  } else {
+    device.keepScreenOn(false);
+  }
 
   if (settingsStore.isVolumeButtonsScrollEnabled) {
     device.onVolumeKey((keyCode) => {
+      noteReadingInteraction();
       switch (keyCode) {
         case device.KEYCODE_VOLUME_UP:
           textPaginator.value?.slidePrev();
@@ -512,9 +531,11 @@ const onPageAfterOut = () => {
   device.resetBrightness();
   isReadingPageActive.value = false;
   restoreReadingSystemBars();
-  device.keepScreenOn(false);
+  releaseReadingScreenTimeout();
   device.offVolumeKey();
 };
+
+onUnmounted(releaseReadingScreenTimeout);
 
 const textPaginator = useTemplateRef<InstanceType<typeof TextPaginator>>("textPaginator");
 

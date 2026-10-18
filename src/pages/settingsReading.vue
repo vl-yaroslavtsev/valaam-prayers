@@ -5,7 +5,7 @@
     <f7-list dividers class="settings-list">
       <f7-list-item
         title="Не гасить экран"
-        footer="Оставлять экран включенным во время чтения"
+        footer="Оставлять экран включенным на 10 минут дольше"
       >
         <template #after>
           <f7-toggle small v-model:checked="keepScreenOn" />
