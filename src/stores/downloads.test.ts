@@ -9,6 +9,9 @@ vi.mock("@/services/download/DownloadManager", () => ({
     getProgress: vi.fn(),
     getModuleSize: vi.fn(),
     getDownloadedSize: vi.fn(),
+    getEstimatedSize: vi.fn(),
+    saveEstimatedSize: vi.fn(),
+    dismissError: vi.fn(),
     getUpdateSize: vi.fn(),
     subscribe: vi.fn(),
     isDownloaded: vi.fn(),
@@ -125,5 +128,36 @@ describe("useDownloadsStore", () => {
     expect(await store.getUpdateSize("calendar")).toBe(5);
     expect(downloadManager.getDownloadedSize).toHaveBeenCalledWith("calendar");
     expect(downloadManager.getUpdateSize).toHaveBeenCalledWith("calendar");
+  });
+
+  it("dismissError переводит progress в idle и вызывает менеджер", async () => {
+    vi.mocked(downloadManager.dismissError).mockResolvedValue(undefined);
+    const store = useDownloadsStore();
+    store.progress.saints = {
+      moduleId: "saints",
+      status: "error",
+      downloadedBytes: 0,
+      totalBytes: 0,
+      error: "Failed to fetch",
+      updatedAt: 1,
+    };
+
+    await store.dismissError("saints");
+
+    expect(store.progress.saints?.status).toBe("idle");
+    expect(store.progress.saints?.error).toBeUndefined();
+    expect(downloadManager.dismissError).toHaveBeenCalledWith("saints");
+  });
+
+  it("getEstimatedSize и saveEstimatedSize проксируются в менеджер", async () => {
+    vi.mocked(downloadManager.getEstimatedSize).mockResolvedValue(30);
+    vi.mocked(downloadManager.saveEstimatedSize).mockResolvedValue(undefined);
+
+    const store = useDownloadsStore();
+
+    expect(await store.getEstimatedSize("molitvoslov")).toBe(30);
+    await store.saveEstimatedSize("molitvoslov", 40);
+    expect(downloadManager.getEstimatedSize).toHaveBeenCalledWith("molitvoslov");
+    expect(downloadManager.saveEstimatedSize).toHaveBeenCalledWith("molitvoslov", 40);
   });
 });

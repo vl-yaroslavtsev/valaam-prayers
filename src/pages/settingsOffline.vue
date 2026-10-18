@@ -1,5 +1,5 @@
 <template>
-  <f7-page name="settings-offline">
+  <f7-page name="settings-offline" class="offline-page" @page:beforeout="dismissErrors">
     <f7-navbar large transparent title="Доступ без интернета" back-link></f7-navbar>
     <f7-block>
       <p>
@@ -18,10 +18,32 @@
       </f7-list-item>
     </f7-list>
 
+    <f7-block class="offline-usage">
+      <div class="offline-usage-label">
+        <template v-if="localReady && quotaReady">
+          Использовано
+          <span class="offline-digits">{{ formatMbNumber(usageUsedBytes) }}</span>
+          МБ
+          <template v-if="storageQuotaLabel">
+            из
+            <span class="offline-digits">{{ storageQuotaLabel.value }}</span>
+            {{ storageQuotaLabel.unit }}
+          </template>
+        </template>
+        <span v-else class="skeleton-text skeleton-effect-wave offline-size-placeholder">Использовано 00.0 МБ из 00 МБ</span>
+      </div>
+      <f7-progressbar class="offline-usage-bar" :progress="usagePercent" />
+    </f7-block>
+
     <template v-for="group in GROUPS" :key="group.key">
       <f7-block-title class="offline-group-title">{{ group.title }}</f7-block-title>
       <f7-list no-hairlines class="offline-list">
-        <f7-list-item v-for="item in group.items" :key="item.moduleId" :title="item.title">
+        <f7-list-item
+          v-for="item in group.items"
+          :key="item.moduleId"
+          :title="item.title"
+          :class="{ 'offline-item-downloaded': showDownloadedStyle(item.moduleId) }"
+        >
           <template #footer>
             <f7-progressbar
               v-show="showProgress(item.moduleId)"
@@ -29,11 +51,27 @@
               :progress="progressPercent(item.moduleId)"
             />
             <div class="offline-footer">
-              <span v-if="showProgress(item.moduleId)" class="offline-accent offline-progress-text">{{ progressText(item.moduleId) }}</span>
+              <span v-if="showProgress(item.moduleId)" class="offline-accent">
+                <span class="offline-digits">{{ progressNumbers(item.moduleId).current }}</span>
+                МБ из
+                <span class="offline-digits">{{ progressNumbers(item.moduleId).total }}</span>
+                МБ
+              </span>
               <span v-else-if="hasError(item.moduleId)" class="text-color-red">Не удалось скачать. Попробуйте ещё раз</span>
               <template v-else>
-                <span v-if="sizeText(item.moduleId)">{{ sizeText(item.moduleId) }}</span>
-                <span v-if="updateText(item.moduleId)" class="offline-accent">{{ updateText(item.moduleId) }}</span>
+                <span v-if="showSizePlaceholder(item.moduleId)" class="skeleton-text skeleton-effect-wave offline-size-placeholder">00.0 МБ</span>
+                <span v-else-if="downloaded[item.moduleId]" class="offline-downloaded">
+                  <span class="offline-downloaded-mark">✓ Скачано</span>
+                  <template v-if="sizeBytes(item.moduleId) != null">
+                    • <span class="offline-digits">{{ formatMbNumber(sizeBytes(item.moduleId)!) }}</span> МБ
+                  </template>
+                </span>
+                <span v-else-if="sizeBytes(item.moduleId) != null">
+                  <span class="offline-digits">{{ formatMbNumber(sizeBytes(item.moduleId)!) }}</span> МБ
+                </span>
+                <span v-if="updateMb(item.moduleId)" class="offline-accent">
+                  Обновление: <span class="offline-digits">{{ updateMb(item.moduleId) }}</span> МБ
+                </span>
               </template>
             </div>
           </template>
@@ -55,19 +93,20 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, reactive, watch } from "vue";
+import { computed, onMounted, onUnmounted, reactive, ref, watch } from "vue";
 import { f7 } from "framework7-vue";
 import SvgIcon from "@/components/SvgIcon.vue";
 import { useTheme } from "@/composables/useTheme";
 import { useSettingsStore } from "@/stores/settings";
 import { useDownloadsStore } from "@/stores/downloads";
 import { startAutoUpdate, stopAutoUpdate } from "@/services/download/AutoUpdate";
+import { bytesToSize, getQuota } from "@/js/device/browser-test";
 import { ALL_MODULE_IDS } from "@/services/download/types";
 import type { DownloadModuleId } from "@/services/download/types";
 import type { IconName } from "@/types/icon-name";
 
 type ActionKind = "download" | "update" | "cancel" | "delete" | "none";
-type ActionIconColor = "baige-60" | "black-60" | "primary-accent-50";
+type ActionIconColor = "baige-60" | "black-60" | "primary-accent-50" | "primary-accent-70";
 
 interface ActionIcon {
   icon: IconName;
@@ -123,6 +162,7 @@ const settingsStore = useSettingsStore();
 const downloadsStore = useDownloadsStore();
 
 const neutralColor = computed<ActionIconColor>(() => (isDarkMode.value ? "baige-60" : "black-60"));
+const accentColor = computed<ActionIconColor>(() => (isDarkMode.value ? "primary-accent-70" : "primary-accent-50"));
 
 const autoUpdate = computed({
   get: () => settingsStore.isAutoUpdateOfflineDataEnabled,
@@ -133,6 +173,8 @@ const autoUpdate = computed({
   },
 });
 
+let pageActive = true;
+
 // undefined в downloaded - ещё не прочитано из хранилища
 const downloaded = reactive<Partial<Record<DownloadModuleId, boolean>>>({});
 // Размер скачанного модуля - из локального хранилища, без сети
@@ -140,10 +182,35 @@ const savedSizes = reactive<Partial<Record<DownloadModuleId, number>>>({});
 // Размер ещё не скачанного модуля и размер доступного обновления - из API, нужна сеть
 const remoteSizes = reactive<Partial<Record<DownloadModuleId, number>>>({});
 const updateSizes = reactive<Partial<Record<DownloadModuleId, number>>>({});
+// true, пока первый запрос размера идёт и в базе ещё нет сохранённого значения
+const sizePending = reactive<Partial<Record<DownloadModuleId, boolean>>>({});
+const localReady = ref(false);
+const quotaReady = ref(false);
+const storageQuotaBytes = ref<number | null>(null);
 
-function formatMb(bytes: number): string {
+const usageUsedBytes = computed(() =>
+  ALL_MODULE_IDS.reduce((sum, moduleId) => {
+    if (!downloaded[moduleId]) return sum;
+    return sum + (savedSizes[moduleId] ?? 0);
+  }, 0)
+);
+
+const storageQuotaLabel = computed(() => {
+  if (storageQuotaBytes.value == null) return null;
+  const [value, unit = ""] = bytesToSize(storageQuotaBytes.value, { wrapDigit: false }).split(" ");
+  return { value, unit };
+});
+
+const usagePercent = computed(() => {
+  const quota = storageQuotaBytes.value;
+  if (!quota) return 0;
+  return Math.min(100, Math.round((usageUsedBytes.value / quota) * 100));
+});
+
+function formatMbNumber(bytes: number): string {
+  if (bytes <= 0) return "0";
   const mb = Math.round((bytes / BYTES_IN_MB) * 10) / 10;
-  return `${bytes > 0 ? Math.max(mb, 0.1) : 0} МБ`;
+  return Math.max(mb, 0.1).toFixed(1);
 }
 
 function isDownloading(moduleId: DownloadModuleId): boolean {
@@ -156,12 +223,19 @@ function showProgress(moduleId: DownloadModuleId): boolean {
   return progress?.status === "downloading" && progress.totalBytes > 0;
 }
 
+// Сбой до начала скачивания (размер так и не получили) не показываем: в строке остаётся размер или пусто
 function hasError(moduleId: DownloadModuleId): boolean {
-  return downloadsStore.progress[moduleId]?.status === "error";
+  const progress = downloadsStore.progress[moduleId];
+  if (progress?.status !== "error") return false;
+  return progress.downloadedBytes > 0 || progress.totalBytes > 0;
 }
 
 function hasUpdate(moduleId: DownloadModuleId): boolean {
   return !!downloaded[moduleId] && (updateSizes[moduleId] ?? 0) > 0;
+}
+
+function showDownloadedStyle(moduleId: DownloadModuleId): boolean {
+  return !!downloaded[moduleId] && !showProgress(moduleId) && !hasError(moduleId);
 }
 
 function progressPercent(moduleId: DownloadModuleId): number {
@@ -176,20 +250,23 @@ function formatProgressMb(bytes: number): string {
   return (Math.round((bytes / BYTES_IN_MB) * 10) / 10).toFixed(1);
 }
 
-function progressText(moduleId: DownloadModuleId): string {
+function progressNumbers(moduleId: DownloadModuleId): { current: string; total: string } {
   const progress = downloadsStore.progress[moduleId];
   const total = formatProgressMb(progress?.totalBytes ?? 0);
   const current = formatProgressMb(progress?.downloadedBytes ?? 0).padStart(total.length, "\u00a0");
-  return `${current} МБ из ${total} МБ`;
+  return { current, total };
 }
 
-function sizeText(moduleId: DownloadModuleId): string {
-  const bytes = downloaded[moduleId] ? savedSizes[moduleId] : remoteSizes[moduleId];
-  return bytes == null ? "" : formatMb(bytes);
+function sizeBytes(moduleId: DownloadModuleId): number | undefined {
+  return downloaded[moduleId] ? savedSizes[moduleId] : remoteSizes[moduleId];
 }
 
-function updateText(moduleId: DownloadModuleId): string {
-  return hasUpdate(moduleId) ? `Обновление: ${formatMb(updateSizes[moduleId]!)}` : "";
+function showSizePlaceholder(moduleId: DownloadModuleId): boolean {
+  return !downloaded[moduleId] && sizePending[moduleId] === true && remoteSizes[moduleId] == null;
+}
+
+function updateMb(moduleId: DownloadModuleId): string {
+  return hasUpdate(moduleId) ? formatMbNumber(updateSizes[moduleId]!) : "";
 }
 
 function actionKind(moduleId: DownloadModuleId): ActionKind {
@@ -219,27 +296,63 @@ function actionIcon(moduleId: DownloadModuleId): ActionIcon {
       return { icon: "cancel", color: "primary-accent-50", size: 18 };
     case "delete":
       return { icon: "delete", color: neutralColor.value, size: 24 };
-    case "update":
-      return { icon: "download", color: "primary-accent-50", size: 32 };
     default:
-      return { icon: "download", color: neutralColor.value, size: 32 };
+      return { icon: "download", color: accentColor.value, size: 32 };
+  }
+}
+
+async function loadLocal(moduleId: DownloadModuleId): Promise<void> {
+  const isDownloaded = await downloadsStore.isDownloaded(moduleId);
+  const savedSize = isDownloaded ? await downloadsStore.getDownloadedSize(moduleId) : null;
+  const cached = isDownloaded ? null : await downloadsStore.getEstimatedSize(moduleId);
+  if (!pageActive) return;
+
+  downloaded[moduleId] = isDownloaded;
+  if (isDownloaded) {
+    savedSizes[moduleId] = savedSize ?? undefined;
+    sizePending[moduleId] = false;
+    return;
+  }
+
+  savedSizes[moduleId] = undefined;
+  updateSizes[moduleId] = undefined;
+  if (cached != null) {
+    remoteSizes[moduleId] = cached;
+    sizePending[moduleId] = false;
+  } else if (remoteSizes[moduleId] == null) {
+    sizePending[moduleId] = true;
+  }
+}
+
+async function loadRemote(moduleId: DownloadModuleId): Promise<void> {
+  try {
+    if (downloaded[moduleId]) {
+      const size = await downloadsStore.getUpdateSize(moduleId);
+      if (!pageActive) return;
+      updateSizes[moduleId] = size ?? undefined;
+    } else {
+      const size = await downloadsStore.getModuleSize(moduleId);
+      await downloadsStore.saveEstimatedSize(moduleId, size);
+      if (!pageActive) return;
+      remoteSizes[moduleId] = size;
+    }
+  } catch {
+    // Без сети оставляем сохранённый размер. Ошибку получения размера не показываем
+  } finally {
+    if (pageActive) sizePending[moduleId] = false;
   }
 }
 
 async function refreshModule(moduleId: DownloadModuleId): Promise<void> {
-  const isDownloaded = await downloadsStore.isDownloaded(moduleId);
-  downloaded[moduleId] = isDownloaded;
-  savedSizes[moduleId] = isDownloaded ? ((await downloadsStore.getDownloadedSize(moduleId)) ?? undefined) : undefined;
-  updateSizes[moduleId] = undefined;
+  await loadLocal(moduleId);
+  await loadRemote(moduleId);
+}
 
-  try {
-    if (isDownloaded) {
-      updateSizes[moduleId] = (await downloadsStore.getUpdateSize(moduleId)) ?? undefined;
-    } else {
-      remoteSizes[moduleId] = await downloadsStore.getModuleSize(moduleId);
+function dismissErrors(): void {
+  for (const moduleId of ALL_MODULE_IDS) {
+    if (downloadsStore.progress[moduleId]?.status === "error") {
+      void downloadsStore.dismissError(moduleId);
     }
-  } catch {
-    // Без сети размер нескачанного модуля и обновления не показываем
   }
 }
 
@@ -289,24 +402,97 @@ async function onAction(item: OfflineItem): Promise<void> {
 }
 
 // Завершение, отмена и удаление могут прийти не со страницы (автообновление, докачка) -
-// следим за статусами и перечитываем состояние модуля
+// следим за статусами и перечитываем состояние модуля. idle - это снятая при уходе ошибка, её не перечитываем
 watch(
   () => ALL_MODULE_IDS.map((moduleId) => downloadsStore.progress[moduleId]?.status),
   (statuses, previous) => {
+    if (!previous) return;
     ALL_MODULE_IDS.forEach((moduleId, index) => {
-      if (statuses[index] !== previous[index] && statuses[index] !== "downloading") {
-        void refreshModule(moduleId);
-      }
+      const status = statuses[index];
+      if (status === previous[index] || status === "downloading" || status === "idle") return;
+      void refreshModule(moduleId);
     });
   }
 );
 
 onMounted(() => {
-  void Promise.allSettled(ALL_MODULE_IDS.map(refreshModule));
+  void getQuota()
+    .then((result) => {
+      if (pageActive) storageQuotaBytes.value = result.quota;
+    })
+    .catch(() => {
+      // Storage API недоступен — строка остаётся без «из …»
+    })
+    .finally(() => {
+      if (pageActive) quotaReady.value = true;
+    });
+
+  void (async () => {
+    await Promise.allSettled(ALL_MODULE_IDS.map(loadLocal));
+    if (!pageActive) return;
+    localReady.value = true;
+    await Promise.allSettled(ALL_MODULE_IDS.map(loadRemote));
+  })();
+});
+
+onUnmounted(() => {
+  pageActive = false;
+  dismissErrors();
 });
 </script>
 
 <style scoped lang="less">
+.offline-page {
+  --offline-accent: var(--brand-color-primary-accent-50);
+  --offline-downloaded-bg: var(--brand-color-secondary-accent);
+  --offline-usage-track: var(--content-color-black-10);
+}
+
+.dark .offline-page {
+  --offline-accent: var(--brand-color-primary-accent-70);
+  --offline-downloaded-bg: var(--content-color-black-secondary);
+  --offline-usage-track: var(--content-color-baige-10);
+}
+
+.offline-usage {
+  margin-top: 8px;
+  margin-bottom: 0;
+}
+
+.offline-usage-label {
+  color: var(--content-color-black-60);
+  font-size: var(--mobile-detail-regular-d1);
+  line-height: var(--mobile-detail-regular-d1-line-height);
+}
+
+.dark .offline-page .offline-usage-label {
+  color: var(--content-color-baige-60);
+}
+
+.offline-digits {
+  font-family: "PT Mono", ui-monospace, monospace;
+}
+
+.offline-size-placeholder {
+  display: inline-block;
+  border-radius: 4px;
+  color: transparent;
+  user-select: none;
+}
+
+.offline-usage-bar {
+  --f7-progressbar-height: 4px;
+  --f7-progressbar-border-radius: 4px;
+  --f7-progressbar-progress-color: var(--offline-accent);
+  --f7-progressbar-bg-color: var(--offline-usage-track);
+
+  margin-top: 10px;
+
+  &::after {
+    display: none;
+  }
+}
+
 .offline-list {
   --f7-list-item-padding-vertical: 8px;
   --f7-list-item-title-white-space: normal;
@@ -322,6 +508,16 @@ onMounted(() => {
     height: 1.2em;
     margin-top: 6px;
     white-space: nowrap;
+  }
+}
+
+.offline-item-downloaded {
+  --f7-list-item-padding-horizontal: 8px;
+
+  :deep(.item-content) {
+    margin: 2px 8px;
+    border-radius: 12px;
+    background: var(--offline-downloaded-bg);
   }
 }
 
@@ -356,17 +552,17 @@ onMounted(() => {
   }
 }
 
-.offline-accent {
-  color: var(--brand-color-primary-accent-50);
+.offline-downloaded-mark {
+  color: var(--offline-accent);
 }
 
-.offline-progress-text {
-  font-family: ui-monospace, "Cascadia Mono", "Segoe UI Mono", Consolas, monospace;
+.offline-accent {
+  color: var(--offline-accent);
 }
 
 .offline-progress {
   --f7-progressbar-height: 1px;
-  --f7-progressbar-progress-color: var(--brand-color-primary-accent-50);
+  --f7-progressbar-progress-color: var(--offline-accent);
   --f7-progressbar-bg-color: transparent;
 
   position: absolute;

@@ -35,6 +35,20 @@ export const useDownloadsStore = defineStore("downloads", () => {
   const getDownloadedSize = (moduleId: DownloadModuleId): Promise<number | null> =>
     downloadManager.getDownloadedSize(moduleId);
 
+  const getEstimatedSize = (moduleId: DownloadModuleId): Promise<number | null> =>
+    downloadManager.getEstimatedSize(moduleId);
+
+  const saveEstimatedSize = (moduleId: DownloadModuleId, size: number): Promise<void> =>
+    downloadManager.saveEstimatedSize(moduleId, size);
+
+  const dismissError = async (moduleId: DownloadModuleId): Promise<void> => {
+    const current = progress[moduleId];
+    if (current?.status === "error") {
+      progress[moduleId] = { ...current, status: "idle", error: undefined };
+    }
+    await downloadManager.dismissError(moduleId);
+  };
+
   const getUpdateSize = (moduleId: DownloadModuleId): Promise<number | null> =>
     downloadManager.getUpdateSize(moduleId);
 
@@ -71,6 +85,9 @@ export const useDownloadsStore = defineStore("downloads", () => {
     initStore,
     getModuleSize,
     getDownloadedSize,
+    getEstimatedSize,
+    saveEstimatedSize,
+    dismissError,
     getUpdateSize,
     isDownloaded,
     startDownload,

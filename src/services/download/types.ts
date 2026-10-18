@@ -45,6 +45,15 @@ export function downloadSizeKey(moduleId: DownloadModuleId): string {
 }
 
 /**
+ * Ключ оценки размера ещё не скачанного модуля (в байтах),
+ * например "download_estimate_calendar". Показывается сразу при следующем заходе,
+ * пока с сервера не придёт актуальное значение.
+ */
+export function downloadEstimateKey(moduleId: DownloadModuleId): string {
+  return `download_estimate_${moduleId}`;
+}
+
+/**
  * Публичное состояние прогресса модуля (то, что видит внешний код/будущий UI)
  */
 export interface DownloadProgress {

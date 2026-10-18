@@ -247,6 +247,64 @@ describe("DownloadManager", () => {
       expect((await downloadProgressStorage?.getState("saints"))?.status).toBe("completed");
     });
 
+    it("saveEstimatedSize сохраняет размер к скачиванию, getEstimatedSize его возвращает", async () => {
+      expect(await manager.getEstimatedSize("calendar")).toBeNull();
+
+      await manager.saveEstimatedSize("calendar", 1234);
+
+      expect(await manager.getEstimatedSize("calendar")).toBe(1234);
+    });
+
+    it("getEstimatedSize игнорирует нечисловое значение", async () => {
+      await metadataStorage?.setValue("download_estimate_calendar", "1234");
+
+      expect(await manager.getEstimatedSize("calendar")).toBeNull();
+    });
+
+    it("dismissError снимает статус error и сохраняет чекпоинт", async () => {
+      await downloadProgressStorage?.setState({
+        moduleId: "saints",
+        status: "error",
+        totalBytes: 100,
+        downloadedBytes: 40,
+        error: "offline",
+        updatedAt: 1,
+        listState: { currentPage: 1, totalPages: 3 },
+      });
+
+      await manager.dismissError("saints");
+
+      const state = await downloadProgressStorage?.getState("saints");
+      expect(state?.status).toBe("idle");
+      expect(state?.error).toBeUndefined();
+      expect(state?.downloadedBytes).toBe(40);
+      expect(state?.listState).toEqual({ currentPage: 1, totalPages: 3 });
+    });
+
+    it("dismissError не трогает состояние без ошибки", async () => {
+      await downloadProgressStorage?.setState({
+        moduleId: "saints",
+        status: "completed",
+        totalBytes: 100,
+        downloadedBytes: 100,
+        updatedAt: 1,
+      });
+
+      await manager.dismissError("saints");
+
+      expect((await downloadProgressStorage?.getState("saints"))?.status).toBe("completed");
+    });
+
+    it("deleteDownload не стирает оценку размера к скачиванию", async () => {
+      await manager.saveEstimatedSize("saints", 50);
+      await manager.startDownload("saints");
+
+      await manager.deleteDownload("saints");
+
+      expect(await manager.getEstimatedSize("saints")).toBe(50);
+      expect(await manager.getDownloadedSize("saints")).toBeNull();
+    });
+
     it("deleteDownload стирает сохранённый размер", async () => {
       await manager.startDownload("saints");
       expect(await manager.getDownloadedSize("saints")).toBe(100);

@@ -2,6 +2,7 @@ import { downloadProgressStorage, metadataStorage } from "@/services/storage";
 import { getModule } from "@/services/download/modules";
 import {
   ALL_MODULE_IDS,
+  downloadEstimateKey,
   downloadSizeKey,
   downloadSyncKey,
   type DownloadContext,
@@ -71,6 +72,31 @@ export class DownloadManager {
   async getDownloadedSize(moduleId: DownloadModuleId): Promise<number | null> {
     const size = await metadataStorage?.getValue(downloadSizeKey(moduleId));
     return typeof size === "number" ? size : null;
+  }
+
+  /**
+   * Размер к скачиванию, сохранённый после последнего успешного запроса.
+   * null - ещё ни разу не получали.
+   */
+  async getEstimatedSize(moduleId: DownloadModuleId): Promise<number | null> {
+    const size = await metadataStorage?.getValue(downloadEstimateKey(moduleId));
+    return typeof size === "number" ? size : null;
+  }
+
+  async saveEstimatedSize(moduleId: DownloadModuleId, size: number): Promise<void> {
+    await metadataStorage?.setValue(downloadEstimateKey(moduleId), size);
+  }
+
+  /**
+   * Убирает ошибку загрузки, не стирая чекпоинт докачки.
+   * Статус error не нужен для возобновления и не должен всплывать при следующем заходе.
+   */
+  async dismissError(moduleId: DownloadModuleId): Promise<void> {
+    const state = await downloadProgressStorage?.getState(moduleId);
+    if (state?.status !== "error") return;
+    state.status = "idle";
+    state.error = undefined;
+    await downloadProgressStorage?.setState(state);
   }
 
   /**
