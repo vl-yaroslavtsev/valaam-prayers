@@ -303,10 +303,8 @@ const sections = computed<Section[]>(() => {
 }
 
 .saint-photo-fg {
-  top: 3.5%;
-  bottom: 2.8%;
-  height: auto;
-  object-fit: contain;
+  height: 100%;
+  object-fit: cover; //contain;
 }
 
 .saint-life {
