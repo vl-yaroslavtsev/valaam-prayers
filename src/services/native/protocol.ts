@@ -15,7 +15,20 @@ export type NativeErrorCode =
   | "NOT_SUPPORTED"
   | "INTERNAL";
 
-export type BridgeCapability = "db" | "download" | "autoUpdate" | "images";
+export type BridgeCapability = "db" | "download" | "autoUpdate" | "images" | "seed";
+
+/**
+ * applying: идёт блокирующий этап (индексы, разделы, раскраска), JS должен ждать.
+ * importing: индексы готовы, модули (calendar, molitvoslov) догружаются в фоне через download.progress.
+ */
+export type SeedStatus = "applying" | "importing" | "completed" | "skipped" | "error";
+
+export interface SeedState {
+  status: SeedStatus;
+  seedVersion: number | null;
+  createdAt: string | null;
+  error?: string;
+}
 
 export interface BridgeInfo {
   protocolVersion: number;
@@ -90,6 +103,8 @@ export interface RpcMethods {
   "autoUpdate.getState": { params: Record<string, never>; result: AutoUpdateState };
 
   "storage.getInfo": { params: Record<string, never>; result: StorageInfo };
+
+  "seed.getState": { params: Record<string, never>; result: SeedState };
 }
 
 export type RpcMethod = keyof RpcMethods;
@@ -97,6 +112,7 @@ export type RpcMethod = keyof RpcMethods;
 /** Карта событий нативка -> JS */
 export interface RpcEvents {
   "download.progress": DownloadProgress;
+  "seed.state": SeedState;
 }
 
 export type RpcEvent = keyof RpcEvents;

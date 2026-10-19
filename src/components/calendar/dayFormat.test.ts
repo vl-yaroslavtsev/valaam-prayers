@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { getBridgeInfo } from "@/services/native/nativeRpc";
 import { FakeNativeBackend, type FakeNativeOptions } from "@/test/fakeNativeBackend";
 import {
@@ -121,6 +121,14 @@ describe("картинки", () => {
 
       expect(resolveImageUrl("/upload/iblock/a.jpg")).toBe("/upload/iblock/a.jpg");
       expect(resolveImageUrl(`https://example.com${RESIZED}`)).toBe(`https://example.com${RESIZED}`);
+    });
+
+    it("iOS со страницей на кастомной схеме оставляет путь относительным: его обрабатывает нативка", async () => {
+      await installBridge({ platform: "ios" });
+      vi.stubGlobal("location", { ...window.location, protocol: "valaam-app:" });
+
+      expect(resolveImageUrl(RESIZED)).toBe(RESIZED);
+      expect(buildSrcset(RESIZED, null, null)).toBe(`${RESIZED} 414w`);
     });
 
     it("iOS без capability images ничего не подменяет", async () => {

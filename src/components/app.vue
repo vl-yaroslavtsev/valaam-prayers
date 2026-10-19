@@ -79,6 +79,7 @@ import BottomTabBar from "./layout/BottomTabBar.vue";
 import LeftPanel from "./layout/LeftPanel.vue";
 
 import { registerSW } from "virtual:pwa-register";
+import { isNativeBridgeAvailable } from "@/services/native/nativeRpc";
 import type { View } from "framework7/types";
 import { waitForFontsLoaded } from "@/js/utils";
 import { useComponentsStore } from "@/stores/components";
@@ -88,12 +89,15 @@ const sharePopover = ref<InstanceType<typeof SharePopover> | null>(null);
 const bottomTabBar = ref<InstanceType<typeof BottomTabBar> | null>(null);
 
 const needRefresh = ref(false);
-const updateSW = registerSW({
-  onNeedRefresh() {
-    needRefresh.value = true;
-  },
-  onOfflineReady() {},
-});
+// В нативке статика лежит в приложении и обновляется вместе с ним: Service Worker не регистрируем
+const updateSW = isNativeBridgeAvailable()
+  ? () => {}
+  : registerSW({
+      onNeedRefresh() {
+        needRefresh.value = true;
+      },
+      onOfflineReady() {},
+    });
 
 // Framework7 Parameters
 const f7params = {

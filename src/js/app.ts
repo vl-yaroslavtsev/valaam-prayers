@@ -216,6 +216,8 @@ import { pinia } from "../stores";
 // Import storage initialization
 import { initStores } from "@/stores";
 
+import { disableServiceWorkerInNative } from "@/js/serviceWorker";
+
 // Init Framework7-Vue Plugin
 Framework7.use(Framework7Vue);
 
@@ -227,6 +229,9 @@ app.use(pinia);
 
 // Register Framework7 Vue components
 registerComponents(app);
+
+// В нативке Service Worker не нужен: чистим остатки прошлых версий
+void disableServiceWorkerInNative();
 
 // Initialize storage and data before mounting
 (async () => {

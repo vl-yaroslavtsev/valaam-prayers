@@ -90,11 +90,17 @@ export function htmlToText(html: string): string {
 
 /** Схема, через которую iOS отдаёт офлайн-картинки (docs/native-bridge-protocol.md, "Картинки") */
 const IOS_IMAGE_CACHE_ORIGIN = "valaam-cache://app";
+const IOS_APP_SCHEME = "valaam-app:";
 const RESIZE_CACHE_PATH = "/upload/resize_cache/";
+
+function isCustomSchemePage(): boolean {
+  return typeof location !== "undefined" && location.protocol === IOS_APP_SCHEME;
+}
 
 /**
  * https перехватить в WKWebView нельзя, поэтому на iOS картинки ресайза идут через кастомную схему.
- * Временная прокладка: после переезда статики на кастомную схему относительные пути заработают сами.
+ * Когда сама страница открыта по кастомной схеме (локальный бандл), относительные пути обрабатывает нативка,
+ * подмена не нужна.
  */
 function toIosImageCacheUrl(url: string): string {
   const path = url.startsWith(SITE_URL) ? url.slice(SITE_URL.length) : url;
@@ -109,7 +115,9 @@ export function resolveImageUrl(path: string): string;
 export function resolveImageUrl(path: string | null): string | null;
 export function resolveImageUrl(path: string | null): string | null {
   if (!path) return null;
-  if (getNativePlatform() === "ios" && hasNativeCapability("images")) return toIosImageCacheUrl(path);
+  if (getNativePlatform() === "ios" && hasNativeCapability("images") && !isCustomSchemePage()) {
+    return toIosImageCacheUrl(path);
+  }
   return path;
 }
 

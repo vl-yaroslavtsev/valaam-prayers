@@ -14,7 +14,7 @@
 
 ### Рукопожатие
 
-- `bridge.getInfo` -> `{ protocolVersion: 1, platform: "android" | "ios", appVersion: string, capabilities: ("db" | "download" | "autoUpdate" | "images")[] }`.
+- `bridge.getInfo` -> `{ protocolVersion: 1, platform: "android" | "ios", appVersion: string, capabilities: ("db" | "download" | "autoUpdate" | "images" | "seed")[] }`. Capability `seed` нативка объявляет только если seed лежит в ресурсах и его версия формата поддерживается (см. «Seed»).
 
 ### База данных
 
@@ -103,5 +103,109 @@ API: база `https://app.valaam.ru/api`. Ответ имеет вид `{ statu
 ### Картинки
 
 - В DOM картинки запрашиваются как относительные пути `/upload/resize_cache/...`.
-- Capability `images`. Android перехватывает `https://app.valaam.ru/upload/resize_cache/**`, iOS обслуживает `valaam-cache://app/upload/resize_cache/**` (веб подменяет схему на iOS, пока страница на `https`; после переезда статики на кастомную схему подмена не нужна). Fallback по имени файла (одинаковому для всех размеров) выбирает ближайшую по ширине папку ресайза, а не первую найденную.
+- Capability `images`. Android перехватывает `https://app.valaam.ru/upload/resize_cache/**`, iOS обслуживает `valaam-cache://app/upload/resize_cache/**` (веб подменяет схему на iOS, пока страница на `https`; когда страница открыта по `valaam-app://`, подмены нет: относительные пути идут в тот же обработчик схемы, см. «Статика в нативке»). Fallback по имени файла (одинаковому для всех размеров) выбирает ближайшую по ширине папку ресайза, а не первую найденную.
+
+### Статика в нативке
+
+Собранный бандл (`www/`, тот же, что деплоится на сервер) лежит в ресурсах приложения. Различие только в рантайме: веб определяет нативку по наличию моста.
+
+- Android: `WebViewAssetLoader`, домен `app.valaam.ru`, префикс `/native/` -> `assets/web/`. Страница: `https://app.valaam.ru/native/index.html`. Origin прежний, поэтому сохраняются localStorage и IndexedDB, а перехват `/upload/resize_cache/**` работает как раньше. Путь `/webview/` для нативки использовать нельзя: старый Service Worker (scope `/webview/`) отдал бы закэшированный старый бандл.
+- iOS: схема `valaam-app`, страница `valaam-app://app/native/index.html`, `WKURLSchemeHandler`. `/native/**` отдаётся из ресурса `web/`, `/upload/**` из офлайн-кэша иконок с сетевым фолбэком, остальное 404. Origin меняется, поэтому localStorage один раз сбрасывается. Для работы обработчика `limitsNavigationsToAppBoundDomains` выключен.
+- API остаётся `https://app.valaam.ru/api` (сервер отражает `Origin` в `Access-Control-Allow-Origin`).
+- Service Worker в нативке не регистрируется. Веб при старте отписывает старые регистрации и удаляет все Cache Storage (на Android они остались от прежних версий).
+- Deep links `https://app.valaam.ru/webview/#calendar:/days/20261018` продолжают открывать приложение. Нативка берёт из ссылки только фрагмент и открывает локальную страницу с этим фрагментом: `https://app.valaam.ru/native/index.html#...` (Android) или `valaam-app://app/native/index.html#...` (iOS). Веб сам разбирает фрагмент (при загрузке и на `hashchange`).
+
+### Seed
+
+Начальные данные в формате ответов API. Нативка один раз применяет их к пустой БД тем же кодом приёма данных, что и загрузчик (второго парсера нет). Модули `calendar` и `molitvoslov` после применения считаются скачанными, а последующие обновления идут по сети с `modified_since`, равным времени съёма seed.
+
+Seed генерирует `npm run seed:fetch` (`scripts/fetch-seed.mjs`) в папку `native-seed/` в корне веб-проекта. Папка в `.gitignore`, лежит вне `www/`, `src/` и `public/`, поэтому на сервер не попадает. Нативные сборки копируют её в ресурсы приложения вместе с `www/` (`npm run native:prepare` собирает и то и другое).
+
+Не входят в seed: `spiritualLiterature`, `liturgicalBooks`, все иконки, карточки святых (`saint-details`), индекс мыслей.
+
+Файлы:
+
+```
+native-seed/
+  manifest.json                         # пишется последним, без него seed не готов
+  prayers.json                          # GET /prayers
+  saints-index.json                     # GET /saints
+  calendar-markers.json                 # GET /days/calendar
+  calendar-days-001.json ...            # GET /days/list?from_date&to_date&page=N&page_size=100
+  molitvoslov-<sectionId>-001.json ...  # GET /prayers/list?section_id=<id>&page=N&page_size=100
+```
+
+Каждый файл самоописываемый (конверт):
+
+```json
+{
+  "seedVersion": 1,
+  "createdAt": "2026-10-19T19:30:00.000Z",
+  "createdAtTs": 1792438200,
+  "request": "/prayers/list?section_id=835&page=1&page_size=100",
+  "response": { "status": "success", "data": { "items": [], "nav": { "page_count": 12 } }, "errors": [] }
+}
+```
+
+`response` это тело ответа API без изменений. Нативка берёт `response.data` тем же кодом, что и ответ сети. Страницы по 100 элементов, как у загрузчика, файл до нескольких МБ (сейчас максимум около 8 МБ у разделов с длинными текстами), поэтому нативке достаточно держать в памяти одну страницу.
+
+`manifest.json`:
+
+```json
+{
+  "seedVersion": 1,
+  "createdAt": "2026-10-19T19:30:00.000Z",
+  "createdAtTs": 1792438200,
+  "webVersion": "1.43.0",
+  "years": [2026],
+  "indexes": [{ "name": "prayers", "file": "prayers.json", "bytes": 1743235 }],
+  "modules": {
+    "calendar": {
+      "apiSize": 13739240,
+      "files": [{ "file": "calendar-days-001.json", "bytes": 3905042, "page": 1, "totalPages": 4 }]
+    },
+    "molitvoslov": {
+      "apiSize": 88620640,
+      "sections": [1078, 835],
+      "files": [{ "file": "molitvoslov-835-001.json", "bytes": 3900000, "sectionId": 835, "page": 1, "totalPages": 6 }]
+    }
+  }
+}
+```
+
+- `indexes` содержит `prayers`, `saints`, `calendarMarkers`. Порядок файлов модуля: календарь по страницам; молитвослов по `sections` в указанном порядке, внутри раздела по страницам.
+- `seedVersion` это версия формата. Нативка с версией больше поддерживаемой (сейчас 1) seed пропускает.
+- `createdAt` это заголовок `Date` первого ответа сервера минус 60 секунд запаса (не часы компьютера и не время окончания съёма). Тогда `modified_since = createdAt` гарантированно заберёт всё изменённое с момента съёма.
+- `apiSize` это поле `size` из `/days/count` и `/prayers/count` (сумма по разделам). Оно идёт в `download_size_<id>`, как и при загрузке по сети.
+- Разделы молитвослова скрипт вычисляет из `/prayers`: `parent = 842`, кроме `id = 937`.
+
+Соответствие таблицам и метаданным (применяет нативка):
+
+- `prayers.json`: `data.elements` в `prayers-index`, `data.sections` в `prayer-sections`, `last_sync_prayers = createdAt`.
+- `saints-index.json`: `data` (массив) в `saints-index`, `last_sync_saints = createdAt`.
+- `calendar-markers.json`: из сырого `data` оставляются ключи из 8 цифр (значение строка или `null`), плюс `min` и `max` числами. В `calendar-markers` пишется `{ id: "snapshot", min, max, days }` (та же трансформация, что в `DaysApi.getCalendarMarkers`).
+- `calendar-days-*.json`: `data.items` в `calendar-days`.
+- `molitvoslov-*.json`: `data.items` с добавленным `moduleId = "molitvoslov"` в `prayer-details`.
+- По завершению модуля: `last_sync_download_<id> = createdAt` (не текущее время), `download_size_<id> = download_estimate_<id> = apiSize`, состояние модуля `completed`, `downloadedBytes = totalBytes = apiSize`.
+
+Состояние seed хранится в `metadata`, ключ `seed_state`, значение `{ status, seedVersion, createdAt, error? }`:
+
+- Метка пишется один раз и никогда не удаляется: ни `download.delete`, ни обновление приложения её не трогают, поэтому seed повторно не применяется. `applying` и `importing` означают «продолжить с чекпоинта», `completed`, `skipped`, `error` означают «ничего не делать».
+- Нет метки и нет seed в ресурсах (или версия не поддерживается): метка не пишется, статус `skipped` только в памяти.
+- Нет метки, seed есть, БД не пуста: метка `skipped`. «Пустая БД» это таблицы `prayers-index`, `prayer-sections`, `saints-index`, `calendar-days`, `calendar-markers`, `prayer-details` пусты и в `metadata` нет ключей `last_sync_*`. Пользовательские таблицы не учитываются.
+- Нет метки, seed есть, БД пуста: метка `applying`, этап 1.
+
+Этапы:
+
+1. Блокирующий (секунды): индексы, разделы, раскраска; в конце `last_sync_prayers` и `last_sync_saints = createdAt`, статус `importing`. Ошибка: откат строк этих таблиц и ключей `last_sync_*`, метка `error`, дальше приложение работает по сети.
+2. Фоновый: модули `calendar`, затем `molitvoslov` как обычные модули с прогрессом в `download.progress`. Запись по странице (длинных транзакций нет), чекпоинт после каждого файла. Ошибка модуля: его данные и состояние стираются (как `cancel`), модуль остаётся нескачанным, seed идёт дальше. После обоих модулей метка `completed`.
+
+Пока модуль принадлежит seed: `download.start` ничего не делает (`accepted: true`), `download.checkForUpdate` возвращает `accepted: false, started: false`, `download.cancel` и `download.delete` останавливают seed этого модуля и стирают данные (метка не меняется), `download.resumeInterrupted` и автообновление такие модули пропускают. `download.getModuleInfo.downloaded` становится `true` только по завершению модуля.
+
+JS API:
+
+- `seed.getState {}` -> `{ status: "applying" | "importing" | "completed" | "skipped" | "error", seedVersion: number | null, createdAt: string | null, error?: string }`. Нативка отвечает только после принятия решения (метка и пустота БД проверены), статуса «неизвестно» нет.
+- Событие `seed.state` с тем же телом при смене статуса. События до загрузки JS теряются, поэтому JS сам запрашивает `seed.getState`.
+- `applying` означает, что индексы ещё пишутся: JS не должен читать таблицы. `importing` и дальше: индексы готовы, модули догружаются в фоне. Веб в `initStorage()` ждёт выход из `applying` (таймаут 30 секунд, затем работает по сети).
+- WebView можно создавать и загружать во время применения seed. Нативная заставка остаётся, пока веб не вызовет `setWebViewVisible(true)` или `hideLaunchScreen`, то есть пока `initStores()` не закончится.
 

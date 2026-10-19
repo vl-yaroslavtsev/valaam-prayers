@@ -23,6 +23,7 @@ import {
   NativeTableStorage,
 } from "./native/NativeTableStorage";
 import { ensureNativeBridge } from "@/services/native/nativeRpc";
+import { waitForSeedIndexes } from "@/services/native/seed";
 import type { ValaamDB } from "./indexedDB";
 import type { CalendarMarkersStore, MetadataStore, PrayerDetailsStore, StoreTable } from "./types";
 
@@ -108,6 +109,8 @@ async function initStorage() {
   downloadProgressStorage = new DownloadProgressStorage();
 
   if (await ensureNativeBridge("db")) {
+    // Сторы читают таблицы при старте: сначала нативка должна применить индексы seed
+    await waitForSeedIndexes();
     initNativeStorage();
     await seedNativeFavorites();
   } else {

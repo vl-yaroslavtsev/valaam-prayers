@@ -41,5 +41,8 @@ Thumbs.db
 # Production build
 www/
 
+# Начальные данные для нативных приложений (npm run seed:fetch), на сервер не деплоятся
+native-seed/
+
 # Автогенерируемые типы (см. scripts/generate-icon-types.js)
 src/types/icon-name.d.ts

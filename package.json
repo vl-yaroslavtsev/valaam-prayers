@@ -16,6 +16,8 @@
     "build": "npm run clean && cross-env NODE_ENV=production vite build",
     "deploy": "scripts\\deploy.cmd",
     "prod": "npm run build && npm run deploy",
+    "seed:fetch": "node scripts/fetch-seed.mjs",
+    "native:prepare": "npm run build && npm run seed:fetch",
     "pretype-check": "node scripts/generate-icon-types.js",
     "type-check": "vue-tsc --noEmit",
     "test": "vitest run",
