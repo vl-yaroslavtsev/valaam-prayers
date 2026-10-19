@@ -1,8 +1,9 @@
 import { toRaw } from "vue";
 import { IDBPDatabase, StoreNames } from "idb";
 import { getDB, ValaamDB } from "./indexedDB";
+import type { TableStorage } from "./types";
 
-export class BaseStorage<T extends StoreNames<ValaamDB>> {
+export class BaseStorage<T extends StoreNames<ValaamDB>> implements TableStorage<ValaamDB[T]['key'], ValaamDB[T]['value']> {
   protected name: T;
   protected db: IDBPDatabase<ValaamDB>;
 

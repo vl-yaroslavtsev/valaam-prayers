@@ -1,5 +1,6 @@
 import { formatDate } from "@/js/utils";
 import type { ReadingsSchedule, ReadingsSection } from "@/services/api/DaysApi";
+import { getNativePlatform, hasNativeCapability } from "@/services/native/nativeRpc";
 
 /** Разница между новым и старым стилем (1900-2100 гг.) */
 const OLD_STYLE_OFFSET_DAYS = 13;
@@ -87,12 +88,29 @@ export function htmlToText(html: string): string {
   return text.replace(/\s+/g, " ").trim();
 }
 
-/** Относительный путь картинки из API -> абсолютный URL */
+/** Схема, через которую iOS отдаёт офлайн-картинки (docs/native-bridge-protocol.md, "Картинки") */
+const IOS_IMAGE_CACHE_ORIGIN = "valaam-cache://app";
+const RESIZE_CACHE_PATH = "/upload/resize_cache/";
+
+/**
+ * https перехватить в WKWebView нельзя, поэтому на iOS картинки ресайза идут через кастомную схему.
+ * Временная прокладка: после переезда статики на кастомную схему относительные пути заработают сами.
+ */
+function toIosImageCacheUrl(url: string): string {
+  const path = url.startsWith(SITE_URL) ? url.slice(SITE_URL.length) : url;
+  return path.startsWith(RESIZE_CACHE_PATH) ? `${IOS_IMAGE_CACHE_ORIGIN}${path}` : url;
+}
+
+/**
+ * Картинка из API для <img>. Путь остаётся относительным (/upload/...): на проде это тот же origin,
+ * в dev его проксирует Vite, на Android его перехватывает нативка. На iOS пути ресайза уходят в нативный кэш.
+ */
 export function resolveImageUrl(path: string): string;
 export function resolveImageUrl(path: string | null): string | null;
 export function resolveImageUrl(path: string | null): string | null {
   if (!path) return null;
-  return path.startsWith("/") ? `${SITE_URL}${path}` : path;
+  if (getNativePlatform() === "ios" && hasNativeCapability("images")) return toIosImageCacheUrl(path);
+  return path;
 }
 
 /**

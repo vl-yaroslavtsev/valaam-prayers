@@ -54,7 +54,7 @@ describe("buildDayText", () => {
 
     const { text } = buildDayText(day, "thought").prayerText;
 
-    expect(text).toContain('src="https://app.valaam.ru/upload/a.jpg"');
+    expect(text).toContain('src="/upload/a.jpg"');
     expect(text).toContain("<em>Преподобный Силуан Афонский</em>");
     expect(text).toContain("<p>Текст мысли</p>");
   });

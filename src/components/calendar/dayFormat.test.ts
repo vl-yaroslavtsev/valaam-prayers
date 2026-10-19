@@ -1,4 +1,6 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
+import { getBridgeInfo } from "@/services/native/nativeRpc";
+import { FakeNativeBackend, type FakeNativeOptions } from "@/test/fakeNativeBackend";
 import {
   buildSrcset,
   getDayHeader,
@@ -79,21 +81,59 @@ describe("htmlToText", () => {
 });
 
 describe("картинки", () => {
-  it("resolveImageUrl делает путь абсолютным", () => {
-    expect(resolveImageUrl("/upload/a.jpg")).toBe("https://app.valaam.ru/upload/a.jpg");
+  it("resolveImageUrl оставляет путь относительным", () => {
+    expect(resolveImageUrl("/upload/a.jpg")).toBe("/upload/a.jpg");
     expect(resolveImageUrl("https://example.com/a.jpg")).toBe("https://example.com/a.jpg");
     expect(resolveImageUrl(null)).toBeNull();
   });
 
   it("buildSrcset ставит ширину s/m/l и не дублирует один файл", () => {
-    expect(buildSrcset("/a.jpg", "/b.jpg", "/c.jpg")).toBe(
-      "https://app.valaam.ru/a.jpg 414w, https://app.valaam.ru/b.jpg 828w, https://app.valaam.ru/c.jpg 1245w"
-    );
-    expect(buildSrcset("/a.jpg", null, "/c.jpg")).toBe(
-      "https://app.valaam.ru/a.jpg 414w, https://app.valaam.ru/c.jpg 1245w"
-    );
-    expect(buildSrcset("/a.jpg", "/a.jpg", "/a.jpg")).toBe("https://app.valaam.ru/a.jpg 1245w");
+    expect(buildSrcset("/a.jpg", "/b.jpg", "/c.jpg")).toBe("/a.jpg 414w, /b.jpg 828w, /c.jpg 1245w");
+    expect(buildSrcset("/a.jpg", null, "/c.jpg")).toBe("/a.jpg 414w, /c.jpg 1245w");
+    expect(buildSrcset("/a.jpg", "/a.jpg", "/a.jpg")).toBe("/a.jpg 1245w");
     expect(buildSrcset(null, null, null)).toBeUndefined();
+  });
+
+  describe("нативный мост", () => {
+    const RESIZED = "/upload/resize_cache/iblock/359/414_999999_1/a.jpg";
+    let uninstall: (() => void) | null = null;
+
+    async function installBridge(options: FakeNativeOptions) {
+      uninstall = new FakeNativeBackend().install(options);
+      await getBridgeInfo();
+    }
+
+    afterEach(() => {
+      uninstall?.();
+      uninstall = null;
+    });
+
+    it("iOS с capability images отправляет картинки ресайза в нативный кэш", async () => {
+      await installBridge({ platform: "ios" });
+
+      expect(resolveImageUrl(RESIZED)).toBe(`valaam-cache://app${RESIZED}`);
+      expect(resolveImageUrl(`https://app.valaam.ru${RESIZED}`)).toBe(`valaam-cache://app${RESIZED}`);
+      expect(buildSrcset(RESIZED, null, null)).toBe(`valaam-cache://app${RESIZED} 414w`);
+    });
+
+    it("iOS не трогает остальные пути и чужие хосты", async () => {
+      await installBridge({ platform: "ios" });
+
+      expect(resolveImageUrl("/upload/iblock/a.jpg")).toBe("/upload/iblock/a.jpg");
+      expect(resolveImageUrl(`https://example.com${RESIZED}`)).toBe(`https://example.com${RESIZED}`);
+    });
+
+    it("iOS без capability images ничего не подменяет", async () => {
+      await installBridge({ platform: "ios", capabilities: ["db", "download"] });
+
+      expect(resolveImageUrl(RESIZED)).toBe(RESIZED);
+    });
+
+    it("Android оставляет относительный путь: картинки перехватывает нативка", async () => {
+      await installBridge({ platform: "android" });
+
+      expect(resolveImageUrl(RESIZED)).toBe(RESIZED);
+    });
   });
 });
 

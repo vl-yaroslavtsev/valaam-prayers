@@ -63,6 +63,38 @@ export interface DownloadProgress {
   totalBytes: number;
   error?: string;
   updatedAt: number;
+  /** Только нативный режим: идёт обновление уже скачанного модуля (в том числе автообновление) */
+  isUpdate?: boolean;
+  /** Только нативный режим: сеть пропала, загрузка продолжится сама */
+  waitingForNetwork?: boolean;
+}
+
+/**
+ * Общий интерфейс менеджера офлайн-загрузок: JS-реализация (браузер, DownloadManager)
+ * и нативная (Android/iOS, NativeDownloadManager).
+ */
+export interface IDownloadManager {
+  /** Подписка на прогресс всех модулей. Возвращает функцию отписки. */
+  subscribe(listener: (progress: DownloadProgress) => void): () => void;
+  getModuleSize(moduleId: DownloadModuleId, since?: Date): Promise<number>;
+  getDownloadedSize(moduleId: DownloadModuleId): Promise<number | null>;
+  getEstimatedSize(moduleId: DownloadModuleId): Promise<number | null>;
+  saveEstimatedSize(moduleId: DownloadModuleId, size: number): Promise<void>;
+  dismissError(moduleId: DownloadModuleId): Promise<void>;
+  /** null - модуль не скачан, 0 - обновлений нет */
+  getUpdateSize(moduleId: DownloadModuleId): Promise<number | null>;
+  getProgress(moduleId: DownloadModuleId): Promise<DownloadProgress | null>;
+  isDownloaded(moduleId: DownloadModuleId): Promise<boolean>;
+  /** Резолвится на завершении, реджектится на ошибке загрузки */
+  startDownload(moduleId: DownloadModuleId, onProgress?: (progress: DownloadProgress) => void): Promise<void>;
+  checkForUpdate(
+    moduleId: DownloadModuleId,
+    onProgress?: (progress: DownloadProgress) => void,
+    since?: Date
+  ): Promise<void>;
+  cancelDownload(moduleId: DownloadModuleId): Promise<void>;
+  deleteDownload(moduleId: DownloadModuleId): Promise<void>;
+  resumeInterrupted(): Promise<void>;
 }
 
 /**

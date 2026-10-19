@@ -1,5 +1,7 @@
 import { downloadProgressStorage, metadataStorage } from "@/services/storage";
 import { getModule } from "@/services/download/modules";
+import { NativeDownloadManager } from "@/services/download/NativeDownloadManager";
+import { isNativeBridgeAvailable } from "@/services/native/nativeRpc";
 import {
   ALL_MODULE_IDS,
   downloadEstimateKey,
@@ -8,6 +10,7 @@ import {
   type DownloadContext,
   type DownloadModuleId,
   type DownloadProgress,
+  type IDownloadManager,
   type ModuleDownloadState,
 } from "@/services/download/types";
 
@@ -45,7 +48,7 @@ function toProgress(state: ModuleDownloadState): DownloadProgress {
  * Персистентный прогресс хранится в download-progress (IndexedDB), поэтому
  * докачка переживает потерю сети и перезапуск приложения.
  */
-export class DownloadManager {
+export class DownloadManager implements IDownloadManager {
   private controllers = new Map<DownloadModuleId, AbortController>();
   private runningPromises = new Map<DownloadModuleId, Promise<void>>();
   private listeners = new Set<(progress: DownloadProgress) => void>();
@@ -305,4 +308,7 @@ export class DownloadManager {
   }
 }
 
-export const downloadManager = new DownloadManager();
+/** В Android/iOS качает нативка (в фоне), в браузере и PWA работает этот класс */
+export const downloadManager: IDownloadManager = isNativeBridgeAvailable()
+  ? new NativeDownloadManager()
+  : new DownloadManager();

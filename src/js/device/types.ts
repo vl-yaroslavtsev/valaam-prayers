@@ -159,6 +159,9 @@ export interface AndroidHandler {
 
   disableBackGestureInArea(x: number, y: number, width: number, height: number): void; // Отключает системный жест "Назад" в области экрана (координаты в CSS px)
   enableBackGesture(): void; // Возвращает системный жест "Назад" в исходное состояние
+
+  /** RPC нативного моста (docs/native-bridge-protocol.md): запрос JSON-строкой, ответ приходит в window.__nativeRpc.onMessage */
+  rpc?(requestJson: string): void;
 }
 
 export interface IOSHandler {
@@ -201,6 +204,11 @@ export interface IOSHandler {
         | { action: "disable"; x: number; y: number; width: number; height: number }
         | { action: "enable" }
     ): void;
+  };
+
+  /** RPC нативного моста (docs/native-bridge-protocol.md): ответ приходит JSON-строкой */
+  nativeRpc?: {
+    postMessage(requestJson: string): Promise<unknown>;
   };
 }
 

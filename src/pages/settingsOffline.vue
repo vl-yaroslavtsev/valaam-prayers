@@ -92,12 +92,13 @@
     <hr class="offline-separator" />
 
     <f7-list no-hairlines class="offline-list-auto-update">
-      <f7-list-item
-        title="Обновлять автоматически"
-        footer="Загружать исправления в текстах и календаре при наличии Wi-Fi"
-      >
+      <f7-list-item title="Обновлять автоматически">
         <template #media>
           <SvgIcon icon="sync" :color="neutralColor" :size="24" />
+        </template>
+        <template #footer>
+          <div>Загружать обновления текстов, календаря и иконок при наличии Wi-Fi</div>
+          <div v-if="autoUpdate && lastCheckLoaded" class="offline-last-check">{{ lastCheckLabel }}</div>
         </template>
         <template #after>
           <f7-toggle small v-model:checked="autoUpdate" />
@@ -116,8 +117,10 @@ import { useErrorToast } from "@/composables/useErrorToast";
 import { isOnline, onNetworkChange } from "@/services/download/network";
 import { useSettingsStore } from "@/stores/settings";
 import { useDownloadsStore } from "@/stores/downloads";
-import { startAutoUpdate, stopAutoUpdate } from "@/services/download/AutoUpdate";
-import { bytesToSize, getQuota } from "@/js/device/browser-test";
+import { getAutoUpdateLastCheck, startAutoUpdate, stopAutoUpdate } from "@/services/download/AutoUpdate";
+import { formatLastCheck } from "@/services/download/lastCheck";
+import { getOfflineQuota } from "@/services/download/storageInfo";
+import { bytesToSize } from "@/js/device/browser-test";
 import { ALL_MODULE_IDS } from "@/services/download/types";
 import type { DownloadModuleId } from "@/services/download/types";
 import type { IconName } from "@/types/icon-name";
@@ -197,6 +200,21 @@ const autoUpdate = computed({
 });
 
 let pageActive = true;
+
+const lastCheckAt = ref<Date | null>(null);
+const lastCheckLoaded = ref(false);
+const lastCheckLabel = computed(() => formatLastCheck(lastCheckAt.value));
+
+async function loadLastCheck(): Promise<void> {
+  try {
+    const value = await getAutoUpdateLastCheck();
+    if (!pageActive) return;
+    lastCheckAt.value = value;
+    lastCheckLoaded.value = true;
+  } catch {
+    // Строку «Последняя проверка» просто не показываем
+  }
+}
 
 // undefined в downloaded - ещё не прочитано из хранилища
 const downloaded = reactive<Partial<Record<DownloadModuleId, boolean>>>({});
@@ -441,6 +459,7 @@ watch(
       const status = statuses[index];
       if (status === previous[index] || status === "downloading" || status === "idle") return;
       void refreshModule(moduleId);
+      void loadLastCheck();
     });
   }
 );
@@ -451,7 +470,9 @@ onMounted(() => {
     online.value = value;
   });
 
-  void getQuota()
+  void loadLastCheck();
+
+  void getOfflineQuota()
     .then((result) => {
       if (pageActive) storageQuotaBytes.value = result.quota;
     })
