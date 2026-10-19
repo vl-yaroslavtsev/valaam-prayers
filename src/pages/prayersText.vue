@@ -190,6 +190,7 @@ import { useUndoToast } from "@/composables/useUndoToast";
 import { useTextSearch } from "@/composables/useTextSearch";
 import { useBookmarks, progressToPage } from "@/composables/useBookmarks";
 import { useReadingTutorial } from "@/composables/useReadingTutorial";
+import { isScreenEdgeClientX } from "@/composables/useSwipeout";
 
 import PrayersTextContentPopup from "@/components/PrayersTextContentPopup.vue";
 import PrayersTextSearchPage from "@/components/PrayersTextSearchPage.vue";
@@ -595,8 +596,28 @@ const onTextPaginatorTap = (payload: { type: "center" | "left" | "right" | "top"
 let isNavbarHiding = false;
 let isPageNavHiding = false;
 
+const readClientX = (event: Event): number | null => {
+  if (event instanceof MouseEvent) {
+    return event.clientX;
+  }
+  if (typeof TouchEvent !== "undefined" && event instanceof TouchEvent) {
+    return event.touches[0]?.clientX ?? event.changedTouches[0]?.clientX ?? null;
+  }
+  return null;
+};
+
 const onTextPaginatorTouchStart = (payload: { swiper: Swiper | null, event: Event }) => {
   console.log("onTextPaginatorTouchStart", payload);
+  // Полноэкранный режим: свайп от края — системный «Назад», меню не закрываем.
+  const clientX = readClientX(payload.event);
+  if (
+    !settingsStore.isStatusBarVisible &&
+    clientX != null &&
+    isScreenEdgeClientX(clientX, f7.width)
+  ) {
+    return;
+  }
+
   if (!isNavbarHidden.value) {
     isNavbarHidden.value = true;
     isNavbarHiding = true;
@@ -1014,9 +1035,17 @@ watch(progress, () => {
 
 const isPageNavHidden = ref(true);
 const isReadingPageActive = ref(false);
+// После протяжки слайдера заголовок оставляем, пока видно нижнее меню.
+// Верхнее меню при этом скрыто — в полноэкранном режиме системные панели уходят вместе с ним.
+const isSliderScrubbing = ref(false);
 
 const syncReadingSystemBars = () => {
-  const chromeVisible = !isNavbarHidden.value || !isPageNavHidden.value;
+  const navbarVisible = !isNavbarHidden.value;
+  const pageNavVisible = !isPageNavHidden.value;
+  // При листании прогрессбаром верхнее меню уходит, нижнее остаётся.
+  // В полноэкранном режиме статус-бар и нижняя системная полоска скрываются вместе с ним.
+  const scrubHidesSystemBars = isSliderScrubbing.value && !settingsStore.isStatusBarVisible;
+  const chromeVisible = navbarVisible || (pageNavVisible && !scrubHidesSystemBars);
   const keepSystemBars = settingsStore.isStatusBarVisible || chromeVisible;
 
   if (!keepSystemBars) {
@@ -1044,6 +1073,7 @@ watch(
   [
     isNavbarHidden,
     isPageNavHidden,
+    isSliderScrubbing,
     () => settingsStore.isStatusBarVisible,
     () => settingsStore.textTheme,
     isDarkMode,
@@ -1088,8 +1118,6 @@ watch([isNavbarHidden, isPageNavHidden], ([navHidden, pageNavHidden]) => {
 // счётчику — прячем его оверлеем. Как только переход применится (даже без
 // отпускания пальца, на паузе), PageNavigationToolbar пришлёт scrub-settle.
 const isPageScrubbing = ref(false);
-// После протяжки слайдера заголовок оставляем, пока видно нижнее меню
-const isSliderScrubbing = ref(false);
 
 const onPageScrubMove = (page: number) => {
   isSliderScrubbing.value = true;

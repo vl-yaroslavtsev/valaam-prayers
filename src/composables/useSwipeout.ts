@@ -4,7 +4,11 @@ import type { Swipeout } from "framework7/types";
 import { Ref } from "vue";
 import { useEventListener } from "./useEventListener";
 
-const SCREEN_EDGE_WIDTH = 25;
+export const SCREEN_EDGE_WIDTH = 25;
+
+/** Касание у левого или правого края экрана — зона системного жеста «Назад». */
+export const isScreenEdgeClientX = (clientX: number, screenWidth: number): boolean =>
+  clientX < SCREEN_EDGE_WIDTH || screenWidth - clientX < SCREEN_EDGE_WIDTH;
 
 type SwipeoutType = Swipeout.AppMethods["swipeout"] & { allow: boolean };
 

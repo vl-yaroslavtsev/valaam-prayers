@@ -23,6 +23,8 @@
     :spaceBetween="20"
     :touchRatio="1"
     :threshold="5"
+    :edgeSwipeDetection="true"
+    :edgeSwipeThreshold="SCREEN_EDGE_WIDTH"
     @pointerdown.passive="handlePointerDown"
     @pointerup.passive="handlePointerUp"
     @pointercancel.passive="handlePointerCancel"
@@ -36,6 +38,7 @@
 <script setup lang="ts">
 import { useTemplateRef, computed } from "vue";
 import { useTextSelection } from "@/composables/useTextSelection";
+import { SCREEN_EDGE_WIDTH } from "@/composables/useSwipeout";
 import { useSettingsStore } from "@/stores/settings";
 import type { SwiperContainer } from "swiper/element";
 import type { Swiper } from "swiper";
