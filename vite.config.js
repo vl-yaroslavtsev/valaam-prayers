@@ -1,3 +1,4 @@
+import https from "node:https";
 import path from "path";
 import vue from "@vitejs/plugin-vue";
 import { VitePWA } from "vite-plugin-pwa";
@@ -8,6 +9,13 @@ const SRC_DIR = path.resolve(import.meta.dirname, "./src");
 const PUBLIC_DIR = path.resolve(import.meta.dirname, "./public");
 const BUILD_DIR = path.resolve(import.meta.dirname, "./www");
 const ICONS_DIR = path.resolve(SRC_DIR, "assets/icons");
+
+// Отдельный агент: общий агент Node при длинной очереди картинок рвёт TLS
+// («socket disconnected before secure TLS connection was established»), и прокси отвечает 502.
+const uploadProxyAgent = new https.Agent({
+  keepAlive: true,
+  maxSockets: 8,
+});
 
 // Перегенерирует src/types/icon-name.d.ts из файлов src/assets/icons,
 // чтобы тип IconName не приходилось прописывать вручную.
@@ -119,6 +127,17 @@ export default async () => {
     },
     server: {
       host: true,
+      // Картинки app.valaam.ru отдают ACAO только для https://valaam.ru.
+      // В dev скачивание иконок идёт на тот же origin, Vite проксирует /upload.
+      proxy: {
+        "/upload": {
+          target: "https://app.valaam.ru",
+          changeOrigin: true,
+          agent: uploadProxyAgent,
+          // Иначе зависшее рукопожатие держит скачивание до дефолтных 2 минут и заканчивается 502.
+          proxyTimeout: 20_000,
+        },
+      },
     },
   };
 };
