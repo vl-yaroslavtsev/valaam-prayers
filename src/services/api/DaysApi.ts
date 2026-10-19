@@ -2,9 +2,10 @@ import { ApiClient } from '@/services/api/ApiClient';
 import type { ApiNav } from '@/services/api/types';
 
 /**
- * Размер иконки: s - для телефона, m - для планшета
+ * Размер иконки: s — 414px, m — 828px, l — 1245px.
+ * Если оригинал меньше запрошенного размера, API отдаёт его как есть.
  */
-export type ImageSize = 's' | 'm';
+export type ImageSize = 's' | 'm' | 'l';
 
 export type FastingTypeCode = 'none' | 'day' | 'great' | 'nativity' | 'apostles' | 'dormition';
 export type FastingRuleCode = 'none' | 'no_meat' | 'oil' | 'fish' | 'no_oil' | 'dry' | 'no_food';

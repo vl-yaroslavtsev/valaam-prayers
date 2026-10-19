@@ -2,7 +2,7 @@ import { registerRoute } from "workbox-routing";
 import { CacheFirst, StaleWhileRevalidate } from "workbox-strategies";
 import { ExpirationPlugin } from "workbox-expiration";
 import { precacheAndRoute, cleanupOutdatedCaches } from "workbox-precaching";
-import { OFFLINE_ICON_CACHES } from "./services/storage/IconCacheStorage";
+import { matchOfflineIcon } from "./services/storage/IconCacheStorage";
 
 const ALLOWED_DOMAIN = ['app.valaam.ru', 'localhost', '172.21.117.5'];
 
@@ -29,10 +29,8 @@ const imagesStrategy = new CacheFirst({
 registerRoute(
   ({ request }) => request.destination === "image",
   async ({ request, event, url, params }) => {
-    for (const cacheName of OFFLINE_ICON_CACHES) {
-      const cached = await caches.match(request, { cacheName });
-      if (cached) return cached;
-    }
+    const cached = await matchOfflineIcon(request);
+    if (cached) return cached;
     return imagesStrategy.handle({ request, event, url, params });
   },
 );

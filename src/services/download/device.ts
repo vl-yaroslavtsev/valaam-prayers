@@ -1,13 +1,20 @@
 import type { ImageSize } from "@/services/api/DaysApi";
 
+const TABLET_QUERY = "(min-width: 768px)";
+
+function isTablet(): boolean {
+  return typeof window !== "undefined" && !!window.matchMedia && window.matchMedia(TABLET_QUERY).matches;
+}
+
+/** Обе картинки дня на экране маленькие, для офлайна всегда хватает s. */
+export function getCalendarIconSize(): ImageSize {
+  return "s";
+}
+
 /**
- * Определяет размер иконок для скачивания: "m" для планшета, "s" для телефона.
- * Эвристика по ширине экрана (matchMedia) - при необходимости легко заменить
- * на другой признак (например, нативный API устройства).
+ * Страница святого просит ширину через srcset (sizes=100vw).
+ * Телефон чаще выбирает m, планшет — l.
  */
-export function getIconSize(): ImageSize {
-  if (typeof window === "undefined" || !window.matchMedia) {
-    return "s";
-  }
-  return window.matchMedia("(min-width: 768px)").matches ? "m" : "s";
+export function getSaintIconSize(): ImageSize {
+  return isTablet() ? "l" : "m";
 }

@@ -4,12 +4,7 @@
       <div class="day-date">
         <div v-if="pictureSrc" class="day-image">
           <img class="day-image-bg" :src="pictureSrc" alt="" aria-hidden="true" />
-          <img
-            class="day-image-fg"
-            :src="pictureSrc"
-            :srcset="pictureSrcset"
-            :alt="day.picture_desc ?? ''"
-          />
+          <img class="day-image-fg" :src="pictureSrc" :alt="day.picture_desc ?? ''" />
         </div>
         <div class="day-date-text">
           <p class="day-old-style">{{ header.oldStyle }}</p>
@@ -166,7 +161,6 @@ import { useTheme } from "@/composables/useTheme";
 import SvgIcon from "@/components/SvgIcon.vue";
 import type { CalendarDayApiElement } from "@/services/api/DaysApi";
 import {
-  buildSrcset,
   getDayHeader,
   getSectionTitle,
   getVisibleSections,
@@ -212,7 +206,6 @@ const fastingIcon = computed(() => FASTING_ICONS[day.fasting.rules.monastic?.cod
 
 const header = computed(() => getDayHeader(day.code));
 const pictureSrc = computed(() => resolveImageUrl(day.picture));
-const pictureSrcset = computed(() => buildSrcset(day.picture, day.picture_2x, day.picture_3x));
 
 // Название правила совпадает с названием поста у дней без поста («Поста нет»), второй раз не повторяем
 const fastingRule = computed(() => {

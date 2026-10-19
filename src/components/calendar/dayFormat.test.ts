@@ -85,10 +85,14 @@ describe("картинки", () => {
     expect(resolveImageUrl(null)).toBeNull();
   });
 
-  it("buildSrcset пропускает отсутствующие размеры", () => {
-    expect(buildSrcset("/a.jpg", null, "/c.jpg")).toBe(
-      "https://app.valaam.ru/a.jpg 1x, https://app.valaam.ru/c.jpg 3x"
+  it("buildSrcset ставит ширину s/m/l и не дублирует один файл", () => {
+    expect(buildSrcset("/a.jpg", "/b.jpg", "/c.jpg")).toBe(
+      "https://app.valaam.ru/a.jpg 414w, https://app.valaam.ru/b.jpg 828w, https://app.valaam.ru/c.jpg 1245w"
     );
+    expect(buildSrcset("/a.jpg", null, "/c.jpg")).toBe(
+      "https://app.valaam.ru/a.jpg 414w, https://app.valaam.ru/c.jpg 1245w"
+    );
+    expect(buildSrcset("/a.jpg", "/a.jpg", "/a.jpg")).toBe("https://app.valaam.ru/a.jpg 1245w");
     expect(buildSrcset(null, null, null)).toBeUndefined();
   });
 });

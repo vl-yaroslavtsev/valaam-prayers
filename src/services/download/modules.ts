@@ -13,7 +13,7 @@ import {
   saintIconsStorage,
   sectionsStorage,
 } from "@/services/storage";
-import { getIconSize } from "@/services/download/device";
+import { getCalendarIconSize, getSaintIconSize } from "@/services/download/device";
 import type { DownloadContext, DownloadModule, DownloadModuleId, PrayerDownloadModuleId } from "@/services/download/types";
 
 const MOLITVOSLOV_ROOT_SECTION_ID = 842;
@@ -298,12 +298,12 @@ const calendarIconsModule = createIconModule({
   id: "calendarIcons",
   getCount: async (since) => {
     const { fromDate, toDate } = getCurrentYearRange();
-    const { size } = await daysApi.getDaysIconsCount(fromDate, toDate, getIconSize(), since);
+    const { size } = await daysApi.getDaysIconsCount(fromDate, toDate, getCalendarIconSize(), since);
     return size;
   },
   fetchIconListPage: async (page, pageSize, since, signal, onBytes) => {
     const { fromDate, toDate } = getCurrentYearRange();
-    const { items, nav } = await daysApi.getDaysIconsPage(fromDate, toDate, getIconSize(), page, pageSize, {
+    const { items, nav } = await daysApi.getDaysIconsPage(fromDate, toDate, getCalendarIconSize(), page, pageSize, {
       since,
       signal,
       onBytes,
@@ -332,9 +332,9 @@ const saintsModule = createListModule<SaintDetailApiElement>({
 
 const saintIconsModule = createIconModule({
   id: "saintIcons",
-  getCount: async (since) => (await saintsApi.getSaintsIconsCount(getIconSize(), since)).size,
+  getCount: async (since) => (await saintsApi.getSaintsIconsCount(getSaintIconSize(), since)).size,
   fetchIconListPage: async (page, pageSize, since, signal, onBytes) => {
-    const { items, nav } = await saintsApi.getSaintsIconsPage(getIconSize(), page, pageSize, { since, signal, onBytes });
+    const { items, nav } = await saintsApi.getSaintsIconsPage(getSaintIconSize(), page, pageSize, { since, signal, onBytes });
     const urls = items.filter((item) => item.url).map((item) => toAbsoluteUrl(item.url));
     return { urls, nav };
   },

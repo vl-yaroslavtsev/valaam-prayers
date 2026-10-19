@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { getIconSize } from "@/services/download/device";
+import { getCalendarIconSize, getSaintIconSize } from "@/services/download/device";
 
 function stubMatchMedia(matches: boolean) {
   window.matchMedia = vi.fn().mockReturnValue({
@@ -14,7 +14,7 @@ function stubMatchMedia(matches: boolean) {
   }) as unknown as typeof window.matchMedia;
 }
 
-describe("getIconSize", () => {
+describe("размер иконок для скачивания", () => {
   afterEach(() => {
     if (!window.matchMedia) {
       window.matchMedia = () =>
@@ -31,20 +31,27 @@ describe("getIconSize", () => {
     }
   });
 
-  it("возвращает m при ширине >= 768px и s иначе", () => {
+  it("календарь всегда s", () => {
     stubMatchMedia(true);
-    expect(getIconSize()).toBe("m");
-
+    expect(getCalendarIconSize()).toBe("s");
     stubMatchMedia(false);
-    expect(getIconSize()).toBe("s");
+    expect(getCalendarIconSize()).toBe("s");
   });
 
-  it("возвращает s если matchMedia отсутствует", () => {
+  it("святые: l на планшете и m на телефоне", () => {
+    stubMatchMedia(true);
+    expect(getSaintIconSize()).toBe("l");
+
+    stubMatchMedia(false);
+    expect(getSaintIconSize()).toBe("m");
+  });
+
+  it("без matchMedia святые скачиваются как m", () => {
     Object.defineProperty(window, "matchMedia", {
       configurable: true,
       writable: true,
       value: undefined,
     });
-    expect(getIconSize()).toBe("s");
+    expect(getSaintIconSize()).toBe("m");
   });
 });

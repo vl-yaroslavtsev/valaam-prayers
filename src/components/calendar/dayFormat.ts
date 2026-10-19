@@ -95,19 +95,29 @@ export function resolveImageUrl(path: string | null): string | null {
   return path.startsWith("/") ? `${SITE_URL}${path}` : path;
 }
 
+/**
+ * srcset страницы святого: picture — s (414), picture2x — m (828), picture3x — l (1245).
+ * Один и тот же файл (оригинал меньше следующего размера) остаётся одним кандидатом.
+ */
 export function buildSrcset(
   picture: string | null,
   picture2x: string | null,
   picture3x: string | null
 ): string | undefined {
-  const sources = [
-    [picture, "1x"],
-    [picture2x, "2x"],
-    [picture3x, "3x"],
-  ]
-    .filter(([url]) => url)
-    .map(([url, density]) => `${resolveImageUrl(url)} ${density}`);
-  return sources.length ? sources.join(", ") : undefined;
+  const byUrl = new Map<string, number>();
+  const add = (path: string | null, width: number) => {
+    const url = resolveImageUrl(path);
+    if (!url) return;
+    const prev = byUrl.get(url);
+    if (prev == null || width > prev) byUrl.set(url, width);
+  };
+
+  add(picture, 414);
+  add(picture2x, 828);
+  add(picture3x, 1245);
+
+  if (byUrl.size === 0) return undefined;
+  return [...byUrl].map(([url, width]) => `${url} ${width}w`).join(", ");
 }
 
 export function getSectionTitle(section: ReadingsSection): string | null {

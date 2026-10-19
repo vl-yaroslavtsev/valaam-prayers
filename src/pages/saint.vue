@@ -22,8 +22,21 @@
     <div v-else class="saint-content">
       <section v-if="pictureSrc || lifePreview" class="saint-card saint-life-card">
         <div v-if="pictureSrc" class="saint-photo">
-          <img class="saint-photo-bg" :src="pictureSrc" alt="" aria-hidden="true" />
-          <img class="saint-photo-fg" :src="pictureSrc" :srcset="pictureSrcset" :alt="details.name" />
+          <img
+            class="saint-photo-bg"
+            :src="pictureSrc"
+            :srcset="pictureSrcset"
+            sizes="100vw"
+            alt=""
+            aria-hidden="true"
+          />
+          <img
+            class="saint-photo-fg"
+            :src="pictureSrc"
+            :srcset="pictureSrcset"
+            sizes="100vw"
+            :alt="details.name"
+          />
         </div>
 
         <div v-if="lifePreview" class="saint-life">

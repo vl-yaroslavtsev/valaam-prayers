@@ -39,7 +39,8 @@ vi.mock("@/services/api/SaintsApi", () => ({
 }));
 
 vi.mock("@/services/download/device", () => ({
-  getIconSize: () => "s",
+  getCalendarIconSize: () => "s",
+  getSaintIconSize: () => "m",
 }));
 
 function createCtx(
@@ -249,6 +250,7 @@ describe("download modules", () => {
         .mock.calls.map(([patch]) => patch.pendingIconUrls)
         .filter(Boolean);
       expect(pendingCheckpoints[0]).toEqual(["https://app.valaam.ru/icon.png"]);
+      expect(vi.mocked(saintsApi.getSaintsIconsPage).mock.calls[0][0]).toBe("m");
     });
 
     it("для calendarIcons собирает url и prayers_url", async () => {
@@ -267,6 +269,7 @@ describe("download modules", () => {
 
       expect(ctx.state.pendingIconUrls).toEqual([]);
       expect(ctx.state.totalIconUrls).toBe(2);
+      expect(vi.mocked(daysApi.getDaysIconsPage).mock.calls[0][2]).toBe("s");
     });
   });
 
