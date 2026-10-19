@@ -2,7 +2,6 @@ import { openDB, DBSchema, IDBPDatabase } from 'idb';
 import defaultFavorites from './data/defaultFavorites.json';
 import type { Language } from '@/types/common';
 import type { PaginationCacheItemHeader } from './PaginationCacheStorage';
-import type { IconBlobRecord } from './IconBlobStorage';
 import type { CalendarDayApiElement, CalendarMarkersResponse } from '@/services/api/DaysApi';
 import type { SaintDetailApiElement } from '@/services/api/SaintsApi';
 import type { DownloadModuleId, ModuleDownloadState, PrayerDownloadModuleId } from '@/services/download/types';
@@ -158,16 +157,6 @@ interface ValaamDB extends DBSchema {
     key: string;
     value: CalendarMarkersResponse & { id: string };
   };
-  // Файлы иконок календаря, ключ - абсолютный URL
-  'calendar-icons': {
-    key: string;
-    value: IconBlobRecord;
-  };
-  // Файлы иконок святых, ключ - абсолютный URL
-  'saint-icons': {
-    key: string;
-    value: IconBlobRecord;
-  };
   // Персистентный прогресс офлайн-загрузок (для докачки после потери сети/перезапуска)
   'download-progress': {
     key: DownloadModuleId;
@@ -176,7 +165,7 @@ interface ValaamDB extends DBSchema {
 }
 
 const DB_NAME: string = 'valaam-prayers';
-const DB_VERSION: number = 8;
+const DB_VERSION: number = 9;
 
 let db: IDBPDatabase<ValaamDB> | null = null;
 let initPromise: Promise<void> | null = null;
@@ -316,18 +305,13 @@ async function initIndexedDB() {
         });
       }
 
-      // Создаем хранилище файлов иконок календаря (офлайн-загрузка)
-      if (!db.objectStoreNames.contains('calendar-icons')) {
-        db.createObjectStore('calendar-icons', {
-          keyPath: 'url'
-        });
-      }
-
-      // Создаем хранилище файлов иконок святых (офлайн-загрузка)
-      if (!db.objectStoreNames.contains('saint-icons')) {
-        db.createObjectStore('saint-icons', {
-          keyPath: 'url'
-        });
+      // Иконки календаря и святых лежат в Cache Storage (offline-icons-*).
+      // Эти сторы уже не в схеме, поэтому проверка и удаление идут через нетипизированную БД.
+      const legacyDb = db as unknown as IDBPDatabase;
+      for (const name of ['calendar-icons', 'saint-icons']) {
+        if (legacyDb.objectStoreNames.contains(name)) {
+          legacyDb.deleteObjectStore(name);
+        }
       }
 
       // Создаем хранилище прогресса офлайн-загрузок

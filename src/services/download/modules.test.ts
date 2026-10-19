@@ -3,6 +3,7 @@ import { daysApi } from "@/services/api/DaysApi";
 import { prayersApi } from "@/services/api/PrayersApi";
 import { saintsApi } from "@/services/api/SaintsApi";
 import {
+  calendarIconsStorage,
   prayerDetailsStorage,
   saintDetailsStorage,
   saintIconsStorage,
@@ -154,6 +155,52 @@ describe("download modules", () => {
       expect(saintsApi.getSaintsIconsPage).not.toHaveBeenCalled();
     });
 
+    it("в dev скачивает через локальный /upload, а в кэш кладёт абсолютный URL", async () => {
+      vi.stubEnv("MODE", "development");
+      const url = "https://app.valaam.ru/upload/a.jpg?size=1";
+      const fetchMock = vi.fn().mockImplementation(() => new Response(new Uint8Array([1, 2, 3]), { status: 200 }));
+      vi.stubGlobal("fetch", fetchMock);
+
+      const ctx = createCtx("saintIcons", {
+        state: { iconListComplete: true, pendingIconUrls: [url] },
+      });
+      await getModule("saintIcons").download(ctx);
+
+      expect(fetchMock).toHaveBeenCalledWith("/upload/a.jpg?size=1", expect.any(Object));
+      expect(await saintIconsStorage?.hasIcon(url)).toBe(true);
+      vi.unstubAllEnvs();
+    });
+
+    it("повторяет 502 и сохраняет иконку со следующей попытки", async () => {
+      const url = "https://app.valaam.ru/upload/retry.jpg";
+      const fetchMock = vi
+        .fn()
+        .mockResolvedValueOnce(new Response(null, { status: 502 }))
+        .mockResolvedValueOnce(new Response(new Uint8Array([1, 2, 3]), { status: 200 }));
+      vi.stubGlobal("fetch", fetchMock);
+
+      const ctx = createCtx("saintIcons", {
+        state: { iconListComplete: true, pendingIconUrls: [url] },
+      });
+      await getModule("saintIcons").download(ctx);
+
+      expect(fetchMock).toHaveBeenCalledTimes(2);
+      expect(await saintIconsStorage?.hasIcon(url)).toBe(true);
+      expect(ctx.state.pendingIconUrls).toEqual([]);
+    });
+
+    it("не повторяет ответ 404", async () => {
+      const url = "https://app.valaam.ru/upload/missing.jpg";
+      const fetchMock = vi.fn().mockResolvedValue(new Response(null, { status: 404 }));
+      vi.stubGlobal("fetch", fetchMock);
+
+      const ctx = createCtx("saintIcons", {
+        state: { iconListComplete: true, pendingIconUrls: [url] },
+      });
+      await expect(getModule("saintIcons").download(ctx)).rejects.toThrow("HTTP 404");
+      expect(fetchMock).toHaveBeenCalledTimes(1);
+    });
+
     it("не скачивает URL, для которых hasIcon === true", async () => {
       const url = "https://app.valaam.ru/already.png";
       await saintIconsStorage?.putIcon(url, new Blob([new Uint8Array([1, 2, 3])]));
@@ -167,6 +214,17 @@ describe("download modules", () => {
 
       expect(fetchMock).not.toHaveBeenCalled();
       expect(ctx.state.pendingIconUrls).toEqual([]);
+    });
+
+    it("remove() очищает только кэш своего модуля", async () => {
+      const url = "https://app.valaam.ru/icon.png";
+      await saintIconsStorage?.putIcon(url, new Blob([new Uint8Array([1])]));
+      await calendarIconsStorage?.putIcon(url, new Blob([new Uint8Array([2])]));
+
+      await getModule("saintIcons").remove();
+
+      expect(await saintIconsStorage?.hasIcon(url)).toBe(false);
+      expect(await calendarIconsStorage?.hasIcon(url)).toBe(true);
     });
 
     it("дедуплицирует URL через Set на фазе A", async () => {

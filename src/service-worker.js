@@ -2,29 +2,39 @@ import { registerRoute } from "workbox-routing";
 import { CacheFirst, StaleWhileRevalidate } from "workbox-strategies";
 import { ExpirationPlugin } from "workbox-expiration";
 import { precacheAndRoute, cleanupOutdatedCaches } from "workbox-precaching";
+import { OFFLINE_ICON_CACHES } from "./services/storage/IconCacheStorage";
 
 const ALLOWED_DOMAIN = ['app.valaam.ru', 'localhost', '172.21.117.5'];
 
 cleanupOutdatedCaches();
 precacheAndRoute(self.__WB_MANIFEST);
 
+// Общий кэш картинок с лимитом. Офлайн-иконки в него не кладём: maxEntries их вытеснит.
+const imagesStrategy = new CacheFirst({
+  cacheName: "images",
+  plugins: [
+    new ExpirationPlugin({
+      // Keep at most 100 entries.
+      maxEntries: 100,
+      // Don't keep any entries for more than 30 days.
+      maxAgeSeconds: 30 * 24 * 60 * 60,
+      // Automatically cleanup if quota is exceeded.
+      purgeOnQuotaError: true,
+    }),
+  ],
+});
+
+// Первый маршрут для image: Workbox берёт первый подходящий.
+// Скачанные иконки ищем в offline-icons-* (без ExpirationPlugin), промах — прежняя стратегия images.
 registerRoute(
   ({ request }) => request.destination === "image",
-  // Use a cache-first strategy with the following config:
-  new CacheFirst({
-    // You need to provide a cache name when using expiration.
-    cacheName: "images",
-    plugins: [
-      new ExpirationPlugin({
-        // Keep at most 100 entries.
-        maxEntries: 100,
-        // Don't keep any entries for more than 30 days.
-        maxAgeSeconds: 30 * 24 * 60 * 60,
-        // Automatically cleanup if quota is exceeded.
-        purgeOnQuotaError: true,
-      }),
-    ],
-  }),
+  async ({ request, event, url, params }) => {
+    for (const cacheName of OFFLINE_ICON_CACHES) {
+      const cached = await caches.match(request, { cacheName });
+      if (cached) return cached;
+    }
+    return imagesStrategy.handle({ request, event, url, params });
+  },
 );
 
 registerRoute(

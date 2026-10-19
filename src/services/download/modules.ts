@@ -27,6 +27,62 @@ function toAbsoluteUrl(path: string): string {
   return path.startsWith("http") ? path : `${MEDIA_BASE_URL}${path}`;
 }
 
+/**
+ * В dev-сервере Vite проксирует /upload на app.valaam.ru.
+ * Иначе fetch с localhost режется CORS. В кэш по-прежнему пишется абсолютный URL.
+ */
+function iconRequestUrl(absoluteUrl: string): string {
+  if (import.meta.env.MODE !== "development") return absoluteUrl;
+  const url = new URL(absoluteUrl);
+  if (url.origin !== MEDIA_BASE_URL) return absoluteUrl;
+  return `${url.pathname}${url.search}`;
+}
+
+const ICON_FETCH_ATTEMPTS = 3;
+
+function isAbortError(err: unknown): boolean {
+  return err instanceof DOMException && err.name === "AbortError";
+}
+
+function wait(ms: number, signal: AbortSignal): Promise<void> {
+  return new Promise((resolve, reject) => {
+    if (signal.aborted) {
+      reject(new DOMException("Aborted", "AbortError"));
+      return;
+    }
+    const onAbort = () => {
+      clearTimeout(timer);
+      reject(new DOMException("Aborted", "AbortError"));
+    };
+    const timer = setTimeout(() => {
+      signal.removeEventListener("abort", onAbort);
+      resolve();
+    }, ms);
+    signal.addEventListener("abort", onAbort, { once: true });
+  });
+}
+
+/** 502/503/504 и обрыв сети повторяем: прокси dev-сервера иногда рвёт одно соединение посреди очереди. */
+async function fetchIcon(absoluteUrl: string, signal: AbortSignal): Promise<Response> {
+  const requestUrl = iconRequestUrl(absoluteUrl);
+  let lastStatus = 0;
+
+  for (let attempt = 1; attempt <= ICON_FETCH_ATTEMPTS; attempt++) {
+    if (signal.aborted) throw new DOMException("Aborted", "AbortError");
+    try {
+      const response = await fetch(requestUrl, { signal });
+      if (response.ok) return response;
+      lastStatus = response.status;
+      if (response.status < 500 || attempt === ICON_FETCH_ATTEMPTS) break;
+    } catch (err) {
+      if (isAbortError(err) || attempt === ICON_FETCH_ATTEMPTS) throw err;
+    }
+    await wait(200 * attempt, signal);
+  }
+
+  throw new Error(`Failed to download icon ${absoluteUrl}: HTTP ${lastStatus}`);
+}
+
 function getCurrentYearRange(): { fromDate: string; toDate: string } {
   const year = new Date().getFullYear();
   return { fromDate: `${year}0101`, toDate: `${year}1231` };
@@ -203,10 +259,7 @@ function createIconModule(config: IconModuleConfig): DownloadModule {
 
         const alreadyDownloaded = await storage.hasIcon(url);
         if (!alreadyDownloaded) {
-          const response = await fetch(url, { signal: ctx.signal });
-          if (!response.ok) {
-            throw new Error(`Failed to download icon ${url}: HTTP ${response.status}`);
-          }
+          const response = await fetchIcon(url, ctx.signal);
           const blob = await response.blob();
           await storage.putIcon(url, blob);
           ctx.onBytes(blob.size);

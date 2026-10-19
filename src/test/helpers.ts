@@ -2,6 +2,7 @@ import { vi } from "vitest";
 import { IDBFactory } from "fake-indexeddb";
 import { closeDB } from "@/services/storage/indexedDB";
 import { initStorage } from "@/services/storage";
+import { CALENDAR_ICONS_CACHE, SAINT_ICONS_CACHE } from "@/services/storage/IconCacheStorage";
 import type { ApiNav } from "@/services/api/types";
 import type { CalendarDayApiElement } from "@/services/api/DaysApi";
 import type { SaintDetailApiElement } from "@/services/api/SaintsApi";
@@ -12,6 +13,7 @@ import type { ValaamDB } from "@/services/storage/indexedDB";
 
 export async function resetIndexedDB(): Promise<void> {
   closeDB();
+  await Promise.all([caches.delete(CALENDAR_ICONS_CACHE), caches.delete(SAINT_ICONS_CACHE)]);
   Object.defineProperty(globalThis, "indexedDB", {
     value: new IDBFactory(),
     writable: true,

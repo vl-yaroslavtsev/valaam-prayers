@@ -13,7 +13,7 @@ import { PaginationCacheStorage } from "./PaginationCacheStorage";
 import { BookmarksStorage } from "./BookmarksStorage";
 import { CalendarDaysStorage } from "./CalendarDaysStorage";
 import { CalendarMarkersStorage } from "./CalendarMarkersStorage";
-import { IconBlobStorage } from "./IconBlobStorage";
+import { CALENDAR_ICONS_CACHE, IconCacheStorage, SAINT_ICONS_CACHE } from "./IconCacheStorage";
 import { DownloadProgressStorage } from "./DownloadProgressStorage";
 
 let initStorageError: Error | null = null;
@@ -32,8 +32,8 @@ let paginationCacheStorage: PaginationCacheStorage | null = null;
 let bookmarksStorage: BookmarksStorage | null = null;
 let calendarDaysStorage: CalendarDaysStorage | null = null;
 let calendarMarkersStorage: CalendarMarkersStorage | null = null;
-let calendarIconsStorage: IconBlobStorage<"calendar-icons"> | null = null;
-let saintIconsStorage: IconBlobStorage<"saint-icons"> | null = null;
+let calendarIconsStorage: IconCacheStorage | null = null;
+let saintIconsStorage: IconCacheStorage | null = null;
 let downloadProgressStorage: DownloadProgressStorage | null = null;
 
 async function initStorage() {
@@ -58,8 +58,8 @@ async function initStorage() {
   bookmarksStorage = new BookmarksStorage();
   calendarDaysStorage = new CalendarDaysStorage();
   calendarMarkersStorage = new CalendarMarkersStorage();
-  calendarIconsStorage = new IconBlobStorage("calendar-icons");
-  saintIconsStorage = new IconBlobStorage("saint-icons");
+  calendarIconsStorage = new IconCacheStorage(CALENDAR_ICONS_CACHE);
+  saintIconsStorage = new IconCacheStorage(SAINT_ICONS_CACHE);
   downloadProgressStorage = new DownloadProgressStorage();
 }
 

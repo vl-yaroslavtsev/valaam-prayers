@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it } from "vitest";
+import { IDBFactory } from "fake-indexeddb";
 import { closeDB, getDB } from "@/services/storage/indexedDB";
 import { initStorage, metadataStorage } from "@/services/storage";
 import { resetIndexedDB } from "@/test/helpers";
@@ -18,8 +19,6 @@ const EXPECTED_STORES = [
   "bookmarks",
   "calendar-days",
   "calendar-markers",
-  "calendar-icons",
-  "saint-icons",
   "download-progress",
 ] as const;
 
@@ -48,5 +47,38 @@ describe("indexedDB", () => {
   it("prayer-details имеет индекс by-module", () => {
     const indexNames = getDB().transaction("prayer-details").store.indexNames;
     expect(Array.from(indexNames)).toContain("by-module");
+  });
+
+  it("при апгрейде удаляет сторы иконок и сохраняет остальные данные", async () => {
+    closeDB();
+    Object.defineProperty(globalThis, "indexedDB", {
+      value: new IDBFactory(),
+      writable: true,
+      configurable: true,
+    });
+
+    await new Promise<void>((resolve, reject) => {
+      const request = indexedDB.open("valaam-prayers", 8);
+      request.onupgradeneeded = () => {
+        const database = request.result;
+        database.createObjectStore("calendar-icons", { keyPath: "url" });
+        database.createObjectStore("saint-icons", { keyPath: "url" });
+        const metadata = database.createObjectStore("metadata", { keyPath: "key" });
+        metadata.put({ key: "keep", value: "yes", updatedAt: new Date() });
+      };
+      request.onsuccess = () => {
+        request.result.close();
+        resolve();
+      };
+      request.onerror = () => reject(request.error);
+    });
+
+    await initStorage();
+
+    const names = Array.from(getDB().objectStoreNames);
+    expect(names).not.toContain("calendar-icons");
+    expect(names).not.toContain("saint-icons");
+    expect(names).toContain("download-progress");
+    expect(await metadataStorage?.getValue("keep")).toBe("yes");
   });
 });
