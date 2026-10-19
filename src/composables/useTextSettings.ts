@@ -93,8 +93,13 @@ export function useTextSettings() {
     // Устанавливаем начальные значения
     updateTextCSSVariables();
 
+    // post: читалка сначала замораживает текущий вид текста (pre), и только потом
+    // переменные меняются. Иначе на кадр виден старый текст уже с новой настройкой.
+    const watchPost = <T>(source: () => T, callback: (value: T) => void) =>
+      watch(source, callback, { flush: "post" });
+
     // Отслеживаем изменения семейства шрифта
-    unwatchFontFamily = watch(
+    unwatchFontFamily = watchPost(
       () => settingsStore.fontFamily,
       (newFontFamily) => {
         const fontFamily = fontFamilyMap[newFontFamily] || fontFamilyMap['PT Sans'];
@@ -103,7 +108,7 @@ export function useTextSettings() {
     );
 
     // Отслеживаем изменения размера шрифта  
-    unwatchFontSize = watch(
+    unwatchFontSize = watchPost(
       () => settingsStore.fontSize,
       (newFontSize) => {
         setCSSVariable('--reading-text-font-size', `${newFontSize}px`);
@@ -111,7 +116,7 @@ export function useTextSettings() {
     );
 
     // Отслеживаем изменения высоты строки
-    unwatchLineHeight = watch(
+    unwatchLineHeight = watchPost(
       () => settingsStore.lineHeight,
       (newLineHeight) => {
         setCSSVariable('--reading-text-line-height', newLineHeight.toString());
@@ -120,7 +125,7 @@ export function useTextSettings() {
 
 
     // Отслеживаем изменения семейства шрифта
-    unwatchFontFamilyCs = watch(
+    unwatchFontFamilyCs = watchPost(
       () => settingsStore.fontFamilyCs,
       (newFontFamily) => {
         const fontFamily = fontFamilyCsMap[newFontFamily] || fontFamilyCsMap['Triodion'];
@@ -129,7 +134,7 @@ export function useTextSettings() {
     );
 
     // Отслеживаем изменения размера шрифта  
-    unwatchFontSizeCs = watch(
+    unwatchFontSizeCs = watchPost(
       () => settingsStore.fontSizeCs,
       (newFontSize) => {
         setCSSVariable('--reading-text-font-size-cs', `${newFontSize}px`);
@@ -137,7 +142,7 @@ export function useTextSettings() {
     );
 
     // Отслеживаем изменения высоты строки
-    unwatchLineHeightCs = watch(
+    unwatchLineHeightCs = watchPost(
       () => settingsStore.lineHeightCs,
       (newLineHeight) => {
         setCSSVariable('--reading-text-line-height-cs', newLineHeight.toString());
@@ -145,7 +150,7 @@ export function useTextSettings() {
     );
 
     // Отслеживаем изменения выравнивания текста
-    unwatchTextAlign = watch(
+    unwatchTextAlign = watchPost(
       () => settingsStore.isTextAlignJustified,
       (newTextAlign) => {
         setCSSVariable('--reading-text-align', newTextAlign ? 'justify' : 'left');
@@ -153,7 +158,7 @@ export function useTextSettings() {
     );
 
     // Отслеживаем изменения переносов слов
-    unwatchWordsBreak = watch(
+    unwatchWordsBreak = watchPost(
       () => settingsStore.isTextWordsBreak,
       (newWordsBreak) => {
         setCSSVariable('--reading-text-hyphens', newWordsBreak ? 'auto' : 'manual');
@@ -161,7 +166,7 @@ export function useTextSettings() {
     );
 
     // Отслеживаем изменения отступов страницы
-    unwatchPagePadding = watch(
+    unwatchPagePadding = watchPost(
       () => settingsStore.isTextPagePadding,
       (newPagePadding) => {
         applyPagePadding(newPagePadding);
@@ -169,7 +174,7 @@ export function useTextSettings() {
     );
 
     // Отслеживаем изменения жирности шрифта
-    unwatchTextBold = watch(
+    unwatchTextBold = watchPost(
       () => settingsStore.isTextBold,
       (newTextBold) => {
         setCSSVariable('--reading-text-font-weight', newTextBold ? '700' : '400');
@@ -177,7 +182,7 @@ export function useTextSettings() {
     );
 
     // Отслеживаем изменения выравнивания текста
-    unwatchTextAlign = watch(
+    unwatchTextAlign = watchPost(
       () => settingsStore.isTextAlignJustified,
       (newTextAlign) => {
         setCSSVariable('--reading-text-align', newTextAlign ? 'justify' : 'left');
@@ -185,7 +190,7 @@ export function useTextSettings() {
     );
 
     // Отслеживаем изменения переносов слов
-    unwatchWordsBreak = watch(
+    unwatchWordsBreak = watchPost(
       () => settingsStore.isTextWordsBreak,
       (newWordsBreak) => {
         setCSSVariable('--reading-text-hyphens', newWordsBreak ? 'manual' : 'none');
@@ -193,7 +198,7 @@ export function useTextSettings() {
     );
 
     // Отслеживаем изменения отступов страницы
-    unwatchPagePadding = watch(
+    unwatchPagePadding = watchPost(
       () => settingsStore.isTextPagePadding,
       (newPagePadding) => {
         applyPagePadding(newPagePadding);
@@ -201,7 +206,7 @@ export function useTextSettings() {
     );
 
     // Отслеживаем изменения жирности шрифта
-    unwatchTextBold = watch(
+    unwatchTextBold = watchPost(
       () => settingsStore.isTextBold,
       (newTextBold) => {
         setCSSVariable('--reading-text-font-weight', newTextBold ? '700' : '400');

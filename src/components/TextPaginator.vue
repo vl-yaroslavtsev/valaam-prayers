@@ -3,7 +3,7 @@
     v-if="mode === 'horizontal'"
     ref="pager"
     :theme="theme"
-    :lang="lang"
+    :lang="displayedLang"
     :isLoading="isLoading"
     :isCalculating="isCalculating"
     @tap="emit('tap', $event)"
@@ -16,7 +16,7 @@
     v-else
     ref="pager"
     :theme="theme"
-    :lang="lang"
+    :lang="displayedLang"
     :isLoading="isLoading"
     :isCalculating="isCalculating"
     :bookmarked-pages="bookmarkedPages"
@@ -96,6 +96,47 @@ const { } = useTextSettings(); // Инициализируем синхрони�
 const { getCachedText, setCachedText } = usePaginationCache();
 
 const mode = computed(() => settingsStore.pageMode);
+
+// Класс языка на странице меняем вместе с новыми страницами. Иначе старый HTML
+// на кадр рисуется уже новым шрифтом (ЦСЯ — гражданской гарнитурой).
+const displayedLang = ref<Language | null>(lang);
+
+const FROZEN_READING_VARS = [
+  "--reading-text-font-family",
+  "--reading-text-font-size",
+  "--reading-text-line-height",
+  "--reading-text-font-family-cs",
+  "--reading-text-font-size-cs",
+  "--reading-text-line-height-cs",
+  "--reading-text-align",
+  "--reading-text-hyphens",
+  "--reading-text-font-weight",
+] as const;
+
+// Пока страницы не пересчитаны, держим на контейнере прежние переменные.
+// useTextSettings обновляет :root позже (flush: post), поэтому снимок ещё старый.
+const freezeReadingStyles = (el: HTMLElement) => {
+  const root = getComputedStyle(document.documentElement);
+  for (const name of FROZEN_READING_VARS) {
+    const value = root.getPropertyValue(name);
+    if (value) {
+      el.style.setProperty(name, value);
+    }
+  }
+  const y = root.getPropertyValue("--reading-text-page-padding-y").trim();
+  const x = root.getPropertyValue("--reading-text-page-padding-x").trim();
+  const bottom = root.getPropertyValue("--reading-text-page-padding-bottom").trim();
+  if (y && x && bottom) {
+    el.style.setProperty("--text-page-padding", `${y} ${x} ${bottom}`);
+  }
+};
+
+const unfreezeReadingStyles = (el: HTMLElement) => {
+  for (const name of FROZEN_READING_VARS) {
+    el.style.removeProperty(name);
+  }
+  el.style.removeProperty("--text-page-padding");
+};
 
 // Используем настройки из store
 const theme = computed(() => settingsStore.textTheme);
@@ -211,6 +252,7 @@ const applyPages = () => {
     ? pages.value.map((html, i) => highlightTransform(html, i))
     : pages.value;
   pager.value?.applyPages(finalPages);
+  displayedLang.value = lang;
 };
 
 const restoreProgress = () => {
@@ -245,40 +287,51 @@ async () => {
   const container = pager.value?.containerEl;
 
   if (text && container) {
-    
     isCalculating.value = true;
-    resetCalculatingProgress();    
-    const cssClasses = `text-page reading-text ${lang ? 'prayer-text lang-' + lang : ''} theme-${theme.value}`;
-    
-    // Используем кэш если доступен itemId
-    const cached = await getCachedText(itemId, lang, modifiedTs); 
-    if (cached) {
-      pages.value = cached.pages;
-      headers.value = cached.headers;
-    } else {
-      if (text.length > 38000) {
-        isShowCalculating.value = true;
+    resetCalculatingProgress();
+    freezeReadingStyles(container);
+    let stylesReleased = false;
+    const releaseStyles = () => {
+      if (stylesReleased) return;
+      stylesReleased = true;
+      unfreezeReadingStyles(container);
+    };
+
+    try {
+      const cssClasses = `text-page reading-text ${lang ? 'prayer-text lang-' + lang : ''} theme-${theme.value}`;
+
+      // Используем кэш если доступен itemId
+      const cached = await getCachedText(itemId, lang, modifiedTs);
+      if (cached) {
+        pages.value = cached.pages;
+        headers.value = cached.headers;
+      } else {
+        if (text.length > 38000) {
+          isShowCalculating.value = true;
+        }
+
+        const result = await paginateText(text, container, cssClasses, (progress) => {
+          pushCalculatingProgress(progress);
+        });
+        pages.value = result.pages;
+        headers.value = result.headers;
+        setCachedText(itemId, lang, pages.value, headers.value, modifiedTs);
       }
 
-      const result = await paginateText(text, container, cssClasses, (progress) => {
-        pushCalculatingProgress(progress);
-      });
-      pages.value = result.pages;
-      headers.value = result.headers;
-      setCachedText(itemId, lang, pages.value, headers.value, modifiedTs);
+      // Новые страницы, класс языка и живые CSS-переменные — в одном кадре.
+      applyPages();
+      restoreProgress();
+      releaseStyles();
+
+      if (isShowCalculating.value) {
+        pushCalculatingProgress(1);
+        await waitCalculatingProgress();
+      }
+    } finally {
+      releaseStyles();
+      isShowCalculating.value = false;
+      isCalculating.value = false;
     }
-    
-    applyPages();
-
-    restoreProgress();
-
-    if (isShowCalculating.value) {
-      pushCalculatingProgress(1);
-      await waitCalculatingProgress();
-    }
-
-    isShowCalculating.value = false;
-    isCalculating.value = false;
   }
 });
 
