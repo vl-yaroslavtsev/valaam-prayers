@@ -37,6 +37,16 @@
         </f7-list-item>
       </f7-list>
 
+      <f7-block-title>Скорость календаря за год</f7-block-title>
+      <f7-block strong-ios outline-ios>
+        <f7-button fill :disabled="dayBenchRunning" @click="runDayBench">
+          Тест дней за {{ benchYear }}
+        </f7-button>
+        <div v-if="dayBenchLines.length" style="margin-top: 12px">
+          <div v-for="(line, index) in dayBenchLines" :key="index">{{ line }}</div>
+        </div>
+      </f7-block>
+
       <f7-block-title>Браузерное API</f7-block-title>
       <f7-block strong-ios outline-ios class="grid grid-cols-2 grid-gap">
         <f7-button fill @click="testBrowserFitures">Проверить API</f7-button>
@@ -249,6 +259,111 @@ import { testBrowser } from "../js/device/browser-test";
 import { useTheme } from "@/composables/useTheme";
 import { useSettingsStore } from "@/stores/settings";
 import { usePaginationCache } from "@/composables/usePaginationCache";
+import { daysApi, type CalendarDayApiElement } from "@/services/api/DaysApi";
+import { CalendarDaysStorage } from "@/services/storage/CalendarDaysStorage";
+import { NativeTableStorage } from "@/services/storage/native/NativeTableStorage";
+
+const BENCH_PAGE_SIZE = 100;
+
+const benchYear = new Date().getFullYear();
+const dayBenchRunning = ref(false);
+const dayBenchLines = ref<string[]>([]);
+
+const formatBenchMs = (ms: number) => `${ms.toFixed(1)} мс`;
+
+const measureBench = async (action: () => Promise<unknown>): Promise<number> => {
+  const start = performance.now();
+  await action();
+  return performance.now() - start;
+};
+
+const benchError = (err: unknown) => (err instanceof Error ? err.message : String(err));
+
+const yieldBenchPaint = () => new Promise((resolve) => setTimeout(resolve, 0));
+
+/** Все дни текущего года: /days/list с 1 января по 31 декабря */
+const downloadBenchYear = async (): Promise<CalendarDayApiElement[]> => {
+  const fromDate = `${benchYear}0101`;
+  const toDate = `${benchYear}1231`;
+  const days: CalendarDayApiElement[] = [];
+
+  let page = 1;
+  let pageCount = 1;
+  while (page <= pageCount) {
+    const pageLabel = page === 1 && pageCount === 1 ? `${page}` : `${page} из ${pageCount}`;
+    dayBenchLines.value = [`Скачиваю ${benchYear}, страница ${pageLabel}…`];
+    const { items, nav } = await daysApi.getDaysPage(fromDate, toDate, page, BENCH_PAGE_SIZE);
+    days.push(...items);
+    pageCount = nav?.page_count ?? page;
+    page += 1;
+  }
+
+  return days;
+};
+
+/** Скачивает дни года, пишет их в IndexedDB и нативку, затем читает тот же набор из обеих баз */
+const runDayBench = async () => {
+  dayBenchRunning.value = true;
+  dayBenchLines.value = ["Скачиваю…"];
+
+  try {
+    const days = await downloadBenchYear();
+    const codes = days.map((day) => day.code);
+    const idb = new CalendarDaysStorage();
+    const native = new NativeTableStorage<string, CalendarDayApiElement>("calendar-days");
+    const lines: string[] = [`Дней: ${days.length}`];
+
+    dayBenchLines.value = [...lines, "Запись в IDB…"];
+    await yieldBenchPaint();
+    try {
+      const elapsed = await measureBench(() => idb.putAll(days));
+      lines.push(`Запись, IDB: ${formatBenchMs(elapsed)}`);
+    } catch (err) {
+      lines.push(`Запись, IDB: ${benchError(err)}`);
+    }
+
+    dayBenchLines.value = [...lines, "Запись в нативку…"];
+    await yieldBenchPaint();
+    try {
+      const elapsed = await measureBench(() => native.putAll(days));
+      lines.push(`Запись, нативка: ${formatBenchMs(elapsed)}`);
+    } catch (err) {
+      lines.push(`Запись, нативка: ${benchError(err)}`);
+    }
+
+    dayBenchLines.value = [...lines, "Чтение из IDB…"];
+    await yieldBenchPaint();
+    try {
+      let found = 0;
+      const elapsed = await measureBench(async () => {
+        const read = await idb.getMany(codes);
+        found = read.filter((day) => day?.code).length;
+      });
+      lines.push(`Чтение, IDB: ${formatBenchMs(elapsed)} (${found})`);
+    } catch (err) {
+      lines.push(`Чтение, IDB: ${benchError(err)}`);
+    }
+
+    dayBenchLines.value = [...lines, "Чтение из нативки…"];
+    await yieldBenchPaint();
+    try {
+      let found = 0;
+      const elapsed = await measureBench(async () => {
+        const read = await native.getMany(codes);
+        found = read.filter((day) => day?.code).length;
+      });
+      lines.push(`Чтение, нативка: ${formatBenchMs(elapsed)} (${found})`);
+    } catch (err) {
+      lines.push(`Чтение, нативка: ${benchError(err)}`);
+    }
+
+    dayBenchLines.value = lines;
+  } catch (err) {
+    dayBenchLines.value = [benchError(err)];
+  } finally {
+    dayBenchRunning.value = false;
+  }
+};
 
 const { currentTheme, setTheme } = useTheme();
 const settingsStore = useSettingsStore();
