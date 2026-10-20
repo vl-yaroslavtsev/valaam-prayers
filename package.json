@@ -12,7 +12,7 @@
     "dev": "cross-env NODE_ENV=development vite",
     "dev-local": "cross-env NODE_ENV=development vite --host 172.21.112.50 --port 5173",
     "preview": "cross-env NODE_ENV=development vite preview",
-    "clean": "if exist www rmdir /s /q www",
+    "clean": "node -e \"require('node:fs').rmSync('www',{recursive:true,force:true})\"",
     "build": "npm run clean && cross-env NODE_ENV=production vite build",
     "deploy": "scripts\\deploy.cmd",
     "check": "npm run type-check && npm run test",
