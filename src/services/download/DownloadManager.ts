@@ -15,6 +15,7 @@ import {
 } from "@/services/download/types";
 
 const PERSIST_THROTTLE_MS = 100;
+const PROGRESS_LOG_INTERVAL_MS = 1000;
 
 /**
  * API отдаёт размер даже для пустой выборки (например, 2 байта на "[]"), поэтому
@@ -241,6 +242,24 @@ export class DownloadManager implements IDownloadManager {
     const controller = new AbortController();
     this.controllers.set(moduleId, controller);
 
+    let onBytesCalls = 0;
+    let uiUpdates = 0;
+    let progressLogStartedAt = Date.now();
+    const logProgressRate = (): void => {
+      const elapsedMs = Date.now() - progressLogStartedAt;
+      const bytesCalls = onBytesCalls;
+      const updates = uiUpdates;
+      onBytesCalls = 0;
+      uiUpdates = 0;
+      progressLogStartedAt = Date.now();
+      if (bytesCalls === 0 || elapsedMs <= 0) return;
+      const seconds = elapsedMs / 1000;
+      console.log(
+        `[download ${moduleId}] onBytes ${(bytesCalls / seconds).toFixed(1)}/с (${bytesCalls}), обновление UI ${(updates / seconds).toFixed(1)}/с (${updates})`
+      );
+    };
+    const progressLogTimer = setInterval(logProgressRate, PROGRESS_LOG_INTERVAL_MS);
+
     let lastPersistedAt = 0;
     const persist = async (force = false): Promise<void> => {
       const now = Date.now();
@@ -253,6 +272,7 @@ export class DownloadManager implements IDownloadManager {
       const progress = toProgress(state);
       onProgress?.(progress);
       this.listeners.forEach((listener) => listener(progress));
+      uiUpdates += 1;
     };
 
     const ctx: DownloadContext = {
@@ -260,6 +280,7 @@ export class DownloadManager implements IDownloadManager {
       since,
       state,
       onBytes: (bytes) => {
+        onBytesCalls += 1;
         state.downloadedBytes += bytes;
         void persist(false);
       },
@@ -303,6 +324,8 @@ export class DownloadManager implements IDownloadManager {
       await persist(true);
       throw err;
     } finally {
+      clearInterval(progressLogTimer);
+      logProgressRate();
       this.controllers.delete(moduleId);
     }
   }
