@@ -5,11 +5,20 @@ import type { DownloadModuleId, DownloadProgress, IDownloadManager } from "@/ser
 
 type ProgressCallback = (progress: DownloadProgress) => void;
 
+const PROGRESS_LOG_INTERVAL_MS = 1000;
+
 interface Waiter {
   promise: Promise<void>;
   resolve: () => void;
   reject: (error: Error) => void;
   callbacks: Set<ProgressCallback>;
+}
+
+interface ProgressLog {
+  events: number;
+  uiUpdates: number;
+  startedAt: number;
+  timer: ReturnType<typeof setInterval>;
 }
 
 /** Размер иконок выбирает фронт (по ширине устройства), нативка запоминает его для автообновления */
@@ -28,6 +37,7 @@ function imageOptions(moduleId: DownloadModuleId): { imageSize: ImageSize } | un
 export class NativeDownloadManager implements IDownloadManager {
   private listeners = new Set<ProgressCallback>();
   private waiters = new Map<DownloadModuleId, Waiter>();
+  private progressLogs = new Map<DownloadModuleId, ProgressLog>();
 
   constructor() {
     onNativeEvent("download.progress", (progress) => this.handleProgress(progress));
@@ -114,11 +124,13 @@ export class NativeDownloadManager implements IDownloadManager {
     await nativeCall("download.cancel", { moduleId });
     // После отмены нативка событий не шлёт, поэтому ожидание закрываем сами (как abort в DownloadManager)
     this.settle(moduleId);
+    this.stopProgressLog(moduleId);
   }
 
   async deleteDownload(moduleId: DownloadModuleId): Promise<void> {
     await nativeCall("download.delete", { moduleId });
     this.settle(moduleId);
+    this.stopProgressLog(moduleId);
   }
 
   async resumeInterrupted(): Promise<void> {
@@ -150,14 +162,57 @@ export class NativeDownloadManager implements IDownloadManager {
     else waiter.resolve();
   }
 
+  private ensureProgressLog(moduleId: DownloadModuleId): ProgressLog {
+    const existing = this.progressLogs.get(moduleId);
+    if (existing) return existing;
+    const log: ProgressLog = {
+      events: 0,
+      uiUpdates: 0,
+      startedAt: Date.now(),
+      timer: setInterval(() => this.logProgressRate(moduleId), PROGRESS_LOG_INTERVAL_MS),
+    };
+    this.progressLogs.set(moduleId, log);
+    return log;
+  }
+
+  private logProgressRate(moduleId: DownloadModuleId): void {
+    const log = this.progressLogs.get(moduleId);
+    if (!log) return;
+    const elapsedMs = Date.now() - log.startedAt;
+    const events = log.events;
+    const updates = log.uiUpdates;
+    log.events = 0;
+    log.uiUpdates = 0;
+    log.startedAt = Date.now();
+    // Короче секунды не печатаем: иначе хвост загрузки и юнит-тесты дают бессмысленную частоту
+    if (events === 0 || elapsedMs < PROGRESS_LOG_INTERVAL_MS) return;
+    const seconds = elapsedMs / 1000;
+    console.log(
+      `[download ${moduleId}] progress ${(events / seconds).toFixed(1)}/с (${events}), обновление UI ${(updates / seconds).toFixed(1)}/с (${updates})`
+    );
+  }
+
+  private stopProgressLog(moduleId: DownloadModuleId): void {
+    const log = this.progressLogs.get(moduleId);
+    if (!log) return;
+    clearInterval(log.timer);
+    this.logProgressRate(moduleId);
+    this.progressLogs.delete(moduleId);
+  }
+
   private handleProgress(progress: DownloadProgress): void {
+    const log = this.ensureProgressLog(progress.moduleId);
+    log.events += 1;
     this.waiters.get(progress.moduleId)?.callbacks.forEach((callback) => callback(progress));
     this.listeners.forEach((listener) => listener(progress));
+    log.uiUpdates += 1;
 
     if (progress.status === "completed") {
       this.settle(progress.moduleId);
+      this.stopProgressLog(progress.moduleId);
     } else if (progress.status === "error") {
       this.settle(progress.moduleId, new Error(progress.error ?? "Не удалось скачать"));
+      this.stopProgressLog(progress.moduleId);
     }
   }
 }

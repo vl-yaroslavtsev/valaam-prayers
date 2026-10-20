@@ -39,11 +39,21 @@
 
       <f7-block-title>Скорость календаря за год</f7-block-title>
       <f7-block strong-ios outline-ios>
-        <f7-button fill :disabled="dayBenchRunning" @click="runDayBench">
+        <f7-button fill :disabled="dayBenchRunning || microBenchRunning" @click="runDayBench">
           Тест дней за {{ benchYear }}
         </f7-button>
         <div v-if="dayBenchLines.length" style="margin-top: 12px">
           <div v-for="(line, index) in dayBenchLines" :key="index">{{ line }}</div>
+        </div>
+      </f7-block>
+
+      <f7-block-title>Микротест чтения</f7-block-title>
+      <f7-block strong-ios outline-ios>
+        <f7-button fill :disabled="dayBenchRunning || microBenchRunning" @click="runMicroBench">
+          100 дней get, окно 30, prayers_index getAll
+        </f7-button>
+        <div v-if="microBenchLines.length" style="margin-top: 12px">
+          <div v-for="(line, index) in microBenchLines" :key="index">{{ line }}</div>
         </div>
       </f7-block>
 
@@ -260,14 +270,21 @@ import { useTheme } from "@/composables/useTheme";
 import { useSettingsStore } from "@/stores/settings";
 import { usePaginationCache } from "@/composables/usePaginationCache";
 import { daysApi, type CalendarDayApiElement } from "@/services/api/DaysApi";
+import { isNativeBridgeAvailable } from "@/services/native/nativeRpc";
 import { CalendarDaysStorage } from "@/services/storage/CalendarDaysStorage";
+import type { ValaamDB } from "@/services/storage/indexedDB";
 import { NativeTableStorage } from "@/services/storage/native/NativeTableStorage";
+import { PrayersIndexStorage } from "@/services/storage/PrayersIndexStorage";
 
 const BENCH_PAGE_SIZE = 100;
+const MICRO_GETS = 100;
+const MICRO_WINDOW = 30;
 
 const benchYear = new Date().getFullYear();
 const dayBenchRunning = ref(false);
 const dayBenchLines = ref<string[]>([]);
+const microBenchRunning = ref(false);
+const microBenchLines = ref<string[]>([]);
 
 const formatBenchMs = (ms: number) => `${ms.toFixed(1)} мс`;
 
@@ -310,7 +327,8 @@ const runDayBench = async () => {
     const days = await downloadBenchYear();
     const codes = days.map((day) => day.code);
     const idb = new CalendarDaysStorage();
-    const native = new NativeTableStorage<string, CalendarDayApiElement>("calendar-days");
+    const hasNative = isNativeBridgeAvailable();
+    const native = hasNative ? new NativeTableStorage<string, CalendarDayApiElement>("calendar-days") : null;
     const lines: string[] = [`Дней: ${days.length}`];
 
     dayBenchLines.value = [...lines, "Запись в IDB…"];
@@ -322,13 +340,15 @@ const runDayBench = async () => {
       lines.push(`Запись, IDB: ${benchError(err)}`);
     }
 
-    dayBenchLines.value = [...lines, "Запись в нативку…"];
-    await yieldBenchPaint();
-    try {
-      const elapsed = await measureBench(() => native.putAll(days));
-      lines.push(`Запись, нативка: ${formatBenchMs(elapsed)}`);
-    } catch (err) {
-      lines.push(`Запись, нативка: ${benchError(err)}`);
+    if (native) {
+      dayBenchLines.value = [...lines, "Запись в нативку…"];
+      await yieldBenchPaint();
+      try {
+        const elapsed = await measureBench(() => native.putAll(days));
+        lines.push(`Запись, нативка: ${formatBenchMs(elapsed)}`);
+      } catch (err) {
+        lines.push(`Запись, нативка: ${benchError(err)}`);
+      }
     }
 
     dayBenchLines.value = [...lines, "Чтение из IDB…"];
@@ -344,17 +364,21 @@ const runDayBench = async () => {
       lines.push(`Чтение, IDB: ${benchError(err)}`);
     }
 
-    dayBenchLines.value = [...lines, "Чтение из нативки…"];
-    await yieldBenchPaint();
-    try {
-      let found = 0;
-      const elapsed = await measureBench(async () => {
-        const read = await native.getMany(codes);
-        found = read.filter((day) => day?.code).length;
-      });
-      lines.push(`Чтение, нативка: ${formatBenchMs(elapsed)} (${found})`);
-    } catch (err) {
-      lines.push(`Чтение, нативка: ${benchError(err)}`);
+    if (native) {
+      dayBenchLines.value = [...lines, "Чтение из нативки…"];
+      await yieldBenchPaint();
+      try {
+        let found = 0;
+        const elapsed = await measureBench(async () => {
+          const read = await native.getMany(codes);
+          found = read.filter((day) => day?.code).length;
+        });
+        lines.push(`Чтение, нативка: ${formatBenchMs(elapsed)} (${found})`);
+      } catch (err) {
+        lines.push(`Чтение, нативка: ${benchError(err)}`);
+      }
+    } else {
+      lines.push("Нативка: мост недоступен");
     }
 
     dayBenchLines.value = lines;
@@ -362,6 +386,140 @@ const runDayBench = async () => {
     dayBenchLines.value = [benchError(err)];
   } finally {
     dayBenchRunning.value = false;
+  }
+};
+
+/** Коды всех дней года: YYYYMMDD, как ключ calendar-days */
+const benchDayCodes = (): string[] => {
+  const codes: string[] = [];
+  const date = new Date(benchYear, 0, 1);
+  while (date.getFullYear() === benchYear) {
+    codes.push(format(date, "yyyyMMdd"));
+    date.setDate(date.getDate() + 1);
+  }
+  return codes;
+};
+
+const appendMicroLine = async (lines: string[], label: string, run: () => Promise<string>) => {
+  microBenchLines.value = [...lines, `${label}…`];
+  await yieldBenchPaint();
+  try {
+    lines.push(`${label}: ${await run()}`);
+  } catch (err) {
+    lines.push(`${label}: ${benchError(err)}`);
+  }
+};
+
+/**
+ * Чтения, близкие к экранам: 100 одиночных get, окно в 30 других дней, весь индекс молитв.
+ * Дни должны уже лежать в базе (тест за год). Без моста замеряется только IndexedDB.
+ */
+const runMicroBench = async () => {
+  microBenchRunning.value = true;
+  microBenchLines.value = ["Проверяю дни…"];
+
+  try {
+    const codes = benchDayCodes();
+    const singleCodes = codes.slice(0, MICRO_GETS);
+    const windowCodes = codes.slice(MICRO_GETS, MICRO_GETS + MICRO_WINDOW);
+    const hasNative = isNativeBridgeAvailable();
+    const idb = new CalendarDaysStorage();
+    const native = hasNative ? new NativeTableStorage<string, CalendarDayApiElement>("calendar-days") : null;
+    const idbPrayers = new PrayersIndexStorage();
+    const nativePrayers = hasNative
+      ? new NativeTableStorage<number, ValaamDB["prayers-index"]["value"]>("prayers-index")
+      : null;
+
+    const idbProbe = await idb.get(codes[0]);
+    const nativeProbe = native ? await native.get(codes[0]) : undefined;
+    if (!idbProbe?.code && !nativeProbe?.code) {
+      microBenchLines.value = [
+        hasNative
+          ? "Дней в обеих базах нет. Сначала запустите тест дней за год."
+          : "Дней в IDB нет. Сначала запустите тест дней за год.",
+      ];
+      return;
+    }
+
+    const lines: string[] = [];
+    let idbPrayerCount = 0;
+    let nativePrayerCount = 0;
+
+    await appendMicroLine(lines, `100 дней календаря get по одному, IDB`, async () => {
+      let found = 0;
+      const elapsed = await measureBench(async () => {
+        for (const code of singleCodes) {
+          const day = await idb.get(code);
+          if (day?.code) found += 1;
+        }
+      });
+      return `${formatBenchMs(elapsed)} (${formatBenchMs(elapsed / singleCodes.length)}/шт, ${found})`;
+    });
+
+    if (native) {
+      await appendMicroLine(lines, `100 дней календаря get по одному, нативка`, async () => {
+        let found = 0;
+        const elapsed = await measureBench(async () => {
+          for (const code of singleCodes) {
+            const day = await native.get(code);
+            if (day?.code) found += 1;
+          }
+        });
+        return `${formatBenchMs(elapsed)} (${formatBenchMs(elapsed / singleCodes.length)}/шт, ${found})`;
+      });
+    }
+
+    await appendMicroLine(lines, `Окно 30 дней сразу, IDB`, async () => {
+      let found = 0;
+      const elapsed = await measureBench(async () => {
+        const read = await idb.getMany(windowCodes);
+        found = read.filter((day) => day?.code).length;
+      });
+      return `${formatBenchMs(elapsed)} (${found})`;
+    });
+
+    if (native) {
+      await appendMicroLine(lines, `Окно 30 дней сразу, нативка`, async () => {
+        let found = 0;
+        const elapsed = await measureBench(async () => {
+          const read = await native.getMany(windowCodes);
+          found = read.filter((day) => day?.code).length;
+        });
+        return `${formatBenchMs(elapsed)} (${found})`;
+      });
+    }
+
+    await appendMicroLine(lines, `Индекс prayers_index getAll, IDB`, async () => {
+      let count = 0;
+      const elapsed = await measureBench(async () => {
+        count = (await idbPrayers.getAll()).length;
+      });
+      idbPrayerCount = count;
+      return `${formatBenchMs(elapsed)} (${count})`;
+    });
+
+    if (nativePrayers) {
+      await appendMicroLine(lines, `Индекс prayers_index getAll, нативка`, async () => {
+        let count = 0;
+        const elapsed = await measureBench(async () => {
+          count = (await nativePrayers.getAll()).length;
+        });
+        nativePrayerCount = count;
+        return `${formatBenchMs(elapsed)} (${count})`;
+      });
+    } else {
+      lines.push("Нативка: мост недоступен");
+    }
+
+    if (idbPrayerCount === 0 && nativePrayerCount > 0) {
+      lines.push("Индекс в IDB пуст: на устройстве он хранится в нативке");
+    }
+
+    microBenchLines.value = lines;
+  } catch (err) {
+    microBenchLines.value = [benchError(err)];
+  } finally {
+    microBenchRunning.value = false;
   }
 };
 
