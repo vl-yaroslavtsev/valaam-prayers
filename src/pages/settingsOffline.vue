@@ -49,7 +49,9 @@
               :progress="progressPercent(item.moduleId)"
             />
             <div class="offline-footer">
-              <span v-if="showProgress(item.moduleId)" class="offline-accent">
+              <span v-if="pendingAction[item.moduleId] === 'cancel'">Отменяем загрузку...</span>
+              <span v-else-if="pendingAction[item.moduleId] === 'delete'">Удаляем данные...</span>
+              <span v-else-if="showProgress(item.moduleId)" class="offline-accent">
                 <span class="offline-digits">{{ progressNumbers(item.moduleId).current }}</span>
                 МБ из
                 <span class="offline-digits">{{ progressNumbers(item.moduleId).total }}</span>
@@ -79,6 +81,8 @@
               v-if="actionKind(item.moduleId) !== 'none'"
               class="offline-action"
               :class="{ 'is-unavailable': !online && isNetworkAction(item.moduleId) }"
+              :disabled="isPending(item.moduleId)"
+              :aria-disabled="isPending(item.moduleId) || undefined"
               :aria-label="actionLabel(item.moduleId)"
               @click="onAction(item)"
             >
@@ -126,6 +130,7 @@ import type { DownloadModuleId } from "@/services/download/types";
 import type { IconName } from "@/types/icon-name";
 
 type ActionKind = "download" | "update" | "cancel" | "delete" | "none";
+type PendingAction = "cancel" | "delete";
 type ActionIconColor = "baige-60" | "baige-90" | "black-60" | "black-primary" | "primary-accent-50" | "primary-accent-70";
 
 interface ActionIcon {
@@ -225,6 +230,8 @@ const remoteSizes = reactive<Partial<Record<DownloadModuleId, number>>>({});
 const updateSizes = reactive<Partial<Record<DownloadModuleId, number>>>({});
 // true, пока первый запрос размера идёт и в базе ещё нет сохранённого значения
 const sizePending = reactive<Partial<Record<DownloadModuleId, boolean>>>({});
+// cancel/delete длятся дольше одного кадра: пока они идут, держим подпись и ту же кнопку
+const pendingAction = reactive<Partial<Record<DownloadModuleId, PendingAction>>>({});
 const localReady = ref(false);
 const quotaReady = ref(false);
 const storageQuotaBytes = ref<number | null>(null);
@@ -258,8 +265,13 @@ function isDownloading(moduleId: DownloadModuleId): boolean {
   return downloadsStore.progress[moduleId]?.status === "downloading";
 }
 
+function isPending(moduleId: DownloadModuleId): boolean {
+  return pendingAction[moduleId] != null;
+}
+
 // Пока общий размер неизвестен, строку не переключаем на прогресс: «0 из 0 МБ» не показываем
 function showProgress(moduleId: DownloadModuleId): boolean {
+  if (pendingAction[moduleId] === "cancel") return false;
   const progress = downloadsStore.progress[moduleId];
   return progress?.status === "downloading" && progress.totalBytes > 0;
 }
@@ -313,6 +325,9 @@ function isNetworkAction(moduleId: DownloadModuleId): boolean {
 }
 
 function actionKind(moduleId: DownloadModuleId): ActionKind {
+  // Статус скачивания может смениться раньше, чем закончится отмена или удаление
+  if (pendingAction[moduleId] === "cancel") return "cancel";
+  if (pendingAction[moduleId] === "delete") return "delete";
   if (isDownloading(moduleId)) {
     // Идущее обновление не отменяем: cancelDownload откатывает модуль целиком и удалил бы скачанное
     return downloaded[moduleId] ? "none" : "cancel";
@@ -336,7 +351,7 @@ function actionLabel(moduleId: DownloadModuleId): string {
 function actionIcon(moduleId: DownloadModuleId): ActionIcon {
   switch (actionKind(moduleId)) {
     case "cancel":
-      return { icon: "cancel", color: "primary-accent-50", size: 18 };
+      return { icon: "cancel", color: accentColor.value, size: 18 }; // "primary-accent-50"
     case "delete":
       return { icon: "delete", color: neutralColor.value, size: 24 };
     default:
@@ -417,8 +432,18 @@ function confirmDelete(item: OfflineItem): Promise<boolean> {
   });
 }
 
+async function runPending(moduleId: DownloadModuleId, action: PendingAction, task: () => Promise<void>): Promise<void> {
+  pendingAction[moduleId] = action;
+  try {
+    await task();
+  } finally {
+    delete pendingAction[moduleId];
+  }
+}
+
 async function onAction(item: OfflineItem): Promise<void> {
   const { moduleId } = item;
+  if (isPending(moduleId)) return;
   const kind = actionKind(moduleId);
   if ((kind === "download" || kind === "update") && !isOnline()) {
     showErrorToast();
@@ -433,13 +458,17 @@ async function onAction(item: OfflineItem): Promise<void> {
         await downloadsStore.checkForUpdate(moduleId);
         break;
       case "cancel":
-        await downloadsStore.cancelDownload(moduleId);
-        await refreshModule(moduleId);
+        await runPending(moduleId, "cancel", async () => {
+          await downloadsStore.cancelDownload(moduleId);
+          await refreshModule(moduleId);
+        });
         break;
       case "delete":
         if (await confirmDelete(item)) {
-          await downloadsStore.deleteDownload(moduleId);
-          await refreshModule(moduleId);
+          await runPending(moduleId, "delete", async () => {
+            await downloadsStore.deleteDownload(moduleId);
+            await refreshModule(moduleId);
+          });
         }
         break;
     }

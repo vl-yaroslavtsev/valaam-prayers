@@ -1,7 +1,7 @@
 {
   "name": "valaam-prayers",
   "private": true,
-  "version": "1.43.0",
+  "version": "1.44.0",
   "description": "Валаамский молитвослов и календарь",
   "repository": "",
   "license": "UNLICENSED",
@@ -15,7 +15,8 @@
     "clean": "if exist www rmdir /s /q www",
     "build": "npm run clean && cross-env NODE_ENV=production vite build",
     "deploy": "scripts\\deploy.cmd",
-    "prod": "npm run build && npm run deploy",
+    "check": "npm run type-check && npm run test",
+    "prod": "npm run check && npm run build && npm run deploy",
     "seed:fetch": "node scripts/fetch-seed.mjs",
     "native:prepare": "npm run build && npm run seed:fetch",
     "pretype-check": "node scripts/generate-icon-types.js",
