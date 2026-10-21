@@ -18,7 +18,7 @@
               <SvgIcon icon="notes" :color="iconColor" />
             </template>
           </f7-list-item>
-          <f7-list-item title="НАПОМИНАНИЯ" link="#">
+          <f7-list-item title="НАПОМИНАНИЯ" link="/reminders/" view="current" panel-close>
             <template #media>
               <SvgIcon icon="alarm" :color="iconColor" />
             </template>

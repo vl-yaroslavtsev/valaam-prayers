@@ -13,6 +13,7 @@ import SettingsPage from "../pages/settings.vue";
 import SettingsTestPage from "../pages/settingsTest.vue";
 import SettingsOfflinePage from "../pages/settingsOffline.vue";
 import SettingsReadingPage from "../pages/settingsReading.vue";
+import RemindersPage from "../pages/reminders.vue";
 
 import NotFoundPage from "../pages/404.vue";
 
@@ -116,6 +117,13 @@ const routes: Router.RouteParameters[] = [
   {
     path: "/settings/reading/",
     component: SettingsReadingPage,
+    options: {
+      transition: "fade-slide",
+    },
+  },
+  {
+    path: "/reminders/",
+    component: RemindersPage,
     options: {
       transition: "fade-slide",
     },

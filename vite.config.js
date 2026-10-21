@@ -83,7 +83,7 @@ export default async () => {
       outDir: BUILD_DIR,
       assetsInlineLimit: 0,
       emptyOutDir: true,
-      sourcemap: true,
+      sourcemap: false,
       rolldownOptions: {
         treeshake: true,
         output: {

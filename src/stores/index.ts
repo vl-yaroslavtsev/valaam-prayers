@@ -9,6 +9,7 @@ import { useReadingHistoryStore } from './readingHistory';
 import { useSettingsStore } from './settings';
 import { useBookmarksStore } from './bookmarks';
 import { useDownloadsStore } from './downloads';
+import { useRemindersStore } from './reminders';
 import { downloadManager } from '@/services/download/DownloadManager';
 import { startAutoUpdate } from '@/services/download/AutoUpdate';
 
@@ -24,6 +25,7 @@ export * from "./settings";
 export * from "./components";
 export * from "./bookmarks";
 export * from "./downloads";
+export * from "./reminders";
 
 export async function initStores() {
   await initStorage();
@@ -39,6 +41,7 @@ export async function initStores() {
     settingsStore,
     useBookmarksStore(),
     useDownloadsStore(),
+    useRemindersStore(),
   ]
 
   await Promise.all(stores.map(store => store.initStore()));
