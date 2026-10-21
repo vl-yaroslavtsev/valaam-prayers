@@ -28,7 +28,6 @@
             {{ storageQuotaLabel.unit }}
           </template>
         </template>
-        <span v-else class="skeleton-text skeleton-effect-wave offline-size-placeholder">Использовано 00.0 МБ из 00 МБ</span>
       </div>
       <f7-progressbar class="offline-usage-bar" :progress="usagePercent" />
     </f7-block>
@@ -59,8 +58,7 @@
               </span>
               <span v-else-if="hasError(item.moduleId)" class="text-color-red">Не удалось скачать. Попробуйте ещё раз</span>
               <template v-else>
-                <span v-if="showSizePlaceholder(item.moduleId)" class="skeleton-text skeleton-effect-wave offline-size-placeholder">00.0 МБ</span>
-                <span v-else-if="downloaded[item.moduleId]" class="offline-downloaded">
+                <span v-if="downloaded[item.moduleId]" class="offline-downloaded">
                   <span class="offline-downloaded-mark">✓ Скачано</span>
                   <template v-if="sizeBytes(item.moduleId) != null">
                     • <span class="offline-digits">{{ formatMbNumber(sizeBytes(item.moduleId)!) }}</span> МБ
@@ -101,7 +99,7 @@
           <SvgIcon icon="sync" :color="neutralColor" :size="24" />
         </template>
         <template #footer>
-          <div>Загружать обновления текстов, календаря и иконок при наличии Wi-Fi</div>
+          <div>Тексты, календарь и иконы при наличии Wi-Fi</div>
           <div v-if="autoUpdate && lastCheckLoaded" class="offline-last-check">{{ lastCheckLabel }}</div>
         </template>
         <template #after>
@@ -228,8 +226,6 @@ const savedSizes = reactive<Partial<Record<DownloadModuleId, number>>>({});
 // Размер ещё не скачанного модуля и размер доступного обновления - из API, нужна сеть
 const remoteSizes = reactive<Partial<Record<DownloadModuleId, number>>>({});
 const updateSizes = reactive<Partial<Record<DownloadModuleId, number>>>({});
-// true, пока первый запрос размера идёт и в базе ещё нет сохранённого значения
-const sizePending = reactive<Partial<Record<DownloadModuleId, boolean>>>({});
 // cancel/delete длятся дольше одного кадра: пока они идут, держим подпись и ту же кнопку
 const pendingAction = reactive<Partial<Record<DownloadModuleId, PendingAction>>>({});
 const localReady = ref(false);
@@ -311,10 +307,6 @@ function sizeBytes(moduleId: DownloadModuleId): number | undefined {
   return downloaded[moduleId] ? savedSizes[moduleId] : remoteSizes[moduleId];
 }
 
-function showSizePlaceholder(moduleId: DownloadModuleId): boolean {
-  return !downloaded[moduleId] && sizePending[moduleId] === true && remoteSizes[moduleId] == null;
-}
-
 function updateMb(moduleId: DownloadModuleId): string {
   return hasUpdate(moduleId) ? formatMbNumber(updateSizes[moduleId]!) : "";
 }
@@ -368,18 +360,12 @@ async function loadLocal(moduleId: DownloadModuleId): Promise<void> {
   downloaded[moduleId] = isDownloaded;
   if (isDownloaded) {
     savedSizes[moduleId] = savedSize ?? undefined;
-    sizePending[moduleId] = false;
     return;
   }
 
   savedSizes[moduleId] = undefined;
   updateSizes[moduleId] = undefined;
-  if (cached != null) {
-    remoteSizes[moduleId] = cached;
-    sizePending[moduleId] = false;
-  } else if (remoteSizes[moduleId] == null) {
-    sizePending[moduleId] = true;
-  }
+  if (cached != null) remoteSizes[moduleId] = cached;
 }
 
 async function loadRemote(moduleId: DownloadModuleId): Promise<void> {
@@ -396,8 +382,6 @@ async function loadRemote(moduleId: DownloadModuleId): Promise<void> {
     }
   } catch {
     // Без сети оставляем сохранённый размер. Ошибку получения размера не показываем
-  } finally {
-    if (pageActive) sizePending[moduleId] = false;
   }
 }
 
@@ -606,6 +590,13 @@ onUnmounted(() => {
 }
 
 .offline-usage-label {
+  // Пока цифры не пришли, строка пустая. Невидимый символ в PT Mono держит
+  // ту же высоту, что и текст с цифрами, и полоска ниже не прыгает
+  &::before {
+    content: "\200b";
+    font-family: "PT Mono", ui-monospace, monospace;
+  }
+
   color: var(--content-color-black-60);
   font-size: var(--mobile-detail-regular-d1);
   line-height: var(--mobile-detail-regular-d1-line-height);
@@ -617,13 +608,6 @@ onUnmounted(() => {
 
 .offline-digits {
   font-family: "PT Mono", ui-monospace, monospace;
-}
-
-.offline-size-placeholder {
-  display: inline-block;
-  border-radius: 4px;
-  color: transparent;
-  user-select: none;
 }
 
 .offline-usage-bar {

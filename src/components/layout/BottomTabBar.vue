@@ -67,8 +67,8 @@ const getColor = (tab: string) => {
 .bottom-menu {
   --f7-tabbar-link-active-bg-color: transparent; // var(--content-color-black-primary);
 
-  --f7-tabbar-icons-height: 60px;
-  --f7-tabbar-icons-tablet-height: 60px;
+  --f7-tabbar-icons-height: 70px;
+  --f7-tabbar-icons-tablet-height: 70px;
 
   --f7-link-touch-ripple-color: rgba(255, 255, 255, 0.15);
   --f7-tabbar-link-active-color: var(--content-color-white-100);
