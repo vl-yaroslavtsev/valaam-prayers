@@ -121,7 +121,7 @@ API: база `https://app.valaam.ru/api`. Ответ имеет вид `{ statu
 
 Seed генерирует `npm run seed:fetch` (`scripts/fetch-seed.mjs`) в папку `native-seed/` в корне веб-проекта. Папка в `.gitignore`, лежит вне `www/`, `src/` и `public/`, поэтому на сервер не попадает. Нативные сборки копируют её в ресурсы приложения вместе с `www/` (`npm run native:prepare` собирает и то и другое).
 
-Не входят в seed: `spiritualLiterature`, `liturgicalBooks`, все иконки, карточки святых (`saint-details`), индекс мыслей.
+Не входят в seed веб-бандла: `spiritualLiterature`, `liturgicalBooks`, иконки календаря и молитвослова, карточки святых (`saint-details`), индекс мыслей. Иконки виджета лежат отдельно, см. ключ `widget`.
 
 Файлы:
 
@@ -133,6 +133,8 @@ native-seed/
   calendar-markers.json                 # GET /days/calendar
   calendar-days-001.json ...            # GET /days/list?from_date&to_date&page=N&page_size=100
   molitvoslov-<sectionId>-001.json ...  # GET /prayers/list?section_id=<id>&page=N&page_size=100
+  widget-days-001.json ...              # GET /days/widget/list?from_date&to_date&page=N&page_size=100
+  upload/...                            # иконки виджета, пути из manifest.widget.icons
 ```
 
 Каждый файл самоописываемый (конверт):
@@ -169,11 +171,16 @@ native-seed/
       "sections": [1078, 835],
       "files": [{ "file": "molitvoslov-835-001.json", "bytes": 3900000, "sectionId": 835, "page": 1, "totalPages": 6 }]
     }
+  },
+  "widget": {
+    "files": [{ "file": "widget-days-001.json", "bytes": 120000 }],
+    "icons": ["upload/webp/api/iblock/5cb/414_q75/file.webp"]
   }
 }
 ```
 
-- `indexes` содержит `prayers`, `saints`, `calendarMarkers`. Порядок файлов модуля: календарь по страницам; молитвослов по `sections` в указанном порядке, внутри раздела по страницам.
+- `indexes` содержит `prayers`, `saints`, `calendarMarkers`. Виджета в `indexes` нет: он копируется в свою базу. Порядок файлов модуля: календарь по страницам; молитвослов по `sections` в указанном порядке, внутри раздела по страницам.
+- `widget` лежит рядом с `modules`. `files` — страницы `/days/widget/list` за церковный год (14 января – 13 января следующего года), тот же конверт. `icons` — до 30 относительных путей `upload/...` с сегодняшнего дня вперёд; файлы лежат в каталоге seed по этим путям.
 - `seedVersion` это версия формата. Нативка с версией больше поддерживаемой (сейчас 1) seed пропускает.
 - `createdAt` это заголовок `Date` первого ответа сервера минус 60 секунд запаса (не часы компьютера и не время окончания съёма). Тогда `modified_since = createdAt` гарантированно заберёт всё изменённое с момента съёма.
 - `apiSize` это поле `size` из `/days/count` и `/prayers/count` (сумма по разделам). Оно идёт в `download_size_<id>`, как и при загрузке по сети.

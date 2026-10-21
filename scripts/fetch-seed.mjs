@@ -6,11 +6,13 @@
  *   npm run seed:fetch -- [--out native-seed] [--years 2026] [--concurrency 4] [--base https://app.valaam.ru/api]
  *
  * Папка с seed лежит вне www/, src/ и public/, поэтому на сервер (scripts/deploy.cmd копирует только www/) не попадает.
+ * Виджет — ключ manifest.widget рядом с modules, не запись в indexes: его забирает отдельная база.
+ * Страницы /days/widget/list за церковный год (14 января – 13 января) и до 30 иконок с сегодняшнего дня в upload/.
  */
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { mkdir, readFile, rename, rm, writeFile } from "node:fs/promises";
 import path from "node:path";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 
 const SEED_VERSION = 1;
 const PAGE_SIZE = 100;
@@ -26,8 +28,228 @@ const REQUEST_ATTEMPTS = 5;
  */
 const FILE_SIZE_WARN_BYTES = 10 * 1024 * 1024;
 const FORBIDDEN_OUT_DIRS = ["www", "src", "public"];
+const ICON_COUNT = 30;
+const DATE_RE = /^\d{8}$/;
+const DAY_MS = 86_400_000;
+const ICON_PATH_RE = /^\/upload\/[A-Za-z0-9._/-]+$/;
+const PROBLEM_LIMIT = 30;
 
 const projectRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
+
+/** Церковный год начинается 14 января. 1–13 января ещё относятся к предыдущему году. */
+export function churchYearRange(now = new Date()) {
+  const year = now.getFullYear();
+  const startYear = now.getMonth() === 0 && now.getDate() < 14 ? year - 1 : year;
+  return { from: `${startYear}0114`, to: `${startYear + 1}0113` };
+}
+
+export function formatDateCode(now = new Date()) {
+  const month = String(now.getMonth() + 1).padStart(2, "0");
+  const day = String(now.getDate()).padStart(2, "0");
+  return `${now.getFullYear()}${month}${day}`;
+}
+
+export function isRealDateCode(code) {
+  if (!DATE_RE.test(code)) return false;
+  const year = Number(code.slice(0, 4));
+  const month = Number(code.slice(4, 6));
+  const day = Number(code.slice(6, 8));
+  const utc = new Date(Date.UTC(year, month - 1, day));
+  return utc.getUTCFullYear() === year && utc.getUTCMonth() === month - 1 && utc.getUTCDate() === day;
+}
+
+export function nextDateCode(code) {
+  const utc = new Date(Date.UTC(Number(code.slice(0, 4)), Number(code.slice(4, 6)) - 1, Number(code.slice(6, 8))) + DAY_MS);
+  const month = String(utc.getUTCMonth() + 1).padStart(2, "0");
+  const day = String(utc.getUTCDate()).padStart(2, "0");
+  return `${utc.getUTCFullYear()}${month}${day}`;
+}
+
+export function inclusiveDayCount(from, to) {
+  const start = Date.UTC(Number(from.slice(0, 4)), Number(from.slice(4, 6)) - 1, Number(from.slice(6, 8)));
+  const end = Date.UTC(Number(to.slice(0, 4)), Number(to.slice(4, 6)) - 1, Number(to.slice(6, 8)));
+  return Math.round((end - start) / DAY_MS) + 1;
+}
+
+/** Путь внутри каталога seed без ведущего слэша. null, если на диск его класть нельзя. */
+export function safeIconRelative(icon) {
+  if (typeof icon !== "string" || !icon.startsWith("/upload/") || icon.includes("..") || icon.includes("\\") || icon.includes("//")) {
+    return null;
+  }
+  if (!ICON_PATH_RE.test(icon)) return null;
+  return icon.slice(1);
+}
+
+export function isImageBuffer(bytes) {
+  if (!bytes || bytes.length < 12) return false;
+  if (bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff) return true;
+  if (bytes[0] === 0x89 && bytes[1] === 0x50 && bytes[2] === 0x4e && bytes[3] === 0x47) return true;
+  if (bytes[0] === 0x47 && bytes[1] === 0x49 && bytes[2] === 0x46) return true;
+  return (
+    bytes[0] === 0x52 &&
+    bytes[1] === 0x49 &&
+    bytes[2] === 0x46 &&
+    bytes[3] === 0x46 &&
+    bytes[8] === 0x57 &&
+    bytes[9] === 0x45 &&
+    bytes[10] === 0x42 &&
+    bytes[11] === 0x50
+  );
+}
+
+export function selectUpcomingIcons(items, today, limit = ICON_COUNT) {
+  const sorted = [...items].sort((a, b) => String(a?.date ?? "").localeCompare(String(b?.date ?? "")));
+  const picked = [];
+  const seen = new Set();
+  for (const item of sorted) {
+    if (typeof item?.date !== "string" || item.date < today) continue;
+    const relative = safeIconRelative(item.icon);
+    if (!relative || seen.has(relative)) continue;
+    seen.add(relative);
+    picked.push(relative);
+    if (picked.length >= limit) break;
+  }
+  return picked;
+}
+
+function pushProblem(problems, message) {
+  if (problems.length < PROBLEM_LIMIT) problems.push(message);
+  else if (problems.length === PROBLEM_LIMIT) problems.push("дальнейшие ошибки скрыты");
+}
+
+function isRecord(value) {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function checkPart(part, label, problems) {
+  if (!isRecord(part)) {
+    pushProblem(problems, `${label}: ожидался объект`);
+    return;
+  }
+  if (typeof part.t !== "string") pushProblem(problems, `${label}: поле t должно быть строкой`);
+  if (typeof part.name !== "boolean") pushProblem(problems, `${label}: поле name должно быть boolean`);
+  if (typeof part.bold !== "boolean") pushProblem(problems, `${label}: поле bold должно быть boolean`);
+}
+
+function checkSaint(saint, label, problems) {
+  if (!isRecord(saint)) {
+    pushProblem(problems, `${label}: ожидался объект`);
+    return;
+  }
+  if (!(saint.sign === null || typeof saint.sign === "string")) pushProblem(problems, `${label}: sign должен быть строкой или null`);
+  if (typeof saint.big !== "boolean") pushProblem(problems, `${label}: big должен быть boolean`);
+  if (!Array.isArray(saint.parts)) {
+    pushProblem(problems, `${label}: parts должен быть массивом`);
+    return;
+  }
+  saint.parts.forEach((part, index) => checkPart(part, `${label}.parts[${index}]`, problems));
+}
+
+export function validateWidgetItems(items, range) {
+  const problems = [];
+  if (!Array.isArray(items)) return ["widget: ожидался список дней"];
+  const expectedCount = inclusiveDayCount(range.from, range.to);
+  if (items.length !== expectedCount) {
+    pushProblem(problems, `widget: дней ${items.length}, в диапазоне ${range.from}–${range.to} их ${expectedCount}`);
+  }
+
+  const sorted = [...items].sort((a, b) => String(a?.date ?? "").localeCompare(String(b?.date ?? "")));
+  const dates = new Set();
+  let expectedDate = range.from;
+  let dateWalkBroken = false;
+  sorted.forEach((item, index) => {
+    const label = `widget[${index}]`;
+    if (!isRecord(item)) {
+      pushProblem(problems, `${label}: ожидался объект`);
+      dateWalkBroken = true;
+      return;
+    }
+    if (!(typeof item.id === "number" || (typeof item.id === "string" && item.id.length > 0))) {
+      pushProblem(problems, `${label}: id должен быть числом или непустой строкой`);
+    }
+    if (typeof item.date !== "string" || !isRealDateCode(item.date)) {
+      pushProblem(problems, `${label}: date должен быть датой YYYYMMDD`);
+      dateWalkBroken = true;
+    } else {
+      if (dates.has(item.date)) pushProblem(problems, `${label}: повтор даты ${item.date}`);
+      dates.add(item.date);
+      if (!dateWalkBroken && item.date !== expectedDate) {
+        pushProblem(problems, `${label}: дата ${item.date}, ожидалась ${expectedDate}`);
+        dateWalkBroken = true;
+      } else if (!dateWalkBroken) {
+        expectedDate = nextDateCode(item.date);
+      }
+    }
+    if (typeof item.date_old !== "string" || !isRealDateCode(item.date_old)) {
+      pushProblem(problems, `${label}: date_old должен быть датой YYYYMMDD`);
+    }
+    if (typeof item.week !== "string") pushProblem(problems, `${label}: week должен быть строкой`);
+    if (!(item.tone === null || Number.isInteger(item.tone))) pushProblem(problems, `${label}: tone должен быть целым числом или null`);
+    if (item.icon !== null && !safeIconRelative(item.icon)) pushProblem(problems, `${label}: icon должен быть путём /upload/... или null`);
+    if (!(item.icon_desc === null || typeof item.icon_desc === "string")) {
+      pushProblem(problems, `${label}: icon_desc должен быть строкой или null`);
+    }
+    const fasting = item.fasting;
+    if (!isRecord(fasting) || typeof fasting.type !== "string" || typeof fasting.title !== "string" || !isRecord(fasting.rules)) {
+      pushProblem(problems, `${label}: fasting должен содержать type, title и rules`);
+    } else {
+      const monastic = fasting.rules.monastic;
+      if (!isRecord(monastic) || typeof monastic.code !== "string" || typeof monastic.title !== "string") {
+        pushProblem(problems, `${label}: fasting.rules.monastic должен содержать code и title`);
+      }
+    }
+    if (!Array.isArray(item.saints_items)) pushProblem(problems, `${label}: saints_items должен быть массивом`);
+    else item.saints_items.forEach((saint, saintIndex) => checkSaint(saint, `${label}.saints_items[${saintIndex}]`, problems));
+    if (item.saints_or_week_parts != null) {
+      if (!Array.isArray(item.saints_or_week_parts)) pushProblem(problems, `${label}: saints_or_week_parts должен быть массивом`);
+      else item.saints_or_week_parts.forEach((part, partIndex) => checkPart(part, `${label}.saints_or_week_parts[${partIndex}]`, problems));
+    }
+  });
+  return problems;
+}
+
+function iconDestination(root, relative) {
+  if (typeof relative !== "string" || !relative.startsWith("upload/") || relative.includes("..") || relative.includes("\\") || relative.includes("//")) {
+    throw new Error(`Небезопасный путь иконки: ${relative}`);
+  }
+  const dest = path.resolve(root, ...relative.split("/"));
+  const back = path.relative(root, dest);
+  if (back.startsWith("..") || path.isAbsolute(back)) throw new Error(`Путь иконки выходит за пределы каталога: ${relative}`);
+  return dest;
+}
+
+async function downloadIcon(origin, relative, root) {
+  const url = `${origin}/${relative}`;
+  let lastError;
+  for (let attempt = 1; attempt <= REQUEST_ATTEMPTS; attempt++) {
+    try {
+      const res = await fetch(url, { signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS), redirect: "follow" });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      if (new URL(res.url).protocol !== "https:") throw new Error("ответ пришёл не по https");
+      const bytes = Buffer.from(await res.arrayBuffer());
+      if (!isImageBuffer(bytes)) throw new Error("ответ не изображение");
+      const dest = iconDestination(root, relative);
+      await mkdir(path.dirname(dest), { recursive: true });
+      await writeFile(dest, bytes);
+      return bytes.length;
+    } catch (err) {
+      lastError = err;
+      if (attempt < REQUEST_ATTEMPTS) await sleep(1000 * 2 ** (attempt - 1));
+    }
+  }
+  throw new Error(`${url}: ${lastError?.message ?? lastError}`);
+}
+
+async function readWidgetItems(dir, files) {
+  const items = [];
+  for (const file of files) {
+    const envelope = JSON.parse(await readFile(path.join(dir, file.file), "utf8"));
+    const pageItems = envelope.response?.data?.items;
+    if (!Array.isArray(pageItems)) throw new Error(`${file.file}: нет data.items`);
+    items.push(...pageItems);
+  }
+  return items;
+}
 
 function parseArgs(argv) {
   const options = {
@@ -235,6 +457,27 @@ async function main() {
       );
     }
 
+    const widgetRange = churchYearRange();
+    const today = formatDateCode();
+    console.log(`виджет ${widgetRange.from}–${widgetRange.to}, иконки с ${today}`);
+    const widgetFiles = await fetchPages(
+      "/days/widget/list",
+      { from_date: widgetRange.from, to_date: widgetRange.to },
+      (page) => `widget-days-${pad(page)}.json`,
+      {}
+    );
+    const widgetItems = await readWidgetItems(tmpDir, widgetFiles);
+    const widgetProblems = validateWidgetItems(widgetItems, widgetRange);
+    if (widgetProblems.length > 0) throw new Error(`Проверка виджета не пройдена:\n  ${widgetProblems.join("\n  ")}`);
+    const icons = selectUpcomingIcons(widgetItems, today);
+    if (icons.length === 0) throw new Error(`Нет иконок виджета с ${today} по ${widgetRange.to}`);
+    if (icons.length < ICON_COUNT) console.warn(`Предупреждение: иконок с ${today} вперёд ${icons.length}, лимит ${ICON_COUNT}`);
+    const origin = new URL(options.base).origin;
+    await mapLimit(icons, options.concurrency, async (relative, index) => {
+      const size = await downloadIcon(origin, relative, tmpDir);
+      console.log(`иконка ${index + 1}/${icons.length}: ${relative} (${size} байт)`);
+    });
+
     const stripItems = ({ items, ...file }) => file;
     const manifest = {
       seedVersion: SEED_VERSION,
@@ -254,6 +497,10 @@ async function main() {
           files: molitvoslovFiles.map(stripItems),
         },
       },
+      widget: {
+        files: widgetFiles.map(({ file, bytes }) => ({ file, bytes })),
+        icons,
+      },
     };
 
     // Самопроверка до публикации: нативка не должна получить битый seed
@@ -261,7 +508,7 @@ async function main() {
       calendar: { got: sum(calendarFiles, (f) => f.items), expected: daysCount.count },
       molitvoslov: { got: sum(molitvoslovFiles, (f) => f.items), expected: sum(sectionCounts, (s) => s.count) },
     };
-    await verifySeed(tmpDir, manifest, itemTotals);
+    await verifySeed(tmpDir, manifest, itemTotals, widgetRange);
 
     // manifest.json пишется последним: без него seed считается неготовым
     await writeFile(path.join(tmpDir, "manifest.json"), JSON.stringify(manifest, null, 2), "utf8");
@@ -270,12 +517,13 @@ async function main() {
     await rename(tmpDir, outDir);
 
     const totalBytes = sum(
-      [...indexes, ...calendarFiles, ...molitvoslovFiles],
+      [...indexes, ...calendarFiles, ...molitvoslovFiles, ...widgetFiles],
       (file) => file.bytes
     );
+    const fileCount = indexes.length + calendarFiles.length + molitvoslovFiles.length + widgetFiles.length + 1;
     console.log(
-      `Готово: ${path.relative(projectRoot, outDir) || outDir}, файлов ${indexes.length + calendarFiles.length + molitvoslovFiles.length + 1}, ` +
-        `${(totalBytes / 1048576).toFixed(1)} МБ`
+      `Готово: ${path.relative(projectRoot, outDir) || outDir}, файлов ${fileCount}, ` +
+        `${(totalBytes / 1048576).toFixed(1)} МБ, иконок виджета ${icons.length}`
     );
   } catch (err) {
     await rm(tmpDir, { recursive: true, force: true });
@@ -287,7 +535,7 @@ function sum(items, pick) {
   return items.reduce((total, item) => total + pick(item), 0);
 }
 
-async function verifySeed(dir, manifest, itemTotals) {
+async function verifySeed(dir, manifest, itemTotals, widgetRange) {
   const problems = [];
   const warnings = [];
 
@@ -323,6 +571,50 @@ async function verifySeed(dir, manifest, itemTotals) {
   await checkModule("calendar", manifest.modules.calendar.files, () => "all");
   await checkModule("molitvoslov", manifest.modules.molitvoslov.files, (entry) => `section ${entry.sectionId}`);
 
+  if (manifest.indexes.some((entry) => entry.name === "widget" || entry.name === "widgetData")) {
+    problems.push("widget указан в indexes");
+  }
+  const widget = manifest.widget;
+  if (!widget || !Array.isArray(widget.files) || widget.files.length === 0) {
+    problems.push("widget: нет файлов");
+  } else {
+    const items = [];
+    const pages = [];
+    let pageCount = null;
+    for (const entry of widget.files) {
+      const envelope = await readEnvelope(entry);
+      const page = Number(new URL(envelope.request, "https://app.valaam.ru").searchParams.get("page"));
+      const declared = envelope.response?.data?.nav?.page_count;
+      if (!Number.isInteger(page) || page < 1) problems.push(`${entry.file}: в request нет page`);
+      else pages.push(page);
+      if (!Number.isInteger(declared)) problems.push(`${entry.file}: нет page_count`);
+      else if (pageCount == null) pageCount = declared;
+      else if (pageCount !== declared) problems.push(`${entry.file}: page_count ${declared} вместо ${pageCount}`);
+      if (!Array.isArray(envelope.response?.data?.items)) problems.push(`${entry.file}: нет data.items`);
+      else items.push(...envelope.response.data.items);
+    }
+    const sortedPages = [...pages].sort((a, b) => a - b);
+    const expectedPages = Array.from({ length: widget.files.length }, (_, index) => index + 1);
+    if (sortedPages.join() !== expectedPages.join()) {
+      problems.push(`widget: страницы ${sortedPages.join(",")} вместо 1..${widget.files.length}`);
+    }
+    if (pageCount != null && pageCount !== widget.files.length) {
+      problems.push(`widget: файлов ${widget.files.length}, page_count = ${pageCount}`);
+    }
+    problems.push(...validateWidgetItems(items, widgetRange));
+    if (!Array.isArray(widget.icons)) problems.push("widget.icons должен быть массивом");
+    else {
+      for (const icon of widget.icons) {
+        try {
+          const dest = iconDestination(dir, icon);
+          if (!existsSync(dest) || statSync(dest).size === 0) problems.push(`widget.icons: нет файла ${icon}`);
+        } catch (err) {
+          problems.push(err instanceof Error ? err.message : String(err));
+        }
+      }
+    }
+  }
+
   for (const [name, { got, expected }] of Object.entries(itemTotals)) {
     if (got !== expected) warnings.push(`${name}: элементов ${got}, а /count вернул ${expected}`);
   }
@@ -332,7 +624,10 @@ async function verifySeed(dir, manifest, itemTotals) {
   console.log("Самопроверка пройдена");
 }
 
-main().catch((err) => {
-  console.error(err instanceof Error ? err.message : err);
-  process.exit(1);
-});
+const isDirectRun = process.argv[1] != null && import.meta.url === pathToFileURL(path.resolve(process.argv[1])).href;
+if (isDirectRun) {
+  main().catch((err) => {
+    console.error(err instanceof Error ? err.message : err);
+    process.exit(1);
+  });
+}
