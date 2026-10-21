@@ -608,10 +608,10 @@ const readClientX = (event: Event): number | null => {
 
 const onTextPaginatorTouchStart = (payload: { swiper: Swiper | null, event: Event }) => {
   console.log("onTextPaginatorTouchStart", payload);
-  // Полноэкранный режим: свайп от края — системный «Назад», меню не закрываем.
+  // Верхний статус-бар скрыт: свайп от края — системный «Назад», меню не закрываем.
   const clientX = readClientX(payload.event);
   if (
-    !settingsStore.isStatusBarVisible &&
+    settingsStore.readingSystemBars !== "normal" &&
     clientX != null &&
     isScreenEdgeClientX(clientX, f7.width)
   ) {
@@ -1043,14 +1043,23 @@ const syncReadingSystemBars = () => {
   const navbarVisible = !isNavbarHidden.value;
   const pageNavVisible = !isPageNavHidden.value;
   // При листании прогрессбаром верхнее меню уходит, нижнее остаётся.
-  // В полноэкранном режиме статус-бар и нижняя системная полоска скрываются вместе с ним.
-  const scrubHidesSystemBars = isSliderScrubbing.value && !settingsStore.isStatusBarVisible;
+  // Если системные панели скрываются (не «normal»), они уходят вместе с ним:
+  // в «hide-status-bar» — только статус-бар, в «fullscreen» — ещё и нижняя системная полоска.
+  const barsMode = settingsStore.readingSystemBars;
+  const hidesSystemBars = barsMode !== "normal";
+  const scrubHidesSystemBars = isSliderScrubbing.value && hidesSystemBars;
   const chromeVisible = navbarVisible || (pageNavVisible && !scrubHidesSystemBars);
-  const keepSystemBars = settingsStore.isStatusBarVisible || chromeVisible;
+  const keepSystemBars = !hidesSystemBars || chromeVisible;
 
   if (!keepSystemBars) {
-    device.showStatusBar(false);
-    device.setFullScreen(true);
+    if (barsMode === "fullscreen") {
+      device.showStatusBar(false);
+      device.setFullScreen(true);
+    } else {
+      // Нижняя панель остаётся видимой — жест «Назад» работает с первого раза.
+      device.setFullScreen(false);
+      device.showStatusBar(false);
+    }
   } else {
     device.setFullScreen(false);
     device.showStatusBar(true);
@@ -1074,7 +1083,7 @@ watch(
     isNavbarHidden,
     isPageNavHidden,
     isSliderScrubbing,
-    () => settingsStore.isStatusBarVisible,
+    () => settingsStore.readingSystemBars,
     () => settingsStore.textTheme,
     isDarkMode,
   ],

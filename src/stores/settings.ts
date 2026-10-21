@@ -23,7 +23,8 @@ const SETTINGS_KEYS = {
   TEXT_BOLD: `${SETTINGS_PREFIX}text-bold`,
   READING_BRIGHTNESS: `${SETTINGS_PREFIX}reading-brightness`,
   KEEP_SCREEN_ON: `${SETTINGS_PREFIX}keep-screen-on`,
-  IS_STATUS_BAR_VISIBLE: `${SETTINGS_PREFIX}is-status-bar-visible`,
+  IS_STATUS_BAR_VISIBLE: `${SETTINGS_PREFIX}is-status-bar-visible`, // устаревший, только для миграции
+  READING_SYSTEM_BARS: `${SETTINGS_PREFIX}reading-system-bars`,
   PAGE_MODE: `${SETTINGS_PREFIX}page-mode`,
   VOLUME_BUTTONS_SCROLL: `${SETTINGS_PREFIX}volume-buttons-scroll`,
   PAGE_TURN_ANIMATION: `${SETTINGS_PREFIX}page-turn-animation`,
@@ -38,6 +39,8 @@ const SETTINGS_KEYS = {
   HAS_SEEN_HOME_FAVORITES_TUTORIAL: `${SETTINGS_PREFIX}has-seen-home-favorites-tutorial`,
   HAS_SEEN_HOME_SORT_TUTORIAL: `${SETTINGS_PREFIX}has-seen-home-sort-tutorial`,
 } as const;
+
+type ReadingSystemBars = "normal" | "hide-status-bar" | "fullscreen";
 
 // Интерфейс настроек приложения
 interface AppSettings {
@@ -93,8 +96,10 @@ interface AppSettings {
   keepScreenOn: boolean;
   pageMode: "horizontal" | "vertical";
 
-  // Интерфейс
-  isStatusBarVisible: boolean;
+  // Интерфейс: системные панели при чтении
+  // normal — показаны; hide-status-bar — скрыт только статус-бар (жест «Назад» работает с первого раза);
+  // fullscreen — скрыты статус-бар и нижняя системная панель (режим погружения)
+  readingSystemBars: ReadingSystemBars;
 
   // Другие настройки
   isVolumeButtonsScrollEnabled: boolean;
@@ -133,7 +138,7 @@ const DEFAULT_SETTINGS: AppSettings = {
   readingBrightness: -1,
   keepScreenOn: false,
   pageMode: "horizontal",
-  isStatusBarVisible: false,
+  readingSystemBars: "hide-status-bar",
   isVolumeButtonsScrollEnabled: false,
   isPageTurnAnimationEnabled: true,
   isChapterNavToolbarEnabled: true,
@@ -168,6 +173,15 @@ export const useSettingsStore = defineStore("settings", () => {
         }
       }
     });
+
+    // Миграция: булев isStatusBarVisible → readingSystemBars.
+    // Раньше false (статус-бар скрыт) включал полный экран, true — показывал панели.
+    if (localStorage.getItem(SETTINGS_KEYS.READING_SYSTEM_BARS) === null) {
+      const legacy = localStorage.getItem(SETTINGS_KEYS.IS_STATUS_BAR_VISIBLE);
+      if (legacy !== null) {
+        settings.value.readingSystemBars = legacy === "true" ? "normal" : "fullscreen";
+      }
+    }
   };
 
   // Получение ключа для localStorage
@@ -189,7 +203,7 @@ export const useSettingsStore = defineStore("settings", () => {
       readingBrightness: SETTINGS_KEYS.READING_BRIGHTNESS,
       keepScreenOn: SETTINGS_KEYS.KEEP_SCREEN_ON,
       pageMode: SETTINGS_KEYS.PAGE_MODE,
-      isStatusBarVisible: SETTINGS_KEYS.IS_STATUS_BAR_VISIBLE,
+      readingSystemBars: SETTINGS_KEYS.READING_SYSTEM_BARS,
       isVolumeButtonsScrollEnabled: SETTINGS_KEYS.VOLUME_BUTTONS_SCROLL,
       isPageTurnAnimationEnabled: SETTINGS_KEYS.PAGE_TURN_ANIMATION,
       isChapterNavToolbarEnabled: SETTINGS_KEYS.CHAPTER_NAV_TOOLBAR,
@@ -232,7 +246,7 @@ export const useSettingsStore = defineStore("settings", () => {
   const isTextBold = computed(() => settings.value.isTextBold);
   const readingBrightness = computed(() => settings.value.readingBrightness);
   const pageMode = computed(() => settings.value.pageMode);
-  const isStatusBarVisible = computed(() => settings.value.isStatusBarVisible);
+  const readingSystemBars = computed(() => settings.value.readingSystemBars);
   const keepScreenOn = computed(() => settings.value.keepScreenOn);
   const isVolumeButtonsScrollEnabled = computed(
     () => settings.value.isVolumeButtonsScrollEnabled
@@ -321,7 +335,7 @@ export const useSettingsStore = defineStore("settings", () => {
     isTextBold,
     readingBrightness,
     pageMode,
-    isStatusBarVisible,
+    readingSystemBars,
     keepScreenOn,
     isVolumeButtonsScrollEnabled,
     isPageTurnAnimationEnabled,
@@ -365,8 +379,8 @@ export const useSettingsStore = defineStore("settings", () => {
     setKeepScreenOn: (keepOn: boolean) => {
       setSetting("keepScreenOn", keepOn);
     },
-    setIsStatusBarVisible: (visible: boolean) => {
-      setSetting("isStatusBarVisible", visible);
+    setReadingSystemBars: (mode: ReadingSystemBars) => {
+      setSetting("readingSystemBars", mode);
     },
     setIsVolumeButtonsScrollEnabled: (enabled: boolean) => {
       setSetting("isVolumeButtonsScrollEnabled", enabled);
@@ -403,5 +417,5 @@ export const useSettingsStore = defineStore("settings", () => {
 });
 
 // Экспорт типов для использования в других файлах
-export type { AppSettings };
+export type { AppSettings, ReadingSystemBars };
 export { SETTINGS_KEYS };

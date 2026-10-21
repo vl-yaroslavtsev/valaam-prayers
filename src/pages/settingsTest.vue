@@ -561,10 +561,10 @@ const showThemeAlert = async () => {
   f7.dialog.alert(`Тема устройства: ${theme}`);
 };
 
-const isStatusBarShown = ref(settingsStore.settings.isStatusBarVisible);
+const isStatusBarShown = ref(settingsStore.settings.readingSystemBars === "normal");
 watch(isStatusBarShown, (newVal) => {
   device.showStatusBar(newVal);
-  settingsStore.setIsStatusBarVisible(newVal);
+  settingsStore.setReadingSystemBars(newVal ? "normal" : "fullscreen");
   console.log("isStatusBarShown", newVal);
 });
 

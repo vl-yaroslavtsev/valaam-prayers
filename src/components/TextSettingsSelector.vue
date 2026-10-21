@@ -204,14 +204,24 @@
           </template>
         </f7-list-item>
         <f7-list-item 
-          title="Полноэкранный режим"
+          title="Системные панели"
+          class="system-bars-select"
           :disabled="disabled"
-        >
-          <template #after>
-            <f7-toggle 
-              small
-              v-model:checked="isFullscreenMode"
-            />
+          smart-select
+          :smart-select-params="{
+            openIn: 'popover',
+            closeOnSelect: true,
+            cssClass: 'simple-select',
+          }">
+          <template #default>
+            <select name="readingSystemBars" 
+                    v-model="currentReadingSystemBars"
+                    :disabled="disabled">
+              <option 
+                v-for="(label, mode) in readingSystemBarsLabels" 
+                :value="mode"
+                :key="mode">{{ label }}</option>
+            </select>
           </template>
           <template #media>
             <SvgIcon icon="fullscreen" :color="iconColor" :size="24" />
@@ -295,12 +305,15 @@ const onLineHeightChange = (value: number) => {
     settingsStore.setLineHeight(Number(value.toFixed(2)));
 };
 
-// Включённый полноэкранный режим прячет статусбар и системную панель.
-const isFullscreenMode = computed({
-  get: () => !settingsStore.isStatusBarVisible,
-  set: (value: boolean) => {
-    settingsStore.setIsStatusBarVisible(!value);
-  }
+const readingSystemBarsLabels: Record<AppSettings['readingSystemBars'], string> = {
+  'normal': 'Показаны',
+  'hide-status-bar': 'Скрыть статус-бар',
+  'fullscreen': 'Полный экран',
+};
+
+const currentReadingSystemBars = computed({
+  get: () => settingsStore.readingSystemBars,
+  set: (value: AppSettings['readingSystemBars']) => settingsStore.setReadingSystemBars(value)
 });
 
 const currentFontFamily = computed({
