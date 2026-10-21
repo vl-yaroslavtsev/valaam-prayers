@@ -131,6 +131,10 @@ watch(
   min-width: 0;
 }
 
+.is-disabled .reminder-section-text {
+    opacity: 0.7;
+}
+
 .reminder-section-sizer {
   visibility: hidden;
 }
