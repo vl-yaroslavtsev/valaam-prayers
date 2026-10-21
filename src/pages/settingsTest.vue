@@ -563,7 +563,7 @@ const showThemeAlert = async () => {
 
 const isStatusBarShown = ref(settingsStore.settings.isStatusBarVisible);
 watch(isStatusBarShown, (newVal) => {
-  //device.showStatusBar(newVal);
+  device.showStatusBar(newVal);
   settingsStore.setIsStatusBarVisible(newVal);
   console.log("isStatusBarShown", newVal);
 });
