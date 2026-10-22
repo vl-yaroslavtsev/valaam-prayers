@@ -6,7 +6,7 @@
           <SvgIcon icon="burger" :size="32" />
         </f7-link>
       </f7-nav-left>
-      <f7-nav-title>Календарь</f7-nav-title>
+      <f7-nav-title>{{ navTitle }}</f7-nav-title>
       <f7-nav-right>
         <f7-link
           icon-only
@@ -22,12 +22,10 @@
       <CalendarViewFilter v-model="calendarView" @update:model-value="closeViewFilter" />
     </f7-popover>
 
-    <f7-page-content v-if="calendarView !== 'day'">
-      <CalendarMonth v-if="calendarView === 'month'" @select-day="openDay" />
-      <div v-else class="calendar-placeholder">
-        Календарь: неделя
-      </div>
+    <f7-page-content v-if="calendarView === 'month'">
+      <CalendarMonth @select-day="openDay" />
     </f7-page-content>
+    <CalendarWeek v-else-if="calendarView === 'week'" v-model="selectedDayCode" @select-day="openDay" />
     <CalendarDay v-else v-model="selectedDayCode" :f7router="f7router" />
   </f7-page>
 </template>
@@ -39,16 +37,32 @@ import SvgIcon from "@/components/SvgIcon.vue";
 import CalendarViewFilter from "@/components/calendar/CalendarViewFilter.vue";
 import CalendarMonth from "@/components/calendar/CalendarMonth.vue";
 import CalendarDay from "@/components/calendar/CalendarDay.vue";
+import CalendarWeek from "@/components/calendar/CalendarWeek.vue";
+import { toDateCode } from "@/components/calendar/calendarMarkers";
+import { formatMonthTitle } from "@/components/calendar/dayFormat";
+import { useSettingsStore } from "@/stores/settings";
 
 defineProps({
   f7router: Object,
 });
 
 const { isDarkMode } = useTheme();
-const calendarView = ref("month");
-// День, открытый в виде «день»; null - сегодняшний
+const settingsStore = useSettingsStore();
+// Вид запоминается: при следующем открытии вкладки показывается тот же
+const calendarView = computed({
+  get: () => settingsStore.calendarView,
+  set: (view) => settingsStore.setCalendarView(view),
+});
+// День, с которого открываются виды «неделя» и «день» (в них он же обновляется при прокрутке);
+// null - сегодняшний
 const selectedDayCode = ref(null);
 const navIconColor = computed(() => (isDarkMode.value ? "baige-90" : "black-primary"));
+// В виде «неделя» в заголовке месяц дня, который сейчас вверху экрана
+const navTitle = computed(() =>
+  calendarView.value === "week"
+    ? formatMonthTitle(selectedDayCode.value ?? toDateCode(new Date()))
+    : "Календарь"
+);
 
 const closeViewFilter = () => {
   f7.popover.close(".calendar-view-filter-popover");
@@ -61,18 +75,6 @@ const openDay = (code) => {
 </script>
 
 <style scoped lang="less">
-.calendar-placeholder {
-  padding: 16px;
-  font-family: var(--font-family);
-  font-size: 16px;
-  line-height: 1.3;
-  color: var(--content-color-black-primary);
-}
-
-.dark .calendar-placeholder {
-  color: var(--content-color-baige-90);
-}
-
 .calendar-view-filter-popover {
   --f7-popover-width: 230px;
   --f7-list-margin-vertical: 0;

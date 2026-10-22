@@ -92,13 +92,16 @@ export const useCalendarStore = defineStore("calendar", () => {
    * Сначала проверяет офлайн-кэш (наполняется только DownloadManager'ом), иначе идёт в сеть.
    * Результат разового сетевого запроса в IndexedDB не сохраняется - см. Service Worker.
    */
+  const readCachedDay = async (code: string): Promise<CalendarDayApiElement | null> => {
+    const cached = await calendarDaysStorage?.get(code);
+    // Дни, скачанные до смены формата API, не содержат fasting - их читаем заново из сети
+    return cached && "fasting" in cached ? cached : null;
+  };
+
   const loadDayByCode = async (code: string): Promise<CalendarDayApiElement | null> => {
     try {
-      const cached = await calendarDaysStorage?.get(code);
-      // Дни, скачанные до смены формата API, не содержат fasting - их читаем заново из сети
-      if (cached && "fasting" in cached) {
-        return cached;
-      }
+      const cached = await readCachedDay(code);
+      if (cached) return cached;
 
       const { items } = await daysApi.getDaysPage(code, code, 1, 1);
       return items[0] ?? null;
@@ -106,6 +109,35 @@ export const useCalendarStore = defineStore("calendar", () => {
       console.error(`Failed to get calendar day for code ${code}:`, err);
       return null;
     }
+  };
+
+  /**
+   * Несколько дней одним запросом (вид «неделя»). Что есть в офлайн-кэше - берём оттуда,
+   * остальное - одним диапазоном из сети. Коды должны идти по возрастанию.
+   */
+  const loadDaysBatch = async (codes: string[]): Promise<Map<string, CalendarDayApiElement>> => {
+    const loaded = new Map<string, CalendarDayApiElement>();
+    try {
+      const missing: string[] = [];
+      for (const code of codes) {
+        const cached = await readCachedDay(code);
+        if (cached) loaded.set(code, cached);
+        else missing.push(code);
+      }
+
+      if (missing.length > 0) {
+        const { items } = await daysApi.getDaysPage(
+          missing[0],
+          missing[missing.length - 1],
+          1,
+          missing.length
+        );
+        for (const item of items) loaded.set(item.code, item);
+      }
+    } catch (err) {
+      console.error(`Failed to get calendar days ${codes[0]}-${codes[codes.length - 1]}:`, err);
+    }
+    return loaded;
   };
 
   // Дни, уже прочитанные за сессию: слайдер и читалка не ходят за одним днём дважды
@@ -124,6 +156,28 @@ export const useCalendarStore = defineStore("calendar", () => {
     return request;
   };
 
+  /**
+   * Дни по кодам (по возрастанию) в том же порядке; null - день не удалось получить.
+   * Ещё не прочитанные дни идут одним запросом, а результат ложится в общий кэш getDayByCode.
+   */
+  const getDaysByCodes = (codes: string[]): Promise<(CalendarDayApiElement | null)[]> => {
+    const missing = codes.filter((code) => !dayRequests.has(code));
+    if (missing.length > 0) {
+      const batch = loadDaysBatch(missing);
+      for (const code of missing) {
+        dayRequests.set(
+          code,
+          batch.then((loaded) => {
+            const day = loaded.get(code) ?? null;
+            if (!day) dayRequests.delete(code);
+            return day;
+          })
+        );
+      }
+    }
+    return Promise.all(codes.map(getDayByCode));
+  };
+
   return {
     // State
     days,
@@ -134,6 +188,7 @@ export const useCalendarStore = defineStore("calendar", () => {
     getDays,
     getDayById,
     getDayByCode,
+    getDaysByCodes,
     // Actions
     initStore,
     refreshMarkers,

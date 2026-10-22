@@ -29,6 +29,20 @@ describe("useSettingsStore", () => {
     expect(store.isAutoUpdateOfflineDataEnabled).toBe(false);
   });
 
+  it("вид календаря по умолчанию «месяц», выбранный вид запоминается", async () => {
+    const store = useSettingsStore();
+    expect(store.calendarView).toBe("month");
+
+    store.setCalendarView("week");
+    expect(localStorage.getItem(SETTINGS_KEYS.CALENDAR_VIEW)).toBe(JSON.stringify("week"));
+
+    setActivePinia(createPinia());
+    const reloaded = useSettingsStore();
+    await reloaded.initStore();
+
+    expect(reloaded.calendarView).toBe("week");
+  });
+
   it("меню листания по главам и закладкам по умолчанию включены и сохраняются", async () => {
     const store = useSettingsStore();
 

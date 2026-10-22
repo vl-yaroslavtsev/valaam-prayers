@@ -35,6 +35,8 @@ export interface DayHeader {
   oldStyle: string;
   /** «9 сентября / 22 сентября 2026 г. Среда.» - подпись к богослужебным указаниям */
   fullDate: string;
+  /** «22 сентября 2026 г. Среда» - заголовок карточки в виде «неделя» */
+  longDate: string;
 }
 
 export function getDayHeader(code: string): DayHeader {
@@ -49,7 +51,24 @@ export function getDayHeader(code: string): DayHeader {
     weekday,
     oldStyle: `${oldShort} по старому стилю`,
     fullDate: `${oldShort} / ${formatDate(date, "d MMMM yyyy")} г. ${weekday}.`,
+    longDate: `${formatDate(date, "d MMMM yyyy")} г. ${weekday}`,
   };
+}
+
+/** Иконка поста зависит от правила монастырского устава */
+export const FASTING_ICONS = {
+  none: "fasting-none",
+  no_meat: "fasting-no-meat",
+  oil: "fasting-oil",
+  fish: "fasting-fish",
+  no_oil: "fasting-no-oil",
+  dry: "fasting-dry",
+  no_food: "fasting-no-food",
+} as const;
+
+/** «Май 2026» - заголовок вида «неделя» для дня с кодом YYYYMMDD */
+export function formatMonthTitle(code: string): string {
+  return capitalize(formatDate(parseDayCode(code), "LLLL yyyy"));
 }
 
 /** Дата для заголовков и названий в избранном: «13 октября 2026» */

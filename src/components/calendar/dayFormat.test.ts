@@ -3,6 +3,7 @@ import { getBridgeInfo } from "@/services/native/nativeRpc";
 import { FakeNativeBackend, type FakeNativeOptions } from "@/test/fakeNativeBackend";
 import {
   buildSrcset,
+  formatMonthTitle,
   getDayHeader,
   getSectionTitle,
   getVisibleSections,
@@ -34,10 +35,18 @@ describe("getDayHeader", () => {
     expect(header.weekday).toBe("Вторник");
     expect(header.oldStyle).toBe("30 сентября по старому стилю");
     expect(header.fullDate).toBe("30 сентября / 13 октября 2026 г. Вторник.");
+    expect(header.longDate).toBe("13 октября 2026 г. Вторник");
   });
 
   it("старый стиль переходит в предыдущий месяц", () => {
     expect(getDayHeader("20260101").oldStyle).toBe("19 декабря по старому стилю");
+  });
+});
+
+describe("formatMonthTitle", () => {
+  it("месяц в именительном падеже с большой буквы и год", () => {
+    expect(formatMonthTitle("20260513")).toBe("Май 2026");
+    expect(formatMonthTitle("20261231")).toBe("Декабрь 2026");
   });
 });
 

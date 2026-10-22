@@ -161,6 +161,7 @@ import { useTheme } from "@/composables/useTheme";
 import SvgIcon from "@/components/SvgIcon.vue";
 import type { CalendarDayApiElement } from "@/services/api/DaysApi";
 import {
+  FASTING_ICONS,
   getDayHeader,
   getSectionTitle,
   getVisibleSections,
@@ -189,17 +190,6 @@ const SIGN_ICONS = {
   polyeleos: "holiday-polyeleos",
   doxology: "holiday-doxology",
   six: "holiday-six",
-} as const;
-
-// Иконка зависит от правила монастырского устава
-const FASTING_ICONS = {
-  none: "fasting-none",
-  no_meat: "fasting-no-meat",
-  oil: "fasting-oil",
-  fish: "fasting-fish",
-  no_oil: "fasting-no-oil",
-  dry: "fasting-dry",
-  no_food: "fasting-no-food",
 } as const;
 
 const fastingIcon = computed(() => FASTING_ICONS[day.fasting.rules.monastic?.code ?? "none"]);

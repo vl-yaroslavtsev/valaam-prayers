@@ -165,4 +165,55 @@ describe("useCalendarStore", () => {
     });
     expect(await store.getDayByCode("20260105")).toEqual(day);
   });
+
+  describe("getDaysByCodes", () => {
+    const nav = { page_count: 1, page_num: 1, page_size: 3, record_count: 3, nav_num: 1 };
+
+    it("недостающие дни берёт одним запросом на диапазон", async () => {
+      const days = ["20260101", "20260102", "20260103"].map(calendarDay);
+      vi.mocked(daysApi.getDaysPage).mockResolvedValue({ items: days, nav, byteSize: 1 });
+
+      const result = await useCalendarStore().getDaysByCodes(["20260101", "20260102", "20260103"]);
+
+      expect(result).toEqual(days);
+      expect(daysApi.getDaysPage).toHaveBeenCalledTimes(1);
+      expect(daysApi.getDaysPage).toHaveBeenCalledWith("20260101", "20260103", 1, 3);
+    });
+
+    it("дни из офлайн-кэша не запрашивает: в сеть идут только недостающие", async () => {
+      const cached = calendarDay("20260101");
+      const fromNetwork = [calendarDay("20260102"), calendarDay("20260103")];
+      vi.mocked(calendarDaysStorage!.get).mockImplementation(async (code) =>
+        code === "20260101" ? cached : undefined,
+      );
+      vi.mocked(daysApi.getDaysPage).mockResolvedValue({ items: fromNetwork, nav, byteSize: 1 });
+
+      const result = await useCalendarStore().getDaysByCodes(["20260101", "20260102", "20260103"]);
+
+      expect(result).toEqual([cached, ...fromNetwork]);
+      expect(daysApi.getDaysPage).toHaveBeenCalledWith("20260102", "20260103", 1, 2);
+    });
+
+    it("результат попадает в общий кэш: getDayByCode не ходит за этими днями снова", async () => {
+      const days = [calendarDay("20260101"), calendarDay("20260102")];
+      vi.mocked(daysApi.getDaysPage).mockResolvedValue({ items: days, nav, byteSize: 1 });
+      const store = useCalendarStore();
+
+      await store.getDaysByCodes(["20260101", "20260102"]);
+
+      expect(await store.getDayByCode("20260102")).toEqual(days[1]);
+      expect(daysApi.getDaysPage).toHaveBeenCalledTimes(1);
+    });
+
+    it("при ошибке сети возвращает null и не запоминает неудачу", async () => {
+      const store = useCalendarStore();
+      vi.mocked(daysApi.getDaysPage).mockRejectedValueOnce(new Error("offline"));
+
+      expect(await store.getDaysByCodes(["20260101", "20260102"])).toEqual([null, null]);
+
+      const days = [calendarDay("20260101"), calendarDay("20260102")];
+      vi.mocked(daysApi.getDaysPage).mockResolvedValueOnce({ items: days, nav, byteSize: 1 });
+      expect(await store.getDaysByCodes(["20260101", "20260102"])).toEqual(days);
+    });
+  });
 });

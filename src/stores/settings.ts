@@ -38,9 +38,12 @@ const SETTINGS_KEYS = {
   HAS_SEEN_BOOKMARK_NAV_HINT: `${SETTINGS_PREFIX}has-seen-bookmark-nav-hint`,
   HAS_SEEN_HOME_FAVORITES_TUTORIAL: `${SETTINGS_PREFIX}has-seen-home-favorites-tutorial`,
   HAS_SEEN_HOME_SORT_TUTORIAL: `${SETTINGS_PREFIX}has-seen-home-sort-tutorial`,
+  CALENDAR_VIEW: `${SETTINGS_PREFIX}calendar-view`,
 } as const;
 
 type ReadingSystemBars = "normal" | "hide-status-bar" | "fullscreen";
+
+type CalendarView = "month" | "week" | "day";
 
 // Интерфейс настроек приложения
 interface AppSettings {
@@ -118,6 +121,9 @@ interface AppSettings {
   hasSeenBookmarkNavHint: boolean;
   hasSeenHomeFavoritesTutorial: boolean;
   hasSeenHomeSortTutorial: boolean;
+
+  // Вид календаря: запоминается между открытиями вкладки
+  calendarView: CalendarView;
 }
 
 // Настройки по умолчанию
@@ -151,6 +157,7 @@ const DEFAULT_SETTINGS: AppSettings = {
   hasSeenBookmarkNavHint: false,
   hasSeenHomeFavoritesTutorial: false,
   hasSeenHomeSortTutorial: false,
+  calendarView: "month",
 };
 
 export const useSettingsStore = defineStore("settings", () => {
@@ -216,6 +223,7 @@ export const useSettingsStore = defineStore("settings", () => {
       hasSeenBookmarkNavHint: SETTINGS_KEYS.HAS_SEEN_BOOKMARK_NAV_HINT,
       hasSeenHomeFavoritesTutorial: SETTINGS_KEYS.HAS_SEEN_HOME_FAVORITES_TUTORIAL,
       hasSeenHomeSortTutorial: SETTINGS_KEYS.HAS_SEEN_HOME_SORT_TUTORIAL,
+      calendarView: SETTINGS_KEYS.CALENDAR_VIEW,
     };
     return keyMap[key];
   };
@@ -282,6 +290,7 @@ export const useSettingsStore = defineStore("settings", () => {
   const hasSeenHomeSortTutorial = computed(
     () => settings.value.hasSeenHomeSortTutorial
   );
+  const calendarView = computed(() => settings.value.calendarView);
 
   // Получение языка с приоритетом из доступных языков
   const getLanguageFromAvailable = (
@@ -349,6 +358,7 @@ export const useSettingsStore = defineStore("settings", () => {
     hasSeenBookmarkNavHint,
     hasSeenHomeFavoritesTutorial,
     hasSeenHomeSortTutorial,
+    calendarView,
 
     // Универсальный метод
     setSetting,
@@ -409,6 +419,7 @@ export const useSettingsStore = defineStore("settings", () => {
       setSetting("hasSeenHomeFavoritesTutorial", seen),
     setHasSeenHomeSortTutorial: (seen: boolean) =>
       setSetting("hasSeenHomeSortTutorial", seen),
+    setCalendarView: (view: CalendarView) => setSetting("calendarView", view),
 
     // Утилиты
     getLanguageFromAvailable,
@@ -417,5 +428,5 @@ export const useSettingsStore = defineStore("settings", () => {
 });
 
 // Экспорт типов для использования в других файлах
-export type { AppSettings, ReadingSystemBars };
+export type { AppSettings, ReadingSystemBars, CalendarView };
 export { SETTINGS_KEYS };
