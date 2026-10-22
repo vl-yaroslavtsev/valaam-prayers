@@ -39,7 +39,10 @@ function svgIconTypesPlugin() {
 
 process.env.VITE_APP_VER = config.version;
 
-export default async () => {
+export default async ({ mode }) => {
+  // `vite build --mode debug` — читаемая сборка для отладки в нативной обёртке.
+  const isDebugBuild = mode === "debug";
+
   return {
     css: {
       preprocessorOptions: {
@@ -83,7 +86,9 @@ export default async () => {
       outDir: BUILD_DIR,
       assetsInlineLimit: 0,
       emptyOutDir: true,
-      sourcemap: false,
+      sourcemap: isDebugBuild,
+      minify: !isDebugBuild,
+      cssMinify: !isDebugBuild,
       rolldownOptions: {
         treeshake: true,
         output: {

@@ -1,5 +1,5 @@
 <template>
-  <f7-page name="rites">
+  <f7-page name="rites" @page:afterin="onFormOpen" @page:tabshow="onFormOpen">
     <f7-navbar title="Пожертвования"></f7-navbar>
 
     <form @submit="donate">
@@ -27,7 +27,7 @@
       </f7-block>
 
       <f7-block strong-ios outline-ios class="grid grid-cols-2 grid-gap">
-        <f7-button fill type="submit" :disabled="loading"
+        <f7-button fill type="submit" :disabled="loading || submitting"
           >Пожертвовать</f7-button
         >
       </f7-block>
@@ -53,6 +53,27 @@ const email = ref(
 );
 const error = ref({});
 const loading = ref(false);
+const submitting = ref(false);
+
+// Нативная оплата через ЮKassa SDK (window.ValaamNativePay), вне приложения остаётся виджет
+const API =
+  import.meta.env.VITE_PAYMENT_API_URL ||
+  (import.meta.env.MODE === "development"
+    ? "https://dev.valaam.ru/api"
+    : "https://dev.valaam.ru/api" //"https://valaam.ru/api");
+  );
+const DONATION_TYPE_ID = "175617";
+const DONATION_TYPE_NAME = "Валаамский монастырь";
+const GID_TIMEOUT_MS = 5000;
+const POLL_INTERVAL_MS = 2000;
+const POLL_TIMEOUT_MS = 30000;
+
+const isNativePay = () => window.ValaamNativePay?.version >= 1;
+
+// gid живёт только в памяти формы и запрашивается заново при каждом открытии
+let gidPromise = null;
+// id пожертвования переживает неудачную попытку: повтор идёт с новым токеном
+let donationId = null;
 
 const getUID = () => {
   return window.crypto
@@ -60,36 +81,12 @@ const getUID = () => {
     .reduce((acc, el) => (acc += el.toString(16)), "");
 };
 
-const postJson = async (url, data = {}) => {
-  try {
-    await loadYooKassaScript();
-  } catch (error) {
-    throw 'Ошибка загрузки виджета: ' + error;
-  }
-  
-  const res = await fetch(url, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json;charset=utf-8",
-    },
-    credentials: "same-origin",
-    body: JSON.stringify(data),
-  });
-
-  if (!res.ok) {
-    throw "HTTP error: " + res.status;
-  }
-
-  return res.json();
-};
-
 const renderWidget = (
   payment,
   { onDone = () => {}, onError = () => {} } = {},
 ) => {
-  const token = payment.confirmation.confirmation_token;
   const checkout = new window.YooMoneyCheckoutWidget({
-    confirmation_token: token,
+    confirmation_token: payment.confirmationToken,
     customization: {
       //Настройка способа отображения
       modal: true,
@@ -107,53 +104,268 @@ const renderWidget = (
   checkout.render();
 };
 
-const donate = async (event) => {
-  event.preventDefault();
+const getClientId = () => {
+  let id = localStorage.getItem("donation-client-id");
+  if (!id) {
+    id = getUID();
+    localStorage.setItem("donation-client-id", id);
+  }
+  return id;
+};
 
-  const data = {
-    clientId: getUID(),
-    donationTypeId: "175617",
-    summ: donation.value,
-    email: email.value,
-    valaamGid: "BITRIX_SM.MzA0NTgyOTAuMjY0MDEzMTcuUlUuNS5ZLnMx",
-    valaamKey: "Kv75zKdM4g8L3VfE2u4JlUv38Au5lIQz",
-    payment: "widget",
+const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+const requestGid = async () => {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), GID_TIMEOUT_MS);
+  try {
+    const platform = window.ValaamNativePay.platform;
+    const response = await fetch(
+      `${API}/rites/valaamGid?referer1=valaam.prayers.${platform}`,
+      { credentials: "omit", signal: controller.signal },
+    );
+    if (!response.ok) {
+      throw new Error("HTTP error: " + response.status);
+    }
+    const { gid } = await response.json();
+    return gid ?? null;
+  } catch (ex) {
+    console.error("Не удалось получить gid:", ex);
+    return null;
+  } finally {
+    clearTimeout(timer);
+  }
+};
+
+const onFormOpen = () => {
+  if (isNativePay()) {
+    gidPromise = requestGid();
+  }
+};
+
+const describeServerErrors = (result) => {
+  const messages = [
+    ...Object.values(result?.fieldsErrors ?? {}),
+    ...Object.values(result?.fullErrors ?? {}),
+  ]
+    .map((item) => item?.description)
+    .filter(Boolean);
+  return messages.join("\n") || "Не удалось выполнить платёж. Попробуйте ещё раз";
+};
+
+const isDonationPaid = async (id) => {
+  const res = await fetch(
+    `${API}/donations?clientId=${encodeURIComponent(getClientId())}`,
+  );
+  if (!res.ok) {
+    throw new Error("HTTP error: " + res.status);
+  }
+  const { items = [] } = await res.json();
+  return items.some((item) => item.id === id && item.active);
+};
+
+const waitDonationPaid = async (id) => {
+  const deadline = Date.now() + POLL_TIMEOUT_MS;
+  while (Date.now() < deadline) {
+    await sleep(POLL_INTERVAL_MS);
+    try {
+      if (await isDonationPaid(id)) return true;
+    } catch (ex) {
+      console.error("Ошибка опроса статуса платежа:", ex);
+    }
+  }
+  return false;
+};
+
+const donateNative = async (sum) => {
+  const pay = window.ValaamNativePay;
+
+  submitting.value = true;
+  error.value = {};
+
+  let closed = false;
+  const closeNative = async () => {
+    if (closed) return;
+    closed = true;
+    try {
+      await pay.close();
+    } catch (ex) {
+      console.error("ValaamNativePay.close:", ex);
+    }
   };
 
-  console.log(data);
+  let preloader = null;
+  const hideLoader = () => {
+    preloader?.close();
+    preloader = null;
+  };
 
-  loading.value = true;
+  const onSuccess = () => {
+    hideLoader();
+    localStorage.setItem("donation-email", email.value.trim());
+    donationId = null;
+    f7.dialog.alert("Пожертвование отправлено!");
+  };
+
+  const onPending = async () => {
+    const paid = await waitDonationPaid(donationId);
+    hideLoader();
+    if (paid) {
+      onSuccess();
+    } else {
+      f7.dialog.alert("Платёж обрабатывается, статус появится в истории");
+    }
+  };
 
   try {
-    const res = await postJson(
-      "https://valaam.ru/payments/form-donates.php",
-      data,
-    );
+    gidPromise ??= requestGid();
+    const gid = await gidPromise;
 
-    if (res.error) {
-      error.value = res.error;
+    const tokenResult = await pay.tokenize({
+      amount: sum.toFixed(2),
+      title: "Пожертвование",
+      subtitle: DONATION_TYPE_NAME,
+    });
+    if (tokenResult.status === "cancelled") return;
+    if (tokenResult.status !== "success") {
+      error.value = { common: tokenResult.message || "Ошибка оплаты" };
       return;
     }
 
-    error.value = {};
+    preloader = f7.dialog.preloader("Оформляем платёж...");
 
-    const payment = res?.payment;
+    const res = await fetch(`${API}/donations`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json;charset=utf-8" },
+      body: JSON.stringify({
+        id: donationId,
+        clientId: getClientId(),
+        email: email.value,
+        payment: "sdk",
+        paymentToken: tokenResult.paymentToken,
+        valaamGid: gid,
+        summ: sum,
+        donationTypeId: DONATION_TYPE_ID,
+      }),
+    });
+    const result = await res.json().catch(() => null);
 
-    if (res.status === "done" && payment) {
-      renderWidget(payment, {
-        onDone: (status) => {
-          if (status === "success" && email.value) {
-            localStorage.setItem("donation-email", email.value.trim());
-          }
-          //console.log("status", status, "payment", payment);
-        },
-        onError: (error) => {
-          error.value.common = "Ошибка при работе с виджетом! " + error;
-        },
+    if (res.status !== 200 || !result?.donation) {
+      hideLoader();
+      error.value = { common: describeServerErrors(result) };
+      return;
+    }
+
+    donationId = result.donation.id;
+    const { confirmationUrl, status } = result.payment ?? {};
+
+    if (confirmationUrl) {
+      const confirmResult = await pay.confirm({
+        confirmationUrl,
+        paymentMethodType: tokenResult.paymentMethodType,
       });
+      await closeNative();
+
+      switch (confirmResult.status) {
+        case "success":
+          onSuccess();
+          break;
+        case "cancelled":
+          hideLoader();
+          error.value = { common: "Платёж не завершён. Попробуйте ещё раз" };
+          break;
+        case "error":
+          hideLoader();
+          error.value = { common: confirmResult.message || "Ошибка оплаты" };
+          break;
+        default:
+          await onPending();
+      }
+      return;
+    }
+
+    await closeNative();
+    if (status === "succeeded") {
+      onSuccess();
+    } else {
+      await onPending();
     }
   } catch (ex) {
-    error.value.common = "Ошибка: " + ex;
+    hideLoader();
+    error.value = { common: "Ошибка: " + (ex?.message ?? ex) };
+  } finally {
+    hideLoader();
+    await closeNative();
+    submitting.value = false;
+  }
+};
+
+const donate = async (event) => {
+  event.preventDefault();
+
+  const sum = Number(donation.value);
+  if (!Number.isInteger(sum) || sum < 1) {
+    error.value = { common: "Введите сумму целым числом рублей" };
+    return;
+  }
+
+  if (isNativePay()) {
+    await donateNative(sum);
+    return;
+  }
+
+  loading.value = true;
+  error.value = {};
+
+  try {
+    try {
+      await loadYooKassaScript();
+    } catch (ex) {
+      throw new Error("Ошибка загрузки виджета: " + (ex?.message ?? ex));
+    }
+
+    const res = await fetch(`${API}/donations`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json;charset=utf-8" },
+      body: JSON.stringify({
+        id: donationId,
+        clientId: getClientId(),
+        email: email.value,
+        payment: "widget",
+        summ: sum,
+        donationTypeId: DONATION_TYPE_ID,
+      }),
+    });
+    const result = await res.json().catch(() => null);
+
+    if (res.status !== 200 || !result?.donation) {
+      error.value = { common: describeServerErrors(result) };
+      return;
+    }
+
+    donationId = result.donation.id;
+    const payment = result.payment;
+
+    if (!payment?.confirmationToken) {
+      error.value = { common: describeServerErrors(null) };
+      return;
+    }
+
+    renderWidget(payment, {
+      onDone: (status) => {
+        if (status === "success" && email.value) {
+          localStorage.setItem("donation-email", email.value.trim());
+          donationId = null;
+        }
+      },
+      onError: (ex) => {
+        error.value = {
+          common: "Ошибка при работе с виджетом! " + (ex?.message ?? ex),
+        };
+      },
+    });
+  } catch (ex) {
+    error.value = { common: "Ошибка: " + (ex?.message ?? ex) };
   } finally {
     loading.value = false;
   }
