@@ -14,6 +14,8 @@ declare global {
   interface Window {
     /** Точка входа для ответов и событий нативки (docs/native-bridge-protocol.md) */
     __nativeRpc?: { onMessage(message: unknown): void };
+    /** Android: порт WebMessageListener. Ответы приходят в __nativeRpc.onMessage */
+    valaamNativeRpcPort?: { postMessage(message: string): void };
   }
 }
 
@@ -39,10 +41,17 @@ let nextId = 1;
 let bridgeInfoPromise: Promise<BridgeInfo> | null = null;
 let bridgeInfo: BridgeInfo | null = null;
 
-/** Есть ли нативный мост: Android через androidJsHandler.rpc, iOS через messageHandlers.nativeRpc */
+/**
+ * Есть ли нативный мост: Android через valaamNativeRpcPort (или старый androidJsHandler.rpc),
+ * iOS через messageHandlers.nativeRpc
+ */
 export function isNativeBridgeAvailable(): boolean {
   if (typeof window === "undefined") return false;
-  return typeof window.androidJsHandler?.rpc === "function" || !!window.webkit?.messageHandlers?.nativeRpc;
+  return (
+    !!window.valaamNativeRpcPort ||
+    typeof window.androidJsHandler?.rpc === "function" ||
+    !!window.webkit?.messageHandlers?.nativeRpc
+  );
 }
 
 function parseMessage(raw: unknown): unknown {
@@ -85,6 +94,12 @@ if (typeof window !== "undefined") {
 }
 
 function post(id: string, requestJson: string): void {
+  if (window.valaamNativeRpcPort) {
+    // Ответ придёт в window.__nativeRpc.onMessage
+    window.valaamNativeRpcPort.postMessage(requestJson);
+    return;
+  }
+
   const android = window.androidJsHandler;
   if (typeof android?.rpc === "function") {
     // Ответ придёт в window.__nativeRpc.onMessage
