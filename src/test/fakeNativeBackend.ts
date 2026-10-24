@@ -32,6 +32,8 @@ export interface FakeNativeOptions {
   platform?: NativePlatform;
   capabilities?: BridgeCapability[];
   protocolVersion?: number;
+  /** Android без valaamNativeRpcPort: ответ приходит в __nativeRpc.onMessage, как у WebView младше 82 */
+  legacyAndroidRpc?: boolean;
 }
 
 /**
@@ -76,7 +78,15 @@ export class FakeNativeBackend {
     resetNativeRpcForTests();
 
     const w = window as any;
-    if (this.platform === "android") {
+    if (this.platform === "android" && options.legacyAndroidRpc) {
+      w.androidJsHandler = {
+        rpc: (requestJson: string) => {
+          void this.process(requestJson).then((response) => {
+            window.__nativeRpc?.onMessage(JSON.parse(response));
+          });
+        },
+      };
+    } else if (this.platform === "android") {
       // Порт WebMessageListener: ответ приходит событием message со строкой в data
       const listeners = new Set<(event: { data: unknown }) => void>();
       w.valaamNativeRpcPort = {
@@ -99,6 +109,7 @@ export class FakeNativeBackend {
 
     return () => {
       delete w.valaamNativeRpcPort;
+      delete w.androidJsHandler;
       delete w.webkit;
       resetNativeRpcForTests();
     };

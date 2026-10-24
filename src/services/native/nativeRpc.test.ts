@@ -108,6 +108,30 @@ describe.each<NativePlatform>(["android", "ios"])("nativeRpc (%s)", (platform) =
   });
 });
 
+describe("android rpc для WebView без порта", () => {
+  let uninstall: () => void;
+
+  afterEach(() => uninstall?.());
+
+  it("вызов идёт через androidJsHandler.rpc, ответ приходит в onMessage", async () => {
+    const backend = new FakeNativeBackend();
+    uninstall = backend.install({ platform: "android", legacyAndroidRpc: true });
+
+    expect(isNativeBridgeAvailable()).toBe(true);
+    expect(window.valaamNativeRpcPort).toBeUndefined();
+    await expect(nativeCall("db.count", { table: "favorites" })).resolves.toBe(0);
+    expect(backend.callsOf("db.count")).toEqual([{ table: "favorites" }]);
+  });
+
+  it("при наличии порта androidJsHandler.rpc не вызывается", async () => {
+    const backend = new FakeNativeBackend();
+    uninstall = backend.install({ platform: "android" });
+    window.androidJsHandler = { rpc: () => { throw new Error("старый путь"); } } as Window["androidJsHandler"];
+
+    await expect(nativeCall("db.count", { table: "favorites" })).resolves.toBe(0);
+  });
+});
+
 describe("рукопожатие", () => {
   let uninstall: () => void;
 

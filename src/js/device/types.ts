@@ -159,6 +159,13 @@ export interface AndroidHandler {
 
   disableBackGestureInArea(x: number, y: number, width: number, height: number): void; // Отключает системный жест "Назад" в области экрана (координаты в CSS px)
   enableBackGesture(): void; // Возвращает системный жест "Назад" в исходное состояние
+
+  /**
+   * RPC для WebView младше версии 82, где нет valaamNativeRpcPort.
+   * Запрос JSON-строкой, ответ приходит в window.__nativeRpc.onMessage.
+   * На WebView с портом нативка этот вызов игнорирует: origin он не проверяет.
+   */
+  rpc?(requestJson: string): void;
 }
 
 export interface IOSHandler {

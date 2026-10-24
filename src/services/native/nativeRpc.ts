@@ -44,10 +44,17 @@ let nextId = 1;
 let bridgeInfoPromise: Promise<BridgeInfo> | null = null;
 let bridgeInfo: BridgeInfo | null = null;
 
-/** Есть ли нативный мост: Android через valaamNativeRpcPort, iOS через messageHandlers.nativeRpc */
+/**
+ * Есть ли нативный мост: Android через valaamNativeRpcPort (WebView 82+),
+ * на WebView младше 82 через androidJsHandler.rpc, iOS через messageHandlers.nativeRpc
+ */
 export function isNativeBridgeAvailable(): boolean {
   if (typeof window === "undefined") return false;
-  return !!window.valaamNativeRpcPort || !!window.webkit?.messageHandlers?.nativeRpc;
+  return (
+    !!window.valaamNativeRpcPort ||
+    typeof window.androidJsHandler?.rpc === "function" ||
+    !!window.webkit?.messageHandlers?.nativeRpc
+  );
 }
 
 function parseMessage(raw: unknown): unknown {
@@ -106,6 +113,13 @@ function post(id: string, requestJson: string): void {
   if (window.valaamNativeRpcPort) {
     // Ответ придёт событием message порта
     window.valaamNativeRpcPort.postMessage(requestJson);
+    return;
+  }
+
+  const android = window.androidJsHandler;
+  if (typeof android?.rpc === "function") {
+    // WebView младше 82: ответа через порт нет, он придёт в window.__nativeRpc.onMessage
+    android.rpc(requestJson);
     return;
   }
 
