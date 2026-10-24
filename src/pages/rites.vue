@@ -46,6 +46,8 @@
 import { ref, watch, onMounted } from "vue";
 import { f7, f7ready } from "framework7-vue";
 import { Dom7 as $ } from "framework7";
+import { getNativePlatform } from "@/services/native/nativeRpc";
+import { ensureNativePay, nativePay } from "@/services/native/pay";
 
 const donation = ref(1);
 const email = ref(
@@ -55,7 +57,7 @@ const error = ref({});
 const loading = ref(false);
 const submitting = ref(false);
 
-// Нативная оплата через ЮKassa SDK (window.ValaamNativePay), вне приложения остаётся виджет
+// Нативная оплата через ЮKassa SDK (нативный мост, capability "pay"), вне приложения остаётся виджет
 const API =
   import.meta.env.VITE_PAYMENT_API_URL ||
   (import.meta.env.MODE === "development"
@@ -67,8 +69,6 @@ const DONATION_TYPE_NAME = "Валаамский монастырь";
 const GID_TIMEOUT_MS = 5000;
 const POLL_INTERVAL_MS = 2000;
 const POLL_TIMEOUT_MS = 30000;
-
-const isNativePay = () => window.ValaamNativePay?.version >= 1;
 
 // gid живёт только в памяти формы и запрашивается заново при каждом открытии
 let gidPromise = null;
@@ -119,7 +119,7 @@ const requestGid = async () => {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), GID_TIMEOUT_MS);
   try {
-    const platform = window.ValaamNativePay.platform;
+    const platform = getNativePlatform();
     const response = await fetch(
       `${API}/rites/valaamGid?referer1=valaam.prayers.${platform}`,
       { credentials: "omit", signal: controller.signal },
@@ -137,8 +137,8 @@ const requestGid = async () => {
   }
 };
 
-const onFormOpen = () => {
-  if (isNativePay()) {
+const onFormOpen = async () => {
+  if (await ensureNativePay()) {
     gidPromise = requestGid();
   }
 };
@@ -178,7 +178,7 @@ const waitDonationPaid = async (id) => {
 };
 
 const donateNative = async (sum) => {
-  const pay = window.ValaamNativePay;
+  const pay = nativePay;
 
   submitting.value = true;
   error.value = {};
@@ -190,7 +190,7 @@ const donateNative = async (sum) => {
     try {
       await pay.close();
     } catch (ex) {
-      console.error("ValaamNativePay.close:", ex);
+      console.error("pay.close:", ex);
     }
   };
 
@@ -309,7 +309,7 @@ const donate = async (event) => {
     return;
   }
 
-  if (isNativePay()) {
+  if (await ensureNativePay()) {
     await donateNative(sum);
     return;
   }

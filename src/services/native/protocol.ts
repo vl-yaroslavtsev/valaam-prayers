@@ -15,7 +15,7 @@ export type NativeErrorCode =
   | "NOT_SUPPORTED"
   | "INTERNAL";
 
-export type BridgeCapability = "db" | "download" | "autoUpdate" | "images" | "seed";
+export type BridgeCapability = "db" | "download" | "autoUpdate" | "images" | "seed" | "pay";
 
 /**
  * applying: идёт блокирующий этап (индексы, разделы, раскраска), JS должен ждать.
@@ -57,6 +57,22 @@ export interface StorageInfo {
   offlineUsedBytes: number;
   freeBytes: number;
   totalBytes: number;
+}
+
+/**
+ * Итог платёжного шага. Отмена, отказ SDK, занятость и неверные параметры приходят в самом результате
+ * (status "error" с message), поэтому вызов не зависает. RPC-ошибка бывает только у сбоя моста
+ * (например NOT_SUPPORTED, если нативка без оплаты).
+ */
+export type PayStatus = "success" | "cancelled" | "error" | "unknown";
+
+export interface PayResult {
+  status: PayStatus;
+  message?: string;
+  /** Только у pay.tokenize со статусом success */
+  paymentToken?: string;
+  /** Имя способа оплаты в API ЮKassa, только у pay.tokenize со статусом success */
+  paymentMethodType?: string;
 }
 
 type ModuleParams = { moduleId: DownloadModuleId };
@@ -105,6 +121,16 @@ export interface RpcMethods {
   "storage.getInfo": { params: Record<string, never>; result: StorageInfo };
 
   "seed.getState": { params: Record<string, never>; result: SeedState };
+
+  "pay.tokenize": {
+    params: { amount: string; title: string; subtitle: string };
+    result: PayResult;
+  };
+  "pay.confirm": {
+    params: { confirmationUrl: string; paymentMethodType: string };
+    result: PayResult;
+  };
+  "pay.close": { params: Record<string, never>; result: PayResult };
 }
 
 export type RpcMethod = keyof RpcMethods;

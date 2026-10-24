@@ -8,13 +8,14 @@
 - Запрос: `{ "id": "string", "method": "db.get", "params": {} }`.
 - Ответ: `{ "id": "...", "ok": true, "result": ... }` или `{ "id": "...", "ok": false, "error": { "code": "...", "message": "..." } }`.
 - Событие: `{ "event": "download.progress", "data": {} }`.
-- Android: JS вызывает `androidJsHandler.rpc(requestJson)` (`@JavascriptInterface`, не блокирует: ставит в очередь). Ответы и события нативка шлёт через `evaluateJavascript("window.__nativeRpc.onMessage(<json-object-literal>)")`. JSON подставляется как литерал без собственного экранирования кавычек.
+- Android: нативка регистрирует `WebViewCompat.addWebMessageListener(webView, "valaamNativeRpcPort", allowedOrigins, listener)`. JS вызывает `window.valaamNativeRpcPort.postMessage(requestJson)`. Ответ нативка шлёт через `replyProxy.postMessage(responseJson)`, JS получает его строкой в `event.data` события `message` порта (`nativeRpc.ts` сам подписывается на порт и передаёт строку в `window.__nativeRpc.onMessage`, никакого внедряемого шима нет). События нативка шлёт через `evaluateJavascript("window.__nativeRpc.onMessage(<json-object-literal>)")`. JSON подставляется как литерал без собственного экранирования кавычек. Старого `androidJsHandler.rpc` больше нет: `@JavascriptInterface` не умеет ограничивать origin.
 - iOS: JS вызывает `await window.webkit.messageHandlers.nativeRpc.postMessage(requestJson)`. Нативка реализует `WKScriptMessageHandlerWithReply` и отвечает JSON-строкой с конвертом ответа. События идут через `evaluateJavaScript("window.__nativeRpc.onMessage(<json>)")`.
+- Допустимые источники: только главный фрейм страницы приложения. Android ограничивает origin правилами `addWebMessageListener` (`https://app.valaam.ru`, `https://dev.app.valaam.ru`, `https://valaam.ru`, `https://dev.valaam.ru`, а `http://localhost:5173` и `http://10.0.2.2:5173` только в debug-сборке). iOS проверяет `frameInfo` сообщения: главный фрейм, схема `valaam-app` (хост `app`) или `https` с хостами `valaam.ru`, `www.valaam.ru`, `dev.valaam.ru`, `app.valaam.ru`, `dev.app.valaam.ru`. Запрос из другого источника на iOS отклоняет промис `postMessage` (JS видит `NativeRpcError` с кодом `INTERNAL`), на Android не доставляется.
 - Коды ошибок: `UNKNOWN_TABLE`, `INVALID_PARAMS`, `DB_ERROR`, `NETWORK`, `HTTP_ERROR`, `SECTIONS_NOT_READY`, `NOT_SUPPORTED`, `INTERNAL`.
 
 ### Рукопожатие
 
-- `bridge.getInfo` -> `{ protocolVersion: 1, platform: "android" | "ios", appVersion: string, capabilities: ("db" | "download" | "autoUpdate" | "images" | "seed")[] }`. Capability `seed` нативка объявляет только если seed лежит в ресурсах и его версия формата поддерживается (см. «Seed»).
+- `bridge.getInfo` -> `{ protocolVersion: 1, platform: "android" | "ios", appVersion: string, capabilities: ("db" | "download" | "autoUpdate" | "images" | "seed" | "pay")[] }`. Capability `seed` нативка объявляет только если seed лежит в ресурсах и его версия формата поддерживается (см. «Seed»). Capability `pay` объявляется, если в сборке есть ЮKassa SDK (см. «Оплата»).
 
 ### База данных
 
@@ -104,6 +105,19 @@ API: база `https://app.valaam.ru/api`. Ответ имеет вид `{ statu
 
 - В DOM картинки запрашиваются как относительные пути `/upload/resize_cache/...`.
 - Capability `images`. Android перехватывает `https://app.valaam.ru/upload/resize_cache/**`, iOS обслуживает `valaam-cache://app/upload/resize_cache/**` (веб подменяет схему на iOS, пока страница на `https`; когда страница открыта по `valaam-app://`, подмены нет: относительные пути идут в тот же обработчик схемы, см. «Статика в нативке»). Fallback по имени файла (одинаковому для всех размеров) выбирает ближайшую по ширине папку ресайза, а не первую найденную.
+
+### Оплата
+
+Нативная оплата ЮKassa SDK. Capability `pay`. Нативка не вызывает сервер платежей: отдаёт токен, проводит подтверждение и закрывает экран SDK. JS-обёртка в приложении не внедряется, веб вызывает методы через `nativeCall` (`src/services/native/pay.ts`).
+
+`PayResult`: `{ status: "success" | "cancelled" | "error" | "unknown", message?: string, paymentToken?: string, paymentMethodType?: string }`. Отмена, отказ SDK, занятость (`message: "busy"`) и неверные параметры приходят самим результатом со `status: "error"` и `message`: вызов не должен зависать ни при каких входных данных. RPC-ошибка только при сбое моста (`NOT_SUPPORTED`, если оплаты нет).
+
+- `pay.tokenize {amount: string, title: string, subtitle: string}` -> `PayResult`. `amount` в рублях: десятичная точка, не больше двух знаков, больше нуля. Открывает экран SDK и отвечает, когда пользователь выбрал способ (`success` с `paymentToken` и `paymentMethodType`), отменил (`cancelled`) или SDK вернул ошибку (`error`). На iOS экран SDK остаётся открытым после `success` (его закрывает `pay.confirm` или `pay.close`), на Android SDK закрывает свой экран сам.
+- `pay.confirm {confirmationUrl: string, paymentMethodType: string}` -> `PayResult`. `paymentMethodType` это имя из API ЮKassa (`bank_card`, `sberbank`, `sbp`, `yoo_money`, `alfa_bank`, `alfa_pay`), обычно значение из ответа `pay.tokenize`. `success` платёж подтверждён, `cancelled` отмена, `unknown` итог неизвестен (например, пользователь вернулся из банковского приложения без ответа): веб сам проверяет статус на сервере.
+- `pay.close {}` -> `{ status: "success" }`. Закрывает экран SDK. Идущий вызов `pay.tokenize` или `pay.confirm` получает `cancelled`.
+- Одновременно идёт один платёжный запрос. Второй получает `status: "error"`, `message: "busy"`.
+- Если страница ушла (навигация), ждущий вызов завершается `cancelled`, экран SDK закрывается.
+- Порядок вызовов: `pay.tokenize` -> (сервер создаёт платёж) -> `pay.confirm` при необходимости -> `pay.close`. На iOS `pay.confirm` без открытого модуля (после `pay.tokenize` со `success`) это `status: "error"`. Android такой проверки не делает. Нативка не принимает способ оплаты, который не умеет подтверждать (`apple_pay`, неизвестные имена): `status: "error"`.
 
 ### Статика в нативке
 

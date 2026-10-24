@@ -77,12 +77,16 @@ export class FakeNativeBackend {
 
     const w = window as any;
     if (this.platform === "android") {
-      w.androidJsHandler = {
-        rpc: (requestJson: string) => {
+      // Порт WebMessageListener: ответ приходит событием message со строкой в data
+      const listeners = new Set<(event: { data: unknown }) => void>();
+      w.valaamNativeRpcPort = {
+        postMessage: (requestJson: string) => {
           void this.process(requestJson).then((response) => {
-            // Ответ нативки приходит объектом-литералом
-            window.__nativeRpc?.onMessage(JSON.parse(response));
+            listeners.forEach((listener) => listener({ data: response }));
           });
+        },
+        addEventListener: (_type: string, listener: (event: { data: unknown }) => void) => {
+          listeners.add(listener);
         },
       };
     } else {
@@ -94,7 +98,7 @@ export class FakeNativeBackend {
     }
 
     return () => {
-      delete w.androidJsHandler;
+      delete w.valaamNativeRpcPort;
       delete w.webkit;
       resetNativeRpcForTests();
     };

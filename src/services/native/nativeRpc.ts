@@ -14,8 +14,11 @@ declare global {
   interface Window {
     /** Точка входа для ответов и событий нативки (docs/native-bridge-protocol.md) */
     __nativeRpc?: { onMessage(message: unknown): void };
-    /** Android: порт WebMessageListener. Ответы приходят в __nativeRpc.onMessage */
-    valaamNativeRpcPort?: { postMessage(message: string): void };
+    /** Android: порт WebMessageListener. Ответы нативки приходят событиями message этого же порта */
+    valaamNativeRpcPort?: {
+      postMessage(message: string): void;
+      addEventListener(type: "message", listener: (event: { data: unknown }) => void): void;
+    };
   }
 }
 
@@ -41,17 +44,10 @@ let nextId = 1;
 let bridgeInfoPromise: Promise<BridgeInfo> | null = null;
 let bridgeInfo: BridgeInfo | null = null;
 
-/**
- * Есть ли нативный мост: Android через valaamNativeRpcPort (или старый androidJsHandler.rpc),
- * iOS через messageHandlers.nativeRpc
- */
+/** Есть ли нативный мост: Android через valaamNativeRpcPort, iOS через messageHandlers.nativeRpc */
 export function isNativeBridgeAvailable(): boolean {
   if (typeof window === "undefined") return false;
-  return (
-    !!window.valaamNativeRpcPort ||
-    typeof window.androidJsHandler?.rpc === "function" ||
-    !!window.webkit?.messageHandlers?.nativeRpc
-  );
+  return !!window.valaamNativeRpcPort || !!window.webkit?.messageHandlers?.nativeRpc;
 }
 
 function parseMessage(raw: unknown): unknown {
@@ -89,21 +85,27 @@ function handleMessage(raw: unknown): void {
   else call.reject(new NativeRpcError(response.error.code, response.error.message));
 }
 
+// Порты, на которые уже подписаны. Нативка ставит порт до выполнения скриптов страницы,
+// повторная проверка в post() нужна только на случай, если порт появился позже.
+const attachedPorts = new WeakSet<object>();
+
+function attachPort(): void {
+  const port = window.valaamNativeRpcPort;
+  if (!port || attachedPorts.has(port)) return;
+  attachedPorts.add(port);
+  port.addEventListener("message", (event) => handleMessage(event.data));
+}
+
 if (typeof window !== "undefined") {
   window.__nativeRpc = { onMessage: handleMessage };
+  attachPort();
 }
 
 function post(id: string, requestJson: string): void {
+  attachPort();
   if (window.valaamNativeRpcPort) {
-    // Ответ придёт в window.__nativeRpc.onMessage
+    // Ответ придёт событием message порта
     window.valaamNativeRpcPort.postMessage(requestJson);
-    return;
-  }
-
-  const android = window.androidJsHandler;
-  if (typeof android?.rpc === "function") {
-    // Ответ придёт в window.__nativeRpc.onMessage
-    android.rpc(requestJson);
     return;
   }
 
