@@ -66,6 +66,7 @@ export default async ({ mode }) => {
         strategies: "injectManifest",
         srcDir: "",
         filename: "service-worker.js",
+        // Файл — public/manifest.json. Ссылку в HTML не вставляем: её добавляет только браузер, не WebView.
         manifest: false,
         devOptions: {
           enabled: true,

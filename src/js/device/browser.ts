@@ -4,7 +4,16 @@ const browser: Device = {
   KEYCODE_VOLUME_DOWN: 0,
   KEYCODE_VOLUME_UP: 0,
 
-  init(){},
+  init() {
+    // Ссылку не кладём в index.html: тот же файл открывается в WebView Android и iOS.
+    // В браузере манифест даёт установку на главный экран и картинку сплэша из public/icons.
+    if (document.querySelector('link[rel="manifest"]')) return;
+
+    const link = document.createElement("link");
+    link.rel = "manifest";
+    link.href = "./manifest.json";
+    document.head.appendChild(link);
+  },
 
   setBrightness(value: number) {},
   async getBrightness() {
