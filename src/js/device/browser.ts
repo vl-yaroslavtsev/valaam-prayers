@@ -31,7 +31,18 @@ const browser: Device = {
 
   setFullScreen(mode: boolean) {},
   keepScreenOn(mode: boolean) {},
-  setStatusBarColor(color: string) {},
+
+  // В установленном PWA и во вкладке Chrome/Safari красит системный статус-бар.
+  // Прозрачный цвет браузеры отбрасывают, поэтому сюда приходит непрозрачный hex.
+  setStatusBarColor(color: string) {
+    let meta = document.querySelector<HTMLMetaElement>('meta[name="theme-color"]');
+    if (!meta) {
+      meta = document.createElement("meta");
+      meta.name = "theme-color";
+      document.head.appendChild(meta);
+    }
+    meta.content = color;
+  },
   onBackKey(handler: () => boolean) {},
 
   onVolumeKey(handler: (keyCode: number, event: any) => void) {},

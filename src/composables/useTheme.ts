@@ -1,6 +1,6 @@
 import { ref, computed, onMounted } from 'vue'
 import { f7, f7ready } from 'framework7-vue'
-import { device } from '@/js/device'
+import { device, isBrowser } from '@/js/device'
 import { useEventListener } from '@/composables/useEventListener'
 import { useSettingsStore } from '@/stores/settings'
 
@@ -68,15 +68,12 @@ export function useTheme() {
     } else {
       device.setStatusBarTextColor('dark')
     }
-    
-    
-    // if (dark) {
-    //   device.setStatusBarColor('#1f1b1a')
-    //   device.setNavigationBarColor('#1f1b1a')
-    // } else {
-    //   device.setStatusBarColor('#1f1b1a')
-    //   device.setNavigationBarColor('#1f1b1a')
-    // }
+
+    // Нативный статус-бар красит оболочка. Здесь только браузер и PWA:
+    // цвет совпадает с навбаром — #e7e6e6 в светлой теме, #1f1b1a в тёмной.
+    if (isBrowser) {
+      device.setStatusBarColor(dark ? '#1f1b1a' : '#e7e6e6')
+    }
   }
 
   // Переключение темы

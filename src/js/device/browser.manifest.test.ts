@@ -1,6 +1,28 @@
 import { describe, expect, it, vi } from "vitest";
 import browser from "./browser";
 
+describe("browser status bar", () => {
+  it("записывает цвет в meta theme-color", () => {
+    document.head.innerHTML = '<meta name="theme-color" content="#fff" />';
+
+    browser.setStatusBarColor("#1f1b1a");
+
+    expect(
+      document.querySelector('meta[name="theme-color"]')?.getAttribute("content")
+    ).toBe("#1f1b1a");
+  });
+
+  it("создаёт meta theme-color, если тега ещё нет", () => {
+    document.head.innerHTML = "";
+
+    browser.setStatusBarColor("#e7e6e6");
+
+    expect(
+      document.querySelector('meta[name="theme-color"]')?.getAttribute("content")
+    ).toBe("#e7e6e6");
+  });
+});
+
 describe("browser manifest", () => {
   it("добавляет ссылку на манифест в браузере", () => {
     document.querySelector('link[rel="manifest"]')?.remove();
