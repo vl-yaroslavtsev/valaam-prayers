@@ -126,7 +126,7 @@ describe("android rpc для WebView без порта", () => {
   it("при наличии порта androidJsHandler.rpc не вызывается", async () => {
     const backend = new FakeNativeBackend();
     uninstall = backend.install({ platform: "android" });
-    window.androidJsHandler = { rpc: () => { throw new Error("старый путь"); } } as Window["androidJsHandler"];
+    window.androidJsHandler = { rpc: () => { throw new Error("старый путь"); } } as unknown as Window["androidJsHandler"];
 
     await expect(nativeCall("db.count", { table: "favorites" })).resolves.toBe(0);
   });

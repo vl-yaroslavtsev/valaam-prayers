@@ -15,14 +15,14 @@ describe("browser manifest", () => {
     [
       "Android",
       () => {
-        (window as Window & { androidJsHandler?: object }).androidJsHandler =
+        (window as unknown as { androidJsHandler?: object }).androidJsHandler =
           {};
       },
     ],
     [
       "iOS",
       () => {
-        delete (window as Window & { androidJsHandler?: object })
+        delete (window as unknown as { androidJsHandler?: object })
           .androidJsHandler;
         window.webkit = {
           messageHandlers: {},
