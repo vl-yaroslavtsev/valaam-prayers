@@ -386,6 +386,10 @@ defineExpose({
 
 .text-paginator-vlist {
   margin: 0;
+  // .list ставит font-size: var(--f7-list-font-size) и затирает размер,
+  // с которым страницы уже посчитаны в горизонтальном режиме
+  font-size: inherit;
+  line-height: inherit;
 
   // overflow: hidden ломает position: sticky — клип текста на внутреннем .text-page-body
   :deep(li.text-page) {
