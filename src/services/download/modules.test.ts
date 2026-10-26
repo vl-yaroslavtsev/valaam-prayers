@@ -1,8 +1,9 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { daysApi } from "@/services/api/DaysApi";
 import { prayersApi } from "@/services/api/PrayersApi";
 import { saintsApi } from "@/services/api/SaintsApi";
 import {
+  calendarDaysStorage,
   calendarIconsStorage,
   prayerDetailsStorage,
   saintDetailsStorage,
@@ -11,7 +12,7 @@ import {
 } from "@/services/storage";
 import { getModule } from "@/services/download/modules";
 import type { DownloadContext, DownloadModuleId, ModuleDownloadState } from "@/services/download/types";
-import { makeNav, prayerDetail, prayerSection, prayerText, resetIndexedDB, saintDetail } from "@/test/helpers";
+import { calendarDay, makeNav, prayerDetail, prayerSection, prayerText, resetIndexedDB, saintDetail } from "@/test/helpers";
 
 vi.mock("@/services/api/DaysApi", () => ({
   daysApi: {
@@ -270,6 +271,70 @@ describe("download modules", () => {
       expect(ctx.state.pendingIconUrls).toEqual([]);
       expect(ctx.state.totalIconUrls).toBe(2);
       expect(vi.mocked(daysApi.getDaysIconsPage).mock.calls[0][2]).toBe("s");
+    });
+  });
+
+  describe("календарь", () => {
+    beforeEach(() => {
+      vi.useFakeTimers({ toFake: ["Date"] });
+    });
+
+    afterEach(() => {
+      vi.useRealTimers();
+    });
+
+    it("1–13 января передаёт в счётчики и списки дней и икон диапазон двух церковных лет", async () => {
+      vi.setSystemTime(new Date(2026, 0, 5));
+      vi.mocked(daysApi.getDaysCount).mockResolvedValue({ count: 1, size: 10 });
+      vi.mocked(daysApi.getDaysIconsCount).mockResolvedValue({ count: 1, size: 10 });
+      vi.mocked(daysApi.getDaysPage).mockResolvedValue({ items: [], nav: makeNav(1, 1), byteSize: 1 });
+      vi.mocked(daysApi.getDaysIconsPage).mockResolvedValue({ items: [], nav: makeNav(1, 1), byteSize: 1 });
+
+      await getModule("calendar").getSize();
+      await getModule("calendarIcons").getSize();
+      await getModule("calendar").download(createCtx("calendar"));
+      await getModule("calendarIcons").download(createCtx("calendarIcons"));
+
+      expect(vi.mocked(daysApi.getDaysCount).mock.calls[0].slice(0, 2)).toEqual(["20250114", "20270113"]);
+      expect(vi.mocked(daysApi.getDaysPage).mock.calls[0].slice(0, 2)).toEqual(["20250114", "20270113"]);
+      expect(vi.mocked(daysApi.getDaysIconsCount).mock.calls[0].slice(0, 2)).toEqual(["20250114", "20270113"]);
+      expect(vi.mocked(daysApi.getDaysIconsPage).mock.calls[0].slice(0, 2)).toEqual(["20250114", "20270113"]);
+    });
+
+    it("с 14 января передаёт диапазон одного церковного года", async () => {
+      vi.setSystemTime(new Date(2026, 7, 15));
+      vi.mocked(daysApi.getDaysCount).mockResolvedValue({ count: 1, size: 10 });
+      const since = new Date("2026-02-01T00:00:00.000Z");
+
+      await getModule("calendar").getSize(since);
+
+      expect(vi.mocked(daysApi.getDaysCount)).toHaveBeenCalledWith("20260114", "20270113", since);
+    });
+
+    it("после успешной загрузки удаляет дни старше границы и оставляет границу", async () => {
+      vi.setSystemTime(new Date(2026, 7, 15));
+      await calendarDaysStorage?.putAll([calendarDay("20231231"), calendarDay("20240101")]);
+      vi.mocked(daysApi.getDaysPage).mockResolvedValue({
+        items: [calendarDay("20260815")],
+        nav: makeNav(1, 1),
+        byteSize: 1,
+      });
+
+      await getModule("calendar").download(createCtx("calendar"));
+
+      expect(await calendarDaysStorage?.get("20231231")).toBeUndefined();
+      expect(await calendarDaysStorage?.get("20240101")).toMatchObject({ code: "20240101" });
+      expect(await calendarDaysStorage?.get("20260815")).toMatchObject({ code: "20260815" });
+    });
+
+    it("обрыв загрузки не удаляет старые дни", async () => {
+      vi.setSystemTime(new Date(2026, 7, 15));
+      await calendarDaysStorage?.put(calendarDay("20231231"));
+      vi.mocked(daysApi.getDaysPage).mockRejectedValue(new DOMException("Aborted", "AbortError"));
+
+      await expect(getModule("calendar").download(createCtx("calendar"))).rejects.toMatchObject({ name: "AbortError" });
+
+      expect(await calendarDaysStorage?.get("20231231")).toMatchObject({ code: "20231231" });
     });
   });
 

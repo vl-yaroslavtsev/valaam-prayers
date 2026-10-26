@@ -13,6 +13,8 @@ import {
   saintIconsStorage,
   sectionsStorage,
 } from "@/services/storage";
+import { CalendarDaysStorage } from "@/services/storage/CalendarDaysStorage";
+import { getCalendarDownloadRange, getCalendarRetentionBoundary } from "@/services/download/calendarRange";
 import { getCalendarIconSize, getSaintIconSize } from "@/services/download/device";
 import type { DownloadContext, DownloadModule, DownloadModuleId, PrayerDownloadModuleId } from "@/services/download/types";
 
@@ -83,11 +85,6 @@ async function fetchIcon(absoluteUrl: string, signal: AbortSignal): Promise<Resp
   throw new Error(`Failed to download icon ${absoluteUrl}: HTTP ${lastStatus}`);
 }
 
-function getCurrentYearRange(): { fromDate: string; toDate: string } {
-  const year = new Date().getFullYear();
-  return { fromDate: `${year}0101`, toDate: `${year}1231` };
-}
-
 /**
  * Разделы 1-го уровня раздела 842 (Молитвослов), кроме 937 (Богослужебные книги).
  * Вычисляется динамически по данным, уже загруженным основной синхронизацией молитв
@@ -114,6 +111,8 @@ interface ListModuleConfig<T> {
   fetchPage: PageFetcher<T>;
   saveItems: (items: T[]) => Promise<void>;
   remove: () => Promise<void>;
+  /** После последней успешно сохранённой страницы. Обрыв загрузки сюда не доходит. */
+  afterDownload?: () => Promise<void>;
 }
 
 /**
@@ -135,6 +134,9 @@ function createListModule<T>(config: ListModuleConfig<T>): DownloadModule {
         await ctx.checkpoint({ listState: { currentPage: page, totalPages } });
         page++;
       }
+
+      if (ctx.signal.aborted) throw new DOMException("Aborted", "AbortError");
+      await config.afterDownload?.();
     },
     remove: config.remove,
   };
@@ -278,16 +280,21 @@ function createIconModule(config: IconModuleConfig): DownloadModule {
 const calendarModule = createListModule<CalendarDayApiElement>({
   id: "calendar",
   getCount: async (since) => {
-    const { fromDate, toDate } = getCurrentYearRange();
+    const { fromDate, toDate } = getCalendarDownloadRange();
     const { size } = await daysApi.getDaysCount(fromDate, toDate, since);
     return size;
   },
   fetchPage: async (page, pageSize, since, signal, onBytes) => {
-    const { fromDate, toDate } = getCurrentYearRange();
+    const { fromDate, toDate } = getCalendarDownloadRange();
     return daysApi.getDaysPage(fromDate, toDate, page, pageSize, { since, signal, onBytes });
   },
   saveItems: async (items) => {
     await calendarDaysStorage?.putAll(items);
+  },
+  afterDownload: async () => {
+    if (calendarDaysStorage instanceof CalendarDaysStorage) {
+      await calendarDaysStorage.deleteBefore(getCalendarRetentionBoundary());
+    }
   },
   remove: async () => {
     await calendarDaysStorage?.clear();
@@ -297,12 +304,12 @@ const calendarModule = createListModule<CalendarDayApiElement>({
 const calendarIconsModule = createIconModule({
   id: "calendarIcons",
   getCount: async (since) => {
-    const { fromDate, toDate } = getCurrentYearRange();
+    const { fromDate, toDate } = getCalendarDownloadRange();
     const { size } = await daysApi.getDaysIconsCount(fromDate, toDate, getCalendarIconSize(), since);
     return size;
   },
   fetchIconListPage: async (page, pageSize, since, signal, onBytes) => {
-    const { fromDate, toDate } = getCurrentYearRange();
+    const { fromDate, toDate } = getCalendarDownloadRange();
     const { items, nav } = await daysApi.getDaysIconsPage(fromDate, toDate, getCalendarIconSize(), page, pageSize, {
       since,
       signal,
