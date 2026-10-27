@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  calendarDownloadRange,
   churchYearRange,
   formatDateCode,
   inclusiveDayCount,
@@ -42,6 +43,19 @@ describe("церковный год", () => {
     expect(nextDateCode("20240228")).toBe("20240229");
     expect(nextDateCode("20260228")).toBe("20260301");
     expect(isRealDateCode("20260229")).toBe(false);
+  });
+});
+
+describe("диапазон календаря", () => {
+  it("совпадает с диапазоном загрузки нативки: с 14 января по 13 января следующего года", () => {
+    expect(calendarDownloadRange(new Date(2026, 9, 27))).toEqual({ from: "20260114", to: "20270113" });
+    expect(calendarDownloadRange(new Date(2026, 0, 14))).toEqual({ from: "20260114", to: "20270113" });
+    expect(calendarDownloadRange(new Date(2026, 11, 31))).toEqual({ from: "20260114", to: "20270113" });
+  });
+
+  it("1–13 января захватывает два года", () => {
+    expect(calendarDownloadRange(new Date(2026, 0, 1))).toEqual({ from: "20250114", to: "20270113" });
+    expect(calendarDownloadRange(new Date(2026, 0, 13))).toEqual({ from: "20250114", to: "20270113" });
   });
 });
 

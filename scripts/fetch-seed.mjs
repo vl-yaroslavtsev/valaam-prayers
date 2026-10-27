@@ -3,7 +3,7 @@
  * Скачивает начальные данные (seed) для нативных приложений в формате ответов API.
  * Контракт: docs/native-bridge-protocol.md, раздел "Seed".
  *
- *   npm run seed:fetch -- [--out native-seed] [--years 2026] [--concurrency 4] [--base https://app.valaam.ru/api]
+ *   npm run seed:fetch -- [--out native-seed] [--concurrency 4] [--base https://app.valaam.ru/api]
  *
  * Папка с seed лежит вне www/, src/ и public/, поэтому на сервер (scripts/deploy.cmd копирует только www/) не попадает.
  * Виджет — ключ manifest.widget рядом с modules, не запись в indexes: его забирает отдельная база.
@@ -41,6 +41,17 @@ export function churchYearRange(now = new Date()) {
   const year = now.getFullYear();
   const startYear = now.getMonth() === 0 && now.getDate() < 14 ? year - 1 : year;
   return { from: `${startYear}0114`, to: `${startYear + 1}0113` };
+}
+
+/**
+ * Диапазон календаря: тот же, что нативка запрашивает с modified_since (src/services/download/calendarRange.ts).
+ * Дни вне seed с modified_since не придут, пока не изменятся на сервере, поэтому seed обязан покрывать весь диапазон.
+ * 1–13 января: два года, с 14 января прошлого по 13 января следующего. Дальше: с 14 января текущего по 13 января следующего.
+ */
+export function calendarDownloadRange(now = new Date()) {
+  const year = now.getFullYear();
+  const startYear = now.getMonth() === 0 && now.getDate() <= 13 ? year - 1 : year;
+  return { from: `${startYear}0114`, to: `${year + 1}0113` };
 }
 
 export function formatDateCode(now = new Date()) {
@@ -254,7 +265,6 @@ async function readWidgetItems(dir, files) {
 function parseArgs(argv) {
   const options = {
     out: "native-seed",
-    years: [new Date().getFullYear()],
     concurrency: 4,
     base: "https://app.valaam.ru/api",
   };
@@ -266,12 +276,6 @@ function parseArgs(argv) {
     switch (name) {
       case "--out":
         options.out = value;
-        break;
-      case "--years":
-        options.years = value.split(",").map((year) => Number(year.trim()));
-        if (options.years.some((year) => !Number.isInteger(year) || year < 2000 || year > 2100)) {
-          fail(`Неверный --years: ${value}`);
-        }
         break;
       case "--concurrency":
         options.concurrency = Number(value);
@@ -361,8 +365,7 @@ async function main() {
   const tmpDir = `${outDir}.tmp-${process.pid}`;
   const client = createClient(options.base);
   const webVersion = JSON.parse(readFileSync(path.join(projectRoot, "package.json"), "utf8")).version;
-  const fromDate = `${Math.min(...options.years)}0101`;
-  const toDate = `${Math.max(...options.years)}1231`;
+  const { from: fromDate, to: toDate } = calendarDownloadRange();
 
   await rm(tmpDir, { recursive: true, force: true });
   await mkdir(tmpDir, { recursive: true });
@@ -484,7 +487,7 @@ async function main() {
       createdAt,
       createdAtTs,
       webVersion,
-      years: options.years,
+      calendarRange: { from: fromDate, to: toDate },
       indexes,
       modules: {
         calendar: {

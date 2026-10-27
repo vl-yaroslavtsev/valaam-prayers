@@ -75,7 +75,7 @@
 
 API: база `https://app.valaam.ru/api`. Ответ имеет вид `{ status: "success", data, errors }`. Списковые эндпоинты отдают `data = { items, nav: { page_count } }`, параметры `page`, `page_size=100`, `modified_since` (unix-секунды).
 
-- `calendar`: `GET /days/list?from_date=YYYY0101&to_date=YYYY1231`, размер `GET /days/count?...`. Элементы пишутся в `calendar-days`.
+- `calendar`: `GET /days/list?from_date=YYYY0114&to_date=YYYY0113` (церковный год, 1–13 января два года: см. `src/services/download/calendarRange.ts`), размер `GET /days/count?...`. Элементы пишутся в `calendar-days`.
 - `calendarIcons`: `GET /days/icons?from_date&to_date&image_size=s`, размер `GET /days/icons/count?...`. Элемент `{id, code, url, prayers_url}`: качаются оба URL. Двухфазно: сначала собрать список, затем файлы.
 - `molitvoslov`: разделы берутся из таблицы `prayer-sections` (`parent = 842`, кроме `id = 937`). Для каждого `GET /prayers/list?section_id=ID`, размер `GET /prayers/count?section_id=ID` суммой по разделам. Пишутся в `prayer-details` с `moduleId = "molitvoslov"`. Если таблица разделов пуста, ошибка `SECTIONS_NOT_READY`.
 - `liturgicalBooks`: раздел 937, `spiritualLiterature`: раздел 976 (те же эндпоинты, свои `moduleId`).
@@ -174,7 +174,7 @@ native-seed/
   "createdAt": "2026-10-19T19:30:00.000Z",
   "createdAtTs": 1792438200,
   "webVersion": "1.43.0",
-  "years": [2026],
+  "calendarRange": { "from": "20260114", "to": "20270113" },
   "indexes": [{ "name": "prayers", "file": "prayers.json", "bytes": 1743235 }],
   "modules": {
     "calendar": {

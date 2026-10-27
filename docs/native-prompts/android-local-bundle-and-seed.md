@@ -111,7 +111,7 @@ manifest.json:
   "createdAt": "2026-10-19T19:30:00.000Z",
   "createdAtTs": 1792438200,
   "webVersion": "1.43.0",
-  "years": [2026],
+  "calendarRange": { "from": "20260114", "to": "20270113" },
   "indexes": [{ "name": "prayers", "file": "prayers.json", "bytes": 1743235 }],
   "modules": {
     "calendar": { "apiSize": 13739240, "files": [{ "file": "calendar-days-001.json", "bytes": 3905042, "page": 1, "totalPages": 4 }] },
