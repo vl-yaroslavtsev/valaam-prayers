@@ -7,7 +7,7 @@
  *
  * Папка с seed лежит вне www/, src/ и public/, поэтому на сервер (scripts/deploy.cmd копирует только www/) не попадает.
  * Виджет — ключ manifest.widget рядом с modules, не запись в indexes: его забирает отдельная база.
- * Страницы /days/widget/list за церковный год (14 января – 13 января) и до 30 иконок с сегодняшнего дня в upload/.
+ * Страницы /days/widget/list за тот же диапазон, что и календарь, и до 30 иконок с сегодняшнего дня в upload/.
  */
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { mkdir, readFile, rename, rm, writeFile } from "node:fs/promises";
@@ -36,16 +36,10 @@ const PROBLEM_LIMIT = 30;
 
 const projectRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
-/** Церковный год начинается 14 января. 1–13 января ещё относятся к предыдущему году. */
-export function churchYearRange(now = new Date()) {
-  const year = now.getFullYear();
-  const startYear = now.getMonth() === 0 && now.getDate() < 14 ? year - 1 : year;
-  return { from: `${startYear}0114`, to: `${startYear + 1}0113` };
-}
-
 /**
- * Диапазон календаря: тот же, что нативка запрашивает с modified_since (src/services/download/calendarRange.ts).
+ * Диапазон календаря и виджета: тот же, что нативка запрашивает с modified_since (src/services/download/calendarRange.ts).
  * Дни вне seed с modified_since не придут, пока не изменятся на сервере, поэтому seed обязан покрывать весь диапазон.
+ * Нативка по времени съёма seed (createdAt) определяет, вырос ли диапазон, и если вырос, качает без modified_since.
  * 1–13 января: два года, с 14 января прошлого по 13 января следующего. Дальше: с 14 января текущего по 13 января следующего.
  */
 export function calendarDownloadRange(now = new Date()) {
@@ -460,7 +454,7 @@ async function main() {
       );
     }
 
-    const widgetRange = churchYearRange();
+    const widgetRange = calendarDownloadRange();
     const today = formatDateCode();
     console.log(`виджет ${widgetRange.from}–${widgetRange.to}, иконки с ${today}`);
     const widgetFiles = await fetchPages(

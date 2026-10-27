@@ -13,6 +13,16 @@ export function getCalendarDownloadRange(now = new Date()): { fromDate: string; 
 }
 
 /**
+ * Вырос ли диапазон загрузки с момента последней синхронизации.
+ * modified_since не вернёт дни, которых клиент ещё не качал и которые не менялись на сервере,
+ * поэтому при росте диапазона обновление надо делать без modified_since.
+ * Диапазон на момент последней синхронизации считается той же функцией от её времени.
+ */
+export function hasCalendarRangeGrown(lastSync: Date, now = new Date()): boolean {
+  return getCalendarDownloadRange(now).toDate > getCalendarDownloadRange(lastSync).toDate;
+}
+
+/**
  * Граница хранения дней: удаляется всё строго раньше этой даты.
  * Остаются текущий гражданский год и два предыдущих.
  * В 2026 году граница `20240101`.

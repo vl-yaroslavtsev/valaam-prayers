@@ -1,7 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
   calendarDownloadRange,
-  churchYearRange,
   formatDateCode,
   inclusiveDayCount,
   isImageBuffer,
@@ -26,18 +25,12 @@ function day(date: string, id: number, icon: string | null = "/upload/iblock/abc
   };
 }
 
-describe("церковный год", () => {
-  it("20 октября 2026 относится к году 20260114–20270113", () => {
-    expect(churchYearRange(new Date(2026, 9, 20))).toEqual({ from: "20260114", to: "20270113" });
+describe("даты", () => {
+  it("формат кода даты", () => {
     expect(formatDateCode(new Date(2026, 9, 20))).toBe("20261020");
   });
 
-  it("1–13 января ещё предыдущий церковный год, 14 января начинает новый", () => {
-    expect(churchYearRange(new Date(2026, 0, 13))).toEqual({ from: "20250114", to: "20260113" });
-    expect(churchYearRange(new Date(2026, 0, 14))).toEqual({ from: "20260114", to: "20270113" });
-  });
-
-  it("високосный день входит в церковный год, который начался в этот год", () => {
+  it("считает дни диапазона, включая високосный", () => {
     expect(inclusiveDayCount("20240114", "20250113")).toBe(366);
     expect(inclusiveDayCount("20260114", "20270113")).toBe(365);
     expect(nextDateCode("20240228")).toBe("20240229");

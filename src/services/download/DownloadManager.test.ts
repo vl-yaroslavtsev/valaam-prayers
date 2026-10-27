@@ -145,6 +145,43 @@ describe("DownloadManager", () => {
     expect(download.mock.calls[0][0].since).toBe(since);
   });
 
+  describe("рост диапазона календаря после последней синхронизации", () => {
+    async function syncThenCheck(moduleId: "calendar" | "calendarIcons" | "saints") {
+      const download = vi.fn().mockResolvedValue(undefined);
+      const getSize = vi.fn().mockResolvedValue(2 * 1024);
+      getModuleMock.mockReturnValue(mockModule({ id: moduleId, download, getSize }));
+      vi.useFakeTimers({ toFake: ["Date"] });
+      try {
+        vi.setSystemTime(new Date(2026, 11, 31, 12));
+        await metadataStorage?.setLastSyncTime(`download_${moduleId}`);
+        vi.setSystemTime(new Date(2027, 0, 5, 12));
+        await manager.checkForUpdate(moduleId);
+      } finally {
+        vi.useRealTimers();
+      }
+      return { download, getSize };
+    }
+
+    it("календарь после 1 января качается без since: modified_since не вернёт новые нетронутые дни", async () => {
+      const { download, getSize } = await syncThenCheck("calendar");
+
+      expect(getSize).toHaveBeenCalledWith(undefined);
+      expect(download.mock.calls[0][0].since).toBeUndefined();
+    });
+
+    it("иконки календаря тоже качаются без since", async () => {
+      const { download } = await syncThenCheck("calendarIcons");
+
+      expect(download.mock.calls[0][0].since).toBeUndefined();
+    });
+
+    it("остальные модули по-прежнему идут с lastSync", async () => {
+      const { download } = await syncThenCheck("saints");
+
+      expect(download.mock.calls[0][0].since).toBeInstanceOf(Date);
+    });
+  });
+
   it("успех вызывает metadataStorage.setLastSyncTime с ключом download_<moduleId>", async () => {
     const spy = vi.spyOn(metadataStorage!, "setLastSyncTime");
 

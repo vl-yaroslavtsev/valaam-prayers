@@ -1,4 +1,5 @@
 import { downloadProgressStorage, metadataStorage } from "@/services/storage";
+import { hasCalendarRangeGrown } from "@/services/download/calendarRange";
 import { getModule } from "@/services/download/modules";
 import { NativeDownloadManager } from "@/services/download/NativeDownloadManager";
 import { isNativeBridgeAvailable } from "@/services/native/nativeRpc";
@@ -22,6 +23,15 @@ const PROGRESS_LOG_INTERVAL_MS = 1000;
  * обновлением считаем только данные от этого порога.
  */
 const MIN_UPDATE_BYTES = 1024;
+
+/**
+ * modified_since не вернёт дни, которых клиент ещё не качал. Если диапазон календаря вырос
+ * после последней синхронизации, качаем без modified_since (undefined).
+ */
+function sinceForUpdate(moduleId: DownloadModuleId, since: Date): Date | undefined {
+  const isCalendar = moduleId === "calendar" || moduleId === "calendarIcons";
+  return isCalendar && hasCalendarRangeGrown(since) ? undefined : since;
+}
 
 function createEmptyState(moduleId: DownloadModuleId): ModuleDownloadState {
   return {
@@ -110,7 +120,7 @@ export class DownloadManager implements IDownloadManager {
   async getUpdateSize(moduleId: DownloadModuleId): Promise<number | null> {
     const lastSync = await metadataStorage?.getLastSyncTime(downloadSyncKey(moduleId));
     if (!lastSync) return null;
-    const size = await getModule(moduleId).getSize(lastSync);
+    const size = await getModule(moduleId).getSize(sinceForUpdate(moduleId, lastSync));
     return size >= MIN_UPDATE_BYTES ? size : 0;
   }
 
@@ -154,7 +164,7 @@ export class DownloadManager implements IDownloadManager {
     if (!lastSync) return; // модуль ещё не скачан полностью - автообновление его не касается
 
     const state = createEmptyState(moduleId);
-    const promise = this.executeDownload(moduleId, state, since ?? lastSync, onProgress);
+    const promise = this.executeDownload(moduleId, state, sinceForUpdate(moduleId, since ?? lastSync), onProgress);
     this.track(moduleId, promise);
     return promise;
   }

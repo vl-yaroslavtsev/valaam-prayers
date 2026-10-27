@@ -85,4 +85,4 @@ XCTest на фикстуре во временном каталоге (sqlite и
 }
 ```
 
-`widget-days-*.json` — страницы `GET /days/widget/list` за церковный год (14 января – 13 января следующего), конверт как у остальных файлов seed. `response` — тело API без изменений: `{status, data: {items, nav: {page_count}}}`. В `indexes` виджета нет.
+`widget-days-*.json` — страницы `GET /days/widget/list` за тот же диапазон, что и календарь (`manifest.calendarRange`), конверт как у остальных файлов seed. `response` — тело API без изменений: `{status, data: {items, nav: {page_count}}}`. В `indexes` виджета нет.
