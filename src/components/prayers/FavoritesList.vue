@@ -431,6 +431,18 @@ defineExpose({
   z-index: 0;
 }
 
+/*
+  Фон строки совпадает со страницей, но при opacity < 1 край слоя
+  рисуется швом. На фильтре это выглядит как границы элементов.
+  Удаление (is-deleting) фон сохраняет.
+*/
+.favorites-list:not(.is-deleting) :deep(li.favorite-item-move),
+.favorites-list:not(.is-deleting) :deep(li.favorite-item-enter-active),
+.favorites-list:not(.is-deleting) :deep(li.favorite-item-leave-active) {
+  transform-style: flat;
+  background-color: transparent !important;
+}
+
 /* Более выразительная анимация удаления / undo */
 .favorites-list.is-deleting .favorite-item-move,
 .favorites-list.is-deleting .favorite-item-enter-active,
