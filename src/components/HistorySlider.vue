@@ -47,8 +47,7 @@
           </div>
         </div>
         <div class="slide-footer">
-          <span>{{ formatDay(item.lastReadAt) }}</span
-          ><span>{{ formatTime(item.lastReadAt) }}</span>
+          <span>{{ formatLastReadAt(item.lastReadAt) }}</span>
         </div>
       </f7-link>
     </swiper-slide>
@@ -56,8 +55,8 @@
 </template>
 <script setup lang="ts">
 import { watch, useTemplateRef } from "vue";
-import { formatDate } from "@/js/utils";
 import type { SwiperContainer } from "swiper/element";
+import { formatLastReadAt } from "@/components/formatLastReadAt";
 
 interface HistoryItem {
   id: number;
@@ -87,8 +86,6 @@ watch(
   }
 );
 
-const formatDay = (date: Date) => formatDate(date, "d MMMM yyyy");
-const formatTime = (date: Date) => formatDate(date, "HH:mm");
 </script>
 <style lang="less" scoped>
 .history-swiper {
