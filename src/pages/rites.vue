@@ -76,7 +76,7 @@ let gidPromise = null;
 let donationId = null;
 
 const getUID = () => {
-  return window.crypto
+  return 'mt.' + window.crypto
     .getRandomValues(new Uint32Array(4))
     .reduce((acc, el) => (acc += el.toString(16)), "");
 };
