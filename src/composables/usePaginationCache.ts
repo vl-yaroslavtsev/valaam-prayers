@@ -1,7 +1,7 @@
 import { computed } from "vue";
 import { useSettingsStore } from "@/stores/settings";
 import { paginationCacheStorage } from "@/services/storage";
-import type { PaginationCacheItemHeader, PaginationHashSettings } from "@/services/storage/PaginationCacheStorage";
+import type { PaginationCacheItemHeader, PaginationCacheMode, PaginationHashSettings } from "@/services/storage/PaginationCacheStorage";
 import type { Language } from "@/types/common";
 
 /**
@@ -34,7 +34,8 @@ export function usePaginationCache() {
   const getCachedText = async (
     id: number,
     language: Language | null,
-    modifiedTs: number
+    modifiedTs: number,
+    pageMode: PaginationCacheMode = "horizontal"
   ): Promise<{pages: string[], headers: PaginationCacheItemHeader[]} | null> => {
     if (!paginationCacheStorage) {
       console.warn('PaginationCacheStorage не инициализирован, используем прямую пагинацию');
@@ -47,10 +48,11 @@ export function usePaginationCache() {
 
     try {
       // Пытаемся получить кэшированные страницы
-      const cached = await paginationCacheStorage.getCachedPages(id, cacheLanguage, settings, modifiedTs);
+      const cached = await paginationCacheStorage.getCachedPages(id, cacheLanguage, settings, modifiedTs, pageMode);
       
       if (cached) {
-        console.log(`Загружены кэшированные страницы для ${id}_${cacheLanguage}`);
+        const modeSuffix = pageMode === "vertical" ? "_vertical" : "";
+        console.log(`Загружены кэшированные страницы для ${id}_${cacheLanguage}${modeSuffix}`);
       }
 
       return cached;
@@ -67,7 +69,8 @@ export function usePaginationCache() {
     language: Language | null,
     pages: string[],
     headers: PaginationCacheItemHeader[],
-    modifiedTs: number
+    modifiedTs: number,
+    pageMode: PaginationCacheMode = "horizontal"
   ): Promise<boolean> => {
     if (!paginationCacheStorage) {
       console.warn('PaginationCacheStorage не инициализирован, используем прямую пагинацию');
@@ -78,8 +81,9 @@ export function usePaginationCache() {
     const settings = getCurrentTextSettings();
 
     if (pages.length > 100) {
-      console.log(`Сохраняем в кэш ${pages.length} страниц для ${id}_${cacheLanguage}`);
-      await paginationCacheStorage.setCachedPages(id, cacheLanguage, settings, pages, headers, modifiedTs);
+      const modeSuffix = pageMode === "vertical" ? "_vertical" : "";
+      console.log(`Сохраняем в кэш ${pages.length} страниц для ${id}_${cacheLanguage}${modeSuffix}`);
+      await paginationCacheStorage.setCachedPages(id, cacheLanguage, settings, pages, headers, modifiedTs, pageMode);
       return true;
     } else {
       console.log(`Не сохраняем в кэш: только ${pages.length} страниц (требуется >100)`);

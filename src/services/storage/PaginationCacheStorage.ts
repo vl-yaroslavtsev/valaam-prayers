@@ -39,6 +39,8 @@ export interface PaginationHashSettings {
 /** Меняется вместе с алгоритмом нарезки, чтобы не показывать страницы из старого кэша. */
 const PAGINATION_ALGO = "columns-v3-classes";
 
+export type PaginationCacheMode = "horizontal" | "vertical";
+
 /**
  * Storage для кэширования страниц пагинации текста
  */
@@ -51,10 +53,16 @@ export class PaginationCacheStorage extends BaseStorage<"pagination-cache"> {
   }
 
   /**
-   * Создает уникальный ключ для кэша на основе id и языка
+   * Горизонтальный ключ остаётся `id_язык`. Вертикальный — `id_язык_vertical`,
+   * чтобы режимы не затирали страницы друг друга.
    */
-  private createCacheKey(id: number, language: Language | 'default'): string {
-    return `${id}_${language}`;
+  private createCacheKey(
+    id: number,
+    language: Language | 'default',
+    pageMode: PaginationCacheMode = "horizontal"
+  ): string {
+    const base = `${id}_${language}`;
+    return pageMode === "vertical" ? `${base}_vertical` : base;
   }
 
   /**
@@ -103,9 +111,10 @@ export class PaginationCacheStorage extends BaseStorage<"pagination-cache"> {
     id: number,
     language: Language | 'default',
     settings: PaginationHashSettings,
-    modifiedTs: number
+    modifiedTs: number,
+    pageMode: PaginationCacheMode = "horizontal"
   ): Promise<{pages: string[], headers: PaginationCacheItemHeader[]} | null> {
-    const cacheKey = this.createCacheKey(id, language);
+    const cacheKey = this.createCacheKey(id, language, pageMode);
     const settingsHash = this.createSettingsHash(settings, language);
 
     try {
@@ -147,9 +156,10 @@ export class PaginationCacheStorage extends BaseStorage<"pagination-cache"> {
     settings: PaginationHashSettings,
     pages: string[],
     headers: PaginationCacheItemHeader[],
-    modifiedTs: number
+    modifiedTs: number,
+    pageMode: PaginationCacheMode = "horizontal"
   ): Promise<void> {
-    const cacheKey = this.createCacheKey(id, language);
+    const cacheKey = this.createCacheKey(id, language, pageMode);
     const settingsHash = this.createSettingsHash(settings, language);
     const now = new Date();
 
@@ -272,9 +282,12 @@ export class PaginationCacheStorage extends BaseStorage<"pagination-cache"> {
    * Удаляет кэш для конкретного элемента и языка
    */
   async removeCachedPages(id: number, language: Language | 'default'): Promise<void> {
-    const cacheKey = this.createCacheKey(id, language);
+    const keys = [
+      this.createCacheKey(id, language, "horizontal"),
+      this.createCacheKey(id, language, "vertical"),
+    ];
     try {
-      await this.delete(cacheKey);
+      await Promise.all(keys.map((cacheKey) => this.delete(cacheKey)));
     } catch (error) {
       console.error('Ошибка при удалении кэшированных страниц:', error);
     }

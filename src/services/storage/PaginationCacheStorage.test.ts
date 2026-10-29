@@ -112,11 +112,37 @@ describe("PaginationCacheStorage", () => {
   it("removeCachedPages удаляет запись для id и языка", async () => {
     const storage = new PaginationCacheStorage();
     await storage.setCachedPages(1, "ru", paginationSettings, ["p"], [], 1);
+    await storage.setCachedPages(1, "ru", paginationSettings, ["p-vertical"], [], 1, "vertical");
     await storage.setCachedPages(1, "cs", paginationSettings, ["q"], [], 1);
 
     await storage.removeCachedPages(1, "ru");
 
     expect(await storage.get("1_ru")).toBeUndefined();
+    expect(await storage.get("1_ru_vertical")).toBeUndefined();
     expect(await storage.get("1_cs")).toMatchObject({ id: "1_cs" });
+  });
+
+  it("горизонтальная и вертикальная записи одного текста живут рядом", async () => {
+    const storage = new PaginationCacheStorage();
+    await storage.setCachedPages(1, "ru", paginationSettings, ["h"], [], 1, "horizontal");
+    await storage.setCachedPages(1, "ru", paginationSettings, ["v"], [], 1, "vertical");
+
+    expect(await storage.getCachedPages(1, "ru", paginationSettings, 1, "horizontal")).toEqual({
+      pages: ["h"],
+      headers: [],
+    });
+    expect(await storage.getCachedPages(1, "ru", paginationSettings, 1, "vertical")).toEqual({
+      pages: ["v"],
+      headers: [],
+    });
+
+    expect(
+      await storage.getCachedPages(1, "ru", { ...paginationSettings, fontSize: 99 }, 1, "vertical"),
+    ).toBeNull();
+    expect(await storage.get("1_ru_vertical")).toBeUndefined();
+    expect(await storage.getCachedPages(1, "ru", paginationSettings, 1, "horizontal")).toEqual({
+      pages: ["h"],
+      headers: [],
+    });
   });
 });

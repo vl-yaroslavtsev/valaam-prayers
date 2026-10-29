@@ -21,6 +21,7 @@
     :isCalculating="isCalculating"
     :bookmarked-pages="bookmarkedPages"
     :show-bookmark-tabs="showBookmarkTabs"
+    :pages-count="pagesCount"
     @tap="emit('tap', $event)"
     @touchstart="emit('touchstart', $event)"
     @touchend="emit('touchend', $event)"
@@ -246,12 +247,27 @@ const progressLabel = computed(() => {
 type PagerInstance = InstanceType<typeof TextPagerHorizontal> | InstanceType<typeof TextPagerVertical>;
 const pager = useTemplateRef<PagerInstance>("pager");
 
-// Применяет посчитанные страницы к активному в данный момент рендереру
+const readingCssClasses = () =>
+  `text-page reading-text ${lang ? "prayer-text lang-" + lang : ""} theme-${theme.value}`;
+
+// Индекс вне диапазона страниц: подсветка поиска кэшируется по номеру страницы,
+// куски полотна не должны занимать эти слоты.
+const FLOW_HIGHLIGHT_INDEX_OFFSET = 1_000_000;
+
+// Применяет посчитанные страницы к активному в данный момент рендереру.
+// В вертикальном режиме на экран идёт исходный текст, нарезанный на куски.
 const applyPages = () => {
-  const finalPages = highlightTransform
-    ? pages.value.map((html, i) => highlightTransform(html, i))
-    : pages.value;
-  pager.value?.applyPages(finalPages);
+  if (mode.value === "vertical") {
+    const highlight = highlightTransform
+      ? (html: string, index: number) => highlightTransform(html, FLOW_HIGHLIGHT_INDEX_OFFSET + index)
+      : undefined;
+    (pager.value as InstanceType<typeof TextPagerVertical> | null)?.applyText(text, readingCssClasses(), highlight);
+  } else {
+    const finalPages = highlightTransform
+      ? pages.value.map((html, i) => highlightTransform(html, i))
+      : pages.value;
+    (pager.value as InstanceType<typeof TextPagerHorizontal> | null)?.applyPages(finalPages);
+  }
   displayedLang.value = lang;
 };
 
@@ -263,6 +279,68 @@ const restoreProgress = () => {
   }
 
   pager.value?.restoreProgress(progress);
+};
+
+let loadGeneration = 0;
+
+const loadReading = async (container: HTMLElement) => {
+  const generation = ++loadGeneration;
+  const pageMode = mode.value;
+  isCalculating.value = true;
+  resetCalculatingProgress();
+  freezeReadingStyles(container);
+  let stylesReleased = false;
+  const releaseStyles = () => {
+    if (stylesReleased) return;
+    stylesReleased = true;
+    unfreezeReadingStyles(container);
+  };
+
+  try {
+    const cssClasses = readingCssClasses();
+    const cached = await getCachedText(itemId, lang, modifiedTs, pageMode);
+    if (generation !== loadGeneration) {
+      return;
+    }
+    if (cached) {
+      pages.value = cached.pages;
+      headers.value = cached.headers;
+    } else {
+      if (text.length > 38000) {
+        isShowCalculating.value = true;
+      }
+
+      const result = await paginateText(text, container, cssClasses, (progress) => {
+        if (generation !== loadGeneration) {
+          return;
+        }
+        pushCalculatingProgress(progress);
+      });
+      if (generation !== loadGeneration) {
+        return;
+      }
+      pages.value = result.pages;
+      headers.value = result.headers;
+      setCachedText(itemId, lang, pages.value, headers.value, modifiedTs, pageMode);
+    }
+
+    // Новые страницы, класс языка и живые CSS-переменные — в одном кадре.
+    // Стили снимаем до отрисовки: вертикальные куски меряют высоту по ним.
+    releaseStyles();
+    applyPages();
+    restoreProgress();
+
+    if (isShowCalculating.value) {
+      pushCalculatingProgress(1);
+      await waitCalculatingProgress();
+    }
+  } finally {
+    releaseStyles();
+    if (generation === loadGeneration) {
+      isShowCalculating.value = false;
+      isCalculating.value = false;
+    }
+  }
 };
 
 watch([
@@ -285,75 +363,28 @@ async () => {
   }
 
   const container = pager.value?.containerEl;
-
   if (text && container) {
-    isCalculating.value = true;
-    resetCalculatingProgress();
-    freezeReadingStyles(container);
-    let stylesReleased = false;
-    const releaseStyles = () => {
-      if (stylesReleased) return;
-      stylesReleased = true;
-      unfreezeReadingStyles(container);
-    };
-
-    try {
-      const cssClasses = `text-page reading-text ${lang ? 'prayer-text lang-' + lang : ''} theme-${theme.value}`;
-
-      // Используем кэш если доступен itemId
-      const cached = await getCachedText(itemId, lang, modifiedTs);
-      if (cached) {
-        pages.value = cached.pages;
-        headers.value = cached.headers;
-      } else {
-        if (text.length > 38000) {
-          isShowCalculating.value = true;
-        }
-
-        const result = await paginateText(text, container, cssClasses, (progress) => {
-          pushCalculatingProgress(progress);
-        });
-        pages.value = result.pages;
-        headers.value = result.headers;
-        setCachedText(itemId, lang, pages.value, headers.value, modifiedTs);
-      }
-
-      // Новые страницы, класс языка и живые CSS-переменные — в одном кадре.
-      applyPages();
-      restoreProgress();
-      releaseStyles();
-
-      if (isShowCalculating.value) {
-        pushCalculatingProgress(1);
-        await waitCalculatingProgress();
-      }
-    } finally {
-      releaseStyles();
-      isShowCalculating.value = false;
-      isCalculating.value = false;
-    }
+    await loadReading(container);
   }
 });
 
 watch(mode, async () => {
-
+  // Смена режима пересоздаёт рендерер. Инвалидируем текущий расчёт и читаем кэш нового режима.
+  const generationAtSwitch = ++loadGeneration;
   isCalculating.value = true;
-  // При смене режима компонент-рендерер пересоздается (v-if/v-else меняет ветку рендера)
-  // Нужно только дождаться пересоздания и обновить страницы в новом рендерере
   await nextTick();
-
-  if (pages.value.length === 0 || !pager.value) {
-    isCalculating.value = false;
+  if (generationAtSwitch !== loadGeneration) {
     return;
   }
 
-  // Обновляем страницы в новом рендерере (Swiper или VirtualList)
-  applyPages();
+  const container = pager.value?.containerEl;
+  if (!text || !container) {
+    isCalculating.value = false;
+    isShowCalculating.value = false;
+    return;
+  }
 
-  // Восстанавливаем позицию используя сохраненный прогресс или initialProgress
-  restoreProgress();
-
-  isCalculating.value = false;
+  await loadReading(container);
 });
 
 // Expose swiper instance for parent component
