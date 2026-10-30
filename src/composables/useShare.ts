@@ -10,7 +10,7 @@ export interface SharePayload {
 const BASE_URL = "https://app.valaam.ru/webview/";
 
 export function getShareUrl(url: string) {
-  return `${BASE_URL}#view-prayers:${url}`;
+  return `${BASE_URL}#prayers:${url}`;
 }
 
 export function useShare() {

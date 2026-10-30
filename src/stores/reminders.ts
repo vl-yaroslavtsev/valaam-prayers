@@ -50,7 +50,7 @@ const createDefaultState = (): RemindersState => ({
   prayerRule: {
     enabled: false,
     weekdays: { enabled: true, times: ["08:00", "21:00"] },
-    weekends: { enabled: true, times: ["08:00", "21:00"] },
+    weekends: { enabled: true, times: ["10:00", "23:00"] },
   },
 });
 
