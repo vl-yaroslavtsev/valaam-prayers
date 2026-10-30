@@ -202,12 +202,6 @@
       </f7-block>
 
       <f7-block strong-ios outline-ios>
-        <f7-button fill @click="openCalendarSettings"
-          >Открыть настройки календаря</f7-button
-        >
-      </f7-block>
-
-      <f7-block strong-ios outline-ios>
         <f7-button fill @click="openNotificationsSettings"
           >Открыть настройки уведомлений</f7-button
         >
@@ -264,7 +258,8 @@ import { f7, f7ready } from "framework7-vue";
 import { Dom7 as $ } from "framework7";
 import { f7PageContent } from "framework7-vue";
 import { device } from "@/js/device";
-import type { CalendarEvent } from "@/js/device/types";
+import { ensureNativeCalendar, nativeCalendar } from "@/services/native/calendar";
+import { CALENDAR_RESULT_MESSAGE, type CalendarRpcEvent, type CalendarRpcItemResult } from "@/services/native/protocol";
 import { testBrowser } from "../js/device/browser-test";
 import { useTheme } from "@/composables/useTheme";
 import { useSettingsStore } from "@/stores/settings";
@@ -621,29 +616,74 @@ const getUID = () => {
     .reduce((acc, el) => (acc += el.toString(16).padStart(4, "0")), "");
 };
 
+const APP_CALENDAR_TITLE = "Календарь Валаам";
+
+const calendarStamp = (date: Date) => format(date, "yyyy-MM-dd'T'HH:mm:ss");
+
+const toCalendarEvent = (event: {
+  id: string;
+  title: string;
+  description?: string;
+  date: Date;
+  url?: string;
+  alarmDates?: Date[];
+}): CalendarRpcEvent => ({
+  id: event.id,
+  title: event.title,
+  description: event.description ?? "",
+  date: calendarStamp(event.date),
+  url: event.url ?? "",
+  ...(event.alarmDates ? { alarmDates: event.alarmDates.map(calendarStamp) } : {}),
+});
+
+/** Нет моста — диалог и false. Иначе results. Отказ в доступе тоже диалог и false. */
+const takeCalendarResults = async (
+  run: () => Promise<CalendarRpcItemResult[]>
+): Promise<CalendarRpcItemResult[] | false> => {
+  if (!(await ensureNativeCalendar())) {
+    f7.dialog.alert("Календарь доступен в приложении");
+    return false;
+  }
+  try {
+    const results = await run();
+    if (results.some((item) => item.message === CALENDAR_RESULT_MESSAGE.PERMISSION_DENIED)) {
+      f7.dialog.alert("Нет прав на календарь");
+      return false;
+    }
+    return results;
+  } catch (err) {
+    f7.dialog.alert(err instanceof Error ? err.message : "Ошибка календаря");
+    return false;
+  }
+};
+
 const eventId = ref(localStorage.getItem("eventId") || "");
 
 const addEvent = async (type: "local" | "sync" = "sync") => {
   const eventDate = add(new Date(), { minutes: 2 });
-  const event = {
+  const event = toCalendarEvent({
     id: getUID(),
     title: "Благовещение Пресвятой Богородицы",
     description: "7 апреля. Не забудьте сходить в храм",
     date: eventDate,
-    url: "https://app.valaam.ru/app/#view-calendar:/days/20250407",
+    url: "https://app.valaam.ru/webview/#calendar:/days/20250407",
     alarmDates: [add(eventDate, { minutes: -1 }), add(eventDate, { days: -1 })],
-  };
+  });
 
-  const { isSuccess, hasPermissions, errorDescription } =
-    await device.addCalendarEvent(event, type);
+  const results = await takeCalendarResults(() =>
+    nativeCalendar
+      .addEvents({
+        events: [event],
+        target: type,
+        ...(type === "local" ? { title: APP_CALENDAR_TITLE } : {}),
+      })
+      .then((response) => response.results)
+  );
+  if (!results) return;
 
-  if (!hasPermissions) {
-    f7.dialog.alert("Нет прав на календарь");
-    return;
-  }
-
-  if (!isSuccess) {
-    f7.dialog.alert("Ошибка при добавлении события: " + errorDescription);
+  const failed = results.find((item) => !item.success);
+  if (failed) {
+    f7.dialog.alert("Ошибка при добавлении события: " + (failed.message ?? ""));
     return;
   }
 
@@ -670,7 +710,7 @@ const addEventsArray = async () => {
   const preloader = f7.dialog.preloader("Добавляем события...");
 
   const currentYear = new Date().getFullYear();
-  const events: CalendarEvent[] = [];
+  const events: CalendarRpcEvent[] = [];
 
   // Get the first day of the year
   const startDate = new Date(currentYear, 0, 1);
@@ -692,30 +732,23 @@ const addEventsArray = async () => {
     eveningDate.setHours(22, 0, 0, 0);
 
     // Create morning notification with two alarms
-    const morningNotification = {
+    const morningNotification = toCalendarEvent({
       id: getUID(),
       title: `Утреннее правило (${dayMonth})`,
       description: "Время утренней молитвы",
       date: morningDate,
-      url: `https://app.valaam.ru/app/#view-calendar:/days/${formattedDate}`,
-      alarmDates: [
-        addMinutes(morningDate, -10), // 10 minutes before
-        morningDate, // At the event time
-      ],
-    };
+      url: `https://app.valaam.ru/webview/#calendar:/days/${formattedDate}`,
+      alarmDates: [addMinutes(morningDate, -10), morningDate],
+    });
 
-    // Create evening notification with two alarms
-    const eveningNotification = {
+    const eveningNotification = toCalendarEvent({
       id: getUID(),
       title: `Вечернее правило (${dayMonth})`,
       description: "Время вечерней молитвы",
       date: eveningDate,
-      url: `https://app.valaam.ru/app/#view-calendar:/days/${formattedDate}`,
-      alarmDates: [
-        addMinutes(eveningDate, -10), // 10 minutes before
-        eveningDate, // At the event time
-      ],
-    };
+      url: `https://app.valaam.ru/webview/#calendar:/days/${formattedDate}`,
+      alarmDates: [addMinutes(eveningDate, -10), eveningDate],
+    });
 
     events.push(morningNotification, eveningNotification);
 
@@ -732,19 +765,17 @@ const addEventsArray = async () => {
   for (let i = 0; i < events.length; i += batchSize) {
     const batch = events.slice(i, i + batchSize);
 
-    const { isSuccess, hasPermissions, errorDescription, id } =
-      await device.addCalendarEvent(batch, "sync");
-    if (!hasPermissions) {
+    const results = await takeCalendarResults(() =>
+      nativeCalendar.addEvents({ events: batch, target: "sync" }).then((response) => response.results)
+    );
+    if (!results) {
       preloader.close();
-      f7.dialog.alert("Нет прав на календарь");
       return;
     }
 
-    if (!isSuccess) {
-      lastError = errorDescription;
-    } else {
-      addedIds.push(...id);
-    }
+    const failed = results.find((item) => !item.success);
+    if (failed) lastError = failed.message ?? "";
+    addedIds.push(...results.filter((item) => item.success).map((item) => item.id));
   }
 
   preloader.close();
@@ -761,45 +792,43 @@ const addEventsArray = async () => {
 };
 
 const add2Events = async (type: "local" | "sync" = "sync") => {
-  const event1 = {
+  const event1 = toCalendarEvent({
     id: getUID(),
     title: "Утреннее правило",
     description: "Делу время, молитве час",
     date: add(new Date(), { minutes: 20 }),
-    url: "https://app.valaam.ru/app/#view-calendar:/days/20241001",
-    alarmDates: [
-      add(new Date(), { minutes: 20 }),
-      add(new Date(), { minutes: 15 }),
-    ],
-  };
-  const event2 = {
+    url: "https://app.valaam.ru/webview/#calendar:/days/20241001",
+    alarmDates: [add(new Date(), { minutes: 20 }), add(new Date(), { minutes: 15 })],
+  });
+  const event2 = toCalendarEvent({
     id: getUID(),
     title: "Вечернее правило",
     description: "Делу время, молитве час",
     date: add(new Date(), { minutes: 40 }),
-    url: "https://app.valaam.ru/app/#view-calendar:/days/20241005",
-    alarmDates: [
-      add(new Date(), { minutes: 39 }),
-      add(new Date(), { minutes: 35 }),
-    ],
-  };
+    url: "https://app.valaam.ru/webview/#calendar:/days/20241005",
+    alarmDates: [add(new Date(), { minutes: 39 }), add(new Date(), { minutes: 35 })],
+  });
 
-  const { isSuccess, hasPermissions, errorDescription, id } =
-    await device.addCalendarEvent([event1, event2], type);
+  const results = await takeCalendarResults(() =>
+    nativeCalendar
+      .addEvents({
+        events: [event1, event2],
+        target: type,
+        ...(type === "local" ? { title: APP_CALENDAR_TITLE } : {}),
+      })
+      .then((response) => response.results)
+  );
+  if (!results) return;
 
-  if (!hasPermissions) {
-    f7.dialog.alert("Нет прав на календарь");
-    return;
-  }
-
-  if (!isSuccess) {
-    f7.dialog.alert("Ошибка при добавлении событий: " + errorDescription);
+  const failed = results.find((item) => !item.success);
+  if (failed) {
+    f7.dialog.alert("Ошибка при добавлении событий: " + (failed.message ?? ""));
     return;
   }
 
   eventsArrayId.value = [event1.id, event2.id];
   localStorage.setItem("eventsArrayId", JSON.stringify(eventsArrayId.value));
-  isEventsEnabled.value = isSuccess;
+  isEventsEnabled.value = true;
 
   f7.dialog.alert("События добавлены!");
 };
@@ -809,27 +838,29 @@ const deleteEvent = async () => {
   if (!eventId.value) return;
 
   // alert("deleteNotification:" + notificationId.value);
-  const { isSuccess, hasPermissions, errorDescription } =
-    await device.deleteCalendarEvent(eventId.value);
-  if (!hasPermissions) {
-    f7.dialog.alert("Нет прав на календарь");
+  const results = await takeCalendarResults(() =>
+    nativeCalendar.deleteEvents({ ids: [eventId.value] }).then((response) => response.results)
+  );
+  if (!results) return;
+
+  const failed = results.find((item) => !item.success);
+  if (failed) {
+    f7.dialog.alert("Ошибка при удалении события: " + (failed.message ?? ""));
     return;
   }
 
-  if (!isSuccess) {
-    f7.dialog.alert("Ошибка при удалении события: " + errorDescription);
-    return;
-  }
+  eventId.value = "";
+  localStorage.removeItem("eventId");
 
   f7.dialog.alert("Событие удалено!");
 };
 
 const deleteEventsArray = async () => {
-  if (!eventsArrayId.value) return;
+  if (!eventsArrayId.value || eventsArrayId.value.length === 0) return;
 
   const preloader = f7.dialog.preloader("Удаляем события...");
 
-  let lastError = null;
+  let lastError: string | null = null;
 
   // Разбиваем массив на пакеты по 50 уведомлений
   const batchSize = 50;
@@ -837,39 +868,50 @@ const deleteEventsArray = async () => {
 
   for (let i = 0; i < eventsArrayId.value.length; i += batchSize) {
     const batch = eventsArrayId.value.slice(i, i + batchSize);
-    const { isSuccess, hasPermissions, errorDescription, id } =
-      await device.deleteCalendarEvent(batch);
-    if (!hasPermissions) {
+    const results = await takeCalendarResults(() =>
+      nativeCalendar.deleteEvents({ ids: batch }).then((response) => response.results)
+    );
+    if (!results) {
       preloader.close();
-      f7.dialog.alert("Нет прав на календарь");
       return;
     }
 
-    if (!isSuccess) {
-      lastError = errorDescription;
-    } else {
-      deletedIds.push(...id);
-    }
+    const failed = results.find((item) => !item.success);
+    if (failed) lastError = failed.message ?? "";
+    deletedIds.push(...results.filter((item) => item.success).map((item) => item.id));
   }
 
   preloader.close();
 
   if (deletedIds.length > 0) {
-    f7.dialog.alert("Удалено " + deletedIds.length + " событий");
+    const deletedSet = new Set(deletedIds);
+    eventsArrayId.value = eventsArrayId.value.filter((id: string) => !deletedSet.has(id));
+    if (eventsArrayId.value.length === 0) {
+      localStorage.removeItem("eventsArrayId");
+    } else {
+      localStorage.setItem("eventsArrayId", JSON.stringify(eventsArrayId.value));
+    }
   }
 
   if (lastError) {
-    f7.dialog.alert("Ошибка при удалении событий: " + lastError);
+    f7.dialog.alert(
+      deletedIds.length > 0
+        ? `Удалено ${deletedIds.length} событий, ошибка: ${lastError}`
+        : `Ошибка при удалении событий: ${lastError}`
+    );
   } else {
-    f7.dialog.alert("Удалено " + eventsArrayId.value.length + " событий");
+    f7.dialog.alert(`Удалено ${deletedIds.length} событий`);
   }
 };
 
 const isEventsEnabled = ref(false);
 
 const checkCalendarEventsEnabled = async () => {
-  const isEnabled = await device.hasCalendarPermissions();
-  isEventsEnabled.value = isEnabled;
+  if (!(await ensureNativeCalendar())) {
+    isEventsEnabled.value = false;
+    return;
+  }
+  isEventsEnabled.value = (await nativeCalendar.hasPermissions()).granted;
 };
 
 const onVisibilityChange = () => {
@@ -898,7 +940,11 @@ const testBrowserFitures = async () => {
 };
 
 const requestCalendarPermissions = async () => {
-  const isGranted = await device.requestCalendarPermissions();
+  if (!(await ensureNativeCalendar())) {
+    f7.dialog.alert("Календарь доступен в приложении");
+    return;
+  }
+  const isGranted = (await nativeCalendar.requestPermissions()).granted;
   isEventsEnabled.value = isGranted;
   f7.dialog.alert(
     isGranted ? "Права на календарь получены" : "Нет прав на календарь!"
@@ -907,10 +953,6 @@ const requestCalendarPermissions = async () => {
 
 const openNotificationsSettings = () => {
   device.openNotificationsSettings();
-};
-
-const openCalendarSettings = () => {
-  device.openCalendarSettings();
 };
 
 // Кэш пагинации

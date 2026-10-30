@@ -1,4 +1,4 @@
-import type { CalendarEvent, CalendarEventResponse, Device, ScreenRect } from "@/js/device/types";
+import type { Device, ScreenRect } from "@/js/device/types";
 
 const browser: Device = {
   KEYCODE_VOLUME_DOWN: 0,
@@ -48,36 +48,6 @@ const browser: Device = {
   onVolumeKey(handler: (keyCode: number, event: any) => void) {},
   offVolumeKey() {},
 
-  async addCalendarEvent(
-    event: CalendarEvent | CalendarEvent[]
-  ): Promise<CalendarEventResponse> {
-    return {
-      isSuccess: false,
-      errorDescription: "",
-      id: "",
-      hasPermissions: false,
-    };
-  },
-
-  async deleteCalendarEvent(
-    id: string | string[]
-  ): Promise<CalendarEventResponse> {
-    return {
-      isSuccess: false,
-      errorDescription: "",
-      id: "",
-      hasPermissions: false,
-    };
-  },
-
-  async hasCalendarPermissions(): Promise<boolean> {
-    return false;
-  },
-
-  async requestCalendarPermissions(): Promise<boolean> {
-    return false;
-  },
-
   setWebViewVisible(visible: boolean) {},
 
   setStatusBarTextColor(color: "light" | "dark") {},
@@ -85,8 +55,6 @@ const browser: Device = {
   setNavigationBarColor(color: string) {},
 
   openNotificationsSettings() {},
-
-  openCalendarSettings() {},
 
   setShouldHandleLongClick(shouldHandle: boolean) {},
 

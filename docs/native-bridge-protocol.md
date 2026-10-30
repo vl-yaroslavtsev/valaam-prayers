@@ -16,7 +16,7 @@
 
 ### Рукопожатие
 
-- `bridge.getInfo` -> `{ protocolVersion: 1, platform: "android" | "ios", appVersion: string, capabilities: ("db" | "download" | "autoUpdate" | "images" | "seed" | "pay")[] }`. Capability `seed` нативка объявляет только если seed лежит в ресурсах и его версия формата поддерживается (см. «Seed»). Capability `pay` объявляется, если в сборке есть ЮKassa SDK (см. «Оплата»).
+- `bridge.getInfo` -> `{ protocolVersion: 1, platform: "android" | "ios", appVersion: string, capabilities: ("db" | "download" | "autoUpdate" | "images" | "seed" | "pay" | "calendar")[] }`. Capability `seed` нативка объявляет только если seed лежит в ресурсах и его версия формата поддерживается (см. «Seed»). Capability `pay` объявляется, если в сборке есть ЮKassa SDK (см. «Оплата»). Capability `calendar` есть всегда: методы событий системного календаря (см. «Календарь»).
 
 ### База данных
 
@@ -119,6 +119,54 @@ API: база `https://app.valaam.ru/api`. Ответ имеет вид `{ statu
 - Одновременно идёт один платёжный запрос. Второй получает `status: "error"`, `message: "busy"`.
 - Если страница ушла (навигация), ждущий вызов завершается `cancelled`, экран SDK закрывается.
 - Порядок вызовов: `pay.tokenize` -> (сервер создаёт платёж) -> `pay.confirm` при необходимости -> `pay.close`. На iOS `pay.confirm` без открытого модуля (после `pay.tokenize` со `success`) это `status: "error"`. Android такой проверки не делает. Нативка не принимает способ оплаты, который не умеет подтверждать (`apple_pay`, неизвестные имена): `status: "error"`.
+
+### Календарь
+
+События системного календаря. Capability `calendar`. JS вызывает методы через `src/services/native/calendar.ts` (`nativeCall`). В `src/js/device` календарных методов нет.
+
+Дата и моменты напоминания — локальные строки `yyyy-MM-ddTHH:mm:ss` без пояса. Нативка читает их в часовом поясе устройства.
+
+`CalendarRpcEvent`: `{ id, title, description?, date, url?, alarmDates?, recurrence? }`. `recurrence`: `{ frequency: "weekly" | "yearly", byDay?: ("SU"|"MO"|"TU"|"WE"|"TH"|"FR"|"SA")[] }`. `weekly` без `byDay` повторяет день недели даты начала. `yearly` берёт месяц, число и время из `date`. Повторяющееся событие на Android пишется с `RRULE` и `DURATION` (`PT1H`), без `DTEND`. На iOS это `EKRecurrenceRule`, а напоминания — смещение от начала (`EKAlarm.relativeOffset`), чтобы звонок повторялся с каждым вхождением. Без `recurrence` напоминания абсолютные.
+
+`alarmDates` опущено — одно напоминание в момент `date`. Пустой массив — без напоминаний. Список — эти моменты. Для повторения смещение считается от `date`.
+
+`CalendarRpcItemResult`: `{ id, success, message? }`. Отказ в доступе, отсутствие календаря и ошибка одного события приходят в `results` (`ok: true`), а не ошибкой RPC, чтобы вызов не зависал. `message` есть только при `success: false`.
+
+Ошибка RPC (`ok: false`), код `INVALID_PARAMS`:
+
+- нет `events` или это не массив: `events должен быть массивом`;
+- нет `ids` или это не массив: `ids должен быть массивом`;
+- `target` не `sync` и не `local`: `target должен быть sync или local`;
+- iOS, элемент `events` не объект: `Событие должно быть объектом` (весь вызов);
+- iOS, элемент `ids` не строка: `id должен быть строкой` (весь вызов).
+
+На Android не-объект в `events` не рвёт вызов: это элемент `results` с пустым `id` и `message` `Событие должно быть объектом`. Неизвестный метод `calendar.*`: `NOT_SUPPORTED`.
+
+`calendar.hasPermissions` и `calendar.requestPermissions` ошибку RPC не возвращают. `granted: false` — доступа нет. `requestPermissions` при отказе пользователя тоже `granted: false`. Диалог показывает только `requestPermissions`, и только если доступа ещё не было.
+
+Сообщения в `results` (`success: false`). Одно и то же у обеих платформ:
+
+- `Permission not granted` — нет доступа, у каждого элемента `addEvents` и `deleteEvents`;
+- `Нет id` — пустой `id`;
+- `Нет названия` — пустой `title` при добавлении;
+- `Неизвестное повторение` — `recurrence.frequency` не `weekly` и не `yearly`;
+- `Event not found` — удаление `id`, которого приложение не записывало или которое уже стёрто из календаря.
+
+Только Android, на все элементы `addEvents`:
+
+- `Calendar not found` — календарь не найден;
+- `Calendar is inactive` — календарь есть, но выключен;
+- `Некорректная дата` — `date` не разобралась;
+- `Некорректное повторение` — `recurrence` не объект.
+
+Только iOS, одно событие: `Invalid date format. Should be: yyyy-MM-ddTHH:mm` — `date` не разобралась (ожидается `yyyy-MM-ddTHH:mm:ss`).
+
+Сбой записи или удаления в системном календаре — `message` с текстом системы: на Android трассировка или `Unknown Error`, на iOS `localizedDescription`. Это не фиксированная строка.
+
+- `calendar.hasPermissions {}` -> `{ granted: boolean }`. Диалог не показывает.
+- `calendar.requestPermissions {}` -> `{ granted: boolean }`. Показывает системный запрос, если доступа ещё нет.
+- `calendar.addEvents { events, target: "sync" | "local", title? }` -> `{ results }`. `sync` — основной календарь. `local` на Android — локальный календарь приложения с названием `title` (если пусто, «Календарь Валаам»). iOS оба варианта пишет в календарь по умолчанию. Ссылка `url` на Android попадает в `CUSTOM_APP_URI` и в текст описания, на iOS — в `event.url`.
+- `calendar.deleteEvents { ids }` -> `{ results }`. Удаляет события, ранее записанные этими методами, по их `id`. Повторяющаяся серия снимается целиком.
 
 ### Статика в нативке
 
