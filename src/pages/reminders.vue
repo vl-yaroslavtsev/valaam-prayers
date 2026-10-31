@@ -2,6 +2,12 @@
   <f7-page name="reminders" @page:afterin="onPageIn">
     <f7-navbar large transparent title="Напоминания" back-link></f7-navbar>
 
+    <f7-block strong inset class="reminders-description">
+      <p>
+        Выберите события для напоминаний. Приложение сохранит их в календарь вашего устройства.
+      </p>
+    </f7-block>
+
     <!-- Секции — свои компоненты, поэтому кладём их в слот list (прямо в <ul>) -->
     <f7-list accordion-list accordion-opposite dividers class="reminders-page">
       <template #list>
@@ -41,3 +47,8 @@ onBeforeUnmount(() => {
   document.removeEventListener("visibilitychange", onVisibilityChange);
 });
 </script>
+<style scoped>  
+.reminders-description {
+  margin-top: 0;
+}
+</style>

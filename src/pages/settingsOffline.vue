@@ -538,6 +538,9 @@ onUnmounted(() => {
   display: flex;
   align-items: center;
   margin: 0;
+  padding: 12px 16px;
+  border-radius: 16px;
+  background: var(--f7-block-strong-bg-color);
 }
 
 .offline-banner {
