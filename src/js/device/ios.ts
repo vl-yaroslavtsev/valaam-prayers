@@ -141,6 +141,10 @@ const ios: Device = {
     // iOS не поддерживает
   },
 
+  openSettings(_type?: "notifications" | "settings"): void {
+    // iOS не поддерживает
+  },
+
   setShouldHandleLongClick(shouldHandle: boolean): void {
     // iOS не поддерживает
   },

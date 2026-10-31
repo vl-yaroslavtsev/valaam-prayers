@@ -1,5 +1,6 @@
 import { defineStore } from "pinia";
 import { ref, readonly } from "vue";
+import { scheduleReminderSync, type ReminderSyncMode } from "@/services/native/reminderCalendar";
 
 export const REMINDERS_STORAGE_KEY = "valaam-prayers-reminders";
 
@@ -91,6 +92,10 @@ export const useRemindersStore = defineStore("reminders", () => {
     localStorage.setItem(REMINDERS_STORAGE_KEY, JSON.stringify(state.value));
   };
 
+  const sync = (mode: ReminderSyncMode) => {
+    scheduleReminderSync(mode, () => state.value);
+  };
+
   const load = () => {
     const raw = localStorage.getItem(REMINDERS_STORAGE_KEY);
     if (raw === null) return;
@@ -118,26 +123,31 @@ export const useRemindersStore = defineStore("reminders", () => {
   const setEventEnabled = (id: EventReminderSectionId, enabled: boolean) => {
     state.value[id].enabled = enabled;
     save();
+    sync("interactive");
   };
 
   const setEventOffset = (id: EventReminderSectionId, offset: ReminderOffset, value: boolean) => {
     state.value[id].offsets[offset] = value;
     save();
+    sync("interactive");
   };
 
   const setEventTime = (id: EventReminderSectionId, time: string) => {
     state.value[id].time = time;
     save();
+    sync("interactive");
   };
 
   const setPrayerRuleEnabled = (enabled: boolean) => {
     state.value.prayerRule.enabled = enabled;
     save();
+    sync("interactive");
   };
 
   const setPrayerGroupEnabled = (group: PrayerRuleGroupId, enabled: boolean) => {
     state.value.prayerRule[group].enabled = enabled;
     save();
+    sync("interactive");
   };
 
   const setPrayerTime = (group: PrayerRuleGroupId, index: number, time: string) => {
@@ -145,20 +155,24 @@ export const useRemindersStore = defineStore("reminders", () => {
     if (index < 0 || index >= times.length) return;
     times[index] = time;
     save();
+    sync("interactive");
   };
 
   const addPrayerTime = (group: PrayerRuleGroupId, time = DEFAULT_NEW_PRAYER_TIME) => {
     state.value.prayerRule[group].times.push(time);
     save();
+    sync("interactive");
   };
 
   const removePrayerTime = (group: PrayerRuleGroupId, index: number) => {
     state.value.prayerRule[group].times.splice(index, 1);
     save();
+    sync("interactive");
   };
 
   const initStore = async () => {
     load();
+    sync("startup");
   };
 
   return {

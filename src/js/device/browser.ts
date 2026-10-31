@@ -56,6 +56,8 @@ const browser: Device = {
 
   openNotificationsSettings() {},
 
+  openSettings(_type?: "notifications" | "settings") {},
+
   setShouldHandleLongClick(shouldHandle: boolean) {},
 
   disableBackGestureInArea(rect: ScreenRect) {},

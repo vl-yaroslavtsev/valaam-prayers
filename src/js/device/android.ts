@@ -185,6 +185,10 @@ const android: Device = {
     androidHandler?.openSettings("notifications");
   },
 
+  openSettings(type: "notifications" | "settings" = "settings"): void {
+    (window.androidJsHandler ?? androidHandler)?.openSettings(type);
+  },
+
   setShouldHandleLongClick(shouldHandle: boolean): void {
     androidHandler?.setShouldHandleLongClick(shouldHandle);
   },

@@ -25,7 +25,7 @@ describe("useRemindersStore", () => {
     }
     expect(state.prayerRule.enabled).toBe(false);
     expect(state.prayerRule.weekdays.times).toEqual(["08:00", "21:00"]);
-    expect(state.prayerRule.weekends.times).toEqual(["08:00", "21:00"]);
+    expect(state.prayerRule.weekends.times).toEqual(["10:00", "23:00"]);
   });
 
   it("изменения сохраняются в localStorage и подхватываются после перезагрузки", async () => {
@@ -57,7 +57,7 @@ describe("useRemindersStore", () => {
     store.removePrayerTime("weekdays", 0);
 
     expect(store.state.prayerRule.weekdays.times).toEqual(["21:00", "13:45"]);
-    expect(store.state.prayerRule.weekends.times).toEqual(["08:00", "21:00"]);
+    expect(store.state.prayerRule.weekends.times).toEqual(["10:00", "23:00"]);
   });
 
   it("битые данные в localStorage не ломают загрузку", async () => {

@@ -126,9 +126,11 @@ API: база `https://app.valaam.ru/api`. Ответ имеет вид `{ statu
 
 Дата и моменты напоминания — локальные строки `yyyy-MM-ddTHH:mm:ss` без пояса. Нативка читает их в часовом поясе устройства.
 
-`CalendarRpcEvent`: `{ id, title, description?, date, url?, alarmDates?, recurrence? }`. `recurrence`: `{ frequency: "weekly" | "yearly", byDay?: ("SU"|"MO"|"TU"|"WE"|"TH"|"FR"|"SA")[] }`. `weekly` без `byDay` повторяет день недели даты начала. `yearly` берёт месяц, число и время из `date`. Повторяющееся событие на Android пишется с `RRULE` и `DURATION` (`PT1H`), без `DTEND`. На iOS это `EKRecurrenceRule`, а напоминания — смещение от начала (`EKAlarm.relativeOffset`), чтобы звонок повторялся с каждым вхождением. Без `recurrence` напоминания абсолютные.
+`CalendarRpcEvent`: `{ id, title, description?, date, url?, alarmDates?, recurrence?, allDay? }`. `recurrence`: `{ frequency: "weekly" | "yearly", byDay?: ("SU"|"MO"|"TU"|"WE"|"TH"|"FR"|"SA")[] }`. `weekly` без `byDay` повторяет день недели даты начала. `yearly` берёт месяц, число и время из `date`. Повторяющееся событие на Android пишется с `RRULE` и `DURATION` (`PT1H`, а для `allDay` — `P1D`), без `DTEND`. На iOS это `EKRecurrenceRule`, а напоминания — смещение от начала (`EKAlarm.relativeOffset`), чтобы звонок повторялся с каждым вхождением. Без `recurrence` напоминания абсолютные.
 
-`alarmDates` опущено — одно напоминание в момент `date`. Пустой массив — без напоминаний. Список — эти моменты. Для повторения смещение считается от `date`.
+`allDay: true` — событие на весь день. Из `date` берётся календарная дата, время игнорируется. Android пишет полночь этой даты в UTC (`ALL_DAY = 1`, пояс UTC), чтобы день не сдвинулся поясом. Одиночное событие кончается в полночь UTC следующего дня, серия имеет `DURATION = P1D`. iOS ставит `isAllDay`, местную полночь и конец на следующие сутки. Напоминание позже полуночи (звонок в 9:00 в тот же день) сохраняется: на Android это отрицательные минуты от местной полуночи (провайдер отсчитывает сигнал события на весь день от неё, а не от полуночи UTC), на iOS — положительный `relativeOffset` от местной полуночи. Без `allDay` событие по-прежнему длится час.
+
+`alarmDates` опущено — одно напоминание в момент `date`. Пустой массив — без напоминаний. Список — эти моменты. Для повторения смещение считается от `date` (для `allDay` — от полуночи дня).
 
 `CalendarRpcItemResult`: `{ id, success, message? }`. Отказ в доступе, отсутствие календаря и ошибка одного события приходят в `results` (`ok: true`), а не ошибкой RPC, чтобы вызов не зависал. `message` есть только при `success: false`.
 
@@ -146,7 +148,7 @@ API: база `https://app.valaam.ru/api`. Ответ имеет вид `{ statu
 
 Сообщения в `results` (`success: false`). Одно и то же у обеих платформ:
 
-- `Permission not granted` — нет доступа, у каждого элемента `addEvents` и `deleteEvents`;
+- `Permission not granted` — нет доступа, у каждого элемента `addEvents`, `updateEvents` и `deleteEvents`;
 - `Нет id` — пустой `id`;
 - `Нет названия` — пустой `title` при добавлении;
 - `Неизвестное повторение` — `recurrence.frequency` не `weekly` и не `yearly`;
@@ -161,12 +163,14 @@ API: база `https://app.valaam.ru/api`. Ответ имеет вид `{ statu
 
 Только iOS, одно событие: `Invalid date format. Should be: yyyy-MM-ddTHH:mm` — `date` не разобралась (ожидается `yyyy-MM-ddTHH:mm:ss`).
 
-Сбой записи или удаления в системном календаре — `message` с текстом системы: на Android трассировка или `Unknown Error`, на iOS `localizedDescription`. Это не фиксированная строка.
+Сбой записи или удаления в системном календаре — `message` с текстом системы: на Android короткий текст исключения или `Unknown Error` (полная трассировка только в logcat), на iOS `localizedDescription`. Веб показывает пользователю только известные сообщения, остальное пишет в консоль. Это не фиксированная строка.
 
 - `calendar.hasPermissions {}` -> `{ granted: boolean }`. Диалог не показывает.
 - `calendar.requestPermissions {}` -> `{ granted: boolean }`. Показывает системный запрос, если доступа ещё нет.
-- `calendar.addEvents { events, target: "sync" | "local", title? }` -> `{ results }`. `sync` — основной календарь. `local` на Android — локальный календарь приложения с названием `title` (если пусто, «Календарь Валаам»). iOS оба варианта пишет в календарь по умолчанию. Ссылка `url` на Android попадает в `CUSTOM_APP_URI` и в текст описания, на iOS — в `event.url`.
-- `calendar.deleteEvents { ids }` -> `{ results }`. Удаляет события, ранее записанные этими методами, по их `id`. Повторяющаяся серия снимается целиком.
+- `calendar.listEventIds {}` -> `{ events: { id, revision, target }[] }`. Привязки событий, которые приложение записало этими методами. `revision` — отпечаток из `CalendarRpcEvent.revision` (пустая строка, если поле не передавали). `target` — `sync` или `local`, значение запроса `addEvents`. Диалог не показывает, доступ к календарю не нужен: без доступа это просто список привязок. Если доступ есть, Android сверяет привязки с календарём: привязку без события (удалили вручную, убрали аккаунт) снимает и не возвращает, а события с меткой приложения (`CUSTOM_APP_PACKAGE`) без привязки удаляет. Поле `revision` в системный календарь не пишется.
+- `calendar.addEvents { events, target: "sync" | "local", title? }` -> `{ results }`. На Android календарь принимает не больше `Calendars.MAX_REMINDERS` напоминаний на событие (у Google 5): остаются ближайшие к началу, лишние отбрасываются. То же для `updateEvents`. `sync` — основной календарь. `local` на Android — локальный календарь приложения с названием `title` (если пусто, «Календарь Валаам»). iOS оба варианта пишет в календарь по умолчанию. Ссылка `url` на Android попадает в `CUSTOM_APP_URI` и в текст описания, на iOS — в `event.url`. Успешная запись сохраняет `id`, `revision` и `target` в привязке.
+- `calendar.updateEvents { events }` -> `{ results }`. Меняет уже записанное событие, не снимая серию. Обновляются название, напоминания и ссылка: на Android описание и `CUSTOM_APP_URI`, на iOS `event.url`. У события на весь день день начала серии не сдвигается. У обычного события сдвигается время начала. `revision` в привязке заменяется. Если привязки или строки в календаре нет — `Event not found`, привязка остаётся.
+- `calendar.deleteEvents { ids }` -> `{ results }`. Удаляет события, ранее записанные этими методами, по их `id`. Повторяющаяся серия снимается целиком. При успехе и при `Event not found` привязка id снимается.
 
 ### Статика в нативке
 

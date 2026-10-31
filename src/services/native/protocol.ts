@@ -44,6 +44,24 @@ export interface CalendarRpcEvent {
    */
   alarmDates?: string[];
   recurrence?: CalendarRecurrence;
+  /**
+   * Событие на весь день. Из date берётся календарная дата, время игнорируется.
+   * Напоминания в alarmDates могут быть позже полуночи этого дня.
+   */
+  allDay?: boolean;
+  /**
+   * Отпечаток содержимого. Нативка хранит его рядом с id системного события и отдаёт в listEventIds.
+   * В календарь не пишется. Пустая строка — событие без отпечатка.
+   */
+  revision?: string;
+}
+
+/** Запись привязки, которую вернул calendar.listEventIds. */
+export interface CalendarStoredEvent {
+  id: string;
+  revision: string;
+  /** sync или local: куда было записано это событие. */
+  target: "sync" | "local";
 }
 
 /**
@@ -213,6 +231,7 @@ export interface RpcMethods {
 
   "calendar.hasPermissions": { params: Record<string, never>; result: { granted: boolean } };
   "calendar.requestPermissions": { params: Record<string, never>; result: { granted: boolean } };
+  "calendar.listEventIds": { params: Record<string, never>; result: { events: CalendarStoredEvent[] } };
   "calendar.addEvents": {
     params: {
       events: CalendarRpcEvent[];
@@ -221,6 +240,10 @@ export interface RpcMethods {
       /** Название локального календаря. Нужно при target "local". */
       title?: string;
     };
+    result: { results: CalendarRpcItemResult[] };
+  };
+  "calendar.updateEvents": {
+    params: { events: CalendarRpcEvent[] };
     result: { results: CalendarRpcItemResult[] };
   };
   "calendar.deleteEvents": {

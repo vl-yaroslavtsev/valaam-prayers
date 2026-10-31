@@ -42,6 +42,8 @@ export interface Device {
 
   openNotificationsSettings(): void;
 
+  openSettings(type?: "notifications" | "settings"): void;
+
   setShouldHandleLongClick(shouldHandle: boolean): void;
 
   /**
