@@ -55,7 +55,6 @@ describe.each<NativePlatform>(["android", "ios"])("календарь (%s)", (pl
 
     const added = await nativeCalendar.addEvents({
       events: [{ id: "a", title: "Рождество", date: "2026-01-07T09:00:00" }],
-      target: "sync",
     });
     const deleted = await nativeCalendar.deleteEvents({ ids: ["a"] });
 
@@ -64,7 +63,7 @@ describe.each<NativePlatform>(["android", "ios"])("календарь (%s)", (pl
     ]);
     expect(deleted.results).toEqual([{ id: "a", success: true }]);
     expect(backend.callsOf("calendar.addEvents")).toEqual([
-      { events: [{ id: "a", title: "Рождество", date: "2026-01-07T09:00:00" }], target: "sync" },
+      { events: [{ id: "a", title: "Рождество", date: "2026-01-07T09:00:00" }] },
     ]);
     expect(backend.callsOf("calendar.deleteEvents")).toEqual([{ ids: ["a"] }]);
   });

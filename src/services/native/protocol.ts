@@ -60,8 +60,6 @@ export interface CalendarRpcEvent {
 export interface CalendarStoredEvent {
   id: string;
   revision: string;
-  /** sync или local: куда было записано это событие. */
-  target: "sync" | "local";
 }
 
 /**
@@ -99,7 +97,6 @@ export const CALENDAR_RESULT_MESSAGE = {
 export const CALENDAR_RPC_ERROR = {
   EVENTS_NOT_ARRAY: "events должен быть массивом",
   IDS_NOT_ARRAY: "ids должен быть массивом",
-  BAD_TARGET: "target должен быть sync или local",
   /** iOS, весь вызов. */
   EVENT_NOT_OBJECT: "Событие должно быть объектом",
   /** iOS, весь вызов. */
@@ -235,10 +232,6 @@ export interface RpcMethods {
   "calendar.addEvents": {
     params: {
       events: CalendarRpcEvent[];
-      /** sync — основной календарь, local — локальный календарь приложения (Android). iOS пишет в календарь по умолчанию. */
-      target: "local" | "sync";
-      /** Название локального календаря. Нужно при target "local". */
-      title?: string;
     };
     result: { results: CalendarRpcItemResult[] };
   };

@@ -17,8 +17,6 @@ import {
 import type { RemindersState } from "@/stores/reminders";
 import type { DeepReadonly } from "vue";
 
-const APP_CALENDAR_TITLE = "Календарь Валаам";
-
 /**
  * Откуда запущена синхронизация.
  * startup — старт приложения, без диалога прав.
@@ -30,7 +28,6 @@ export type ReminderSyncMode = "startup" | "page" | "interactive";
 interface ReminderSnapshot {
   stored: StoredReminderEvent[];
   ids: string[];
-  target: "sync" | "local";
 }
 
 type ReadState = () => DeepReadonly<RemindersState>;
@@ -63,7 +60,6 @@ const snapshotOf = (events: CalendarStoredEvent[]): ReminderSnapshot => {
   return {
     stored: reminders.map((item) => ({ id: item.id, revision: item.revision })),
     ids: reminders.map((item) => item.id),
-    target: reminders.some((item) => item.target === "local") ? "local" : "sync",
   };
 };
 
@@ -187,7 +183,7 @@ async function syncOnce(mode: ReminderSyncMode, read: ReadState): Promise<void> 
 
   const fresh = snapshotOf(await loadNativeEvents());
   const freshDesired = planReminderEvents(read(), new Date());
-  await apply(diffReminderEvents(fresh.stored, freshDesired, fresh.ids), fresh.target, mode);
+  await apply(diffReminderEvents(fresh.stored, freshDesired, fresh.ids), mode);
 }
 
 /**
@@ -216,7 +212,6 @@ async function ensurePermission(mode: ReminderSyncMode): Promise<boolean> {
  */
 async function apply(
   diff: ReturnType<typeof diffReminderEvents>,
-  target: "sync" | "local",
   mode: ReminderSyncMode
 ): Promise<void> {
   const removed = new Set<string>();
@@ -245,42 +240,20 @@ async function apply(
   const creating = toAdd.filter((item) => !deleteIds.has(item.id) || removed.has(item.id));
   if (!creating.length) return;
 
-  let results = await add(creating, target);
-  if (shouldFallback(results, target)) {
-    results = await add(creating, "local");
-  }
+  const results = await add(creating);
   report(results, mode);
 }
 
 /**
- * Пишет события в выбранный календарь.
+ * Пишет события в календарь. Нативная сторона сама решает, в какой.
  * @param items — готовые события
- * @param target — sync или local; для local передаётся название «Календарь Валаам»
  * @returns итог по каждому событию
  */
-async function add(items: PlannedReminder[], target: "sync" | "local"): Promise<CalendarRpcItemResult[]> {
+async function add(items: PlannedReminder[]): Promise<CalendarRpcItemResult[]> {
   const response = await nativeCalendar.addEvents({
     events: items.map((item) => ({ ...item.event, revision: item.revision })),
-    target,
-    ...(target === "local" ? { title: APP_CALENDAR_TITLE } : {}),
   });
   return response.results;
-}
-
-/**
- * На Android все события получили «календарь не найден» — можно повторить в локальный.
- * На iOS повтор создал бы дубли, поэтому false.
- * @param results — ответ addEvents
- * @param target — куда только что писали
- * @returns true, если нужен повтор с target local
- */
-function shouldFallback(results: CalendarRpcItemResult[], target: "sync" | "local"): boolean {
-  return (
-    getNativePlatform() === "android" &&
-    target === "sync" &&
-    results.length > 0 &&
-    results.every((item) => !item.success && item.message === CALENDAR_RESULT_MESSAGE.CALENDAR_NOT_FOUND)
-  );
 }
 
 /**

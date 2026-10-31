@@ -141,8 +141,8 @@
       </f7-block>
 
       <f7-block strong-ios outline-ios>
-        <f7-button fill @click="addEvent('sync')"
-          >Добавить событие в синх. календарь</f7-button
+        <f7-button fill @click="addEvent"
+          >Добавить событие в календарь</f7-button
         >
       </f7-block>
 
@@ -153,26 +153,8 @@
       -->
 
       <f7-block strong-ios outline-ios>
-        <f7-button fill @click="add2Events('sync')"
-          >Добавить 2 события в синх. календарь</f7-button
-        >
-      </f7-block>
-
-      <f7-block strong-ios outline-ios>
-        <f7-button fill @click="addEvent('local')"
-          >Добавить событие в локал. календарь</f7-button
-        >
-      </f7-block>
-
-      <!--
-      <f7-block strong-ios outline-ios>
-        <f7-button fill @click="addEventsArray">Добавить много событий</f7-button>
-      </f7-block>
-      -->
-
-      <f7-block strong-ios outline-ios>
-        <f7-button fill @click="add2Events('local')"
-          >Добавить 2 события в локал. календарь</f7-button
+        <f7-button fill @click="add2Events"
+          >Добавить 2 события в календарь</f7-button
         >
       </f7-block>
 
@@ -659,7 +641,7 @@ const takeCalendarResults = async (
 
 const eventId = ref(localStorage.getItem("eventId") || "");
 
-const addEvent = async (type: "local" | "sync" = "sync") => {
+const addEvent = async () => {
   const eventDate = add(new Date(), { minutes: 2 });
   const event = toCalendarEvent({
     id: getUID(),
@@ -674,8 +656,6 @@ const addEvent = async (type: "local" | "sync" = "sync") => {
     nativeCalendar
       .addEvents({
         events: [event],
-        target: type,
-        ...(type === "local" ? { title: APP_CALENDAR_TITLE } : {}),
       })
       .then((response) => response.results)
   );
@@ -693,13 +673,7 @@ const addEvent = async (type: "local" | "sync" = "sync") => {
   f7.dialog.alert("Событие добавлено!");
 };
 
-const addLocalEvent = async () => {
-  return await addEvent("local");
-};
 
-const addSyncEvent = async () => {
-  return await addEvent("sync");
-};
 
 const eventsArrayId = ref(
   JSON.parse(localStorage.getItem("eventsArrayId") || "[]")
@@ -766,7 +740,7 @@ const addEventsArray = async () => {
     const batch = events.slice(i, i + batchSize);
 
     const results = await takeCalendarResults(() =>
-      nativeCalendar.addEvents({ events: batch, target: "sync" }).then((response) => response.results)
+      nativeCalendar.addEvents({ events: batch }).then((response) => response.results)
     );
     if (!results) {
       preloader.close();
@@ -791,7 +765,7 @@ const addEventsArray = async () => {
   }
 };
 
-const add2Events = async (type: "local" | "sync" = "sync") => {
+const add2Events = async () => {
   const event1 = toCalendarEvent({
     id: getUID(),
     title: "Утреннее правило",
@@ -813,8 +787,6 @@ const add2Events = async (type: "local" | "sync" = "sync") => {
     nativeCalendar
       .addEvents({
         events: [event1, event2],
-        target: type,
-        ...(type === "local" ? { title: APP_CALENDAR_TITLE } : {}),
       })
       .then((response) => response.results)
   );

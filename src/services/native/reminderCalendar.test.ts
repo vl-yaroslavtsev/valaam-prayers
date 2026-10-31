@@ -69,8 +69,8 @@ describe("синхронизация напоминаний", () => {
     install("android");
     backend.on("calendar.listEventIds", () => ({
       events: [
-        { id: "reminder:holidays:Y0107", revision: "09:00|Рождество Христово|day1|20270107", target: "sync" as const },
-        { id: "test-event", revision: "", target: "sync" as const },
+        { id: "reminder:holidays:Y0107", revision: "09:00|Рождество Христово|day1|20270107" },
+        { id: "test-event", revision: "" },
       ],
     }));
     backend.on("calendar.deleteEvents", ({ ids }) => ({
@@ -88,7 +88,7 @@ describe("синхронизация напоминаний", () => {
     install("android");
     const desired = planReminderEvents(reminders(true), new Date());
     backend.on("calendar.listEventIds", () => ({
-      events: desired.map((item) => ({ id: item.id, revision: item.revision, target: "sync" as const })),
+      events: desired.map((item) => ({ id: item.id, revision: item.revision })),
     }));
 
     scheduleReminderSync("startup", () => reminders(true));
@@ -103,7 +103,7 @@ describe("синхронизация напоминаний", () => {
     install("android");
     const desired = planReminderEvents(reminders(true), new Date());
     backend.on("calendar.listEventIds", () => ({
-      events: desired.map((item) => ({ id: item.id, revision: "старое", target: "sync" as const })),
+      events: desired.map((item) => ({ id: item.id, revision: "старое" })),
     }));
     backend.on("calendar.updateEvents", ({ events }) => ({
       results: events.map((event) => ({ id: event.id, success: true })),
@@ -120,52 +120,6 @@ describe("синхронизация напоминаний", () => {
     expect(christmas.url).toContain("/days/");
     expect(christmas.alarmDates?.length).toBeGreaterThan(0);
     expect(backend.callsOf("calendar.addEvents")).toEqual([]);
-  });
-
-  it("на Android отсутствие календаря sync приводит к записи в local", async () => {
-    install("android");
-    let calls = 0;
-    backend.on("calendar.addEvents", ({ events, target }) => {
-      calls += 1;
-      if (calls === 1) {
-        return {
-          results: events.map((event) => ({
-            id: event.id,
-            success: false,
-            message: CALENDAR_RESULT_MESSAGE.CALENDAR_NOT_FOUND,
-          })),
-        };
-      }
-      return { results: events.map((event) => ({ id: event.id, success: true })) };
-    });
-
-    scheduleReminderSync("startup", () => reminders(true));
-    await flush();
-
-    const added = backend.callsOf("calendar.addEvents");
-    expect(added[0].target).toBe("sync");
-    expect(added[1]).toMatchObject({ target: "local", title: "Календарь Валаам" });
-    const christmas = added[1].events.find((event: { id: string }) => event.id === "reminder:holidays:Y0107");
-    expect(christmas.allDay).toBe(true);
-    expect(christmas.revision).toBe(
-      planReminderEvents(reminders(true), new Date()).find((item) => item.id === "reminder:holidays:Y0107")?.revision
-    );
-  });
-
-  it("на iOS отказ sync не повторяется записью в local", async () => {
-    install("ios");
-    backend.on("calendar.addEvents", ({ events }) => ({
-      results: events.map((event) => ({
-        id: event.id,
-        success: false,
-        message: CALENDAR_RESULT_MESSAGE.CALENDAR_NOT_FOUND,
-      })),
-    }));
-
-    scheduleReminderSync("startup", () => reminders(true));
-    await flush();
-
-    expect(backend.callsOf("calendar.addEvents")).toHaveLength(1);
   });
 
   it("при отказе в правах предлагает открыть настройки через openSettings", async () => {
