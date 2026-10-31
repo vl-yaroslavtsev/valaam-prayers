@@ -3,6 +3,7 @@ import { calculateEaster } from "@/components/saint/memoDays";
 import {
   diffReminderEvents,
   planReminderEvents,
+  revisionFromListed,
   type StoredReminderEvent,
 } from "@/js/reminderCalendarPlan";
 import type { ReminderOffset, RemindersState } from "@/stores/reminders";
@@ -39,7 +40,7 @@ describe("planReminderEvents", () => {
       state({ holidays: { enabled: true, offsets: offsets(), time: "09:00" } }),
       october
     );
-    const christmas = planned.find((item) => item.id === "reminder:holidays:Y0107");
+    const christmas = planned.find((item) => item.id === "reminder:holidays:Y0107:2027");
 
     expect(christmas).toMatchObject({
       revision: "09:00|Рождество Христово|day1|20270107",
@@ -49,9 +50,9 @@ describe("planReminderEvents", () => {
         allDay: true,
         url: "https://app.valaam.ru/webview/#calendar:/days/20270107",
         alarmDates: ["2027-01-06T09:00:00"],
-        recurrence: { frequency: "yearly" },
       },
     });
+    expect(christmas?.event.recurrence).toBeUndefined();
   });
 
   it("несколько смещений — несколько напоминаний одного события", () => {
@@ -61,7 +62,7 @@ describe("planReminderEvents", () => {
       }),
       october
     );
-    const christmas = planned.find((item) => item.id === "reminder:holidays:Y0107");
+    const christmas = planned.find((item) => item.id === "reminder:holidays:Y0107:2027");
 
     expect(christmas?.event.alarmDates).toEqual(["2027-01-07T09:00:00", "2027-01-05T09:00:00"]);
     expect(christmas?.revision).toBe("09:00|Рождество Христово|day0,day2|20270107");
@@ -73,7 +74,7 @@ describe("planReminderEvents", () => {
       new Date(2027, 0, 8, 9, 0, 0)
     );
 
-    expect(planned.find((item) => item.id === "reminder:holidays:Y0107")?.event.url).toBe(
+    expect(planned.find((item) => item.id === "reminder:holidays:Y0107:2028")?.event.url).toBe(
       "https://app.valaam.ru/webview/#calendar:/days/20280107"
     );
   });
@@ -84,9 +85,10 @@ describe("planReminderEvents", () => {
       new Date(2027, 0, 7, 18, 0, 0)
     );
 
-    expect(planned.find((item) => item.id === "reminder:holidays:Y0107")?.event.date).toBe(
+    expect(planned.find((item) => item.id === "reminder:holidays:Y0107:2027")?.event.date).toBe(
       "2027-01-07T00:00:00"
     );
+    expect(planned.some((item) => item.id === "reminder:holidays:Y0107:2028")).toBe(true);
   });
 
   it("прошедшая Пасха этого года не создаётся, следующая — одно событие без повторения", () => {
@@ -122,6 +124,47 @@ describe("planReminderEvents", () => {
     expect(noOffsets).toEqual([]);
   });
 
+  it("в начале года постоянный праздник есть и в этом году, и в следующем, оба без повторения", () => {
+    const planned = planReminderEvents(
+      state({ holidays: { enabled: true, offsets: offsets(), time: "09:00" } }),
+      new Date(2027, 0, 1, 12, 0, 0)
+    );
+    const christmas = planned.filter((item) => item.id.startsWith("reminder:holidays:Y0107:"));
+
+    expect(christmas.map((item) => item.id)).toEqual([
+      "reminder:holidays:Y0107:2027",
+      "reminder:holidays:Y0107:2028",
+    ]);
+    expect(christmas.every((item) => item.event.recurrence === undefined)).toBe(true);
+  });
+
+  it("отпечаток читается из полей события и совпадает с планом", () => {
+    const planned = planReminderEvents(
+      state({
+        holidays: { enabled: true, offsets: offsets(["day0", "day1"]), time: "09:00" },
+        prayerRule: {
+          enabled: true,
+          weekdays: { enabled: true, times: ["08:00"] },
+          weekends: { enabled: false, times: [] },
+        },
+      }),
+      october
+    );
+
+    for (const item of planned) {
+      expect(
+        revisionFromListed({
+          id: item.id,
+          title: item.event.title,
+          date: item.event.date,
+          url: item.event.url,
+          alarmDates: item.event.alarmDates,
+          allDay: item.event.allDay,
+        })
+      ).toBe(item.revision);
+    }
+  });
+
   it("утреннее правило раньше 15:00, вечернее — с 15:00, по своим дням недели", () => {
     const planned = planReminderEvents(
       state({
@@ -153,7 +196,7 @@ describe("diffReminderEvents", () => {
     state({ holidays: { enabled: true, offsets: offsets(), time: "09:00" } }),
     new Date(2026, 9, 30, 12, 0, 0)
   );
-  const christmas = desired.find((item) => item.id === "reminder:holidays:Y0107")!;
+  const christmas = desired.find((item) => item.id === "reminder:holidays:Y0107:2027")!;
 
   it("совпавший revision не пишется заново, даже если нативка id уже не помнит", () => {
     const stored: StoredReminderEvent[] = [{ id: christmas.id, revision: christmas.revision }];

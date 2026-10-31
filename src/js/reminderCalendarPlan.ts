@@ -1,7 +1,7 @@
 import type { DeepReadonly } from "vue";
-import { addDays, format, getDay, getYear, isBefore, set, startOfDay } from "date-fns";
+import { addDays, differenceInCalendarDays, format, getDay, getYear, isBefore, parse, set, startOfDay } from "date-fns";
 import { calculateEaster, parseMemoTemplate, resolveMemoDate } from "@/components/saint/memoDays";
-import type { CalendarRpcEvent, CalendarWeekday } from "@/services/native/protocol";
+import type { CalendarRpcEvent, CalendarStoredEvent, CalendarWeekday } from "@/services/native/protocol";
 import { REMINDER_OFFSET_ORDER } from "@/js/reminderDescription";
 import type {
   EventReminder,
@@ -157,13 +157,13 @@ function enabledOffsets(reminder: DeepReadonly<EventReminder>): ReminderOffset[]
 }
 
 /**
- * Событие на весь день. Смещения становятся alarmDates в выбранное время.
- * Без year — ежегодная серия, id без года. С year — одно переходящее вхождение.
+ * Одиночное событие на весь день. Смещения становятся alarmDates в выбранное время.
+ * Год входит в id: серия на праздник не заводится.
  * @param entry — шаблон и название из каталога
  * @param feast — день праздника
  * @param reminder — время и смещения раздела
  * @param offsets — уже отфильтрованные включённые смещения
- * @param year — год в id переходящей даты; для постоянной не передаётся
+ * @param year — год дня, он же суффикс id
  * @returns id, revision и тело для calendar.addEvents
  */
 function feastEvent(
@@ -171,12 +171,10 @@ function feastEvent(
   feast: Date,
   reminder: DeepReadonly<EventReminder>,
   offsets: ReminderOffset[],
-  year?: number
+  year: number
 ): PlannedReminder {
   const code = dayCode(feast);
-  const id = year === undefined
-    ? `${REMINDER_EVENT_PREFIX}${entry.section}:${entry.template}`
-    : `${REMINDER_EVENT_PREFIX}${entry.section}:${entry.template}:${year}`;
+  const id = `${REMINDER_EVENT_PREFIX}${entry.section}:${entry.template}:${year}`;
   const revision = `${reminder.time}|${entry.title}|${offsets.join(",")}|${code}`;
   const event: CalendarRpcEvent = {
     id,
@@ -186,7 +184,6 @@ function feastEvent(
     allDay: true,
     alarmDates: offsets.map((offset) => dateTimeStamp(atTime(addDays(feast, -OFFSET_DAYS[offset]), reminder.time))),
   };
-  if (year === undefined) event.recurrence = { frequency: "yearly" };
   return { id, revision, event };
 }
 
@@ -239,10 +236,38 @@ function nextWeeklyStart(byDay: readonly CalendarWeekday[], time: string, now: D
   return set(addDays(startOfDay(now), 7), { hours, minutes, seconds: 0, milliseconds: 0 });
 }
 
+const parseStamp = (value: string) => parse(value, "yyyy-MM-dd'T'HH:mm:ss", new Date());
+
+const offsetByDays = new Map<number, ReminderOffset>(
+  (Object.entries(OFFSET_DAYS) as [ReminderOffset, number][]).map(([offset, days]) => [days, offset])
+);
+
+/**
+ * Отпечаток, собранный из полей события в календаре. Совпадает с revision плана,
+ * если название, день, время и смещения те же.
+ * @param event — ответ calendar.listEventIds
+ * @returns строка для сравнения с планом
+ */
+export function revisionFromListed(event: CalendarStoredEvent): string {
+  if (event.allDay) {
+    const code = event.date.slice(0, 10).replace(/-/g, "");
+    const feast = parseStamp(event.date);
+    const alarms = event.alarmDates ?? [];
+    const time = alarms[0]?.slice(11, 16) ?? "";
+    const found = new Set<ReminderOffset>();
+    for (const alarm of alarms) {
+      const offset = offsetByDays.get(differenceInCalendarDays(feast, parseStamp(alarm)));
+      if (offset) found.add(offset);
+    }
+    const offsets = REMINDER_OFFSET_ORDER.filter((offset) => found.has(offset));
+    return `${time}|${event.title}|${offsets.join(",")}|${code}`;
+  }
+  return `${event.date.slice(11, 16)}|${event.title}|${event.url ?? ""}`;
+}
+
 /**
  * События, которые должны быть в календаре при текущих галочках.
- * Постоянная дата — одна ежегодная серия на ближайший ещё не прошедший день.
- * Переходящая — этот год, если день не прошёл, и следующий год.
+ * Праздник, поминовение и пост — одиночные события на этот год, если день не прошёл, и на следующий.
  * Выключенный раздел и раздел без смещений не дают событий.
  * @param state — галочки страницы напоминаний
  * @param now — «сегодня», от него отсекаются прошедшие дни
@@ -257,14 +282,6 @@ export function planReminderEvents(state: DeepReadonly<RemindersState>, now: Dat
     if (!reminder.enabled) continue;
     const offsets = enabledOffsets(reminder);
     if (!offsets.length) continue;
-
-    if (entry.template.startsWith("Y")) {
-      const thisYear = resolveTemplate(entry.template, year);
-      const feast =
-        thisYear && isCurrentOrFutureDay(thisYear, now) ? thisYear : resolveTemplate(entry.template, year + 1);
-      if (feast) planned.push(feastEvent(entry, feast, reminder, offsets));
-      continue;
-    }
 
     for (const candidate of [year, year + 1]) {
       const feast = resolveTemplate(entry.template, candidate);
@@ -288,11 +305,11 @@ export function planReminderEvents(state: DeepReadonly<RemindersState>, now: Dat
 }
 
 /**
- * Сравнивает желаемый список и привязку нативки.
+ * Сравнивает желаемый список и события календаря.
  * Совпавший revision не пишется заново.
- * Другой revision того же id обновляет событие. Нет в привязке — создать. Нет в галочках — удалить.
+ * Другой revision того же id обновляет событие. Нет в календаре — создать. Нет в галочках — удалить.
  * Чужие id пропускаются.
- * @param stored — записи calendar.listEventIds с префиксом напоминаний
+ * @param stored — события calendar.listEventIds с префиксом напоминаний и отпечатком, собранным из полей
  * @param desired — что следует из текущих галочек
  * @param nativeReminderIds — те же id, плюс чужие, если они попали в список
  * @returns deleteIds — снять, add — создать, update — изменить ссылку и напоминания

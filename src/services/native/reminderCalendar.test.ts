@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { planReminderEvents } from "@/js/reminderCalendarPlan";
+import { planReminderEvents, type PlannedReminder } from "@/js/reminderCalendarPlan";
 import { resetReminderCalendarForTests, scheduleReminderSync } from "@/services/native/reminderCalendar";
 import { CALENDAR_RESULT_MESSAGE } from "@/services/native/protocol";
 import type { RemindersState } from "@/stores/reminders";
@@ -42,6 +42,15 @@ const flush = async () => {
   for (let i = 0; i < 20; i++) await Promise.resolve();
 };
 
+const listed = (item: PlannedReminder) => ({
+  id: item.id,
+  title: item.event.title,
+  date: item.event.date,
+  url: item.event.url,
+  alarmDates: item.event.alarmDates,
+  allDay: item.event.allDay,
+});
+
 describe("синхронизация напоминаний", () => {
   let backend: FakeNativeBackend;
   let uninstall: () => void;
@@ -65,12 +74,18 @@ describe("синхронизация напоминаний", () => {
     backend.on("calendar.addEvents", () => ({ results: [] }));
   };
 
-  it("лишний id нативки удаляется, чужой id остаётся", async () => {
+  it("выключенные напоминания удаляют распознанные события и не трогают чужие", async () => {
     install("android");
     backend.on("calendar.listEventIds", () => ({
       events: [
-        { id: "reminder:holidays:Y0107", revision: "09:00|Рождество Христово|day1|20270107" },
-        { id: "test-event", revision: "" },
+        {
+          id: "reminder:holidays:Y0107:2027",
+          title: "Рождество Христово",
+          date: "2027-01-07T00:00:00",
+          allDay: true,
+          alarmDates: ["2027-01-06T09:00:00"],
+        },
+        { id: "test-event", title: "Своё", date: "2027-05-01T10:00:00" },
       ],
     }));
     backend.on("calendar.deleteEvents", ({ ids }) => ({
@@ -80,15 +95,37 @@ describe("синхронизация напоминаний", () => {
     scheduleReminderSync("startup", () => reminders(false));
     await flush();
 
-    expect(backend.callsOf("calendar.deleteEvents")).toEqual([{ ids: ["reminder:holidays:Y0107"] }]);
+    expect(backend.callsOf("calendar.deleteEvents")).toEqual([{ ids: ["reminder:holidays:Y0107:2027"] }]);
     expect(backend.callsOf("calendar.addEvents")).toEqual([]);
+  });
+
+  it("без права на старте календарь не читается и не стирается", async () => {
+    install("android");
+    backend.on("calendar.hasPermissions", () => ({ granted: false }));
+    backend.on("calendar.listEventIds", () => ({
+      events: [
+        {
+          id: "reminder:holidays:Y0107:2027",
+          title: "Рождество Христово",
+          date: "2027-01-07T00:00:00",
+          allDay: true,
+        },
+      ],
+    }));
+
+    scheduleReminderSync("startup", () => reminders(false));
+    await flush();
+
+    expect(backend.callsOf("calendar.requestPermissions")).toEqual([]);
+    expect(backend.callsOf("calendar.listEventIds")).toEqual([]);
+    expect(backend.callsOf("calendar.deleteEvents")).toEqual([]);
   });
 
   it("совпавший revision из нативки не создаётся заново", async () => {
     install("android");
     const desired = planReminderEvents(reminders(true), new Date());
     backend.on("calendar.listEventIds", () => ({
-      events: desired.map((item) => ({ id: item.id, revision: item.revision })),
+      events: desired.map(listed),
     }));
 
     scheduleReminderSync("startup", () => reminders(true));
@@ -103,7 +140,7 @@ describe("синхронизация напоминаний", () => {
     install("android");
     const desired = planReminderEvents(reminders(true), new Date());
     backend.on("calendar.listEventIds", () => ({
-      events: desired.map((item) => ({ id: item.id, revision: "старое" })),
+      events: desired.map((item) => ({ ...listed(item), title: "старое" })),
     }));
     backend.on("calendar.updateEvents", ({ events }) => ({
       results: events.map((event) => ({ id: event.id, success: true })),
@@ -115,7 +152,9 @@ describe("синхронизация напоминаний", () => {
     expect(backend.callsOf("calendar.deleteEvents")).toEqual([]);
     const updated = backend.callsOf("calendar.updateEvents");
     expect(updated).toHaveLength(1);
-    const christmas = updated[0].events.find((event: { id: string }) => event.id === "reminder:holidays:Y0107");
+    const christmas = updated[0].events.find((event: { id: string }) =>
+      event.id.startsWith("reminder:holidays:Y0107:")
+    );
     expect(christmas.allDay).toBe(true);
     expect(christmas.url).toContain("/days/");
     expect(christmas.alarmDates?.length).toBeGreaterThan(0);

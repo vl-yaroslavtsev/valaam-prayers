@@ -23,7 +23,7 @@ export type CalendarWeekday = "SU" | "MO" | "TU" | "WE" | "TH" | "FR" | "SA";
 /**
  * Повторение события календаря.
  * weekly — молитвенное правило, дни в byDay.
- * yearly — неподвижный праздник: месяц, число и время берутся из date.
+ * yearly нативка принимает. Праздники, поминовения и посты приходят без повторения.
  */
 export interface CalendarRecurrence {
   frequency: "weekly" | "yearly";
@@ -49,17 +49,20 @@ export interface CalendarRpcEvent {
    * Напоминания в alarmDates могут быть позже полуночи этого дня.
    */
   allDay?: boolean;
-  /**
-   * Отпечаток содержимого. Нативка хранит его рядом с id системного события и отдаёт в listEventIds.
-   * В календарь не пишется. Пустая строка — событие без отпечатка.
-   */
-  revision?: string;
 }
 
-/** Запись привязки, которую вернул calendar.listEventIds. */
+/**
+ * Событие календаря «Валаам», прочитанное calendar.listEventIds.
+ * id приложение записало в само событие. Отпечаток нативка не хранит:
+ * веб собирает его из title, date, url, alarmDates и allDay.
+ */
 export interface CalendarStoredEvent {
   id: string;
-  revision: string;
+  title: string;
+  date: string;
+  url?: string;
+  alarmDates?: string[];
+  allDay?: boolean;
 }
 
 /**

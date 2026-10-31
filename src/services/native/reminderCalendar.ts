@@ -4,6 +4,7 @@ import {
   diffReminderEvents,
   planReminderEvents,
   REMINDER_EVENT_PREFIX,
+  revisionFromListed,
   type PlannedReminder,
   type StoredReminderEvent,
 } from "@/js/reminderCalendarPlan";
@@ -50,15 +51,16 @@ let queued: ReminderSyncMode | null = null;
 let permissionAsked = false;
 
 /**
- * Оставляет только напоминания страницы. Если среди них есть local, дальше пишем в него.
+ * Оставляет только напоминания страницы. Отпечаток собирается из полей события.
+ * Событие без префикса напоминаний не попадает в снимок и не удаляется.
  * @param events — ответ calendar.listEventIds
  */
 const snapshotOf = (events: CalendarStoredEvent[]): ReminderSnapshot => {
   const reminders = events.filter(
-    (item) => item.id.startsWith(REMINDER_EVENT_PREFIX) && typeof item.revision === "string"
+    (item) => item.id.startsWith(REMINDER_EVENT_PREFIX) && typeof item.date === "string" && item.date.length >= 16
   );
   return {
-    stored: reminders.map((item) => ({ id: item.id, revision: item.revision })),
+    stored: reminders.map((item) => ({ id: item.id, revision: revisionFromListed(item) })),
     ids: reminders.map((item) => item.id),
   };
 };
@@ -166,24 +168,21 @@ async function pump(): Promise<void> {
 }
 
 /**
- * Один проход: сверяет галочки с привязкой нативки и пишет разницу.
- * Без моста и без изменений выходит сразу. Права запрашивает только page и interactive.
+ * Один проход: подстраивает календарь под галочки.
+ * Право нужно до чтения: иначе уже лежащие события не видны и при выключенных
+ * напоминаниях не снимаются. Без моста выходит сразу. Диалог прав — только page и interactive.
  * @param mode — показывать ли диалог
  * @param read — галочки на момент прохода
  */
 async function syncOnce(mode: ReminderSyncMode, read: ReadState): Promise<void> {
   if (!(await ensureNativeCalendar())) return;
-
-  const current = snapshotOf(await loadNativeEvents());
-  const desired = planReminderEvents(read(), new Date());
-  const diff = diffReminderEvents(current.stored, desired, current.ids);
-  if (!diff.deleteIds.length && !diff.add.length && !diff.update.length) return;
-
   if (!(await ensurePermission(mode))) return;
 
   const fresh = snapshotOf(await loadNativeEvents());
-  const freshDesired = planReminderEvents(read(), new Date());
-  await apply(diffReminderEvents(fresh.stored, freshDesired, fresh.ids), mode);
+  const desired = planReminderEvents(read(), new Date());
+  const diff = diffReminderEvents(fresh.stored, desired, fresh.ids);
+  if (!diff.deleteIds.length && !diff.add.length && !diff.update.length) return;
+  await apply(diff, mode);
 }
 
 /**
@@ -207,7 +206,6 @@ async function ensurePermission(mode: ReminderSyncMode): Promise<boolean> {
  * Удаляет лишние события, обновляет изменившиеся и добавляет новые.
  * Обновление меняет ссылку и напоминания. Если записи в календаре уже нет, она создаётся заново.
  * @param diff — кого удалить, обновить и создать
- * @param target — sync или local по уже записанным напоминаниям
  * @param mode — кому показывать ошибку
  */
 async function apply(
@@ -226,7 +224,7 @@ async function apply(
   const toAdd = [...diff.add];
   if (diff.update.length) {
     const updated = await nativeCalendar.updateEvents({
-      events: diff.update.map((item) => ({ ...item.event, revision: item.revision })),
+      events: diff.update.map((item) => item.event),
     });
     report(updated.results, mode, new Set([CALENDAR_RESULT_MESSAGE.EVENT_NOT_FOUND]));
     updated.results.forEach((item, index) => {
@@ -251,7 +249,7 @@ async function apply(
  */
 async function add(items: PlannedReminder[]): Promise<CalendarRpcItemResult[]> {
   const response = await nativeCalendar.addEvents({
-    events: items.map((item) => ({ ...item.event, revision: item.revision })),
+    events: items.map((item) => item.event),
   });
   return response.results;
 }
