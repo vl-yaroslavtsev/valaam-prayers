@@ -232,6 +232,7 @@ export interface RpcMethods {
   "calendar.hasPermissions": { params: Record<string, never>; result: { granted: boolean } };
   "calendar.requestPermissions": { params: Record<string, never>; result: { granted: boolean } };
   "calendar.listEventIds": { params: Record<string, never>; result: { events: CalendarStoredEvent[] } };
+  "calendar.enableCalendar": { params: Record<string, never>; result: { success: boolean } };
   "calendar.addEvents": {
     params: {
       events: CalendarRpcEvent[];

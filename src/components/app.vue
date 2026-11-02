@@ -101,7 +101,7 @@ const updateSW = isNativeBridgeAvailable()
 
 // Framework7 Parameters
 const f7params = {
-  name: "Валаамский календарь и молитвослов", // App name
+  name: "Валаам", // App name
   theme: "md",
 
   // App routes

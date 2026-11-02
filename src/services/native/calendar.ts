@@ -6,6 +6,7 @@ export const nativeCalendar = {
   hasPermissions: () => nativeCall("calendar.hasPermissions"),
   requestPermissions: () => nativeCall("calendar.requestPermissions"),
   listEventIds: () => nativeCall("calendar.listEventIds"),
+  enableCalendar: () => nativeCall("calendar.enableCalendar"),
   addEvents: (params: RpcMethods["calendar.addEvents"]["params"]) => nativeCall("calendar.addEvents", params),
   updateEvents: (params: RpcMethods["calendar.updateEvents"]["params"]) => nativeCall("calendar.updateEvents", params),
   deleteEvents: (params: RpcMethods["calendar.deleteEvents"]["params"]) => nativeCall("calendar.deleteEvents", params),

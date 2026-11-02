@@ -1,5 +1,5 @@
 import { f7 } from "framework7-vue";
-import { device } from "@/js/device";
+import { device, isIOS } from "@/js/device";
 import {
   diffReminderEvents,
   planReminderEvents,
@@ -42,13 +42,13 @@ const MODE_RANK: Record<ReminderSyncMode, number> = { startup: 0, page: 1, inter
 const USER_MESSAGES: Record<string, string> = {
   [CALENDAR_RESULT_MESSAGE.PERMISSION_DENIED]: "Нет доступа к календарю",
   [CALENDAR_RESULT_MESSAGE.CALENDAR_NOT_FOUND]: "Календарь не найден",
-  [CALENDAR_RESULT_MESSAGE.CALENDAR_INACTIVE]: "Календарь выключен в настройках",
 };
 
 let readState: ReadState | null = null;
 let running = false;
 let queued: ReminderSyncMode | null = null;
 let permissionAsked = false;
+let isCalendarInactiveDialogOpen = false;
 
 /**
  * Оставляет только напоминания страницы. Отпечаток собирается из полей события.
@@ -93,24 +93,26 @@ const notify = (message: string) => {
  */
 function notifyPermissionDenied(): void {
   try {
+    let text = "Чтобы сохранять напоминания, приложению нужен доступ к календарю.";
+    if (isIOS) {
+      text += " Нажмите «Настройки» → «Календари» и выберите «Полный доступ».";
+    } else {
+      text += " Нажмите «Настройки» → «Разрешения» и включите доступ.";
+    }
     f7.dialog
       .create({
-        title: "Нет доступа к календарю",
-        text: "Для сохранения напоминаний разрешите приложению доступ к календарю в настройках устройства.",
+        title: "Доступ к календарю",
+        text,
         destroyOnClose: true,
         closeByBackdropClick: true,
         buttons: [
-          { text: "Отмена" },
+          { text: "Не сейчас" },
           {
             text: "Настройки",
             strong: true,
             onClick: () => {
               permissionAsked = false;
-              if (window.androidJsHandler?.openSettings) {
-                window.androidJsHandler.openSettings("settings");
-              } else {
-                device.openSettings("settings");
-              }
+              device.openSettings("settings");
             },
           },
         ],
@@ -118,6 +120,50 @@ function notifyPermissionDenied(): void {
       .open();
   } catch (err) {
     console.error("Нет доступа к календарю", err);
+  }
+}
+
+/**
+ * Показывает диалог включения скрытого календаря приложения.
+ */
+function notifyCalendarInactive(): void {
+  if (isCalendarInactiveDialogOpen) return;
+  isCalendarInactiveDialogOpen = true;
+
+  try {
+    f7.dialog
+      .create({
+        title: "Календарь скрыт",
+        text: "Календарь «Валаам» скрыт на вашем устройстве, поэтому уведомления о событиях приходить не будут. Включить его отображение?",
+        destroyOnClose: true,
+        closeByBackdropClick: true,
+        on: {
+          closed: () => {
+            isCalendarInactiveDialogOpen = false;
+          },
+        },
+        buttons: [
+          { text: "Не сейчас" },
+          {
+            text: "Включить",
+            strong: true,
+            onClick: async () => {
+              try {
+                await nativeCalendar.enableCalendar();
+                if (readState) {
+                  scheduleReminderSync("interactive", readState);
+                }
+              } catch (err) {
+                console.error("Не удалось включить календарь", err);
+              }
+            },
+          },
+        ],
+      })
+      .open();
+  } catch (err) {
+    console.error("Календарь неактивен", err);
+    isCalendarInactiveDialogOpen = false;
   }
 }
 
@@ -271,6 +317,10 @@ function report(results: CalendarRpcItemResult[], mode: ReminderSyncMode, ignore
     notifyPermissionDenied();
     return;
   }
+  if (failed.message === CALENDAR_RESULT_MESSAGE.CALENDAR_INACTIVE) {
+    notifyCalendarInactive();
+    return;
+  }
   console.error("Не удалось обновить календарь", failed.message);
   notify(USER_MESSAGES[failed.message ?? ""] ?? "Не удалось обновить календарь");
 }
@@ -281,4 +331,5 @@ export function resetReminderCalendarForTests(): void {
   running = false;
   queued = null;
   permissionAsked = false;
+  isCalendarInactiveDialogOpen = false;
 }

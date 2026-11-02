@@ -50,5 +50,6 @@ onBeforeUnmount(() => {
 <style scoped>  
 .reminders-description {
   margin-top: 0;
+  font-size: 18px;
 }
 </style>

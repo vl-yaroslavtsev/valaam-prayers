@@ -541,6 +541,7 @@ onUnmounted(() => {
   padding: 12px 16px;
   border-radius: 16px;
   background: var(--f7-block-strong-bg-color);
+  font-size: 18px;
 }
 
 .offline-banner {
