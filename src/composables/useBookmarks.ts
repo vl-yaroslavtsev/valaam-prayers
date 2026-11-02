@@ -26,6 +26,18 @@ export const progressToPage = (progress: number, totalPages: number): number => 
   return Math.min(Math.floor(progress * (totalPages - 1)) + 1, totalPages);
 };
 
+/**
+ * Закладка хранит прогресс начала страницы. floor() на значении чуть ниже
+ * целой границы (погрешность float) относит её на предыдущую страницу,
+ * и в горизонтальном режиме иконка остаётся ещё и на соседнем слайде.
+ * Ближайшая граница возвращает ту страницу, с которой закладку сохранили.
+ */
+export const bookmarkProgressToPage = (progress: number, totalPages: number): number => {
+  if (totalPages <= 1) return 1;
+  const page = Math.round(progress * (totalPages - 1)) + 1;
+  return Math.min(Math.max(page, 1), totalPages);
+};
+
 /** Прогресс начала страницы — чтобы закладка открывала верх страницы, а не позицию внутри неё. */
 export const pageToProgress = (page: number, totalPages: number): number => {
   if (totalPages <= 1) return 0;
@@ -46,7 +58,7 @@ export function useBookmarks(itemId: number, progress: Ref<number>, totalPages: 
   const bookmarksForItem = computed<BookmarkWithPage[]>(() =>
     store.getBookmarksByItem(itemId).map((bookmark) => ({
       ...bookmark,
-      page: progressToPage(bookmark.progress, totalPages.value),
+      page: bookmarkProgressToPage(bookmark.progress, totalPages.value),
     }))
   );
 

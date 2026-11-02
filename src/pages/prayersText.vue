@@ -641,7 +641,11 @@ const onTextPaginatorTouchEnd = (event: Event) => {
 // Состояние навигации по страницам
 const totalPages = computed(() => textPaginator.value?.pagesCount || 0);
 const progress = computed(() => textPaginator.value?.progress || 0);
-const currentPage = computed(() => progressToPage(progress.value, totalPages.value));
+const currentPage = computed(() => {
+  const page = textPaginator.value?.currentPage;
+  if (page) return page;
+  return progressToPage(progress.value, totalPages.value);
+});
 
 // Закладки
 const {
@@ -855,10 +859,7 @@ const onGoToHeaderFromPopup = (index: number) => {
     goToHeader(index);
   } else {
     closeChapterNav();
-    const header = headers.value[index];
-    if (header) {
-      textPaginator.value?.goToPage(header.page, false);
-    }
+    textPaginator.value?.scrollToHeader(index);
   }
   readingBarsAnimate.value = false;
   isNavbarHidden.value = true;
@@ -872,10 +873,7 @@ watch(
   [activeHeaderIndex, isChapterNavActive],
   () => {
     if (!isChapterNavActive.value) return;
-    const header = headers.value[activeHeaderIndex.value];
-    if (header) {
-      textPaginator.value?.goToPage(header.page, false);
-    }
+    textPaginator.value?.scrollToHeader(activeHeaderIndex.value);
   },
   { flush: "post" }
 );

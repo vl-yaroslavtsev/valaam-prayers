@@ -36,7 +36,7 @@
   </swiper-container>
 </template>
 <script setup lang="ts">
-import { useTemplateRef, computed } from "vue";
+import { useTemplateRef, computed, ref } from "vue";
 import { useTextSelection } from "@/composables/useTextSelection";
 import { SCREEN_EDGE_WIDTH } from "@/composables/useSwipeout";
 import { useSettingsStore } from "@/stores/settings";
@@ -95,6 +95,7 @@ const updateSlides = (slides: string[]) => {
   // После force-update без slideTo активный слайд может остаться за экраном
   // («пустая страница»). next/prev это скрывали повторным goToPage.
   swiper.slideTo(activeIndex, 0);
+  syncPage();
 };
 
 const emitTapFromClientPoint = (clientX: number, clientY: number) => {
@@ -133,7 +134,22 @@ const handleSwiperTap = (e: CustomEvent<[swiper: Swiper, event: PointerEvent]>) 
   emitTapFromClientPoint(pointer.clientX, pointer.clientY);
 };
 
+// Номер страницы — активный слайд, а не swiper.progress. Прогресс на границе
+// слайда из‑за округления translate чуть меньше целого шага, и progressToPage
+// отдаёт одну и ту же страницу двум соседним слайдам.
+const page = ref(1);
+
+const syncPage = () => {
+  const swiper = swiperRef.value?.swiper;
+  if (!swiper || swiper.destroyed) return;
+  const count = swiper.virtual?.slides?.length || swiper.slides?.length || 0;
+  const maxIndex = Math.max(count - 1, 0);
+  const index = Math.min(Math.max(swiper.activeIndex ?? 0, 0), maxIndex);
+  page.value = index + 1;
+};
+
 const handleSlideChange = () => {
+  syncPage();
   if (isSelected.value) {
     clearSelection();
   }
@@ -200,6 +216,7 @@ const handleProgress = (e: CustomEvent<[swiper: Swiper, progress: number]>) => {
   }
 
   emit("update:progress", progress);
+  syncPage();
 };
 
 let transitionTimeout: ReturnType<typeof setTimeout> | null = null;
@@ -243,6 +260,7 @@ defineExpose({
       return;
     }
     swiper.slideTo(Math.floor(progress * swiper.virtual.slides.length), 0);
+    syncPage();
   },
   goToPage: (page: number, animate: boolean = true) => {
     const swiper = swiperRef.value?.swiper;
@@ -251,18 +269,24 @@ defineExpose({
     }
     const index = page - 1;
     if (swiper.activeIndex === index) {
+      syncPage();
       return;
     }
     swiper.slideTo(index, animate ? programmaticTurnSpeed.value : 0);
+    syncPage();
   },
   setProgress: (progress: number) => {
     swiperRef.value?.swiper?.setProgress(progress);
+    syncPage();
   },
   slidePrev: () => {
     swiperRef.value?.swiper?.slidePrev(programmaticTurnSpeed.value);
+    syncPage();
   },
   slideNext: () => {
     swiperRef.value?.swiper?.slideNext(programmaticTurnSpeed.value);
+    syncPage();
   },
+  page,
 });
 </script>

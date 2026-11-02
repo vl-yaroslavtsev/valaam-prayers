@@ -101,12 +101,6 @@ const {
 
 const bookmarkedPageSet = computed(() => new Set(bookmarkedPages));
 const scrollProgress = ref(0);
-const currentPage = computed(() =>
-  pagesCount > 0 ? progressToPage(scrollProgress.value, pagesCount) : 0
-);
-const showCurrentBookmark = computed(
-  () => showBookmarkTabs && currentPage.value > 0 && bookmarkedPageSet.value.has(currentPage.value)
-);
 
 const settingsStore = useSettingsStore();
 const pageTurnScrollBehavior = computed<"smooth" | "instant">(() =>
@@ -122,6 +116,20 @@ const emit = defineEmits<{
 }>();
 
 const verticalContainerRef = useTemplateRef<HTMLElement>("verticalContainerRef");
+
+const currentPage = computed(() => {
+  if (pagesCount <= 0) return 0;
+  const el = verticalContainerRef.value;
+  const maxScroll = el ? Math.max(0, el.scrollHeight - el.clientHeight) : 0;
+  const raw = scrollProgress.value * (pagesCount - 1);
+  // scrollTop целый и на границе страницы оказывается на пиксель раньше.
+  // Без этого переход к закладке открывает её страницу, но иконка скрыта.
+  const slop = maxScroll > 0 ? (pagesCount - 1) / maxScroll : 0;
+  return Math.min(Math.floor(raw + slop) + 1, pagesCount);
+});
+const showCurrentBookmark = computed(
+  () => showBookmarkTabs && currentPage.value > 0 && bookmarkedPageSet.value.has(currentPage.value)
+);
 
 // Уникальный на инстанс идентификатор для scrollableParentEl VirtualList (несколько страниц
 // читалки могут одновременно жить в DOM из-за кэширования страниц Framework7)
@@ -141,6 +149,9 @@ type PendingText = {
   highlight?: (html: string, index: number) => string;
 };
 let pendingText: PendingText | null = null;
+// Смещение границы каждого h2/h3 от начала полотна, в порядке документа.
+// Совпадает с headers пагинации: пустые заголовки пропускаются так же.
+let headerAnchors: number[] = [];
 
 const readPadding = (container: HTMLElement, isFirst: boolean, isLast: boolean): ChunkPadding => {
   const style = getComputedStyle(container);
@@ -155,7 +166,18 @@ const readPadding = (container: HTMLElement, isFirst: boolean, isLast: boolean):
   };
 };
 
-const measureChunk = (container: HTMLElement, html: string, padding: ChunkPadding): number => {
+interface MeasuredChunk {
+  height: number;
+  html: string;
+  headerOffsets: number[];
+}
+
+const measureChunk = (
+  container: HTMLElement,
+  html: string,
+  padding: ChunkPadding,
+  headerStart: number
+): MeasuredChunk => {
   const probe = document.createElement("div");
   Object.assign(probe.style, {
     position: "absolute",
@@ -169,9 +191,20 @@ const measureChunk = (container: HTMLElement, html: string, padding: ChunkPaddin
   });
   probe.innerHTML = html;
   container.appendChild(probe);
-  const height = probe.offsetHeight;
+  const probeTop = probe.getBoundingClientRect().top;
+  const headerOffsets: number[] = [];
+  let headerIndex = headerStart;
+  probe.querySelectorAll("h2, h3").forEach((node) => {
+    const text = (node.textContent || "").replace(/\u00AD/g, "").trim();
+    if (!text) return;
+    node.setAttribute("data-header-index", String(headerIndex));
+    headerIndex += 1;
+    headerOffsets.push((node as HTMLElement).getBoundingClientRect().top - probeTop);
+  });
+  const height = Math.max(1, probe.offsetHeight);
+  const measuredHtml = probe.innerHTML;
   probe.remove();
-  return Math.max(1, height);
+  return { height, html: measuredHtml, headerOffsets };
 };
 
 const flushText = () => {
@@ -190,16 +223,26 @@ const flushText = () => {
   );
   const chunks = splitHtmlByCharBudget(job.sourceHtml, charsPerChunk);
   const last = chunks.length - 1;
+  const anchors: number[] = [];
+  let cursor = 0;
+  let headerCount = 0;
   const items = chunks.map((html, index) => {
     const shown = (job.highlight ? job.highlight(html, index) : html) + CHUNK_TAIL;
     const padding = readPadding(container, index === 0, index === last);
+    const measured = measureChunk(container, shown, padding, headerCount);
+    headerCount += measured.headerOffsets.length;
+    for (const offset of measured.headerOffsets) {
+      anchors.push(cursor + offset);
+    }
+    cursor += measured.height;
     return {
       index,
-      html: shown,
-      height: measureChunk(container, shown, padding),
+      html: measured.html,
+      height: measured.height,
       ...padding,
     };
   });
+  headerAnchors = anchors;
 
   f7VirtualList.params.height = chunkHeight;
   f7VirtualList.replaceAllItems(items);
@@ -429,6 +472,38 @@ const handleVerticalScrollEnd = () => {
 let lastVerticalScrollTarget: number | null = null;
 let lastVerticalScrollTimeout: ReturnType<typeof setTimeout> | null = null;
 
+// Нижние панели стоят в одной точке и накрывают друг друга. Берём верхнюю
+// кромку тех, что реально пересекают контейнер: скрытый тулбар уехал за экран.
+const BOTTOM_CHROME_SELECTOR = [
+  ".text-paginator-progress",
+  ".page-navigation-toolbar",
+  ".chapter-navigation-toolbar",
+  ".bookmark-navigation-toolbar",
+].join(", ");
+
+const readingBottomCover = (el: HTMLElement): number => {
+  const page = el.closest(".page");
+  if (!page) {
+    return 0;
+  }
+  const container = el.getBoundingClientRect();
+  if (container.height <= 0) {
+    return 0;
+  }
+  let coverTop = container.bottom;
+  page.querySelectorAll(BOTTOM_CHROME_SELECTOR).forEach((node) => {
+    const rect = (node as HTMLElement).getBoundingClientRect();
+    if (rect.width <= 0 || rect.height <= 0) {
+      return;
+    }
+    if (rect.bottom <= container.top || rect.top >= container.bottom) {
+      return;
+    }
+    coverTop = Math.min(coverTop, Math.max(rect.top, container.top));
+  });
+  return Math.max(0, container.bottom - coverTop);
+};
+
 // Прокручивает вертикальный список на одну "страницу" вперед/назад, накапливая
 // цель при повторных быстрых вызовах (аналог lastTranslatePosition для swiper)
 const scrollByPage = (direction: 1 | -1) => {
@@ -436,10 +511,10 @@ const scrollByPage = (direction: 1 | -1) => {
   if (!el) {
     return;
   }
-  const pageHeight = el.clientHeight;
-  if (!pageHeight) {
+  if (!el.clientHeight) {
     return;
   }
+  const pageHeight = Math.max(1, el.clientHeight - readingBottomCover(el));
 
   const maxScroll = Math.max(0, el.scrollHeight - el.clientHeight);
   const base = lastVerticalScrollTarget ?? el.scrollTop;
@@ -478,8 +553,40 @@ defineExpose({
     });
   },
   setProgress: (progress: number) => scrollToProgress(progress, false),
+  scrollToHeader: (index: number): boolean => {
+    const el = verticalContainerRef.value;
+    const anchor = headerAnchors[index];
+    if (!el || anchor == null) {
+      return false;
+    }
+    const paddingRaw = getComputedStyle(el).getPropertyValue("--reading-text-page-padding-y").trim();
+    const paddingY = parseFloat(paddingRaw);
+    const inset = Number.isFinite(paddingY) ? paddingY : 0;
+    const maxScroll = () => Math.max(0, el.scrollHeight - el.clientHeight);
+    const top = Math.min(maxScroll(), Math.max(0, anchor - inset));
+    // Кусок могли замерить до окончательной ширины: живой заголовок съезжает
+    // на строку. Ставим границу именно этого заголовка на верхний отступ.
+    const alignRenderedHeading = () => {
+      const heading = el.querySelector(`[data-header-index="${index}"]`);
+      if (!(heading instanceof HTMLElement)) return;
+      const delta = heading.getBoundingClientRect().top - el.getBoundingClientRect().top - inset;
+      if (Math.abs(delta) < 1) return;
+      el.scrollTo({
+        top: Math.min(maxScroll(), Math.max(0, el.scrollTop + delta)),
+        behavior: "instant",
+      });
+    };
+    if (Math.abs(el.scrollTop - top) >= 1) {
+      markProgrammaticScrollStart();
+      el.scrollTo({ top, behavior: "instant" });
+    }
+    alignRenderedHeading();
+    requestAnimationFrame(alignRenderedHeading);
+    return true;
+  },
   slidePrev: () => scrollByPage(-1),
   slideNext: () => scrollByPage(1),
+  page: currentPage,
 });
 </script>
 <style scoped lang="less">
@@ -514,16 +621,18 @@ defineExpose({
   position: sticky;
   top: 0;
   z-index: 6;
-  height: 0;
-  min-height: 0;
+  // 4px зазор сверху и сама иконка. Отрицательный margin не сдвигает текст
+  // и не даёт нулевой высоте обрезать svg.
+  height: 28px;
+  margin-bottom: -28px;
   display: flex;
   justify-content: flex-end;
+  align-items: flex-end;
   overflow: visible;
   pointer-events: none;
 
-  :deep(*) {
+  :deep(.icon) {
     pointer-events: auto;
-    transform: translateY(4px);
   }
 }
 </style>

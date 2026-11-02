@@ -232,20 +232,28 @@ onUnmounted(stopCalculatingProgress);
 const pages = shallowRef<string[]>([]);
 const headers = shallowRef<PaginationCacheItemHeader[]>([]);
 const pagesCount = computed(() => pages.value.length);
+
+// Активный в данный момент рендерер (Swiper для горизонтального, VirtualList для
+// вертикального) — оба реализуют один и тот же набор методов, см. defineExpose в них
+type PagerInstance = InstanceType<typeof TextPagerHorizontal> | InstanceType<typeof TextPagerVertical>;
+const pager = useTemplateRef<PagerInstance>("pager");
+
+// В горизонтальном режиме номер берём со слайда: swiper.progress на границе
+// совпадает у текущего и следующего слайда, и закладка рисуется на обоих.
+const currentPage = computed(() => {
+  const page = pager.value?.page;
+  if (typeof page === "number" && page > 0) return page;
+  return progressToPage(currentProgress.value, pagesCount.value);
+});
 const progressLabel = computed(() => {
   const total = pagesCount.value;
-  const page = progressToPage(currentProgress.value, total);
+  const page = currentPage.value;
   if (progressMode.value === "page") return String(page);
   if (progressMode.value === "percent") {
     return `${total > 0 ? Math.round((page / total) * 100) : 0}%`;
   }
   return `${page} из ${total}`;
 });
-
-// Активный в данный момент рендерер (Swiper для горизонтального, VirtualList для
-// вертикального) — оба реализуют один и тот же набор методов, см. defineExpose в них
-type PagerInstance = InstanceType<typeof TextPagerHorizontal> | InstanceType<typeof TextPagerVertical>;
-const pager = useTemplateRef<PagerInstance>("pager");
 
 const readingCssClasses = () =>
   `text-page reading-text ${lang ? "prayer-text lang-" + lang : ""} theme-${theme.value}`;
@@ -394,12 +402,25 @@ defineExpose({
   theme: readonly(theme),
   mode: readonly(mode),
   progress: readonly(currentProgress),
+  currentPage,
   pagesCount,
   headers: readonly(headers),
   pages: readonly(pages),
   refreshDisplay: () => applyPages(),
   goToPage: (page: number, animate: boolean = true) => {
     pager.value?.goToPage(page, animate);
+  },
+  scrollToHeader: (index: number) => {
+    if (mode.value === "vertical") {
+      const scrolled = (pager.value as InstanceType<typeof TextPagerVertical> | null)?.scrollToHeader(index);
+      if (scrolled) {
+        return;
+      }
+    }
+    const header = headers.value[index];
+    if (header) {
+      pager.value?.goToPage(header.page, false);
+    }
   },
   setProgress: (progress: number) => {
     pager.value?.setProgress(progress);
