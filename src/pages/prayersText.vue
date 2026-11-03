@@ -514,11 +514,14 @@ const onPageBeforeIn = () => {
   }
 };
 
+let dismissBookmarkTransient = () => {};
+
 const onPageBeforeOut = () => {
   navbarRef.value?.closeMorePopup();
   // Sheet живёт с внешним backdrop вне страницы. destroy() его не закрывает,
   // и прозрачный backdrop остаётся поверх главной и съедает тапы.
   isTextSettingsSheetOpened.value = false;
+  dismissBookmarkTransient();
 };
 
 const onPageAfterOut = () => {
@@ -659,10 +662,21 @@ const {
   goToNextBookmark,
   goToPrevBookmark,
   closeBookmarkNav,
+  closeToasts: closeBookmarkToasts,
+  closeEditDialog: closeBookmarkEditDialog,
   onCornerTap,
   openEditDialog: openBookmarkEditDialog,
   deleteBookmarkWithUndo,
 } = useBookmarks(itemId, progress, totalPages);
+
+dismissBookmarkTransient = () => {
+  closeBookmarkToasts();
+  closeBookmarkEditDialog();
+};
+
+watch(isContentPopupOpened, (opened) => {
+  if (opened) closeBookmarkToasts();
+});
 
 // Обучающий режим читалки — уровень 1 "Основы" (см. useReadingTutorial.ts)
 const {
@@ -1226,6 +1240,7 @@ watch(displayLanguage, () => {
   onCloseSearch();
   closeBookmarkNav();
   closeChapterNav();
+  closeBookmarkToasts();
 });
 
 watch(() => settingsStore.isChapterNavToolbarEnabled, (enabled) => {

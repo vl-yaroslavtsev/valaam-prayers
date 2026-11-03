@@ -290,8 +290,12 @@ const supportsScrollEnd = typeof window !== "undefined" && "onscrollend" in wind
 let verticalTouchStartPoint: { x: number; y: number } | null = null;
 const VERTICAL_TAP_MOVE_THRESHOLD = 10; // px — максимальное смещение пальца, чтобы считать касание тапом
 const BOOKMARK_TAB_TAP_DEBOUNCE_MS = 50;
+// Касание даёт touchend и затем click. Второй вызов снова открывает диалог
+// редактирования и срывает его закрытие по «Сохранить» / «Удалить».
+const BOOKMARK_TAB_CLICK_SUPPRESS_MS = 700;
 let bookmarkTabTouchStart: { x: number; y: number } | null = null;
 let lastBookmarkTabTapAt = 0;
+let bookmarkTabTouchAt = 0;
 
 const isTransitioning = ref(false);
 
@@ -340,11 +344,16 @@ const onBookmarkTabTouchEnd = (event: TouchEvent) => {
   if (Math.hypot(touch.clientX - start.x, touch.clientY - start.y) > VERTICAL_TAP_MOVE_THRESHOLD) {
     return;
   }
+  event.preventDefault();
+  bookmarkTabTouchAt = performance.now();
   emitBookmarkTabTap(currentPage.value, touch.clientX, touch.clientY);
 };
 
 const onBookmarkTabClick = (event: MouseEvent) => {
   if (currentPage.value <= 0) {
+    return;
+  }
+  if (bookmarkTabTouchAt > 0 && performance.now() - bookmarkTabTouchAt < BOOKMARK_TAB_CLICK_SUPPRESS_MS) {
     return;
   }
   emitBookmarkTabTap(currentPage.value, event.clientX, event.clientY);

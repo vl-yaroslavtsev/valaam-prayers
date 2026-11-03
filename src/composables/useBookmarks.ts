@@ -1,6 +1,6 @@
 import { ref, computed, onUnmounted, type Ref } from "vue";
 import { f7 } from "framework7-vue";
-import type { Dialog } from "framework7/types";
+import type { Dialog, Toast } from "framework7/types";
 import { useBookmarksStore, type Bookmark } from "@/stores/bookmarks";
 
 export interface BookmarkWithPage extends Bookmark {
@@ -104,12 +104,24 @@ export function useBookmarks(itemId: number, progress: Ref<number>, totalPages: 
     activeBookmarkId.value = null;
   };
 
-  // --- Тултипы ---
-  let addedToast: ReturnType<typeof f7.toast.create> | null = null;
-  let deletedToast: ReturnType<typeof f7.toast.create> | null = null;
+  // --- Тосты «закладка добавлена / удалена» ---
+  // destroy() без close() снимает экземпляр, но оставляет .toast.modal-in в DOM:
+  // таймаут у такого тоста уже не сработает.
+  let addedToast: Toast.Toast | null = null;
+  let deletedToast: Toast.Toast | null = null;
+
+  const closeToast = (toast: Toast.Toast | null) => {
+    if (!toast?.el?.classList.contains("modal-in")) return;
+    toast.close(false);
+  };
+
+  const closeToasts = () => {
+    closeToast(addedToast);
+    closeToast(deletedToast);
+  };
 
   const showAddedToast = (onEdit: () => void) => {
-    addedToast?.destroy();
+    closeToasts();
     addedToast = f7.toast.create({
       text: "Закладка добавлена.",
       closeButton: true,
@@ -124,7 +136,7 @@ export function useBookmarks(itemId: number, progress: Ref<number>, totalPages: 
   };
 
   const showDeletedToast = (onUndo: () => void) => {
-    deletedToast?.destroy();
+    closeToasts();
     deletedToast = f7.toast.create({
       text: "Закладка удалена.",
       closeButton: true,
@@ -152,8 +164,14 @@ export function useBookmarks(itemId: number, progress: Ref<number>, totalPages: 
   // --- Диалог редактирования названия ---
   let currentDialog: Dialog.Dialog | null = null;
 
+  const closeEditDialog = () => {
+    if (!currentDialog?.el?.classList.contains("modal-in")) return;
+    currentDialog.close(false);
+  };
+
   const openEditDialog = (bookmark: { id: string; name: string }) => {
-    currentDialog?.destroy();
+    // destroy() у открытого диалога оставляет его на экране без обработчика закрытия.
+    closeEditDialog();
 
     const dialog = f7.dialog.create({
       title: "Изменить закладку",
@@ -169,8 +187,9 @@ export function useBookmarks(itemId: number, progress: Ref<number>, totalPages: 
       buttons: [
         {
           text: "Удалить",
-          onClick: () => {
+          onClick: (dlg) => {
             deleteBookmarkWithUndo(bookmark.id);
+            dlg.close(false);
           },
         },
         {
@@ -182,6 +201,7 @@ export function useBookmarks(itemId: number, progress: Ref<number>, totalPages: 
             if (value) {
               store.renameBookmark(bookmark.id, value);
             }
+            dlg.close(false);
           },
         },
       ],
@@ -239,9 +259,8 @@ export function useBookmarks(itemId: number, progress: Ref<number>, totalPages: 
   };
 
   onUnmounted(() => {
-    addedToast?.destroy();
-    deletedToast?.destroy();
-    currentDialog?.destroy();
+    closeToasts();
+    closeEditDialog();
   });
 
   return {
@@ -255,6 +274,8 @@ export function useBookmarks(itemId: number, progress: Ref<number>, totalPages: 
     goToNextBookmark,
     goToPrevBookmark,
     closeBookmarkNav,
+    closeToasts,
+    closeEditDialog,
     onCornerTap,
     openEditDialog,
     deleteBookmarkWithUndo,

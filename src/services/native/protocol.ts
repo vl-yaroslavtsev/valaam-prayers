@@ -82,7 +82,7 @@ export const CALENDAR_RESULT_MESSAGE = {
   EVENT_NOT_FOUND: "Event not found",
   /** Android, все элементы addEvents: календарь не найден. */
   CALENDAR_NOT_FOUND: "Calendar not found",
-  /** Android, все элементы addEvents: календарь выключен. */
+  /** Обе платформы, все элементы addEvents: календарь скрыт. */
   CALENDAR_INACTIVE: "Calendar is inactive",
   /** Android, date не разобралась. */
   INVALID_DATE: "Некорректная дата",
