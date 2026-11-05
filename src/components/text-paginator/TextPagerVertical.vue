@@ -34,42 +34,25 @@
         class="text-chunk"
         :style="{ top: (vlData.topPosition || 0) + 'px', height: item.height + 'px' }"
       >
-        <div
-          class="text-chunk-body"
-          :style="{
-            paddingTop: item.paddingTop,
-            paddingRight: item.paddingRight,
-            paddingBottom: item.paddingBottom,
-            paddingLeft: item.paddingLeft,
-          }"
-          v-html="item.html"
-        ></div>
+        <div class="text-chunk-body text-page" v-html="item.html"></div>
       </li>
     </f7-list>
+    <!-- Нижнее меню поиска лежит поверх конца текста. Без этого хвоста
+         последнее совпадение нельзя докрутить выше меню. -->
+    <div v-if="showSearchTail" class="search-scroll-tail" aria-hidden="true"></div>
   </div>
 </template>
 <script setup lang="ts">
-import { useTemplateRef, ref, computed } from "vue";
+import { useTemplateRef, ref, computed, nextTick } from "vue";
 import { useTextSelection } from "@/composables/useTextSelection";
 import { pageToProgress, progressToPage } from "@/composables/useBookmarks";
 import { useSettingsStore } from "@/stores/settings";
 import type { VirtualList } from "framework7/types";
 import type { TextTheme, Language } from "@/types/common";
 import SvgIcon from "@/components/SvgIcon.vue";
-import { estimateCharsForPages, splitHtmlByCharBudget } from "@/text-processing-v3/splitHtmlChunks";
 import { detectTapZone } from "./tapZone";
 
-const VERTICAL_CHUNK_SCREENS = 4;
-const CHUNK_TAIL = '<span aria-hidden="true" style="display:block;height:0;overflow:hidden"></span>';
-
-interface ChunkPadding {
-  paddingTop: string;
-  paddingRight: string;
-  paddingBottom: string;
-  paddingLeft: string;
-}
-
-interface VerticalListItem extends ChunkPadding {
+interface VerticalListItem {
   index: number;
   html: string;
   height: number;
@@ -143,126 +126,48 @@ const vlData = ref<VerticalListRenderData>({ items: [] });
 
 const chunkHeight = (item: VerticalListItem) => item.height || 1;
 
-type PendingText = {
-  sourceHtml: string;
-  cssClasses: string;
-  highlight?: (html: string, index: number) => string;
-};
-let pendingText: PendingText | null = null;
-// Смещение границы каждого h2/h3 от начала полотна, в порядке документа.
-// Совпадает с headers пагинации: пустые заголовки пропускаются так же.
-let headerAnchors: number[] = [];
+let pendingPages: string[] | null = null;
+let pageItems: VerticalListItem[] = [];
+const showSearchTail = ref(false);
 
-const readPadding = (container: HTMLElement, isFirst: boolean, isLast: boolean): ChunkPadding => {
-  const style = getComputedStyle(container);
-  const x = style.getPropertyValue("--reading-text-page-padding-x").trim() || "24px";
-  const y = style.getPropertyValue("--reading-text-page-padding-y").trim() || "24px";
-  const bottom = style.getPropertyValue("--reading-text-page-padding-bottom").trim() || "35px";
-  return {
-    paddingTop: isFirst ? y : "0px",
-    paddingRight: x,
-    paddingBottom: isLast ? bottom : "0px",
-    paddingLeft: x,
-  };
-};
-
-interface MeasuredChunk {
-  height: number;
-  html: string;
-  headerOffsets: number[];
-}
-
-const measureChunk = (
-  container: HTMLElement,
-  html: string,
-  padding: ChunkPadding,
-  headerStart: number
-): MeasuredChunk => {
-  const probe = document.createElement("div");
-  Object.assign(probe.style, {
-    position: "absolute",
-    visibility: "hidden",
-    left: "0",
-    top: "0",
-    width: `${container.clientWidth}px`,
-    boxSizing: "border-box",
-    pointerEvents: "none",
-    ...padding,
-  });
-  probe.innerHTML = html;
-  container.appendChild(probe);
-  const probeTop = probe.getBoundingClientRect().top;
-  const headerOffsets: number[] = [];
-  let headerIndex = headerStart;
-  probe.querySelectorAll("h2, h3").forEach((node) => {
-    const text = (node.textContent || "").replace(/\u00AD/g, "").trim();
-    if (!text) return;
-    node.setAttribute("data-header-index", String(headerIndex));
-    headerIndex += 1;
-    headerOffsets.push((node as HTMLElement).getBoundingClientRect().top - probeTop);
-  });
-  const height = Math.max(1, probe.offsetHeight);
-  const measuredHtml = probe.innerHTML;
-  probe.remove();
-  return { height, html: measuredHtml, headerOffsets };
-};
-
-const flushText = () => {
-  const job = pendingText;
+// Страницы уже посчитаны и лежат в кэше пагинации. Высота каждой — экран,
+// заново текст не меряем.
+const flushPages = () => {
+  const pages = pendingPages;
   const container = verticalContainerRef.value;
-  if (!job || !f7VirtualList || !container) {
+  if (!pages || !f7VirtualList || !container || container.clientHeight < 1) {
     return;
   }
-  pendingText = null;
+  pendingPages = null;
 
-  const charsPerChunk = estimateCharsForPages(
-    container.clientWidth,
-    container.clientHeight,
-    job.cssClasses,
-    VERTICAL_CHUNK_SCREENS
-  );
-  const chunks = splitHtmlByCharBudget(job.sourceHtml, charsPerChunk);
-  const last = chunks.length - 1;
-  const anchors: number[] = [];
-  let cursor = 0;
-  let headerCount = 0;
-  const items = chunks.map((html, index) => {
-    const shown = (job.highlight ? job.highlight(html, index) : html) + CHUNK_TAIL;
-    const padding = readPadding(container, index === 0, index === last);
-    const measured = measureChunk(container, shown, padding, headerCount);
-    headerCount += measured.headerOffsets.length;
-    for (const offset of measured.headerOffsets) {
-      anchors.push(cursor + offset);
-    }
-    cursor += measured.height;
-    return {
-      index,
-      html: measured.html,
-      height: measured.height,
-      ...padding,
-    };
-  });
-  headerAnchors = anchors;
+  const height = container.clientHeight;
+  pageItems = pages.map((html, index) => ({ index, html, height }));
+  showSearchTail.value = pages.some((html) => html.includes("search-highlight"));
 
   f7VirtualList.params.height = chunkHeight;
-  f7VirtualList.replaceAllItems(items);
+  f7VirtualList.replaceAllItems(pageItems);
 };
 
 const handleRenderExternal = (vl: VirtualList.VirtualList, data: VerticalListRenderData) => {
   f7VirtualList = vl;
   vlData.value = data;
-  if (pendingText) {
-    flushText();
+  if (pendingPages) {
+    flushPages();
   }
 };
 
-const applyText = (
-  sourceHtml: string,
-  cssClasses: string,
-  highlight?: (html: string, index: number) => string
-) => {
-  pendingText = { sourceHtml, cssClasses, highlight };
-  flushText();
+const applyPages = (pages: string[]) => {
+  pendingPages = pages;
+  flushPages();
+};
+
+const setPageHtml = (index: number, html: string) => {
+  const item = pageItems[index];
+  if (!item || !f7VirtualList) {
+    return;
+  }
+  item.html = html;
+  f7VirtualList.replaceItem(index, item);
 };
 
 // Флаг "сейчас идёт наш собственный el.scrollTo()" — нужен, чтобы отличать
@@ -488,6 +393,7 @@ const BOTTOM_CHROME_SELECTOR = [
   ".page-navigation-toolbar",
   ".chapter-navigation-toolbar",
   ".bookmark-navigation-toolbar",
+  ".search-navigation-toolbar",
 ].join(", ");
 
 const readingBottomCover = (el: HTMLElement): number => {
@@ -541,9 +447,41 @@ const scrollByPage = (direction: 1 | -1) => {
   el.scrollTo({ top: lastVerticalScrollTarget, behavior: pageTurnScrollBehavior.value });
 };
 
+// Меню поиска может ещё ехать анимацией и не попасть в измерение.
+const searchBottomCover = (el: HTMLElement): number => {
+  const safeRaw = getComputedStyle(document.documentElement).getPropertyValue("--f7-safe-area-bottom");
+  const safe = parseFloat(safeRaw);
+  const reserve = 40 + (Number.isFinite(safe) ? safe : 0);
+  return Math.max(readingBottomCover(el), reserve);
+};
+
+// Совпадение внизу страницы может оказаться под меню поиска.
+const revealActiveSearchMark = () => {
+  nextTick(() => {
+    const root = verticalContainerRef.value;
+    const mark = root?.querySelector("mark.search-highlight-active");
+    if (!root || !(mark instanceof HTMLElement)) return;
+    const cover = searchBottomCover(root);
+    const container = root.getBoundingClientRect();
+    const rect = mark.getBoundingClientRect();
+    const margin = 16;
+    const visibleBottom = container.bottom - cover;
+    if (rect.top >= container.top + margin && rect.bottom <= visibleBottom - margin) return;
+    const delta = rect.top - (container.top + Math.min(72, (container.height - cover) * 0.2));
+    if (Math.abs(delta) < 2) return;
+    const maxScroll = Math.max(0, root.scrollHeight - root.clientHeight);
+    const top = Math.min(maxScroll, Math.max(0, root.scrollTop + delta));
+    if (Math.abs(root.scrollTop - top) < 1) return;
+    markProgrammaticScrollStart();
+    root.scrollTo({ top, behavior: "instant" });
+  });
+};
+
 defineExpose({
   containerEl: computed(() => verticalContainerRef.value ?? undefined),
-  applyText,
+  applyPages,
+  setPageHtml,
+  revealActiveSearchMark,
   restoreProgress: (progress: number) => scrollToProgress(progress, false),
   goToPage: (page: number, animate: boolean = true) => {
     const el = verticalContainerRef.value;
@@ -562,37 +500,8 @@ defineExpose({
     });
   },
   setProgress: (progress: number) => scrollToProgress(progress, false),
-  scrollToHeader: (index: number): boolean => {
-    const el = verticalContainerRef.value;
-    const anchor = headerAnchors[index];
-    if (!el || anchor == null) {
-      return false;
-    }
-    const paddingRaw = getComputedStyle(el).getPropertyValue("--reading-text-page-padding-y").trim();
-    const paddingY = parseFloat(paddingRaw);
-    const inset = Number.isFinite(paddingY) ? paddingY : 0;
-    const maxScroll = () => Math.max(0, el.scrollHeight - el.clientHeight);
-    const top = Math.min(maxScroll(), Math.max(0, anchor - inset));
-    // Кусок могли замерить до окончательной ширины: живой заголовок съезжает
-    // на строку. Ставим границу именно этого заголовка на верхний отступ.
-    const alignRenderedHeading = () => {
-      const heading = el.querySelector(`[data-header-index="${index}"]`);
-      if (!(heading instanceof HTMLElement)) return;
-      const delta = heading.getBoundingClientRect().top - el.getBoundingClientRect().top - inset;
-      if (Math.abs(delta) < 1) return;
-      el.scrollTo({
-        top: Math.min(maxScroll(), Math.max(0, el.scrollTop + delta)),
-        behavior: "instant",
-      });
-    };
-    if (Math.abs(el.scrollTop - top) >= 1) {
-      markProgrammaticScrollStart();
-      el.scrollTo({ top, behavior: "instant" });
-    }
-    alignRenderedHeading();
-    requestAnimationFrame(alignRenderedHeading);
-    return true;
-  },
+  // Заголовок лежит на уже посчитанной странице кэша — родитель откроет её.
+  scrollToHeader: (_index: number): boolean => false,
   slidePrev: () => scrollByPage(-1),
   slideNext: () => scrollByPage(1),
   page: currentPage,
@@ -604,6 +513,12 @@ defineExpose({
   overflow-x: hidden;
   overscroll-behavior-y: contain;
   -webkit-overflow-scrolling: touch;
+  // Полоса прокрутки не должна сужать текст: страницы посчитаны на полную ширину.
+  scrollbar-width: none;
+
+  &::-webkit-scrollbar {
+    display: none;
+  }
 }
 
 .text-paginator-vlist {
@@ -622,8 +537,13 @@ defineExpose({
   }
 }
 
-.text-chunk-body {
-  box-sizing: border-box;
+.text-chunk-body.text-page {
+  height: 100%;
+  overflow: hidden;
+}
+
+.search-scroll-tail {
+  height: 80px;
 }
 
 .page-bookmark-tab {

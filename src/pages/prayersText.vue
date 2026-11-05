@@ -1189,6 +1189,7 @@ const onOpenSearch = () => {
 };
 
 const onSelectMatch = (id: number) => {
+  const wasSearchActive = isSearchModeActive.value;
   closeBookmarkNav();
   closeChapterNav();
   goToMatch(id);
@@ -1200,6 +1201,15 @@ const onSelectMatch = (id: number) => {
   nextTick(() => {
     readingBarsAnimate.value = true;
   });
+
+  if (settingsStore.pageMode === "vertical") {
+    // Первое включение ждёт отрисовки меню: подсветку нанесёт вотчер activeMatch.
+    // Повторный выбор того же результата вотчер не видит.
+    if (wasSearchActive) {
+      textPaginator.value?.focusSearchMatch(activeMatch.value, searchMatches.value, searchQuery.value);
+    }
+    return;
+  }
 
   const match = searchMatches.value.find((m) => m.id === id);
   if (match) {
@@ -1223,17 +1233,31 @@ const onCloseSearch = () => {
 
 // Сначала обновляем HTML подсветки, затем переходим к странице совпадения.
 // Иначе refreshDisplay пересоберёт слайды Swiper в середине анимации.
+// В вертикальном режиме страницы не пересобираются: подсветка и прокрутка
+// идут к самой метке, иначе каждый шаг заново меряет весь текст.
 watch(activeMatch, () => {
   if (!isSearchModeActive.value) return;
+  if (settingsStore.pageMode === "vertical") {
+    // Пока открыт список, не перемериваем текст на каждый символ запроса.
+    if (isSearchPageOpened.value) return;
+    textPaginator.value?.focusSearchMatch(activeMatch.value, searchMatches.value, searchQuery.value);
+    return;
+  }
   textPaginator.value?.refreshDisplay();
   if (activeMatch.value) {
     textPaginator.value?.goToPage(activeMatch.value.page, false);
   }
 }, { flush: 'post' });
 
-watch(isSearchModeActive, () => {
+watch(isSearchModeActive, (active) => {
+  if (active && settingsStore.pageMode === "vertical") return;
   textPaginator.value?.refreshDisplay();
 }, { flush: 'post' });
+
+watch(isSearchPageOpened, (opened) => {
+  if (opened || !isSearchModeActive.value || settingsStore.pageMode !== "vertical") return;
+  textPaginator.value?.focusSearchMatch(activeMatch.value, searchMatches.value, searchQuery.value);
+}, { flush: "post" });
 
 // Сбрасываем поиск при смене языка — страницы пересчитываются, старые совпадения не валидны
 watch(displayLanguage, () => {

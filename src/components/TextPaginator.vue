@@ -62,6 +62,7 @@ import type { PaginationCacheItemHeader } from "@/services/storage/PaginationCac
 import type { Swiper } from "swiper";
 import type { Language } from "@/types/common";
 import { paginateText } from "@/text-processing-v3";
+import type { SearchMatch } from "@/text-processing";
 import { progressToPage } from "@/composables/useBookmarks";
 
 import TextPagerHorizontal from "./text-paginator/TextPagerHorizontal.vue";
@@ -258,22 +259,25 @@ const progressLabel = computed(() => {
 const readingCssClasses = () =>
   `text-page reading-text ${lang ? "prayer-text lang-" + lang : ""} theme-${theme.value}`;
 
-// Индекс вне диапазона страниц: подсветка поиска кэшируется по номеру страницы,
-// куски полотна не должны занимать эти слоты.
-const FLOW_HIGHLIGHT_INDEX_OFFSET = 1_000_000;
+// Оба режима показывают одни и те же страницы из кэша пагинации.
+// Вертикальный список не перемеривает исходный текст.
+let verticalSearchQuery: string | null = null;
+let verticalSearchPage: number | null = null;
 
-// Применяет посчитанные страницы к активному в данный момент рендереру.
-// В вертикальном режиме на экран идёт исходный текст, нарезанный на куски.
+const highlightedPages = (): string[] =>
+  highlightTransform
+    ? pages.value.map((html, index) => highlightTransform(html, index))
+    : pages.value.slice();
+
 const applyPages = () => {
+  const finalPages = highlightedPages();
   if (mode.value === "vertical") {
-    const highlight = highlightTransform
-      ? (html: string, index: number) => highlightTransform(html, FLOW_HIGHLIGHT_INDEX_OFFSET + index)
-      : undefined;
-    (pager.value as InstanceType<typeof TextPagerVertical> | null)?.applyText(text, readingCssClasses(), highlight);
+    if (!highlightTransform) {
+      verticalSearchQuery = null;
+      verticalSearchPage = null;
+    }
+    (pager.value as InstanceType<typeof TextPagerVertical> | null)?.applyPages(finalPages);
   } else {
-    const finalPages = highlightTransform
-      ? pages.value.map((html, i) => highlightTransform(html, i))
-      : pages.value;
     (pager.value as InstanceType<typeof TextPagerHorizontal> | null)?.applyPages(finalPages);
   }
   displayedLang.value = lang;
@@ -293,7 +297,6 @@ let loadGeneration = 0;
 
 const loadReading = async (container: HTMLElement) => {
   const generation = ++loadGeneration;
-  const pageMode = mode.value;
   isCalculating.value = true;
   resetCalculatingProgress();
   freezeReadingStyles(container);
@@ -306,7 +309,8 @@ const loadReading = async (container: HTMLElement) => {
 
   try {
     const cssClasses = readingCssClasses();
-    const cached = await getCachedText(itemId, lang, modifiedTs, pageMode);
+    // Вертикальный режим читает тот же кэш, что и горизонтальный.
+    const cached = await getCachedText(itemId, lang, modifiedTs, "horizontal");
     if (generation !== loadGeneration) {
       return;
     }
@@ -329,11 +333,10 @@ const loadReading = async (container: HTMLElement) => {
       }
       pages.value = result.pages;
       headers.value = result.headers;
-      setCachedText(itemId, lang, pages.value, headers.value, modifiedTs, pageMode);
+      setCachedText(itemId, lang, pages.value, headers.value, modifiedTs, "horizontal");
     }
 
-    // Новые страницы, класс языка и живые CSS-переменные — в одном кадре.
-    // Стили снимаем до отрисовки: вертикальные куски меряют высоту по ним.
+    // Новые страницы и класс языка — в одном кадре, уже с живыми CSS-переменными.
     releaseStyles();
     applyPages();
     restoreProgress();
@@ -377,7 +380,7 @@ async () => {
 });
 
 watch(mode, async () => {
-  // Смена режима пересоздаёт рендерер. Инвалидируем текущий расчёт и читаем кэш нового режима.
+  // Смена режима пересоздаёт рендерер. Страницы берём из общего кэша пагинации.
   const generationAtSwitch = ++loadGeneration;
   isCalculating.value = true;
   await nextTick();
@@ -430,6 +433,30 @@ defineExpose({
   },
   slideNext: () => {
     pager.value?.slideNext();
+  },
+  focusSearchMatch: (match: SearchMatch | null, _matches: readonly SearchMatch[], query: string) => {
+    if (mode.value !== "vertical") return;
+    const vertical = pager.value as InstanceType<typeof TextPagerVertical> | null;
+    if (!vertical) return;
+
+    const pageIndex = match ? match.page - 1 : -1;
+    if (verticalSearchQuery !== query || !highlightTransform) {
+      applyPages();
+      verticalSearchQuery = highlightTransform ? query : null;
+    } else if (pageIndex >= 0) {
+      // Подсветка остальных страниц уже в кэше. Меняем только прошлую и текущую.
+      if (verticalSearchPage != null && verticalSearchPage !== pageIndex) {
+        const previous = pages.value[verticalSearchPage];
+        if (previous) vertical.setPageHtml(verticalSearchPage, highlightTransform(previous, verticalSearchPage));
+      }
+      const current = pages.value[pageIndex];
+      if (current) vertical.setPageHtml(pageIndex, highlightTransform(current, pageIndex));
+    }
+    verticalSearchPage = pageIndex >= 0 ? pageIndex : null;
+    if (match) {
+      vertical.goToPage(match.page, false);
+      vertical.revealActiveSearchMark();
+    }
   },
 });
 </script>

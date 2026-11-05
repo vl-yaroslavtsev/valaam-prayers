@@ -25,5 +25,8 @@ export {
   buildPageSentenceIndex,
   searchInSentenceIndex,
   highlightPageHtml,
+  normalizeSearchContext,
+  searchMatchContext,
+  alignSearchAnchors,
 } from './textSearch';
 export type { PageSentence, PageSentenceIndex, SearchMatch } from './textSearch';

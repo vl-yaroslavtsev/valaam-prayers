@@ -224,3 +224,84 @@ export function highlightPageHtml(html: string, query: string, activeOrdinalOnPa
 
   return container.innerHTML;
 }
+
+const ELLIPSIS = '…';
+const SEARCH_CONTEXT_RADIUS = 32;
+
+/**
+ * Общий вид контекста для сопоставления совпадения из страниц
+ * с подсветкой в сплошном вертикальном тексте.
+ * Мягкие переносы и дефис на разрыве колонки не должны мешать.
+ */
+export function normalizeSearchContext(text: string): string {
+  return text
+    .replace(/\u00AD/g, '')
+    .replace(/(?<=\p{L})-|-(?=\p{L})/gu, '')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .toLowerCase();
+}
+
+/** Фрагмент сниппета вокруг совпадения, без добавленного многоточия. */
+export function searchMatchContext(match: SearchMatch): string {
+  let snippet = match.snippet;
+  let start = match.matchStart;
+  let end = start + match.matchLength;
+
+  if (snippet.startsWith(ELLIPSIS)) {
+    snippet = snippet.slice(ELLIPSIS.length);
+    start -= ELLIPSIS.length;
+    end -= ELLIPSIS.length;
+  }
+  if (snippet.endsWith(ELLIPSIS)) {
+    snippet = snippet.slice(0, -ELLIPSIS.length);
+  }
+
+  start = Math.max(0, Math.min(start, snippet.length));
+  end = Math.max(start, Math.min(end, snippet.length));
+
+  const from = Math.max(0, start - SEARCH_CONTEXT_RADIUS);
+  const to = Math.min(snippet.length, end + SEARCH_CONTEXT_RADIUS);
+  return normalizeSearchContext(snippet.slice(from, to));
+}
+
+const ALIGN_LOOKAHEAD = 40;
+const SHORT_CONTEXT = 8;
+
+/**
+ * Какое визуальное совпадение (в порядке документа) соответствует каждому
+ * результату поиска. Идём вперёд и пропускаем лишние подсветки: слово,
+ * разрезанное границей страницы, в страницах не находится, а в сплошном
+ * тексте находится.
+ */
+export function alignSearchAnchors(
+  matchContexts: readonly string[],
+  anchorContexts: readonly string[],
+): number[] {
+  const result = new Array<number>(matchContexts.length).fill(-1);
+  let cursor = 0;
+
+  for (let i = 0; i < matchContexts.length; i += 1) {
+    const key = matchContexts[i];
+    if (!key || cursor >= anchorContexts.length) continue;
+
+    if (key.length < SHORT_CONTEXT) {
+      result[i] = cursor;
+      cursor += 1;
+      continue;
+    }
+
+    const limit = Math.min(anchorContexts.length, cursor + ALIGN_LOOKAHEAD);
+    for (let k = cursor; k < limit; k += 1) {
+      const anchor = anchorContexts[k];
+      if (!anchor) continue;
+      const same = anchor.includes(key) || (anchor.length < key.length && key.includes(anchor));
+      if (!same) continue;
+      result[i] = k;
+      cursor = k + 1;
+      break;
+    }
+  }
+
+  return result;
+}
