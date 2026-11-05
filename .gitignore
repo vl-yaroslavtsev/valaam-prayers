@@ -46,3 +46,5 @@ native-seed/
 
 # Автогенерируемые типы (см. scripts/generate-icon-types.js)
 src/types/icon-name.d.ts
+
+scripts/rites-php/

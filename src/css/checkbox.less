@@ -1,0 +1,14 @@
+.md {
+  --f7-checkbox-size: 24px;
+  --f7-checkbox-border-radius: 8px;
+  --f7-checkbox-active-color: var(--brand-color-primary-accent-50);
+  --f7-checkbox-inactive-color: var(--content-color-black-40);
+  // Галочка белая на акцентной заливке; в тёмной теме Framework7 иначе ставит чёрную
+  --f7-checkbox-icon-color: var(--content-color-white-100);
+
+  &.dark,
+  & .dark {
+    --f7-checkbox-active-color: var(--brand-color-primary-accent-70);
+    --f7-checkbox-inactive-color: var(--content-color-baige-40);
+  }
+}
