@@ -28,8 +28,8 @@ export const progressToPage = (progress: number, totalPages: number): number => 
 
 /**
  * Закладка хранит прогресс начала страницы. floor() на значении чуть ниже
- * целой границы (погрешность float) относит её на предыдущую страницу,
- * и в горизонтальном режиме иконка остаётся ещё и на соседнем слайде.
+ * целой границы (погрешность float) относит её на предыдущую страницу:
+ * для 27 страниц прогресс 16-й — это 15/26, а 15/26 * 26 = 14.999999999999998.
  * Ближайшая граница возвращает ту страницу, с которой закладку сохранили.
  */
 export const bookmarkProgressToPage = (progress: number, totalPages: number): number => {
@@ -48,11 +48,15 @@ export const pageToProgress = (page: number, totalPages: number): number => {
 /**
  * Композабл закладок для страницы чтения молитвы/книги (itemId).
  *
- * progress/totalPages — как в reading-history: закладка хранит прогресс (0..1), а не номер
- * страницы, чтобы оставаться корректной при пересчёте пагинации (смена шрифта/языка).
- * Сохраняем прогресс начала текущей страницы, а не точную позицию скролла.
+ * Закладка хранит прогресс (0..1), а не номер страницы, чтобы оставаться корректной
+ * при пересчёте пагинации (смена шрифта/языка). Сохраняем прогресс начала текущей
+ * страницы, а не точную позицию скролла.
+ *
+ * currentPage — номер страницы пагинатора (активный слайд или позиция вертикального
+ * скролла). С progressToPage(swiper.progress) её сравнивать нельзя: на границе float
+ * даёт предыдущий номер, и иконка закладки видна на двух соседних страницах.
  */
-export function useBookmarks(itemId: number, progress: Ref<number>, totalPages: Ref<number>) {
+export function useBookmarks(itemId: number, currentPage: Ref<number>, totalPages: Ref<number>) {
   const store = useBookmarksStore();
 
   const bookmarksForItem = computed<BookmarkWithPage[]>(() =>
@@ -61,8 +65,6 @@ export function useBookmarks(itemId: number, progress: Ref<number>, totalPages: 
       page: bookmarkProgressToPage(bookmark.progress, totalPages.value),
     }))
   );
-
-  const currentPage = computed(() => progressToPage(progress.value, totalPages.value));
 
   const currentPageBookmark = computed<BookmarkWithPage | null>(
     () => bookmarksForItem.value.find((b) => b.page === currentPage.value) ?? null

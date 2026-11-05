@@ -667,7 +667,7 @@ const {
   onCornerTap,
   openEditDialog: openBookmarkEditDialog,
   deleteBookmarkWithUndo,
-} = useBookmarks(itemId, progress, totalPages);
+} = useBookmarks(itemId, currentPage, totalPages);
 
 dismissBookmarkTransient = () => {
   closeBookmarkToasts();
