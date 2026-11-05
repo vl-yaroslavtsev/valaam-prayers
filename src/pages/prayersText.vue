@@ -816,8 +816,12 @@ watch(activeBookmark, (bookmark) => {
 const isChapterNavActive = ref(false);
 const activeHeaderIndex = ref(-1);
 
-// Несколько глав на одной странице — один шаг листания: стрелки всегда меняют страницу.
+// Горизонтальный режим листает страницами: несколько заголовков на одном экране — один шаг.
+// Вертикальный обходит каждый заголовок и прокручивает поток к его началу.
 const chapterPageIndices = computed(() => {
+  if (settingsStore.pageMode === "vertical") {
+    return headers.value.map((_, index) => index);
+  }
   const indices: number[] = [];
   let lastPage: number | null = null;
   headers.value.forEach((header, index) => {
@@ -830,6 +834,10 @@ const chapterPageIndices = computed(() => {
 });
 
 const activeChapterPageIndex = computed(() => {
+  if (settingsStore.pageMode === "vertical") {
+    const index = activeHeaderIndex.value;
+    return index >= 0 && index < headers.value.length ? index : -1;
+  }
   const header = headers.value[activeHeaderIndex.value];
   if (!header) return -1;
   return chapterPageIndices.value.findIndex(

@@ -122,13 +122,13 @@ describe("настройки чтения при смене режима лис�
     await settle();
 
     expect(settings.pageMode).toBe("vertical");
-    expect(fontSizeOf(".mode-vertical .font-probe")).toBe(READING_FONT_SIZE);
+    expect(fontSizeOf(".mode-vertical")).toBe(READING_FONT_SIZE);
     expect(readingVariable("--reading-text-font-size")).toBe("25px");
 
     settings.setFontSize(30);
     await settle();
     expect(readingVariable("--reading-text-font-size")).toBe("30px");
-    expect(fontSizeOf(".mode-vertical .font-probe")).toBe(READING_FONT_SIZE);
+    expect(fontSizeOf(".mode-vertical")).toBe(READING_FONT_SIZE);
 
     settings.setPageMode("horizontal");
     await settle();
@@ -153,7 +153,7 @@ describe("настройки чтения при смене режима лис�
     expect(readingVariable("--reading-text-hyphens")).toBe("none");
     expect(readingVariable("--reading-text-font-family")).toBe('"Literata", serif');
     expect(readingVariable("--reading-text-line-height")).toBe("1.8");
-    expectReadingCascade(".mode-vertical .font-probe");
+    expectReadingCascade(".mode-vertical");
 
     settings.setPageMode("horizontal");
     await settle();

@@ -1,7 +1,6 @@
 <template>
   <div
     ref="verticalContainerRef"
-    :data-text-paginator-id="paginatorInstanceId"
     :class="`text-paginator mode-vertical reading-text ${lang ? 'prayer-text lang-' + lang : ''} theme-${theme}`"
     @scroll.passive="handleVerticalScroll"
     @scrollend.passive="handleVerticalScrollEnd"
@@ -17,53 +16,54 @@
     >
       <SvgIcon icon="bookmark-filled" color="primary-accent-50" :size="24" />
     </div>
-    <f7-list
-      class="text-paginator-vlist"
-      virtual-list
-      :virtual-list-params="{
-        items: [],
-        renderExternal: handleRenderExternal,
-        height: chunkHeight,
-        setListHeight: true,
-        scrollableParentEl: paginatorInstanceSelector,
-      }"
-    >
-      <li
-        v-for="item in vlData.items"
-        :key="item.index"
-        class="text-chunk"
-        :style="{ top: (vlData.topPosition || 0) + 'px', height: item.height + 'px' }"
-      >
-        <div class="text-chunk-body text-page" v-html="item.html"></div>
-      </li>
-    </f7-list>
+    <div class="flow-top-pad" aria-hidden="true"></div>
+    <div class="flow-spacer" :style="{ height: spacerBefore + 'px' }" aria-hidden="true"></div>
+    <div ref="flowWindowRef" class="flow-window">
+      <div
+        v-for="chunk in renderedChunks"
+        :key="chunk.index"
+        class="flow-chunk"
+        v-html="chunk.html"
+      ></div>
+    </div>
+    <div class="flow-spacer" :style="{ height: spacerAfter + 'px' }" aria-hidden="true"></div>
+    <div class="flow-bottom-pad" aria-hidden="true"></div>
     <!-- Нижнее меню поиска лежит поверх конца текста. Без этого хвоста
          последнее совпадение нельзя докрутить выше меню. -->
     <div v-if="showSearchTail" class="search-scroll-tail" aria-hidden="true"></div>
+    <div ref="measurerRef" class="flow-chunk flow-measure" aria-hidden="true"></div>
   </div>
 </template>
 <script setup lang="ts">
-import { useTemplateRef, ref, computed, nextTick } from "vue";
+import { useTemplateRef, ref, computed, nextTick, onMounted, onUnmounted } from "vue";
 import { useTextSelection } from "@/composables/useTextSelection";
-import { pageToProgress, progressToPage } from "@/composables/useBookmarks";
 import { useSettingsStore } from "@/stores/settings";
-import type { VirtualList } from "framework7/types";
 import type { TextTheme, Language } from "@/types/common";
 import SvgIcon from "@/components/SvgIcon.vue";
 import { detectTapZone } from "./tapZone";
+import {
+  joinReadingPages,
+  planFlowChunks,
+  type FlowChunkPlan,
+} from "@/text-processing-v3/joinReadingPages";
 
-interface VerticalListItem {
+interface FlowChunk extends FlowChunkPlan {
   index: number;
-  html: string;
+  html: string | null;
   height: number;
+  measured: boolean;
+  localTops: number[];
 }
 
-interface VerticalListRenderData {
-  fromIndex?: number;
-  toIndex?: number;
-  listHeight?: number;
-  topPosition?: number;
-  items: VerticalListItem[];
+interface FlowLayout {
+  tops: number[];
+  total: number;
+  topPad: number;
+}
+
+interface ScrollJob {
+  dest: number;
+  animate: boolean;
 }
 
 const {
@@ -83,8 +83,6 @@ const {
 }>();
 
 const bookmarkedPageSet = computed(() => new Set(bookmarkedPages));
-const scrollProgress = ref(0);
-
 const settingsStore = useSettingsStore();
 const pageTurnScrollBehavior = computed<"smooth" | "instant">(() =>
   settingsStore.isPageTurnAnimationEnabled ? "smooth" : "instant"
@@ -99,60 +97,325 @@ const emit = defineEmits<{
 }>();
 
 const verticalContainerRef = useTemplateRef<HTMLElement>("verticalContainerRef");
+const flowWindowRef = useTemplateRef<HTMLElement>("flowWindowRef");
+const measurerRef = useTemplateRef<HTMLElement>("measurerRef");
 
-const currentPage = computed(() => {
-  if (pagesCount <= 0) return 0;
-  const el = verticalContainerRef.value;
-  const maxScroll = el ? Math.max(0, el.scrollHeight - el.clientHeight) : 0;
-  const raw = scrollProgress.value * (pagesCount - 1);
-  // scrollTop целый и на границе страницы оказывается на пиксель раньше.
-  // Без этого переход к закладке открывает её страницу, но иконка скрыта.
-  const slop = maxScroll > 0 ? (pagesCount - 1) / maxScroll : 0;
-  return Math.min(Math.floor(raw + slop) + 1, pagesCount);
-});
-const showCurrentBookmark = computed(
-  () => showBookmarkTabs && currentPage.value > 0 && bookmarkedPageSet.value.has(currentPage.value)
-);
+const page = ref(1);
+const scrollTop = ref(0);
+const viewport = ref(0);
+const flowVersion = ref(0);
+const showSearchTail = ref(false);
+const layout = ref<FlowLayout>({ tops: [], total: 0, topPad: 0 });
 
-// Уникальный на инстанс идентификатор для scrollableParentEl VirtualList (несколько страниц
-// читалки могут одновременно жить в DOM из-за кэширования страниц Framework7)
-const paginatorInstanceId = `tp-${Math.random().toString(36).slice(2)}`;
-const paginatorInstanceSelector = `[data-text-paginator-id="${paginatorInstanceId}"]`;
+let pageHtml: string[] = [];
+let chunks: FlowChunk[] = [];
+let chunkByPage: FlowChunk[] = [];
+let pendingPages: string[] | null = null;
+let pendingRestore: number | null = null;
+let scrollJob: ScrollJob | null = null;
+let scrollJobQueued = false;
+let lastVerticalScrollTarget: number | null = null;
+let lastVerticalScrollTimeout: ReturnType<typeof setTimeout> | null = null;
+let lastMeasuredWidth = 0;
+let measureGeneration = 0;
+let measureFrame = 0;
+let flushFrame = 0;
+let resizeObserver: ResizeObserver | null = null;
+let alive = true;
 
 const { clearSelection, isSelected } = useTextSelection();
 
-let f7VirtualList: VirtualList.VirtualList | undefined;
-const vlData = ref<VerticalListRenderData>({ items: [] });
+const showCurrentBookmark = computed(
+  () => showBookmarkTabs && pagesCount > 0 && page.value > 0 && bookmarkedPageSet.value.has(page.value)
+);
 
-const chunkHeight = (item: VerticalListItem) => item.height || 1;
-
-let pendingPages: string[] | null = null;
-let pageItems: VerticalListItem[] = [];
-const showSearchTail = ref(false);
-
-// Страницы уже посчитаны и лежат в кэше пагинации. Высота каждой — экран,
-// заново текст не меряем.
-const flushPages = () => {
-  const pages = pendingPages;
-  const container = verticalContainerRef.value;
-  if (!pages || !f7VirtualList || !container || container.clientHeight < 1) {
-    return;
-  }
-  pendingPages = null;
-
-  const height = container.clientHeight;
-  pageItems = pages.map((html, index) => ({ index, html, height }));
-  showSearchTail.value = pages.some((html) => html.includes("search-highlight"));
-
-  f7VirtualList.params.height = chunkHeight;
-  f7VirtualList.replaceAllItems(pageItems);
+const readCssPx = (name: string, fallback: number): number => {
+  const raw = getComputedStyle(document.documentElement).getPropertyValue(name);
+  const value = parseFloat(raw);
+  return Number.isFinite(value) ? value : fallback;
 };
 
-const handleRenderExternal = (vl: VirtualList.VirtualList, data: VerticalListRenderData) => {
-  f7VirtualList = vl;
-  vlData.value = data;
-  if (pendingPages) {
-    flushPages();
+const estimatedPageHeight = (): number => {
+  const el = verticalContainerRef.value;
+  const screen = el && el.clientHeight > 0 ? el.clientHeight : 700;
+  const padY = readCssPx("--reading-text-page-padding-y", 24);
+  const padBottom = readCssPx("--reading-text-page-padding-bottom", 35);
+  return Math.max(1, screen - padY - padBottom);
+};
+
+const contentWidth = (): number => {
+  const rendered = verticalContainerRef.value?.querySelector(".flow-chunk:not(.flow-measure)");
+  if (rendered instanceof HTMLElement && rendered.clientWidth > 0) {
+    return rendered.clientWidth;
+  }
+  const el = verticalContainerRef.value;
+  if (!el) return 0;
+  return Math.max(0, el.clientWidth - readCssPx("--reading-text-page-padding-x", 24) * 2);
+};
+
+const estimateLocalTops = (count: number, height: number): number[] =>
+  Array.from({ length: count }, (_, index) => (count <= 1 ? 0 : (height * index) / count));
+
+const chunkHtml = (chunk: FlowChunk): string => {
+  if (chunk.html != null) return chunk.html;
+  const joined = joinReadingPages(
+    pageHtml.slice(chunk.pageStart, chunk.pageEnd),
+    chunk.pageStart,
+    chunk.headerStart,
+  );
+  chunk.html = joined.html;
+  return joined.html;
+};
+
+const readLocalTops = (root: HTMLElement, chunk: FlowChunk): number[] => {
+  const count = chunk.pageEnd - chunk.pageStart;
+  const height = root.offsetHeight;
+  const tops = estimateLocalTops(count, height);
+  const rootTop = root.getBoundingClientRect().top;
+  root.querySelectorAll<HTMLElement>("[data-flow-page]").forEach((node) => {
+    const pageIndex = Number(node.dataset.flowPage);
+    const local = pageIndex - chunk.pageStart;
+    if (local < 0 || local >= count) return;
+    tops[local] = Math.max(0, node.getBoundingClientRect().top - rootTop);
+  });
+  return tops;
+};
+
+const recomputeTops = () => {
+  const topPad = readCssPx("--reading-text-page-padding-y", 24);
+  const tops: number[] = [];
+  let total = 0;
+  for (const chunk of chunks) {
+    tops.push(topPad + total);
+    total += chunk.height;
+  }
+  layout.value = { tops, total, topPad };
+};
+
+const applyMeasured = (
+  chunk: FlowChunk,
+  height: number,
+  localTops: number[],
+  adjustScroll: boolean,
+) => {
+  const previousHeight = chunk.height;
+  const previousTop = layout.value.tops[chunk.index] ?? 0;
+  chunk.height = height;
+  chunk.localTops = localTops;
+  chunk.measured = true;
+  const el = verticalContainerRef.value;
+  const delta = height - previousHeight;
+  if (
+    adjustScroll &&
+    el &&
+    delta !== 0 &&
+    previousTop + previousHeight <= el.scrollTop + 1
+  ) {
+    el.scrollTop += delta;
+    scrollTop.value = el.scrollTop;
+    if (lastVerticalScrollTarget != null) lastVerticalScrollTarget += delta;
+  }
+  recomputeTops();
+};
+
+const measureChunk = (chunk: FlowChunk, width: number, adjustScroll: boolean): boolean => {
+  const host = measurerRef.value;
+  if (!host || width < 1) return false;
+  host.style.width = `${width}px`;
+  try {
+    host.innerHTML = chunkHtml(chunk);
+    const height = host.offsetHeight;
+    const count = chunk.pageEnd - chunk.pageStart;
+    if (height < 1) {
+      applyMeasured(chunk, 1, estimateLocalTops(count, 1), adjustScroll);
+      return true;
+    }
+    applyMeasured(chunk, height, readLocalTops(host, chunk), adjustScroll);
+    return true;
+  } finally {
+    host.innerHTML = "";
+  }
+};
+
+const scheduleMeasure = () => {
+  measureGeneration += 1;
+  const generation = measureGeneration;
+  const step = () => {
+    measureFrame = 0;
+    if (generation !== measureGeneration) return;
+    if (
+      scrollJobQueued ||
+      isTouchingVertical.value ||
+      isProgrammaticScroll.value ||
+      isTransitioning.value
+    ) {
+      measureFrame = requestAnimationFrame(step);
+      return;
+    }
+    const width = contentWidth();
+    if (width < 1) {
+      measureFrame = requestAnimationFrame(step);
+      return;
+    }
+    lastMeasuredWidth = width;
+    const started = performance.now();
+    while (performance.now() - started < 12) {
+      const chunk = chunks.find((item) => !item.measured);
+      if (!chunk) return;
+      if (!measureChunk(chunk, width, true)) {
+        measureFrame = requestAnimationFrame(step);
+        return;
+      }
+    }
+    if (chunks.some((item) => !item.measured)) {
+      measureFrame = requestAnimationFrame(step);
+    }
+  };
+  if (measureFrame) cancelAnimationFrame(measureFrame);
+  measureFrame = requestAnimationFrame(step);
+};
+
+const ensureMeasuredThrough = (pageIndex: number) => {
+  const width = contentWidth();
+  if (width < 1) return;
+  lastMeasuredWidth = width;
+  for (const chunk of chunks) {
+    if (chunk.pageStart > pageIndex) break;
+    if (!chunk.measured) measureChunk(chunk, width, false);
+  }
+};
+
+const pageTotal = () => pageHtml.length;
+
+const pageStartY = (pageIndex: number): number => {
+  const chunk = chunkByPage[pageIndex];
+  if (!chunk) return 0;
+  const chunkTop = layout.value.tops[chunk.index] ?? 0;
+  const local = pageIndex - chunk.pageStart;
+  const count = Math.max(1, chunk.pageEnd - chunk.pageStart);
+  return chunkTop + (chunk.localTops[local] ?? (chunk.height * local) / count);
+};
+
+const locate = (top: number, el: HTMLElement): { page: number; progress: number } => {
+  const count = pageTotal();
+  if (count <= 0) return { page: 1, progress: 0 };
+  const maxScroll = Math.max(0, el.scrollHeight - el.clientHeight);
+  if (maxScroll > 0 && top >= maxScroll - 1) {
+    return { page: count, progress: 1 };
+  }
+
+  let found = 0;
+  let lo = 0;
+  let hi = count - 1;
+  while (lo <= hi) {
+    const mid = (lo + hi) >> 1;
+    if (pageStartY(mid) <= top + 1) {
+      found = mid;
+      lo = mid + 1;
+    } else {
+      hi = mid - 1;
+    }
+  }
+
+  const start = pageStartY(found);
+  const next = found + 1 < count ? pageStartY(found + 1) : start + 1;
+  const frac = Math.min(0.999, Math.max(0, (top - start) / Math.max(1, next - start)));
+  const progress = count <= 1 ? 0 : (found + frac) / (count - 1);
+  return { page: found + 1, progress };
+};
+
+const syncFromScroll = (el: HTMLElement) => {
+  scrollTop.value = el.scrollTop;
+  viewport.value = el.clientHeight;
+  const located = locate(el.scrollTop, el);
+  page.value = located.page;
+  if (isLoading || isCalculating) return;
+  emit("update:progress", located.progress);
+};
+
+const viewHeight = () =>
+  viewport.value || verticalContainerRef.value?.clientHeight || estimatedPageHeight();
+
+const visibleChunks = computed(() => {
+  flowVersion.value;
+  const height = viewHeight();
+  const from = scrollTop.value - height;
+  const to = scrollTop.value + height * 2;
+  const tops = layout.value.tops;
+  return chunks.filter((chunk) => {
+    const start = tops[chunk.index] ?? 0;
+    const end = start + chunk.height;
+    return end >= from && start <= to;
+  });
+});
+
+const spacerBefore = computed(() => {
+  const first = visibleChunks.value[0];
+  if (!first) return layout.value.total;
+  return Math.max(0, (layout.value.tops[first.index] ?? 0) - layout.value.topPad);
+});
+
+const spacerAfter = computed(() => {
+  const list = visibleChunks.value;
+  const last = list[list.length - 1];
+  if (!last) return 0;
+  const end = (layout.value.tops[last.index] ?? 0) + last.height;
+  return Math.max(0, layout.value.topPad + layout.value.total - end);
+});
+
+const renderedChunks = computed(() => {
+  const list = visibleChunks.value;
+  for (const chunk of list) chunkHtml(chunk);
+  return list;
+});
+
+const rebuild = (pages: string[]) => {
+  measureGeneration += 1;
+  pageHtml = pages.slice();
+  const saved = verticalContainerRef.value?.scrollTop ?? scrollTop.value;
+  const plans = planFlowChunks(pageHtml);
+  const pageHeight = estimatedPageHeight();
+  chunks = plans.map((plan, index) => {
+    const count = plan.pageEnd - plan.pageStart;
+    const height = Math.max(1, count * pageHeight);
+    return {
+      ...plan,
+      index,
+      html: null,
+      height,
+      measured: false,
+      localTops: estimateLocalTops(count, height),
+    };
+  });
+  chunkByPage = [];
+  for (const chunk of chunks) {
+    for (let index = chunk.pageStart; index < chunk.pageEnd; index += 1) {
+      chunkByPage[index] = chunk;
+    }
+  }
+  showSearchTail.value = pageHtml.some((html) => html.includes("search-highlight"));
+  recomputeTops();
+  flowVersion.value += 1;
+  if (pageHtml.length > 0) page.value = 1;
+  queueScroll(saved, false);
+  scheduleMeasure();
+};
+
+const flushPages = () => {
+  if (!alive) return;
+  const el = verticalContainerRef.value;
+  if (!pendingPages) return;
+  if (!el || el.clientWidth < 1) {
+    flushFrame = requestAnimationFrame(flushPages);
+    return;
+  }
+  const pages = pendingPages;
+  pendingPages = null;
+  rebuild(pages);
+  if (pendingRestore != null) {
+    const progress = pendingRestore;
+    pendingRestore = null;
+    restoreProgress(progress);
   }
 };
 
@@ -161,26 +424,92 @@ const applyPages = (pages: string[]) => {
   flushPages();
 };
 
-const setPageHtml = (index: number, html: string) => {
-  const item = pageItems[index];
-  if (!item || !f7VirtualList) {
+const setScroll = (el: HTMLElement, dest: number, animate: boolean) => {
+  const top = Math.max(0, dest);
+  if (Math.abs(el.scrollTop - top) < 1) {
+    scrollTop.value = top;
+    syncFromScroll(el);
     return;
   }
-  item.html = html;
-  f7VirtualList.replaceItem(index, item);
+  markProgrammaticScrollStart();
+  if (!animate) {
+    scrollTop.value = top;
+    el.scrollTop = top;
+    syncFromScroll(el);
+    return;
+  }
+  el.scrollTo({ top, behavior: pageTurnScrollBehavior.value });
 };
 
-// Флаг "сейчас идёт наш собственный el.scrollTo()" — нужен, чтобы отличать
-// инерционную (momentum) докрутку браузера после свайпа от программного скролла
+const queueScroll = (dest: number, animate: boolean) => {
+  const top = Math.max(0, dest);
+  // Мгновенный переход сразу показывает нужное окно. Плавный едет за scrollTop,
+  // иначе окно прыгает в конец раньше пальца.
+  if (!animate) scrollTop.value = top;
+  scrollJob = { dest: top, animate };
+  if (scrollJobQueued) return;
+  scrollJobQueued = true;
+  nextTick(() => {
+    scrollJobQueued = false;
+    const job = scrollJob;
+    scrollJob = null;
+    const el = verticalContainerRef.value;
+    if (!el || !job) return;
+    setScroll(el, job.dest, job.animate);
+  });
+};
+
+const scrollTopForPage = (pageIndex: number): number => {
+  if (pageIndex <= 0) return 0;
+  return pageStartY(pageIndex);
+};
+
+const destForProgress = (progress: number): number => {
+  const count = pageTotal();
+  if (count <= 1) return 0;
+  const scaled = Math.min(count - 1, Math.max(0, progress * (count - 1)));
+  const pageIndex = Math.min(count - 1, Math.floor(scaled + 1e-6));
+  const frac = Math.min(0.999, Math.max(0, scaled - pageIndex));
+  const start = scrollTopForPage(pageIndex);
+  const next = pageIndex + 1 < count ? pageStartY(pageIndex + 1) : start;
+  return start + frac * Math.max(0, next - start);
+};
+
+const restoreProgress = (progress: number) => {
+  if (pendingPages || chunks.length === 0) {
+    pendingRestore = progress;
+    return;
+  }
+  ensureMeasuredThrough(pageTotal() - 1 > 0 ? Math.round(progress * (pageTotal() - 1)) : 0);
+  recomputeTops();
+  queueScroll(destForProgress(progress), false);
+};
+
+const goToPage = (target: number, animate: boolean = true) => {
+  const count = pageTotal();
+  if (count <= 0) return;
+  const pageIndex = Math.min(count, Math.max(1, target)) - 1;
+  ensureMeasuredThrough(pageIndex);
+  recomputeTops();
+  queueScroll(scrollTopForPage(pageIndex), animate);
+};
+
+const scrollToProgress = (progress: number, animate: boolean) => {
+  if (chunks.length === 0) {
+    pendingRestore = progress;
+    return;
+  }
+  ensureMeasuredThrough(pageTotal() - 1 > 0 ? Math.round(progress * (pageTotal() - 1)) : 0);
+  recomputeTops();
+  queueScroll(destForProgress(progress), animate);
+};
+
 const isProgrammaticScroll = ref(false);
 let programmaticScrollTimeout: ReturnType<typeof setTimeout> | null = null;
 
 const markProgrammaticScrollStart = () => {
   isProgrammaticScroll.value = true;
-  if (programmaticScrollTimeout) {
-    clearTimeout(programmaticScrollTimeout);
-  }
-  // Страховка на случай, если "scrollend" не придёт (с запасом больше длительности анимации)
+  if (programmaticScrollTimeout) clearTimeout(programmaticScrollTimeout);
   programmaticScrollTimeout = setTimeout(() => {
     isProgrammaticScroll.value = false;
     programmaticScrollTimeout = null;
@@ -189,49 +518,26 @@ const markProgrammaticScrollStart = () => {
 
 const isTouchingVertical = ref(false);
 let verticalScrollSettleTimeout: ReturnType<typeof setTimeout> | null = null;
-// В браузерах без поддержки "scrollend" (Safari < 17, старые WebView) используем
-// debounce по "scroll" как фолбэк — см. handleVerticalScroll/handleVerticalScrollEnd
 const supportsScrollEnd = typeof window !== "undefined" && "onscrollend" in window;
 let verticalTouchStartPoint: { x: number; y: number } | null = null;
-const VERTICAL_TAP_MOVE_THRESHOLD = 10; // px — максимальное смещение пальца, чтобы считать касание тапом
+const VERTICAL_TAP_MOVE_THRESHOLD = 10;
 const BOOKMARK_TAB_TAP_DEBOUNCE_MS = 50;
-// Касание даёт touchend и затем click. Второй вызов снова открывает диалог
-// редактирования и срывает его закрытие по «Сохранить» / «Удалить».
 const BOOKMARK_TAB_CLICK_SUPPRESS_MS = 700;
 let bookmarkTabTouchStart: { x: number; y: number } | null = null;
 let lastBookmarkTabTapAt = 0;
 let bookmarkTabTouchAt = 0;
 
 const isTransitioning = ref(false);
-
-// Инерционная докрутка: скролл идёт, палец уже не касается экрана, и это не наш scrollTo()
 const isMomentumScrolling = computed(
   () => isTransitioning.value && !isTouchingVertical.value && !isProgrammaticScroll.value
 );
 
-const scrollToProgress = (progress: number, animate: boolean) => {
-  const el = verticalContainerRef.value;
-  if (!el) {
-    return;
-  }
-  markProgrammaticScrollStart();
-  const maxScroll = Math.max(0, el.scrollHeight - el.clientHeight);
-  el.scrollTo({
-    top: progress * maxScroll,
-    behavior: animate ? pageTurnScrollBehavior.value : "instant",
-  });
-};
-
-const emitBookmarkTabTap = (page: number, clientX: number, clientY: number) => {
-  if (isLoading || isCalculating) {
-    return;
-  }
+const emitBookmarkTabTap = (bookmarkPage: number, clientX: number, clientY: number) => {
+  if (isLoading || isCalculating) return;
   const now = performance.now();
-  if (now - lastBookmarkTabTapAt < BOOKMARK_TAB_TAP_DEBOUNCE_MS) {
-    return;
-  }
+  if (now - lastBookmarkTabTapAt < BOOKMARK_TAB_TAP_DEBOUNCE_MS) return;
   lastBookmarkTabTapAt = now;
-  emit("tap", { type: "bookmark", x: clientX, y: clientY, page });
+  emit("tap", { type: "bookmark", x: clientX, y: clientY, page: bookmarkPage });
 };
 
 const onBookmarkTabTouchStart = (event: TouchEvent) => {
@@ -243,43 +549,27 @@ const onBookmarkTabTouchEnd = (event: TouchEvent) => {
   const start = bookmarkTabTouchStart;
   bookmarkTabTouchStart = null;
   const touch = event.changedTouches[0];
-  if (!start || !touch || currentPage.value <= 0) {
-    return;
-  }
-  if (Math.hypot(touch.clientX - start.x, touch.clientY - start.y) > VERTICAL_TAP_MOVE_THRESHOLD) {
-    return;
-  }
+  if (!start || !touch || page.value <= 0) return;
+  if (Math.hypot(touch.clientX - start.x, touch.clientY - start.y) > VERTICAL_TAP_MOVE_THRESHOLD) return;
   event.preventDefault();
   bookmarkTabTouchAt = performance.now();
-  emitBookmarkTabTap(currentPage.value, touch.clientX, touch.clientY);
+  emitBookmarkTabTap(page.value, touch.clientX, touch.clientY);
 };
 
 const onBookmarkTabClick = (event: MouseEvent) => {
-  if (currentPage.value <= 0) {
-    return;
-  }
-  if (bookmarkTabTouchAt > 0 && performance.now() - bookmarkTabTouchAt < BOOKMARK_TAB_CLICK_SUPPRESS_MS) {
-    return;
-  }
-  emitBookmarkTabTap(currentPage.value, event.clientX, event.clientY);
+  if (page.value <= 0) return;
+  if (bookmarkTabTouchAt > 0 && performance.now() - bookmarkTabTouchAt < BOOKMARK_TAB_CLICK_SUPPRESS_MS) return;
+  emitBookmarkTabTap(page.value, event.clientX, event.clientY);
 };
 
-// Общая проверка перед эмитом тапа по зоне (используется и из touchend, и из click)
 const tryEmitVerticalTap = (clientX: number, clientY: number) => {
-  if (isLoading || isCalculating) {
-    return;
-  }
-
+  if (isLoading || isCalculating) return;
   if (isSelected.value) {
     clearSelection();
     return;
   }
-
   const el = verticalContainerRef.value;
-  if (!el) {
-    return;
-  }
-
+  if (!el) return;
   const rect = el.getBoundingClientRect();
   const x = clientX - rect.left;
   const y = clientY - rect.top;
@@ -287,34 +577,21 @@ const tryEmitVerticalTap = (clientX: number, clientY: number) => {
   emit("tap", { type, x, y });
 };
 
-// true, если палец коснулся экрана во время инерционной прокрутки — такое касание
-// "ловит"/останавливает скролл и не должно считаться тапом по меню
 let verticalTouchStoppedMomentum = false;
 
 const handleVerticalTouchStart = (event: TouchEvent) => {
-  if (isLoading || isCalculating) {
-    return;
-  }
-
+  if (isLoading || isCalculating) return;
   verticalTouchStoppedMomentum = isMomentumScrolling.value;
-
   isTouchingVertical.value = true;
-
   const touch = event.touches[0];
   verticalTouchStartPoint = touch ? { x: touch.clientX, y: touch.clientY } : null;
-
   emit("touchstart", { swiper: null, event });
 };
 
 const handleVerticalTouchEnd = (event: TouchEvent) => {
-  if (isLoading || isCalculating) {
-    return;
-  }
+  if (isLoading || isCalculating) return;
   isTouchingVertical.value = false;
-
-  if (!event.isTrusted) {
-    event.stopPropagation();
-  }
+  if (!event.isTrusted) event.stopPropagation();
 
   const startPoint = verticalTouchStartPoint;
   verticalTouchStartPoint = null;
@@ -326,29 +603,19 @@ const handleVerticalTouchEnd = (event: TouchEvent) => {
     const dx = touch.clientX - startPoint.x;
     const dy = touch.clientY - startPoint.y;
     if (Math.hypot(dx, dy) <= VERTICAL_TAP_MOVE_THRESHOLD) {
-      // Эмитим "tap" ДО "touchend": родитель (prayersText.vue) сбрасывает свой guard
-      // от повторного показа меню именно по "touchend", а тап должен успеть отработать
-      // до этого сброса — так же, как это естественным образом происходит в Swiper
       tryEmitVerticalTap(touch.clientX, touch.clientY);
     }
   }
-
   emit("touchend", event);
 };
 
 const handleVerticalScroll = () => {
-  if (isSelected.value) {
-    clearSelection();
-  }
-
+  if (isSelected.value) clearSelection();
   isTransitioning.value = true;
   emit("update:transitioning", true);
 
   if (!supportsScrollEnd) {
-    // Фолбэк: считаем скролл завершённым, если новых "scroll"-событий не было 120мс
-    if (verticalScrollSettleTimeout) {
-      clearTimeout(verticalScrollSettleTimeout);
-    }
+    if (verticalScrollSettleTimeout) clearTimeout(verticalScrollSettleTimeout);
     verticalScrollSettleTimeout = setTimeout(() => {
       isTransitioning.value = false;
       isProgrammaticScroll.value = false;
@@ -358,21 +625,10 @@ const handleVerticalScroll = () => {
   }
 
   const el = verticalContainerRef.value;
-  if (!el) {
-    return;
-  }
-  const maxScroll = el.scrollHeight - el.clientHeight;
-  const progress = maxScroll > 0 ? Math.min(1, Math.max(0, el.scrollTop / maxScroll)) : 0;
-  scrollProgress.value = progress;
-
-  if (isLoading || isCalculating) {
-    return;
-  }
-
-  emit("update:progress", progress);
+  if (!el) return;
+  syncFromScroll(el);
 };
 
-// Точное определение конца скролла (в т.ч. инерционного) там, где браузер это поддерживает
 const handleVerticalScrollEnd = () => {
   isTransitioning.value = false;
   isProgrammaticScroll.value = false;
@@ -383,11 +639,6 @@ const handleVerticalScrollEnd = () => {
   }
 };
 
-let lastVerticalScrollTarget: number | null = null;
-let lastVerticalScrollTimeout: ReturnType<typeof setTimeout> | null = null;
-
-// Нижние панели стоят в одной точке и накрывают друг друга. Берём верхнюю
-// кромку тех, что реально пересекают контейнер: скрытый тулбар уехал за экран.
 const BOTTOM_CHROME_SELECTOR = [
   ".text-paginator-progress",
   ".page-navigation-toolbar",
@@ -397,57 +648,36 @@ const BOTTOM_CHROME_SELECTOR = [
 ].join(", ");
 
 const readingBottomCover = (el: HTMLElement): number => {
-  const page = el.closest(".page");
-  if (!page) {
-    return 0;
-  }
+  const readingPage = el.closest(".page");
+  if (!readingPage) return 0;
   const container = el.getBoundingClientRect();
-  if (container.height <= 0) {
-    return 0;
-  }
+  if (container.height <= 0) return 0;
   let coverTop = container.bottom;
-  page.querySelectorAll(BOTTOM_CHROME_SELECTOR).forEach((node) => {
+  readingPage.querySelectorAll(BOTTOM_CHROME_SELECTOR).forEach((node) => {
     const rect = (node as HTMLElement).getBoundingClientRect();
-    if (rect.width <= 0 || rect.height <= 0) {
-      return;
-    }
-    if (rect.bottom <= container.top || rect.top >= container.bottom) {
-      return;
-    }
+    if (rect.width <= 0 || rect.height <= 0) return;
+    if (rect.bottom <= container.top || rect.top >= container.bottom) return;
     coverTop = Math.min(coverTop, Math.max(rect.top, container.top));
   });
   return Math.max(0, container.bottom - coverTop);
 };
 
-// Прокручивает вертикальный список на одну "страницу" вперед/назад, накапливая
-// цель при повторных быстрых вызовах (аналог lastTranslatePosition для swiper)
 const scrollByPage = (direction: 1 | -1) => {
   const el = verticalContainerRef.value;
-  if (!el) {
-    return;
-  }
-  if (!el.clientHeight) {
-    return;
-  }
-  const pageHeight = Math.max(1, el.clientHeight - readingBottomCover(el));
-
+  if (!el || !el.clientHeight) return;
+  const distance = Math.max(1, el.clientHeight - readingBottomCover(el));
   const maxScroll = Math.max(0, el.scrollHeight - el.clientHeight);
   const base = lastVerticalScrollTarget ?? el.scrollTop;
-  lastVerticalScrollTarget = Math.min(maxScroll, Math.max(0, base + direction * pageHeight));
-
-  if (lastVerticalScrollTimeout) {
-    clearTimeout(lastVerticalScrollTimeout);
-  }
+  lastVerticalScrollTarget = Math.min(maxScroll, Math.max(0, base + direction * distance));
+  if (lastVerticalScrollTimeout) clearTimeout(lastVerticalScrollTimeout);
   lastVerticalScrollTimeout = setTimeout(() => {
     lastVerticalScrollTarget = null;
     lastVerticalScrollTimeout = null;
   }, 300);
-
   markProgrammaticScrollStart();
   el.scrollTo({ top: lastVerticalScrollTarget, behavior: pageTurnScrollBehavior.value });
 };
 
-// Меню поиска может ещё ехать анимацией и не попасть в измерение.
 const searchBottomCover = (el: HTMLElement): number => {
   const safeRaw = getComputedStyle(document.documentElement).getPropertyValue("--f7-safe-area-bottom");
   const safe = parseFloat(safeRaw);
@@ -455,7 +685,6 @@ const searchBottomCover = (el: HTMLElement): number => {
   return Math.max(readingBottomCover(el), reserve);
 };
 
-// Совпадение внизу страницы может оказаться под меню поиска.
 const revealActiveSearchMark = () => {
   nextTick(() => {
     const root = verticalContainerRef.value;
@@ -472,74 +701,145 @@ const revealActiveSearchMark = () => {
     const maxScroll = Math.max(0, root.scrollHeight - root.clientHeight);
     const top = Math.min(maxScroll, Math.max(0, root.scrollTop + delta));
     if (Math.abs(root.scrollTop - top) < 1) return;
-    markProgrammaticScrollStart();
-    root.scrollTo({ top, behavior: "instant" });
+    queueScroll(top, false);
   });
 };
+
+const setPageHtml = (index: number, html: string) => {
+  const chunk = chunkByPage[index];
+  if (!chunk || index < 0 || index >= pageHtml.length) return;
+  pageHtml[index] = html;
+  chunk.html = null;
+  chunk.measured = false;
+  showSearchTail.value = pageHtml.some((item) => item.includes("search-highlight"));
+  flowVersion.value += 1;
+  const width = contentWidth();
+  if (width > 0) measureChunk(chunk, width, true);
+};
+
+const scrollToHeader = (index: number): boolean => {
+  const chunk = chunks.find(
+    (item) => index >= item.headerStart && index < item.headerStart + item.headerCount,
+  );
+  const host = measurerRef.value;
+  const width = contentWidth();
+  if (!chunk || !host || width < 1) return false;
+  ensureMeasuredThrough(Math.max(0, chunk.pageEnd - 1));
+  recomputeTops();
+  host.style.width = `${width}px`;
+  host.innerHTML = chunkHtml(chunk);
+  const node = host.querySelector<HTMLElement>(`[data-header-index="${index}"]`);
+  if (!node) {
+    host.innerHTML = "";
+    return false;
+  }
+  const local = node.getBoundingClientRect().top - host.getBoundingClientRect().top;
+  const marginTop = parseFloat(getComputedStyle(node).marginTop) || 0;
+  host.innerHTML = "";
+  const dest = Math.max(0, (layout.value.tops[chunk.index] ?? 0) + local - marginTop);
+  queueScroll(dest, false);
+  return true;
+};
+
+onMounted(() => {
+  flushPages();
+  const el = verticalContainerRef.value;
+  if (!el || typeof ResizeObserver === "undefined") return;
+  lastMeasuredWidth = contentWidth();
+  resizeObserver = new ResizeObserver(() => {
+    const width = contentWidth();
+    if (width < 1 || Math.abs(width - lastMeasuredWidth) < 2) return;
+    lastMeasuredWidth = width;
+    let dirty = false;
+    for (const chunk of chunks) {
+      if (!chunk.measured) continue;
+      chunk.measured = false;
+      dirty = true;
+    }
+    if (dirty) scheduleMeasure();
+  });
+  resizeObserver.observe(el);
+});
+
+onUnmounted(() => {
+  alive = false;
+  measureGeneration += 1;
+  if (measureFrame) cancelAnimationFrame(measureFrame);
+  if (flushFrame) cancelAnimationFrame(flushFrame);
+  resizeObserver?.disconnect();
+  if (programmaticScrollTimeout) clearTimeout(programmaticScrollTimeout);
+  if (verticalScrollSettleTimeout) clearTimeout(verticalScrollSettleTimeout);
+  if (lastVerticalScrollTimeout) clearTimeout(lastVerticalScrollTimeout);
+});
 
 defineExpose({
   containerEl: computed(() => verticalContainerRef.value ?? undefined),
   applyPages,
   setPageHtml,
   revealActiveSearchMark,
-  restoreProgress: (progress: number) => scrollToProgress(progress, false),
-  goToPage: (page: number, animate: boolean = true) => {
-    const el = verticalContainerRef.value;
-    if (!el || pagesCount <= 0) {
-      return;
-    }
-    const maxScroll = Math.max(0, el.scrollHeight - el.clientHeight);
-    const top = pageToProgress(page, pagesCount) * maxScroll;
-    if (Math.abs(el.scrollTop - top) < 1) {
-      return;
-    }
-    markProgrammaticScrollStart();
-    el.scrollTo({
-      top,
-      behavior: animate ? pageTurnScrollBehavior.value : "instant",
-    });
-  },
+  restoreProgress,
+  goToPage,
   setProgress: (progress: number) => scrollToProgress(progress, false),
-  // Заголовок лежит на уже посчитанной странице кэша — родитель откроет её.
-  scrollToHeader: (_index: number): boolean => false,
+  scrollToHeader,
   slidePrev: () => scrollByPage(-1),
   slideNext: () => scrollByPage(1),
-  page: currentPage,
+  page,
 });
 </script>
 <style scoped lang="less">
 .text-paginator.mode-vertical {
   overflow-y: auto;
   overflow-x: hidden;
+  overflow-anchor: none;
   overscroll-behavior-y: contain;
   -webkit-overflow-scrolling: touch;
-  // Полоса прокрутки не должна сужать текст: страницы посчитаны на полную ширину.
   scrollbar-width: none;
+  -webkit-user-select: text;
+  user-select: text;
+  -webkit-touch-callout: default;
 
   &::-webkit-scrollbar {
     display: none;
   }
 }
 
-.text-paginator-vlist {
-  margin: 0;
-  // .list ставит font-size: var(--f7-list-font-size) и затирает размер,
-  // с которым страницы уже посчитаны в горизонтальном режиме
-  font-size: inherit;
-  line-height: inherit;
-
-  :deep(li.text-chunk) {
-    margin: 0;
-    padding: 0;
-    border: 0;
-    overflow: visible;
-    background: none;
-  }
+.flow-window {
+  box-sizing: border-box;
+  padding-right: var(--reading-text-page-padding-x);
+  padding-left: var(--reading-text-page-padding-x);
 }
 
-.text-chunk-body.text-page {
-  height: 100%;
-  overflow: hidden;
+.flow-top-pad {
+  height: var(--reading-text-page-padding-y);
+}
+
+.flow-bottom-pad {
+  height: var(--reading-text-page-padding-bottom);
+}
+
+.flow-chunk {
+  display: flow-root;
+}
+
+// .reading-text обнуляет нижнее поле последнего абзаца — так страница не
+// оставляет пустоту у края экрана. В потоке это же правило склеивало бы
+// абзацы на границе кусков.
+.text-paginator.mode-vertical .flow-chunk:deep(p:last-child) {
+  margin-bottom: 15px;
+}
+
+.flow-chunk:deep(.flow-page-anchor) {
+  display: inline;
+  white-space: nowrap;
+}
+
+.flow-measure {
+  position: fixed;
+  left: -100000px;
+  top: 0;
+  opacity: 0;
+  pointer-events: none;
+  box-sizing: border-box;
 }
 
 .search-scroll-tail {
@@ -550,8 +850,6 @@ defineExpose({
   position: sticky;
   top: 0;
   z-index: 6;
-  // 4px зазор сверху и сама иконка. Отрицательный margin не сдвигает текст
-  // и не даёт нулевой высоте обрезать svg.
   height: 28px;
   margin-bottom: -28px;
   display: flex;
