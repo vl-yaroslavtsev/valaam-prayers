@@ -5,7 +5,7 @@ import {
   highlightPageHtml,
   type PageSentenceIndex,
   type SearchMatch,
-} from '@/text-processing';
+} from '@/text-processing-v3';
 
 /**
  * Композабл поиска по тексту текущей молитвы/раздела.

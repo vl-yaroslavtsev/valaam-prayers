@@ -61,8 +61,7 @@ import { useDelayed } from "@/composables/useDelayed";
 import type { PaginationCacheItemHeader } from "@/services/storage/PaginationCacheStorage";
 import type { Swiper } from "swiper";
 import type { Language } from "@/types/common";
-import { paginateText } from "@/text-processing-v3";
-import type { SearchMatch } from "@/text-processing";
+import { paginateText, type SearchMatch } from "@/text-processing-v3";
 import { progressToPage } from "@/composables/useBookmarks";
 
 import TextPagerHorizontal from "./text-paginator/TextPagerHorizontal.vue";

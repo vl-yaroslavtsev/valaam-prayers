@@ -1,6 +1,6 @@
 import path from "node:path";
 import vue from "@vitejs/plugin-vue";
-import { defineConfig } from "vitest/config";
+import { configDefaults, defineConfig } from "vitest/config";
 
 // Тот же алиас, что в vite.config.js (`resolve.alias["@"] -> src`)
 const SRC_DIR = path.resolve(import.meta.dirname, "./src");
@@ -21,6 +21,7 @@ export default defineConfig({
     },
   },
   test: {
+    exclude: [...configDefaults.exclude, "archive/**"],
     environment: "jsdom",
     // Иначе стили Vue и Less подменяются пустой строкой и каскад шрифта не проверить
     css: true,

@@ -67,7 +67,7 @@ import { f7 } from "framework7-vue";
 import SvgIcon from "@/components/SvgIcon.vue";
 import { useTheme } from "@/composables/useTheme";
 import type { VirtualList } from "framework7/types";
-import type { SearchMatch } from "@/text-processing";
+import type { SearchMatch } from "@/text-processing-v3";
 
 const { matches = [], activeMatchId = null } = defineProps<{
   matches: SearchMatch[];
