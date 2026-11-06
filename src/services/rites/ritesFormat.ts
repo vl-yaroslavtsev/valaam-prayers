@@ -47,6 +47,54 @@ export function formatPeriod(period: Rite["period"]): { from: string; to: string
   };
 }
 
+const longDateFormatter = new Intl.DateTimeFormat("ru-RU", {
+  timeZone: "Europe/Moscow",
+  day: "numeric",
+  month: "long",
+});
+const longDateWithYearFormatter = new Intl.DateTimeFormat("ru-RU", {
+  timeZone: "Europe/Moscow",
+  day: "numeric",
+  month: "long",
+  year: "numeric",
+});
+
+/** "8 ноября" или "8 ноября 2026", как на сайте (formatDateLong) */
+export function formatDateLong(ts: number, withYear: boolean): string {
+  const date = new Date(ts * 1000);
+  return withYear
+    ? longDateWithYearFormatter.format(date).replace(" г.", "")
+    : longDateFormatter.format(date);
+}
+
+/** Период для истории: "29 декабря 2020 — 7 февраля 2021". Правила года те же, что у formatPeriod */
+export function formatPeriodLong(period: Rite["period"]): { from: string; to: string | null } | null {
+  const from = period?.from?.ts;
+  if (!from) return null;
+
+  const to = period?.to?.ts;
+  if (!to || to <= from) return { from: formatDateLong(from, true), to: null };
+
+  return {
+    from: formatDateLong(from, mskYear(from) !== mskYear(to)),
+    to: formatDateLong(to, true),
+  };
+}
+
+// Цвета статусов в тёмной теме по макету. В светлой берётся status.color с сервера
+const DARK_STATUS_COLORS: Record<string, string> = {
+  payed: "#33a9ff",
+  served: "#f27dff",
+  commemoration: "#d0ae9b",
+  completed: "#77d658",
+};
+
+/** Цвет текста статуса записки; null: цвет по умолчанию */
+export function statusColor(status: Rite["status"], isDark: boolean): string | null {
+  if (!status) return null;
+  return isDark ? (DARK_STATUS_COLORS[status.xmlId] ?? null) : (status.color ?? null);
+}
+
 export function formatNames(names: RiteName[]): string {
   return names
     .map((item) => `${item.explanation ?? ""} ${item.name}`.trim())

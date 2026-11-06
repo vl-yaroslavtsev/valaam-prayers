@@ -1,10 +1,13 @@
 import { describe, expect, it } from "vitest";
 import {
+  formatDateLong,
   formatDateShort,
   formatNames,
   formatPeriod,
+  formatPeriodLong,
   formatPrice,
   isValidEmail,
+  statusColor,
 } from "@/services/rites/ritesFormat";
 
 // 2020-12-29 00:00 по Москве
@@ -65,6 +68,57 @@ describe("formatPeriod", () => {
       from: "9 нояб.",
       to: "17 дек. 2026",
     });
+  });
+});
+
+describe("formatDateLong", () => {
+  it("месяц словом, год по запросу, дата по Москве", () => {
+    expect(formatDateLong(DEC_29_2020_MSK, true)).toBe("29 декабря 2020");
+    expect(formatDateLong(DEC_29_2020_MSK, false)).toBe("29 декабря");
+    expect(formatDateLong(DEC_29_2020_MSK - 1, true)).toBe("28 декабря 2020");
+  });
+});
+
+describe("formatPeriodLong", () => {
+  it("без даты начала периода нет", () => {
+    expect(formatPeriodLong(undefined)).toBeNull();
+  });
+
+  it("один день: только from, с годом", () => {
+    expect(formatPeriodLong({ from: point(DEC_29_2020_MSK) })).toEqual({
+      from: "29 декабря 2020",
+      to: null,
+    });
+  });
+
+  it("период в разных годах: год у обеих дат", () => {
+    expect(formatPeriodLong({ from: point(DEC_29_2020_MSK), to: point(JAN_07_2021_MSK) })).toEqual({
+      from: "29 декабря 2020",
+      to: "7 января 2021",
+    });
+  });
+
+  it("период в одном году: год только у конца", () => {
+    const to = NOV_09_2026_MSK + 38 * 86400;
+    expect(formatPeriodLong({ from: point(NOV_09_2026_MSK), to: point(to) })).toEqual({
+      from: "9 ноября",
+      to: "17 декабря 2026",
+    });
+  });
+});
+
+describe("statusColor", () => {
+  const served = { id: 19, xmlId: "served", color: "#c557eb" };
+
+  it("светлая тема берёт цвет сервера, тёмная цвет макета", () => {
+    expect(statusColor(served, false)).toBe("#c557eb");
+    expect(statusColor(served, true)).toBe("#f27dff");
+  });
+
+  it("без статуса или цвета остаётся цвет по умолчанию", () => {
+    expect(statusColor(null, false)).toBeNull();
+    expect(statusColor({ id: 17, xmlId: "new", color: null }, false)).toBeNull();
+    expect(statusColor({ id: 99, xmlId: "other" }, true)).toBeNull();
   });
 });
 

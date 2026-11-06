@@ -61,6 +61,10 @@ export interface RiteStatus {
   id: number;
   xmlId: string;
   name?: string;
+  /** Цвет статуса для светлой темы; у «new» его нет */
+  color?: string | null;
+  /** Только в ответе GET /rites/filter: по выбранным фильтрам записок с таким статусом нет */
+  disabled?: boolean;
 }
 
 /** Записка: Rites::prepareItem (lib/Rites/Rites.php) */
@@ -221,16 +225,29 @@ interface RitesPage {
   totalPages: number;
 }
 
-async function loadRitesPage(statusIds: number[], page: number, perPage: number): Promise<RitesPage> {
+export type RitesOrder = "ASC" | "DESC";
+
+interface RitesPageOptions {
+  order?: RitesOrder;
+  typeId?: number | null;
+}
+
+async function loadRitesPage(
+  statusIds: number[],
+  page: number,
+  perPage: number,
+  { order = "DESC", typeId = null }: RitesPageOptions = {},
+): Promise<RitesPage> {
   const query = new URLSearchParams({
     clientId: getClientId(),
     email: getConfirmedEmail(),
     perPage: String(perPage),
     page: String(page),
-    order: "DESC",
+    order,
     orderBy: "date",
   });
   statusIds.forEach((id, index) => query.append(`status[${index}]`, String(id)));
+  if (typeId) query.append("type", String(typeId));
 
   const result = await request<RitesListResponse>(`/rites?${query}`);
   if (!result.ok) {
@@ -257,13 +274,59 @@ export async function loadCartRites(): Promise<Rite[]> {
   return rites;
 }
 
-/** История записок: всё, что уже не в корзине (оплаченные и дальше по статусам) */
-export async function loadHistoryRites(page: number): Promise<{ items: Rite[]; hasMore: boolean }> {
-  const historyIds = (await getStatuses())
-    .filter((item) => item.xmlId !== "new")
-    .map((item) => item.id);
-  const { items, totalPages } = await loadRitesPage(historyIds, page, HISTORY_PAGE_SIZE);
+export interface HistoryQuery {
+  page: number;
+  order?: RitesOrder;
+  typeId?: number | null;
+  statusId?: number | null;
+}
+
+/** Статусы истории: всё, что уже не в корзине (оплаченные и дальше) */
+async function getHistoryStatusIds(): Promise<number[]> {
+  return (await getStatuses()).filter((item) => item.xmlId !== "new").map((item) => item.id);
+}
+
+/** История записок. Выбранный статус сужает список, без него берутся все статусы истории */
+export async function loadHistoryRites({
+  page,
+  order,
+  typeId,
+  statusId,
+}: HistoryQuery): Promise<{ items: Rite[]; hasMore: boolean }> {
+  const statusIds = statusId ? [statusId] : await getHistoryStatusIds();
+  const { items, totalPages } = await loadRitesPage(statusIds, page, HISTORY_PAGE_SIZE, {
+    order,
+    typeId,
+  });
   return { items, hasMore: page < totalPages };
+}
+
+export interface HistoryFilter {
+  types: RiteType[];
+  statuses: RiteStatus[];
+}
+
+/**
+ * Варианты фильтра истории (GET /rites/filter). У вариантов, по которым при остальных выбранных
+ * фильтрах записок нет, disabled=true. Статус «new» это корзина, в истории его нет.
+ */
+export async function loadHistoryFilter({
+  typeId,
+  statusId,
+}: Pick<HistoryQuery, "typeId" | "statusId">): Promise<HistoryFilter> {
+  const statusIds = statusId ? [statusId] : await getHistoryStatusIds();
+  const query = new URLSearchParams({ clientId: getClientId(), email: getConfirmedEmail() });
+  statusIds.forEach((id, index) => query.append(`status[${index}]`, String(id)));
+  if (typeId) query.append("type", String(typeId));
+
+  const result = await request<Partial<HistoryFilter>>(`/rites/filter?${query}`);
+  if (!result.ok) {
+    throw new Error(collectErrors(result.errors)[0]?.description ?? `HTTP ${result.status}`);
+  }
+  return {
+    types: result.data?.types ?? [],
+    statuses: (result.data?.statuses ?? []).filter((item) => item.xmlId !== "new"),
+  };
 }
 
 /** keepalive нужен, когда страница уходит в фон: запрос не должен оборваться */
