@@ -2,9 +2,13 @@
   <f7-sheet
     v-model:opened="opened"
     class="history-filter-sheet"
+    bottom
     backdrop
+    swipe-to-close
+    swipe-handler=".swipe-handler"
     @sheet:open="onOpen"
   >
+    <div class="swipe-handler"></div>
     <div class="history-filter-sheet__header">
       <h2 class="history-filter-sheet__title">Фильтры</h2>
       <f7-link
@@ -77,7 +81,6 @@ function apply(): void {
 <style lang="less">
 .history-filter-sheet {
   --f7-sheet-height: auto;
-  --f7-sheet-bg-color: var(--content-color-white-100);
   // Окно может оказаться вне страницы, поэтому переменные полей задаём здесь
   --rites-text: var(--content-color-black-primary);
   --rites-field-border: var(--content-color-black-20);
@@ -93,7 +96,7 @@ function apply(): void {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 20px 10px 0;
+    padding: 40px 10px 0;
   }
 
   &__title {
@@ -139,7 +142,6 @@ function apply(): void {
 }
 
 .dark .history-filter-sheet {
-  --f7-sheet-bg-color: var(--content-color-black-secondary);
   --rites-text: var(--content-color-white-100);
   --rites-field-border: var(--content-color-baige-30);
   --rites-pay-bg: var(--content-color-white-100);

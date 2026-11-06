@@ -21,6 +21,8 @@
       <!-- Первая загрузка -->
       <div v-if="!isLoaded && !error" class="history-state" aria-busy="true">
         <f7-skeleton-block class="history-skeleton history-skeleton--button" effect="wave" />
+        <f7-skeleton-block class="history-skeleton history-skeleton--filters" effect="wave" />
+        <f7-skeleton-block class="history-skeleton history-skeleton--alert" effect="wave" />
         <f7-skeleton-block class="history-skeleton history-skeleton--card" effect="wave" />
         <f7-skeleton-block class="history-skeleton history-skeleton--card" effect="wave" />
       </div>
@@ -113,13 +115,7 @@
           Вы можете внести правки в поданную записку до того, как она попадет в церковную лавку
         </div>
 
-        <!-- Смена фильтра: список перезагружается -->
-        <div v-if="isLoading" class="history-state" aria-busy="true">
-          <f7-skeleton-block class="history-skeleton history-skeleton--card" effect="wave" />
-          <f7-skeleton-block class="history-skeleton history-skeleton--card" effect="wave" />
-        </div>
-
-        <div v-else-if="error" class="history-state history-state--center">
+        <div v-if="error" class="history-state history-state--center">
           <p class="history-state__text">{{ error }}</p>
           <f7-button outline large class="history-button" @click="loadFirst()">Повторить</f7-button>
         </div>
@@ -130,7 +126,13 @@
           <f7-button outline large class="history-button" @click="clearFilter">Сбросить</f7-button>
         </div>
 
-        <f7-list v-else class="history-list" no-hairlines no-hairlines-between>
+        <f7-list
+          v-else
+          class="history-list"
+          :class="{ 'history-list--busy': isRefreshing }"
+          no-hairlines
+          no-hairlines-between
+        >
           <template #list>
             <RitesHistoryItem
               v-for="item in items"
@@ -221,6 +223,8 @@ const hasMore = ref(false);
 /** Первая страница уже приходила: дальше при смене фильтра страница не мигает целиком */
 const isLoaded = ref(false);
 const isLoading = ref(false);
+/** Смена фильтра или порядка: список остаётся на месте, чтобы страница не схлопывалась */
+const isRefreshing = ref(false);
 const isLoadingMore = ref(false);
 const error = ref<string | null>(null);
 
@@ -274,15 +278,22 @@ function currentQuery() {
   };
 }
 
-/** silent: список остаётся на экране, пока приходит свежая первая страница */
+/**
+ * silent: список остаётся на экране, пока приходит свежая первая страница.
+ * Смена фильтра тоже не очищает список заранее: пустой скелетон меняет высоту страницы.
+ */
 async function loadFirst(silent = false): Promise<void> {
   const id = ++requestId;
   isLoadingMore.value = false;
   error.value = null;
-  if (!silent) {
+  const initial = !isLoaded.value;
+  if (initial) {
     isLoading.value = true;
+    isRefreshing.value = false;
     items.value = [];
     hasMore.value = false;
+  } else {
+    isRefreshing.value = !silent;
   }
 
   try {
@@ -297,12 +308,15 @@ async function loadFirst(silent = false): Promise<void> {
     console.error("Не удалось загрузить историю записок:", ex);
     if (!silent) error.value = "Не удалось загрузить историю записок";
   } finally {
-    if (id === requestId) isLoading.value = false;
+    if (id === requestId) {
+      isLoading.value = false;
+      isRefreshing.value = false;
+    }
   }
 }
 
 async function loadMore(): Promise<void> {
-  if (!hasMore.value || isLoading.value || isLoadingMore.value) return;
+  if (!hasMore.value || isLoading.value || isRefreshing.value || isLoadingMore.value) return;
 
   const id = requestId;
   isLoadingMore.value = true;
@@ -426,6 +440,15 @@ function onRiteSaved(rite: Rite): void {
       height: 52px;
     }
 
+    &--filters {
+      height: 90px;
+      border-radius: 8px;
+    }
+
+    &--alert {
+      height: 84px;
+    }
+
     &--card {
       height: 260px;
     }
@@ -517,6 +540,11 @@ function onRiteSaved(rite: Rite): void {
     color: var(--history-alert-text);
   }
 
+  .history-list--busy {
+    opacity: 0.5;
+    pointer-events: none;
+  }
+
   .history-list {
     margin: 0;
 
@@ -561,6 +589,14 @@ function onRiteSaved(rite: Rite): void {
       padding: 0 30px;
       font-size: 12px;
       letter-spacing: 1.38px;
+    }
+
+    .history-skeleton--filters {
+      height: 70px;
+    }
+
+    .history-skeleton--alert {
+      height: 50px;
     }
 
     .history-filters--tablet {

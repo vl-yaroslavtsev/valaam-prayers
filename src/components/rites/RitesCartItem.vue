@@ -16,7 +16,7 @@
 
       <div class="rite-card__title">
         <template v-if="item.type">
-          <span class="rite-card__type">{{ item.type.shortName }}</span>
+          <span class="rite-card__type">{{ shortName }}</span>
           <RiteTypeChip :type="item.type" />
         </template>
       </div>
@@ -84,7 +84,7 @@ import { computed } from "vue";
 import SvgIcon from "@/components/SvgIcon.vue";
 import RiteTypeChip from "@/components/rites/RiteTypeChip.vue";
 import { useTheme } from "@/composables/useTheme";
-import { formatNames, formatPeriod, formatPrice } from "@/services/rites/ritesFormat";
+import { formatNames, formatPeriod, formatPrice, formatShortName } from "@/services/rites/ritesFormat";
 import type { CartItem } from "@/stores/ritesCart";
 
 const { item } = defineProps<{
@@ -103,6 +103,7 @@ const { isDarkMode } = useTheme();
 const actionColor = computed(() => (isDarkMode.value ? "primary-accent-70" : "primary-accent-50"));
 const period = computed(() => formatPeriod(item.period));
 const namesText = computed(() => formatNames(item.names));
+const shortName = computed(() => (item.type ? formatShortName(item.type.shortName) : ""));
 </script>
 
 <style lang="less">
@@ -159,7 +160,7 @@ const namesText = computed(() => formatNames(item.names));
 
   &__names {
     margin: 8px 0 0 40px;
-    font-size: 14px;
+    font-size: 16px;
     line-height: 18px;
     color: var(--rites-text);
   }

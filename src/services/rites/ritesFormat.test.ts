@@ -6,6 +6,7 @@ import {
   formatPeriod,
   formatPeriodLong,
   formatPrice,
+  formatShortName,
   isValidEmail,
   statusColor,
 } from "@/services/rites/ritesFormat";
@@ -119,6 +120,19 @@ describe("statusColor", () => {
     expect(statusColor(null, false)).toBeNull();
     expect(statusColor({ id: 17, xmlId: "new", color: null }, false)).toBeNull();
     expect(statusColor({ id: 99, xmlId: "other" }, true)).toBeNull();
+  });
+});
+
+describe("formatShortName", () => {
+  it("заменяет пробелы внутри скобок на неразрывные", () => {
+    expect(formatShortName("Проскомидия (40 дней)")).toBe("Проскомидия (40\u00A0дней)");
+    expect(formatShortName("Молебен \"Валаамская\" (1 день)")).toBe(
+      "Молебен \"Валаамская\" (1\u00A0день)",
+    );
+  });
+
+  it("не трогает название без скобок и пробелы снаружи", () => {
+    expect(formatShortName("Разовое поминовение")).toBe("Разовое поминовение");
   });
 });
 

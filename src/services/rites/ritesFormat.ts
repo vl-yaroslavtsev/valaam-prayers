@@ -95,6 +95,11 @@ export function statusColor(status: Rite["status"], isDark: boolean): string | n
   return isDark ? (DARK_STATUS_COLORS[status.xmlId] ?? null) : (status.color ?? null);
 }
 
+/** Пробелы внутри скобок не разрывают краткое название: «Псалтирь (1 год)» */
+export function formatShortName(name: string): string {
+  return name.replace(/\(([^)]*)\)/g, (_, inner: string) => `(${inner.replace(/ /g, "\u00A0")})`);
+}
+
 export function formatNames(names: RiteName[]): string {
   return names
     .map((item) => `${item.explanation ?? ""} ${item.name}`.trim())

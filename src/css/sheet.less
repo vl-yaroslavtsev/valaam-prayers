@@ -1,6 +1,6 @@
 .sheet-modal {
-  --f7-sheet-bg-color: var(--content-color-black-5-no-opacity); // var(--content-color-baige-100);
-  --swipe-handler-bg-color: var(--content-color-black-5-no-opacity); //var(--f7-sheet-bg-color); //
+  --f7-sheet-bg-color: var(--f7-popover-bg-color);
+  --swipe-handler-bg-color: var(--f7-sheet-bg-color);
   --f7-toolbar-bg-color: var(--f7-sheet-bg-color);
 
   .swipe-handler {
@@ -33,16 +33,51 @@
       bottom: 0;
     }
   }
+}
 
-  .dark & {
-    // --f7-sheet-bg-color: var(--content-color-black-primary);//var(--content-color-black-secondary);
-    // --swipe-handler-bg-color: var(--content-color-black-secondary);//var(--content-color-baige-5-no-opacity);
+// Настройки текста оставляют прежний фон, остальные окна совпадают с popover
+.text-settings-sheet {
+  --f7-sheet-bg-color: var(--content-color-black-5-no-opacity);
+}
 
-    --f7-sheet-bg-color: var(--content-color-baige-5-no-opacity); // var(--content-color-baige-100);
-    --swipe-handler-bg-color: var(--content-color-baige-5-no-opacity);
+.dark .text-settings-sheet {
+  --f7-sheet-bg-color: var(--content-color-baige-5-no-opacity);
+}
+
+// Как у popover: цвет и верхний слой берутся из тех же переменных
+.sheet-backdrop {
+  background: var(--popover-backdrop-bg-color, rgba(0, 0, 0, 0.4));
+
+  &:before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: var(--popover-backdrop-before-bg-color, transparent);
   }
 }
 
+// Подложка настроек текста прозрачная и не должна находиться через .sheet-backdrop
 .text-settings-sheet-backdrop {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
   background: transparent;
+  z-index: 11000;
+  visibility: hidden;
+  opacity: 0;
+  transition-duration: 400ms;
+
+  &.not-animated {
+    transition-duration: 0ms;
+  }
+
+  &.backdrop-in {
+    visibility: visible;
+    opacity: 1;
+  }
 }

@@ -59,7 +59,8 @@
         @tab:show="onTabShow"
       ></f7-view>
     </f7-views>
-    <div class="text-settings-sheet-backdrop sheet-backdrop"></div>
+    <!-- Без класса sheet-backdrop: иначе Framework7 подставит эту прозрачную подложку другим окнам -->
+    <div class="text-settings-sheet-backdrop"></div>
     <SharePopover ref="sharePopover" />
   </f7-app>
 </template>

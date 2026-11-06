@@ -8,6 +8,7 @@
         closeOnSelect: true,
         setValueText: false,
         scrollToSelectedItem: true,
+        cssClass: 'history-filter-popover',
       }"
     >
       <template v-if="icon" #media>
@@ -143,6 +144,15 @@ const selectedLabel = computed(
   &--outlined {
     --history-select-bg: transparent;
     --history-select-border: var(--rites-field-border);
+  }
+}
+
+// Поповер рендерится вне компонента: длинные названия треб переносятся
+.history-filter-popover.smart-select-popover {
+  .item-title {
+    white-space: normal;
+    overflow: visible;
+    text-overflow: unset;
   }
 }
 </style>

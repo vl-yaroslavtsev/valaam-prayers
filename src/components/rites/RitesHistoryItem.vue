@@ -3,7 +3,7 @@
     <div class="history-item__head">
       <div class="history-item__title">
         <template v-if="item.type">
-          <span class="history-item__type">{{ item.type.shortName }}</span>
+          <span class="history-item__type">{{ shortName }}</span>
           <RiteTypeChip :type="item.type" />
         </template>
       </div>
@@ -64,7 +64,13 @@ import { computed } from "vue";
 import RiteTypeChip from "@/components/rites/RiteTypeChip.vue";
 import { useTheme } from "@/composables/useTheme";
 import type { Rite } from "@/services/rites/ritesApi";
-import { formatNames, formatPeriodLong, formatPrice, statusColor } from "@/services/rites/ritesFormat";
+import {
+  formatNames,
+  formatPeriodLong,
+  formatPrice,
+  formatShortName,
+  statusColor,
+} from "@/services/rites/ritesFormat";
 
 const { item } = defineProps<{
   item: Rite;
@@ -80,6 +86,7 @@ const { isDarkMode } = useTheme();
 const color = computed(() => statusColor(item.status, isDarkMode.value));
 const period = computed(() => formatPeriodLong(item.period));
 const namesText = computed(() => formatNames(item.names));
+const shortName = computed(() => (item.type ? formatShortName(item.type.shortName) : ""));
 </script>
 
 <style lang="less">
@@ -133,7 +140,7 @@ const namesText = computed(() => formatNames(item.names));
   }
 
   &__sum {
-    margin-top: 12px;
+    margin-top: 20px; //12px;
     white-space: nowrap;
   }
 
@@ -188,6 +195,10 @@ const namesText = computed(() => formatNames(item.names));
     --f7-button-bg-color: var(--rites-pay-bg);
     --f7-button-fill-bg-color: var(--rites-pay-bg);
     --f7-button-fill-text-color: var(--rites-pay-text);
+    --f7-button-text-color: var(--rites-pay-text);
+    // Ссылка .dark a перекрывает color у .button, поэтому цвет задаём явно
+    color: var(--rites-pay-text);
+    background-color: var(--rites-pay-bg);
 
     border: 1px solid var(--rites-pay-border);
   }

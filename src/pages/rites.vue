@@ -20,6 +20,7 @@
       <!-- Загрузка корзины -->
       <div v-if="!store.isLoaded" class="rites-state" aria-busy="true">
         <f7-skeleton-block class="rites-skeleton rites-skeleton--button" effect="wave" />
+        <f7-skeleton-block class="rites-skeleton rites-skeleton--select" effect="wave" />
         <f7-skeleton-block class="rites-skeleton rites-skeleton--card" effect="wave" />
         <f7-skeleton-block class="rites-skeleton rites-skeleton--card" effect="wave" />
       </div>
@@ -444,7 +445,7 @@ onBeforeUnmount(() => {
   --rites-empty-hint: var(--content-color-black-60);
   // Колонки таблицы на планшете: чекбокс, номер, поминовение, период, имена, сумма, три иконки
   //--rites-grid-columns: 24px 60px minmax(0, 2.66fr) 78px minmax(0, 1fr) 65px 24px 24px 24px;
-  --rites-grid-columns: 24px 70px minmax(0, 1.5fr) 91px minmax(0, 1.5fr) 85px 24px 24px 24px;
+  --rites-grid-columns: 24px 70px minmax(0, 1.5fr) 85px minmax(0, 1.5fr) 80px 24px 24px 24px;
 }
 
 .dark .rites-page {
@@ -511,6 +512,10 @@ onBeforeUnmount(() => {
       height: 52px;
       width: 190px;
       align-self: center;
+    }
+
+    &--select {
+      height: 44px;
     }
 
     &--card {
@@ -868,6 +873,10 @@ onBeforeUnmount(() => {
         font-size: 16px;
         line-height: 20px;
       }
+    }
+
+    .rites-skeleton--select {
+      height: 56px;
     }
 
     .rites-select {
