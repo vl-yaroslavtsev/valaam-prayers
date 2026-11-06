@@ -443,7 +443,8 @@ onBeforeUnmount(() => {
   --rites-empty-bg: var(--content-color-white-100);
   --rites-empty-hint: var(--content-color-black-60);
   // Колонки таблицы на планшете: чекбокс, номер, поминовение, период, имена, сумма, три иконки
-  --rites-grid-columns: 24px 60px minmax(0, 2.66fr) 78px minmax(0, 1fr) 65px 24px 24px 24px;
+  //--rites-grid-columns: 24px 60px minmax(0, 2.66fr) 78px minmax(0, 1fr) 65px 24px 24px 24px;
+  --rites-grid-columns: 24px 70px minmax(0, 1.5fr) 91px minmax(0, 1.5fr) 85px 24px 24px 24px;
 }
 
 .dark .rites-page {

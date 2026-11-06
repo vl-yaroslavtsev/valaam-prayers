@@ -4,7 +4,7 @@
     :class="{ 'rite-card--error': item.errors.length > 0 }"
     :data-rite-id="item.id"
   >
-    <div class="rite-card__head">
+    <div class="rite-card__top">
       <label class="rite-card__select">
         <f7-checkbox
           :checked="item.checked"
@@ -14,60 +14,63 @@
         <span class="rite-card__number">№{{ item.number }}</span>
       </label>
 
-      <div class="rite-card__price">
-        <span class="rite-card__sum">{{ formatPrice(item.sum) }}&nbsp;₽</span>
-        <f7-link
-          class="rite-card__edit"
-          icon-only
-          :aria-label="`Редактировать записку №${item.number}`"
-          @click="emit('edit')"
-        >
-          <SvgIcon icon="pencil" :size="24" :color="actionColor" />
-        </f7-link>
+      <div class="rite-card__title">
+        <template v-if="item.type">
+          <span class="rite-card__type">{{ item.type.shortName }}</span>
+          <RiteTypeChip :type="item.type" />
+        </template>
+      </div>
+
+      <f7-link
+        class="rite-card__edit"
+        icon-only
+        :aria-label="`Редактировать записку №${item.number}`"
+        @click="emit('edit')"
+      >
+        <SvgIcon icon="pencil" :size="24" :color="actionColor" />
+      </f7-link>
+    </div>
+
+    <div v-if="namesText" class="rite-card__names">
+      <span class="rite-card__names-text">{{ namesText }}</span>
+    </div>
+
+    <div class="rite-card__line"></div>
+
+    <div class="rite-card__rows">
+      <div class="rite-card__row rite-card__row--number">
+        <span class="rite-card__label">Номер</span>
+        <span class="rite-card__value">{{ item.number }}</span>
+      </div>
+      <div v-if="period" class="rite-card__row rite-card__row--period">
+        <span class="rite-card__label">Период</span>
+        <span class="rite-card__value">
+          {{ period.from }}<template v-if="period.to">&nbsp;-<br class="rite-card__period-break" />
+            {{ period.to }}</template>
+        </span>
       </div>
     </div>
 
-    <div class="rite-card__line rite-card__line--head"></div>
+    <div class="rite-card__line"></div>
 
-    <div class="rite-card__details">
-      <div class="rite-card__rows">
-        <div v-if="item.type" class="rite-card__row rite-card__row--type">
-          <span class="rite-card__label">Поминовение</span>
-          <span class="rite-card__value">{{ item.type.name }}</span>
-        </div>
-        <div v-if="period" class="rite-card__row rite-card__row--period">
-          <span class="rite-card__label">Период</span>
-          <span class="rite-card__value">
-            {{ period.from }}<template v-if="period.to">&nbsp;-<br class="rite-card__period-break" />
-              {{ period.to }}</template>
-          </span>
-        </div>
-        <div class="rite-card__row rite-card__row--names">
-          <span class="rite-card__label">Имена</span>
-          <span class="rite-card__value">{{ namesText }}</span>
-        </div>
-      </div>
-
-      <div class="rite-card__line"></div>
-
-      <div class="rite-card__actions">
-        <f7-link
-          class="rite-card__action rite-card__action--copy"
-          :aria-label="`Дублировать записку №${item.number}`"
-          @click="emit('copy')"
-        >
-          <span class="rite-card__action-text">Дублировать</span>
-          <span class="rite-card__action-icon"><SvgIcon icon="copy" :size="24" :color="actionColor" /></span>
-        </f7-link>
-        <f7-link
-          class="rite-card__action rite-card__action--delete"
-          :aria-label="`Удалить записку №${item.number}`"
-          @click="emit('remove')"
-        >
-          <span class="rite-card__action-text">Удалить</span>
-          <span class="rite-card__action-icon"><SvgIcon icon="delete" :size="24" :color="actionColor" /></span>
-        </f7-link>
-      </div>
+    <div class="rite-card__actions">
+      <f7-link
+        class="rite-card__action rite-card__action--copy"
+        :aria-label="`Дублировать записку №${item.number}`"
+        @click="emit('copy')"
+      >
+        <span class="rite-card__action-text">Дублировать</span>
+        <span class="rite-card__action-icon"><SvgIcon icon="copy" :size="24" :color="actionColor" /></span>
+      </f7-link>
+      <f7-link
+        class="rite-card__action rite-card__action--delete"
+        :aria-label="`Удалить записку №${item.number}`"
+        @click="emit('remove')"
+      >
+        <span class="rite-card__action-text">Удалить</span>
+        <span class="rite-card__action-icon"><SvgIcon icon="delete" :size="24" :color="actionColor" /></span>
+      </f7-link>
+      <span class="rite-card__sum">{{ formatPrice(item.sum) }}&nbsp;₽</span>
     </div>
 
     <p v-if="item.errors.length > 0" class="rite-card__error" role="alert">
@@ -79,6 +82,7 @@
 <script setup lang="ts">
 import { computed } from "vue";
 import SvgIcon from "@/components/SvgIcon.vue";
+import RiteTypeChip from "@/components/rites/RiteTypeChip.vue";
 import { useTheme } from "@/composables/useTheme";
 import { formatNames, formatPeriod, formatPrice } from "@/services/rites/ritesFormat";
 import type { CartItem } from "@/stores/ritesCart";
@@ -102,8 +106,8 @@ const namesText = computed(() => formatNames(item.names));
 </script>
 
 <style lang="less">
-// Мобильная карточка: шапка (выбор, номер, сумма, правка), строки с подписями, действия-ссылки.
-// На планшете та же разметка собирается в одну строку таблицы.
+// Мобильная карточка: треба и чип, под ними имена, затем номер, период и действия с суммой.
+// На планшете те же узлы собираются в строку таблицы: номер остаётся у чекбокса, сумма уходит в свою колонку.
 .rite-card {
   --rite-card-padding: 10px;
 
@@ -119,67 +123,62 @@ const namesText = computed(() => formatNames(item.names));
     border-color: var(--red-r-100);
   }
 
-  &__head {
-    display: flex;
+  &__top {
+    display: grid;
+    grid-template-columns: 24px minmax(0, 1fr) auto;
+    column-gap: 16px;
     align-items: center;
-    justify-content: space-between;
   }
 
   &__select {
     display: flex;
     align-items: center;
-    gap: 16px;
     cursor: pointer;
   }
 
   &__number {
-    font-size: var(--mobile-main-text-bold-b3);
-    line-height: 20px;
-    font-weight: 700;
-    white-space: nowrap;
+    display: none;
   }
 
-  &__price {
+  &__title {
     display: flex;
+    flex-wrap: wrap;
     align-items: center;
+    align-content: center;
     gap: 8px;
+    min-width: 0;
   }
 
-  &__sum {
+  &__type {
+    min-width: 0;
     font-size: var(--mobile-main-text-bold-b3);
     line-height: 20px;
     font-weight: 700;
-    white-space: nowrap;
+    overflow-wrap: break-word;
   }
 
-  &__edit.link,
-  &__action-icon {
-    width: 24px;
-    height: 24px;
+  &__names {
+    margin: 8px 0 0 40px;
+    font-size: 14px;
+    line-height: 18px;
+    color: var(--rites-text);
   }
 
-  &__edit.link {
-    justify-content: center;
+  &__names-text {
+    overflow-wrap: break-word;
   }
 
   &__line {
     height: 1px;
-    margin-top: 14px;
+    margin: 14px 0 14px 40px;
     background: var(--rites-divider);
-
-    &--head {
-      margin-bottom: 14px;
-    }
-  }
-
-  &__details {
-    padding: 0 0 4px 40px;
   }
 
   &__rows {
     display: flex;
     flex-direction: column;
     gap: 8px;
+    margin-left: 40px;
   }
 
   &__row {
@@ -206,8 +205,27 @@ const namesText = computed(() => formatNames(item.names));
 
   &__actions {
     display: flex;
+    align-items: center;
     gap: 27px;
-    margin-top: 14px;
+    margin-left: 40px;
+  }
+
+  &__sum {
+    margin-left: auto;
+    font-size: var(--mobile-main-text-bold-b3);
+    line-height: 20px;
+    font-weight: 700;
+    white-space: nowrap;
+  }
+
+  &__edit.link,
+  &__action-icon {
+    width: 24px;
+    height: 24px;
+  }
+
+  &__edit.link {
+    justify-content: center;
   }
 
   &__action.link {
@@ -245,52 +263,93 @@ const namesText = computed(() => formatNames(item.names));
     font-size: 14px;
     line-height: 18px;
 
-    // Блоки мобильной карточки растворяются: их содержимое становится ячейками одной строки
-    &__head,
-    &__price,
-    &__details,
+    &__top,
     &__rows,
     &__actions {
       display: contents;
     }
 
-    &__line {
+    &__line,
+    &__row--number {
       display: none;
     }
 
     &__select {
       grid-column: 1 / 3;
+      grid-row: 1;
       gap: 10px;
     }
 
-    &__number,
-    &__sum {
+    &__number {
+      display: inline;
       font-size: 14px;
       line-height: 18px;
       font-weight: 400;
+      white-space: nowrap;
     }
 
-    &__row {
+    &__title,
+    &__names,
+    &__row--period,
+    &__sum {
       position: relative;
       align-self: stretch;
-      align-items: center;
-      font-size: 14px;
-      line-height: 18px;
+      grid-row: 1;
+    }
 
-      // Разделитель между колонками
+    &__title {
+      grid-column: 3;
+      margin-right: 10px;
+
       &::before {
         content: "";
         position: absolute;
         top: 0;
         bottom: 0;
-        left: -5px;
+        left: -10px;
         width: 1px;
         background: var(--rites-divider);
       }
+    }
 
-      &--period::before {
-        display: none;
+    &__type {
+      font-size: 14px;
+      line-height: 18px;
+    }
+
+    &__names {
+      grid-column: 5;
+      display: flex;
+      align-items: center;
+      margin: 0;
+      padding-left: 10px;
+      font-size: 14px;
+      line-height: 18px;
+
+      &::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        bottom: 0;
+        left: 0;
+        width: 1px;
+        background: var(--rites-divider);
       }
+    }
+
+    &__names-text {
+      display: -webkit-box;
+      min-width: 0;
+      -webkit-box-orient: vertical;
+      -webkit-line-clamp: 2;
+      overflow: hidden;
+    }
+
+    &__row--period {
+      grid-column: 4;
+      display: flex;
+      align-items: center;
+      margin: 0;
     }
 
     &__label {
@@ -298,32 +357,7 @@ const namesText = computed(() => formatNames(item.names));
     }
 
     &__value {
-      display: -webkit-box;
-      -webkit-box-orient: vertical;
-      -webkit-line-clamp: 2;
-      overflow: hidden;
       color: var(--rites-text);
-    }
-
-    &__row--type {
-      grid-column: 3;
-      grid-row: 1;
-      margin-right: 20px;
-
-      .rite-card__value {
-        font-weight: 700;
-      }
-    }
-
-    &__row--period {
-      grid-column: 4;
-      grid-row: 1;
-    }
-
-    &__row--names {
-      grid-column: 5;
-      grid-row: 1;
-      padding-left: 10px;
     }
 
     &__period-break {
@@ -331,21 +365,22 @@ const namesText = computed(() => formatNames(item.names));
     }
 
     &__sum {
-      position: relative;
       grid-column: 6;
-      grid-row: 1;
-      align-self: stretch;
       display: flex;
       align-items: center;
       justify-content: flex-end;
-      font-weight: 700;
+      margin: 0;
+      font-size: 14px;
+      line-height: 18px;
+      padding-right: 10px;
+      padding-left: 10px;
 
       &::before {
         content: "";
         position: absolute;
         top: 0;
         bottom: 0;
-        left: -5px;
+        left: 0;
         width: 1px;
         background: var(--rites-divider);
       }
@@ -355,15 +390,14 @@ const namesText = computed(() => formatNames(item.names));
       position: relative;
       grid-column: 7;
       grid-row: 1;
-      margin-left: 11px;
+      // margin-left: 11px;
 
-      // Разделитель между суммой и иконками на всю высоту строки
       &::before {
         content: "";
         position: absolute;
         top: -12px;
         bottom: -12px;
-        left: -10.5px;
+        left: -10px;
         width: 1px;
         background: var(--rites-divider);
       }
@@ -373,13 +407,13 @@ const namesText = computed(() => formatNames(item.names));
       &--copy.link {
         grid-column: 8;
         grid-row: 1;
-        margin-left: 6px;
+        // margin-left: 6px;
       }
 
       &--delete.link {
         grid-column: 9;
         grid-row: 1;
-        margin-left: 6px;
+        // margin-left: 6px;
       }
     }
 
@@ -393,8 +427,13 @@ const namesText = computed(() => formatNames(item.names));
 
     &__error {
       grid-column: 1 / -1;
+      grid-row: 2;
       margin-top: 4px;
     }
+  }
+
+  .link .rite-card__action-icon {
+    margin: 0;
   }
 }
 </style>

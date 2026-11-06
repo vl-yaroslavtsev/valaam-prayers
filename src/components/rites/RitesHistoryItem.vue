@@ -2,35 +2,28 @@
   <li class="history-item" :data-rite-id="item.id">
     <div class="history-item__head">
       <div class="history-item__title">
-        <div class="history-item__title-row">
-          <span class="history-item__number">Записка №{{ item.number }}</span>
-          <span
-            v-if="item.type"
-            class="history-item__chip"
-            :class="item.type.type ? `history-item__chip--${item.type.type}` : ''"
-          >
-            {{ item.type.typeName }}
-          </span>
-        </div>
-        <div class="history-item__meta">
-          <span v-if="item.type" v-html="item.type.shortName"></span>
-          <span v-if="item.datePayment">от {{ item.datePayment.value }} г.</span>
-        </div>
+        <template v-if="item.type">
+          <span class="history-item__type">{{ item.type.shortName }}</span>
+          <RiteTypeChip :type="item.type" />
+        </template>
       </div>
+      <div v-if="namesText" class="history-item__names">{{ namesText }}</div>
       <span class="history-item__sum">{{ formatPrice(item.sum) }}&nbsp;₽</span>
     </div>
 
     <div class="history-item__body">
       <div class="history-item__details">
-        <div v-if="item.status" class="history-item__detail history-item__detail--status">
+        <div class="history-item__detail">
+          <span class="history-item__label">Записка</span>
+          <span class="history-item__value">
+            №{{ item.number }}<template v-if="item.datePayment"> от {{ item.datePayment.value }} г.</template>
+          </span>
+        </div>
+        <div v-if="item.status" class="history-item__detail">
           <span class="history-item__label">Статус</span>
           <span class="history-item__value" :style="color ? { color } : undefined">
             {{ item.status.name }}
           </span>
-        </div>
-        <div class="history-item__detail">
-          <span class="history-item__label">Имена</span>
-          <span class="history-item__value">{{ namesText }}</span>
         </div>
         <div v-if="period" class="history-item__detail">
           <span class="history-item__label">
@@ -68,6 +61,7 @@
 
 <script setup lang="ts">
 import { computed } from "vue";
+import RiteTypeChip from "@/components/rites/RiteTypeChip.vue";
 import { useTheme } from "@/composables/useTheme";
 import type { Rite } from "@/services/rites/ritesApi";
 import { formatNames, formatPeriodLong, formatPrice, statusColor } from "@/services/rites/ritesFormat";
@@ -89,18 +83,11 @@ const namesText = computed(() => formatNames(item.names));
 </script>
 
 <style lang="less">
-// Мобильная карточка: шапка (номер, чип, тип, дата, сумма), ниже статус, имена, период и кнопка.
-// На планшете сумма уходит вправо, а статус, имена и период встают в три колонки.
+// Мобильная карточка: треба и чип, имена, сумма, ниже записка, статус, период и кнопка.
+// На планшете сумма встаёт справа от требы, а записка, статус и период — в три колонки.
 .history-item {
-  --history-chip-health-color: var(--red-r-100);
-  --history-chip-health-bg: rgba(235, 87, 87, 0.1);
-  --history-chip-health-border: rgba(235, 87, 87, 0.04);
-  --history-chip-repose-color: var(--content-color-black-primary);
-  --history-chip-repose-bg: var(--content-color-black-5);
-  --history-chip-repose-border: var(--content-color-black-5);
   --history-label: rgba(0, 0, 0, 0.5);
   --history-value: #000;
-  --history-meta: var(--content-color-black-60);
   --history-divider: var(--content-color-black-20);
 
   overflow: hidden;
@@ -112,57 +99,42 @@ const namesText = computed(() => formatNames(item.names));
   &__head {
     display: flex;
     flex-direction: column;
-    gap: 20px;
     padding: 20px 25px;
     border-bottom: 1px solid var(--history-divider);
   }
 
   &__title {
     display: flex;
-    flex-direction: column;
-    gap: 8px;
-  }
-
-  &__title-row {
-    display: flex;
     flex-wrap: wrap;
     align-items: center;
-    gap: 10px;
+    gap: 8px;
+    min-width: 0;
   }
 
-  &__number,
+  &__type,
   &__sum {
     font-size: 16px;
     line-height: 20px;
     font-weight: 700;
     color: var(--rites-text);
-    white-space: nowrap;
   }
 
-  &__chip {
-    padding: 5px 8px 6px;
-    border: 1px solid var(--history-chip-repose-border);
-    border-radius: 30px;
-    background: var(--history-chip-repose-bg);
-    font-size: 12px;
-    line-height: 18px;
-    color: var(--history-chip-repose-color);
-    white-space: nowrap;
-
-    &--health {
-      border-color: var(--history-chip-health-border);
-      background: var(--history-chip-health-bg);
-      color: var(--history-chip-health-color);
-    }
+  &__type {
+    min-width: 0;
+    overflow-wrap: break-word;
   }
 
-  &__meta {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-    font-size: 14px;
-    line-height: 18px;
-    color: var(--history-meta);
+  &__names {
+    margin-top: 8px;
+    font-size: 16px;
+    line-height: 20px;
+    color: var(--history-value);
+    overflow-wrap: break-word;
+  }
+
+  &__sum {
+    margin-top: 12px;
+    white-space: nowrap;
   }
 
   &__body {
@@ -191,22 +163,12 @@ const namesText = computed(() => formatNames(item.names));
     color: var(--history-label);
   }
 
-  &__detail--status &__label {
-    font-size: 14px;
-    line-height: 18px;
-  }
-
   &__value {
     font-size: 16px;
     line-height: 20px;
     color: var(--history-value);
   }
 
-  &__detail--status &__value {
-    color: var(--rites-text);
-  }
-
-  // Кнопки как в корзине: контур или заливка по макету
   .history-item__button.button {
     --f7-button-height: 52px;
     --f7-button-border-radius: 10px;
@@ -232,25 +194,37 @@ const namesText = computed(() => formatNames(item.names));
 }
 
 .dark .history-item {
-  --history-chip-health-color: #ff9191;
-  --history-chip-health-bg: rgba(255, 145, 145, 0.1);
-  --history-chip-health-border: rgba(255, 145, 145, 0.04);
-  --history-chip-repose-color: var(--content-color-white-100);
-  --history-chip-repose-bg: var(--content-color-baige-5);
-  --history-chip-repose-border: var(--content-color-baige-5);
   --history-label: var(--content-color-baige-40);
   --history-value: var(--content-color-white-100);
-  --history-meta: var(--content-color-baige-60);
   --history-divider: var(--content-color-baige-30);
 }
 
 @media (min-width: 744px) {
   .history-item {
     &__head {
-      flex-direction: row;
-      align-items: flex-start;
-      justify-content: space-between;
-      gap: 20px;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      column-gap: 20px;
+      row-gap: 8px;
+      align-items: center;
+    }
+
+    &__title {
+      grid-column: 1;
+      grid-row: 1;
+    }
+
+    &__sum {
+      grid-column: 2;
+      grid-row: 1;
+      margin-top: 0;
+      justify-self: end;
+    }
+
+    &__names {
+      grid-column: 1 / -1;
+      grid-row: 2;
+      margin-top: 0;
     }
 
     &__details {
