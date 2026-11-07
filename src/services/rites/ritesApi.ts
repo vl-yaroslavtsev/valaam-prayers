@@ -366,6 +366,60 @@ export function updateRite(rite: Rite, date: string): Promise<ApiResult<Rite>> {
   });
 }
 
+export interface SubmitRiteParams {
+  /** Есть id: PUT /rites/N (редактирование). Нет: POST /rites (новая записка, в том числе копия) */
+  id?: number;
+  typeId: number;
+  names: RiteName[];
+  /** День начала в формате dd.mm.yyyy */
+  date: string;
+  donate: number;
+}
+
+/**
+ * Форма подачи записки (rites.modal): создаёт или сохраняет записку в корзине.
+ * 200: готовая записка. 400: ошибки валидации, 409: конфликт редактирования.
+ */
+export function submitRite({
+  id,
+  typeId,
+  names,
+  date,
+  donate,
+}: SubmitRiteParams): Promise<ApiResult<Rite>> {
+  return request<Rite>(id ? `/rites/${id}` : "/rites", {
+    method: id ? "PUT" : "POST",
+    headers: { "Content-Type": "application/json;charset=utf-8" },
+    body: JSON.stringify({
+      rite: typeId,
+      clientId: getClientId(),
+      confirmedEmail: getConfirmedEmail(),
+      names,
+      payment: UPDATE_PAYMENT_CODE,
+      date,
+      donate,
+    }),
+  });
+}
+
+async function loadList<T>(path: string): Promise<T[]> {
+  const result = await request<T[]>(path);
+  if (!result.ok) {
+    throw new Error(collectErrors(result.errors)[0]?.description ?? `HTTP ${result.status}`);
+  }
+  return result.data ?? [];
+}
+
+/** Типы записок для формы подачи */
+export const loadRiteTypes = (): Promise<RiteType[]> => loadList<RiteType>("/rites/types");
+
+/** Подсказки для поля «пометка»: младенца, воина, иерея и т.д. Список зависит от вида записки */
+export const loadExplanations = (type: "health" | "repose"): Promise<string[]> =>
+  loadList<string>(`/rites/explanations?type=${type}`);
+
+/** Имена для подсказки в поле «имя»: около тысячи, поэтому грузим целиком и фильтруем на клиенте */
+export const loadSaintsNames = (): Promise<string[]> => loadList<string>("/rites/names");
+
 export function initiatePayment(params: InitiatePaymentParams): Promise<ApiResult<InitiatePaymentResponse>> {
   return request<InitiatePaymentResponse>(
     "/rites/initiatePayment",

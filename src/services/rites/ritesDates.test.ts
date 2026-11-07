@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import type { Rite, RiteType, TypeRestriction } from "@/services/rites/ritesApi";
 import {
   calculateMinDate,
+  dayTsToWallDate,
   findDateFixes,
   findNextValidDate,
   formatDateLong,
@@ -10,6 +11,7 @@ import {
   isValidDate,
   mskDayStart,
   mskWeekDay,
+  wallDateToDayTs,
 } from "@/services/rites/ritesDates";
 
 const DAY = 86400;
@@ -74,6 +76,19 @@ describe("ritesDates", () => {
     const start = msk(2026, 11, 7);
     expect(getToDate(start, makeType({ periodDays: 1 }))).toBe(start);
     expect(getToDate(start, makeType({ periodDays: 40 }))).toBe(start + 39 * DAY);
+  });
+
+  it("конец годового периода: плюс год минус день по календарю", () => {
+    const year = makeType({ periodDays: 365, period: "1year" });
+    expect(getToDate(msk(2026, 11, 7), year)).toBe(msk(2027, 11, 6));
+    // через високосный день год всё равно кончается накануне той же даты
+    expect(getToDate(msk(2027, 3, 1), year)).toBe(msk(2028, 2, 29));
+  });
+
+  it("день из календаря F7 и день по Москве переводятся друг в друга", () => {
+    const wall = dayTsToWallDate(msk(2026, 11, 7));
+    expect([wall.getFullYear(), wall.getMonth(), wall.getDate()]).toEqual([2026, 10, 7]);
+    expect(wallDateToDayTs(wall)).toBe(msk(2026, 11, 7));
   });
 
   it("учитывает дни недели типа", () => {

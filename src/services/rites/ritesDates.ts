@@ -55,9 +55,30 @@ export function formatDateParam(ts: number): string {
 export const calculateMinDate = (nowTs: number, type: RiteType): number =>
   mskDayStart(nowTs) + (type.processing + 1) * DAY;
 
-/** Последний день поминовения: начало + (дней в периоде - 1) */
-export const getToDate = (startTs: number, type: RiteType): number =>
-  startTs + (type.periodDays ? type.periodDays - 1 : 1) * DAY;
+/** Дней в периоде «год»: как на сайте, конец такого периода считается по календарю */
+const PERIOD_ONE_YEAR_DAYS = 365;
+
+/** Последний день поминовения: начало + (дней в периоде - 1), для года: начало + 1 год - 1 день */
+export function getToDate(startTs: number, type: RiteType): number {
+  if (type.periodDays === PERIOD_ONE_YEAR_DAYS) {
+    const { day, month, year } = mskParts(startTs);
+    return Date.UTC(year + 1, month, day - 1) / 1000 - MSK_OFFSET;
+  }
+  return startTs + (type.periodDays ? type.periodDays - 1 : 1) * DAY;
+}
+
+/**
+ * Московский день как дата по локальному календарю: F7 Calendar хранит выбранный день
+ * как Date в локальной полуночи, и в любом часовом поясе показывает тот же день.
+ */
+export function dayTsToWallDate(dayTs: number): Date {
+  const { day, month, year } = mskParts(dayTs);
+  return new Date(year, month, day);
+}
+
+/** Обратное преобразование: день из календаря F7 в начало московского дня */
+export const wallDateToDayTs = (date: Date): number =>
+  Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()) / 1000 - MSK_OFFSET;
 
 /**
  * Подходит ли день по дням недели типа и по ограничениям (без проверки минимальной даты).
