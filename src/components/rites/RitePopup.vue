@@ -91,7 +91,11 @@
 
             <div class="rite-donate">
               <span class="rite-donate__label">{{ donateLabel }}</span>
-              <f7-list class="rite-donate__field" no-hairlines>
+              <f7-list
+                class="rite-donate__field"
+                :class="{ 'rite-donate__field--readonly': donateReadonly }"
+                no-hairlines
+              >
                 <f7-list-input
                   type="text"
                   name="donate"
@@ -115,7 +119,9 @@
             <div v-if="generalErrors.length" class="rite-alert" role="alert">
               <span class="rite-alert__icon" aria-hidden="true">!</span>
               <div class="rite-alert__text">
-                <p v-for="message in generalErrors" :key="message">{{ message }}</p>
+                <!-- Сервер присылает разметку, например ссылку mailto -->
+                <!-- eslint-disable-next-line vue/no-v-html -->
+                <p v-for="message in generalErrors" :key="message" v-html="externalMailLinks(message)"></p>
               </div>
             </div>
 
@@ -135,13 +141,15 @@
       </div>
     </f7-page>
 
+    <!-- Подложка внутри попапа: общая подложка приложения оказывается под попапом и не затемняет записку -->
+    <div class="rite-sheet-backdrop sheet-backdrop"></div>
     <RiteInfoSheet v-model:opened="infoOpened" :types="types" :type="type" />
     <RiteErrorSheet v-model:opened="errorOpened" :text="errorText" />
   </f7-popup>
 </template>
 
 <script setup lang="ts">
-import { computed, nextTick, reactive, ref, watch } from "vue";
+import { computed, nextTick, onBeforeUnmount, onMounted, reactive, ref, watch } from "vue";
 import RiteDateField from "@/components/rites/RiteDateField.vue";
 import RiteErrorSheet from "@/components/rites/RiteErrorSheet.vue";
 import RiteInfoSheet from "@/components/rites/RiteInfoSheet.vue";
@@ -154,6 +162,7 @@ import {
   MESSAGE_NO_NAMES,
   MESSAGE_UNAVAILABLE,
   buildNames,
+  externalMailLinks,
   calculateDonate,
   mapServerErrors,
   parseDonate,
@@ -181,7 +190,7 @@ import {
   isValidDate,
   mskDayStart,
 } from "@/services/rites/ritesDates";
-import { formatPrice, statusColor } from "@/services/rites/ritesFormat";
+import { formatPrice, formatShortName, statusColor } from "@/services/rites/ritesFormat";
 
 export type RitePopupMode = "create" | "edit" | "copy";
 
@@ -262,7 +271,10 @@ const kindOptions = computed(() =>
     .filter((option) => option.label),
 );
 const typeOptions = computed(() =>
-  typesOfKind(types.value, kind.value).map((item) => ({ value: item.id, label: item.shortName })),
+  typesOfKind(types.value, kind.value).map((item) => ({
+    value: item.id,
+    label: formatShortName(item.shortName),
+  })),
 );
 
 const kindValue = computed<string | number>({
@@ -285,10 +297,8 @@ const donateError = computed(() => {
   if (skipDonateCheck.value || !(submitted.value || donateTouched.value)) return null;
   return validateDonate(donate.value);
 });
-// Полное сообщение сервера помещается под полем целиком, у клиентской проверки хватает короткого
-const donateMessage = computed(() =>
-  serverErrors.value.donate ? serverErrors.value.donate.full : donateError.value?.short,
-);
+// Под полем только короткий текст. Длинное описание суммы сервер кладёт в общую плашку
+const donateMessage = computed(() => donateError.value?.short);
 
 function clearGeneralErrors(): void {
   generalErrors.value = [];
@@ -424,25 +434,62 @@ watch(opened, (value) => {
   if (value) void init();
 });
 
-/** Поле для фокуса при первой найденной ошибке */
-function focusFirstInvalid(): void {
-  const invalid = rows.findIndex(
-    (row) => validateName(row.name) || validateExplanation(row.explanation, explanations.value),
-  );
-  let selector = "";
-  if (invalid >= 0) {
-    selector = validateName(rows[invalid].name)
-      ? `input[name="name-${invalid}"]`
-      : `input[name="explanation-${invalid}"]`;
-  } else if (!skipDonateCheck.value && validateDonate(donate.value)) {
-    selector = 'input[name="donate"]';
+/**
+ * Как на сайте: при возвращении на вкладку минимальная дата считается заново.
+ * Если выбранный день уже прошёл, берётся ближайший допустимый.
+ */
+function refreshMinDate(): void {
+  if (document.visibilityState !== "visible" || !opened.value || !ready.value || !type.value) return;
+  now.value = nowTs();
+  const current = dateTs.value;
+  const start = current !== null && current > minDate.value ? current : minDate.value;
+  dateTs.value = findNextValidDate(start, type.value, restrictions.value);
+}
+
+onMounted(() => document.addEventListener("visibilitychange", refreshMinDate));
+onBeforeUnmount(() => document.removeEventListener("visibilitychange", refreshMinDate));
+
+/** Первое поле с ошибкой: сверху вниз, как isFirstError на сайте */
+function firstInvalidSelector(): string {
+  for (let index = 0; index < rows.length; index++) {
+    if (serverErrors.value[`name-${index}`] || validateName(rows[index].name)) {
+      return `input[name="name-${index}"]`;
+    }
+    if (
+      serverErrors.value[`explanation-${index}`] ||
+      validateExplanation(rows[index].explanation, explanations.value)
+    ) {
+      return `input[name="explanation-${index}"]`;
+    }
   }
-  if (selector) void nextTick(() => cardEl.value?.querySelector<HTMLInputElement>(selector)?.focus());
+  if (!skipDonateCheck.value && (serverErrors.value.donate || validateDonate(donate.value))) {
+    return 'input[name="donate"]';
+  }
+  if (
+    type.value &&
+    (dateTs.value === null || dateTs.value < minDate.value || !isValidDate(dateTs.value, type.value, restrictions.value))
+  ) {
+    return ".rite-date__input";
+  }
+  return "";
+}
+
+/** Прокрутка к первому ошибочному полю и фокус в него */
+function focusFirstInvalid(): void {
+  const selector = firstInvalidSelector();
+  if (!selector) return;
+  void nextTick(() => {
+    const el = cardEl.value?.querySelector<HTMLElement>(selector);
+    if (!el) return;
+    if (!el.closest(".rite-footer")) el.scrollIntoView({ behavior: "smooth", block: "center" });
+    if (el instanceof HTMLInputElement && !el.disabled) el.focus({ preventScroll: true });
+  });
 }
 
 async function submit(): Promise<void> {
   if (!type.value) return;
   submitted.value = true;
+  serverErrors.value = {};
   generalErrors.value = [];
 
   const general: string[] = [];
@@ -483,6 +530,7 @@ async function submit(): Promise<void> {
     serverErrors.value = mapped.fields;
     const hasFields = Object.keys(mapped.fields).length > 0;
     generalErrors.value = mapped.general.length || hasFields ? mapped.general : [MESSAGE_UNAVAILABLE];
+    focusFirstInvalid();
   } catch (error) {
     console.error("Не удалось отправить записку:", error);
     generalErrors.value = [MESSAGE_UNAVAILABLE];
@@ -508,19 +556,6 @@ async function submit(): Promise<void> {
   --f7-popup-tablet-border-radius: 16px;
   --f7-popup-bg-color: var(--rite-paper);
 
-  // Поля внутри записки не должны подхватывать тему приложения
-  --f7-text-color: var(--rite-text);
-  --f7-input-text-color: var(--rite-text);
-  --f7-input-placeholder-color: var(--rite-muted);
-  --f7-input-error-text-color: var(--rite-error);
-  --f7-input-error-font-size: 12px;
-  --f7-list-bg-color: transparent;
-  --f7-list-item-title-text-color: var(--rite-text);
-  --f7-autocomplete-dropdown-text-color: var(--rite-text);
-  --f7-page-bg-color: var(--rite-paper);
-
-  color: var(--rite-text);
-
   .page {
     background: var(--rite-paper);
   }
@@ -535,6 +570,17 @@ async function submit(): Promise<void> {
     overflow: hidden;
     border: 2px solid var(--rite-accent);
     background: var(--rite-paper);
+    // Только бумага записки: листы ошибки и описания живут рядом и берут цвет темы
+    color: var(--rite-text);
+    --f7-text-color: var(--rite-text);
+    --f7-input-text-color: var(--rite-text);
+    --f7-input-placeholder-color: var(--rite-muted);
+    --f7-input-error-text-color: var(--rite-error);
+    --f7-input-error-font-size: 12px;
+    --f7-list-bg-color: transparent;
+    --f7-list-item-title-text-color: var(--rite-text);
+    --f7-autocomplete-dropdown-text-color: var(--rite-text);
+    --f7-page-bg-color: var(--rite-paper);
 
     &.rite-card--repose {
       --rite-accent: var(--content-color-black-primary);
@@ -657,9 +703,8 @@ async function submit(): Promise<void> {
     background-image: url("../../assets/rite/cross-repose.svg");
   }
 
-  // Дата поминовения
+  // Дата поминовения: текст и иконка, без рамки. В макете это не кнопка
   .rite-date {
-    position: relative;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -667,22 +712,20 @@ async function submit(): Promise<void> {
     width: fit-content;
     max-width: 100%;
     margin: 0 auto 10px;
-    padding: 6px 12px;
-    border-radius: 8px;
-    background: var(--rite-paper);
-    box-shadow: inset 0 0 0 1px rgba(31, 27, 26, 0.2);
+    cursor: pointer;
 
     &__icon {
       flex: none;
     }
 
     &__input {
-      width: 200px;
+      width: auto;
       max-width: 100%;
       padding: 0;
       border: 0;
       background: transparent;
-      font-size: 14px;
+      field-sizing: content;
+      font-size: 16px;
       line-height: 18px;
       color: var(--rite-text);
       text-align: center;
@@ -764,13 +807,13 @@ async function submit(): Promise<void> {
 
     input {
       width: 100%;
-      height: 36px;
+      height: 40px; //36px;
       padding: 14px 0 4px;
       border: 0;
       border-radius: 0;
       background: transparent;
-      font-size: 14px;
-      line-height: 18px;
+      font-size: 20px; //16px;
+      line-height: 20px; //18px;
       color: var(--rite-text);
 
       &::placeholder {
@@ -822,7 +865,7 @@ async function submit(): Promise<void> {
     top: 100%;
     z-index: 20;
     width: 100%;
-    max-height: 224px;
+    max-height: 260px;//224px;
     overflow: auto;
     border-radius: 8px;
     background: var(--rite-paper);
@@ -839,8 +882,8 @@ async function submit(): Promise<void> {
       --f7-list-item-min-height: 0;
 
       margin: 0;
-      font-size: 14px;
-      line-height: 18px;
+      font-size: 16px;
+      line-height: 20px;
       color: var(--rite-text);
     }
 
@@ -864,8 +907,8 @@ async function submit(): Promise<void> {
     }
 
     .item-title {
-      font-size: 14px;
-      line-height: 18px;
+      font-size: 20px; //16px;
+      line-height: 26px; //20px;
     }
 
     .autocomplete-dropdown-selected,
@@ -933,6 +976,12 @@ async function submit(): Promise<void> {
 
     .item-input-with-error-message .item-input-wrap {
       border-color: var(--rite-error);
+    }
+
+    // Сумму нельзя менять: поле выглядит как текст, без рамки
+    &--readonly .item-input-wrap,
+    &--readonly .item-input-with-error-message .item-input-wrap {
+      border-color: transparent;
     }
 
     .item-input-with-error-message input {
@@ -1004,6 +1053,11 @@ async function submit(): Promise<void> {
 
     &__text p + p {
       margin-top: 4px;
+    }
+
+    &__text a {
+      color: var(--brand-color-primary-accent-50);
+      text-decoration: underline;
     }
   }
 

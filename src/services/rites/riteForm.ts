@@ -117,7 +117,11 @@ export function mapServerErrors(errors: ApiError[]): ServerErrors {
     const short = error.code ? SERVER_SHORT_MESSAGES[error.code] : undefined;
     if (error.field && FORM_FIELD.test(error.field) && short && !result.fields[error.field]) {
       result.fields[error.field] = { short, full: error.description };
-    } else if (!result.general.includes(error.description)) {
+      // Длинный текст суммы не помещается под узким полем и идёт в общую плашку
+      if (error.field === "donate" && error.description && error.description !== short) {
+        result.general.push(error.description);
+      }
+    } else if (error.description && !result.general.includes(error.description)) {
       result.general.push(error.description);
     }
   }
@@ -152,11 +156,25 @@ export function buildPriceList(types: RiteType[], kind: RiteType["type"]): Price
 }
 
 /**
+ * Ссылке mailto нужен класс external: иначе Framework7 откроет её как страницу приложения,
+ * а не отдаст почтовому клиенту.
+ */
+export function externalMailLinks(html: string): string {
+  return html.replace(/<a\b([^>]*\bhref\s*=\s*(['"])mailto:[^'"]*\2[^>]*)>/gi, (_tag, attrs: string) => {
+    if (/\bexternal\b/.test(attrs)) return `<a${attrs}>`;
+    if (/\bclass\s*=\s*(['"])/.test(attrs)) {
+      return `<a${attrs.replace(/\bclass\s*=\s*(['"])/, "class=$1external ")}>`;
+    }
+    return `<a class="external"${attrs}>`;
+  });
+}
+
+/**
  * Описание типа приходит HTML-ом сайта: ссылки относительные, в них иконки Font Awesome,
  * которых в приложении нет. Ссылки делаем абсолютными, иконки убираем.
  */
 export function prepareDescription(html: string, siteOrigin: string): string {
-  return html
-    .replace(/<i\b[^>]*>\s*<\/i>/gi, "")
-    .replace(/(\shref=")\/(?!\/)/gi, `$1${siteOrigin}/`);
+  return externalMailLinks(
+    html.replace(/<i\b[^>]*>\s*<\/i>/gi, "").replace(/(\shref=")\/(?!\/)/gi, `$1${siteOrigin}/`),
+  );
 }

@@ -12,7 +12,7 @@
       }"
     >
       <template #inner-end>
-        <SvgIcon class="rite-select__arrow" icon="chevron-down" :size="size === 'large' ? 24 : 20" color="black-primary" />
+        <SvgIcon class="rite-select__arrow" icon="chevron-down" :size="size === 'large' ? 24 : 24" color="black-primary" />
       </template>
       <select v-model="model" :name="name" :aria-label="label">
         <option v-for="option in options" :key="option.value" :value="option.value">
@@ -57,8 +57,8 @@ const selectedLabel = computed(
   --f7-list-item-min-height: 0;
   --f7-list-item-padding-horizontal: 0;
   --f7-list-item-padding-vertical: 0;
-  --f7-list-item-after-text-color: var(--rite-text);
-  --f7-list-item-after-font-size: 26px;
+  --f7-list-item-after-text-color: var(--rite-accent);
+  --f7-list-item-after-font-size: 32px; //26px;
   --rite-select-line-height: 32px;
 
   margin: 0;
@@ -109,11 +109,16 @@ const selectedLabel = computed(
     font-size: var(--f7-list-item-after-font-size);
     line-height: var(--rite-select-line-height);
     text-align: center;
-    color: var(--rite-text);
+    color: var(--rite-accent);
+  }
+
+  // Стрелка того же цвета, что и название: красная в записке о здравии
+  .rite-select__arrow.icon {
+    color: var(--rite-accent);
   }
 
   &--small {
-    --f7-list-item-after-font-size: 18px;
+    --f7-list-item-after-font-size: 24px;//22px;
     --rite-select-line-height: 24px;
   }
 }

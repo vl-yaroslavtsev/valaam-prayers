@@ -4,6 +4,7 @@
     class="rite-info-sheet"
     bottom
     backdrop
+    backdrop-el=".rite-popup .rite-sheet-backdrop"
     swipe-to-close
     swipe-handler=".swipe-handler"
   >
@@ -54,6 +55,8 @@ const description = computed(() =>
 .rite-info-sheet {
   // Две трети экрана
   --f7-sheet-height: 66.67%;
+  // Записка красит текст в тёмный. Лист темнее, поэтому цвет берём у темы
+  color: var(--f7-md-on-surface);
 
   // Внутренняя область листа не прокручивается сама
   &__body {

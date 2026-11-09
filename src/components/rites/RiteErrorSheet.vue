@@ -4,6 +4,7 @@
     class="rite-error-sheet"
     bottom
     backdrop
+    backdrop-el=".rite-popup .rite-sheet-backdrop"
     swipe-to-close
     swipe-handler=".swipe-handler"
   >
@@ -27,6 +28,8 @@ const opened = defineModel<boolean>("opened", { default: false });
 <style lang="less">
 .rite-error-sheet {
   --f7-sheet-height: auto;
+  // Записка красит текст в тёмный. Лист темнее, поэтому цвет берём у темы
+  color: var(--f7-md-on-surface);
 
   &__body {
     display: flex;

@@ -9,6 +9,7 @@ import {
   mapServerErrors,
   parseDonate,
   pickTypeForKind,
+  externalMailLinks,
   prepareDescription,
   validateDonate,
   validateExplanation,
@@ -105,7 +106,12 @@ describe("riteForm", () => {
         full: "Имя слишком длинное",
       });
       expect(result.fields.donate.short).toBe("Сумма меньше минимальной");
-      expect(result.general).toEqual(["Неверная дата", "Система недоступна"]);
+      expect(result.fields.donate.full).toBe("Сумма меньше рекомендуемой");
+      expect(result.general).toEqual([
+        "Сумма меньше рекомендуемой",
+        "Неверная дата",
+        "Система недоступна",
+      ]);
     });
 
     it("поле без известного кода тоже не теряется", () => {
@@ -142,6 +148,19 @@ describe("riteForm", () => {
       ]);
       expect(buildPriceList(types, "health")[1]).toEqual({ name: "Псалтирь (1 год)", price: 2000 });
     });
+  });
+
+  it("почтовая ссылка получает класс external", () => {
+    const html = "напишите на <b><a href='mailto:rites@valaam.ru' target='_blank'>rites@valaam.ru</a></b>";
+    expect(externalMailLinks(html)).toBe(
+      "напишите на <b><a class=\"external\" href='mailto:rites@valaam.ru' target='_blank'>rites@valaam.ru</a></b>",
+    );
+    expect(externalMailLinks('<a class="link" href="mailto:a@b.c">a</a>')).toBe(
+      '<a class="external link" href="mailto:a@b.c">a</a>',
+    );
+    expect(externalMailLinks('<a href="https://valaam.ru">сайт</a>')).toBe(
+      '<a href="https://valaam.ru">сайт</a>',
+    );
   });
 
   it("описание: ссылки абсолютные, иконки убраны", () => {

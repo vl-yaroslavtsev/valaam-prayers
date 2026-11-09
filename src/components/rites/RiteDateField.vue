@@ -1,6 +1,5 @@
 <template>
-  <div class="rite-date">
-    <SvgIcon class="rite-date__icon" icon="calendar" :size="16" color="primary-accent-50" />
+  <div class="rite-date" @click="openCalendar">
     <input
       ref="inputEl"
       class="rite-date__input"
@@ -8,8 +7,11 @@
       name="date"
       aria-label="Дата поминовения"
       :value="label"
+      :size="Math.max(label.length, 1)"
       :disabled="disabled"
     />
+    <!-- В SVG много пустых полей: 32px дают рисунок около 16px, как иконка в макете -->
+    <SvgIcon class="rite-date__icon" icon="calendar" :size="32" color="primary-accent-50" />
   </div>
 </template>
 
@@ -58,6 +60,12 @@ const model = defineModel<number | null>({ default: null });
 const inputEl = ref<HTMLInputElement | null>(null);
 let calendar: Calendar.Calendar | null = null;
 
+/** Календарь открывается по полю. Клик по иконке рядом тоже его открывает */
+function openCalendar(event: MouseEvent): void {
+  if (disabled || event.target === inputEl.value) return;
+  inputEl.value?.click();
+}
+
 /** Один день или период: «27 ноября 2026» / «27 ноября - 5 января 2027» */
 const label = computed(() => {
   if (!model.value) return "";
@@ -67,13 +75,13 @@ const label = computed(() => {
   return period ? [period.from, period.to].filter(Boolean).join(" - ") : "";
 });
 
-/** Подсветка дней поминовения: начало, середина и конец периода */
+/** Подсветка дней поминовения: начало, середина и конец периода. Один день — и начало, и конец */
 function inPeriod(date: Date, position: "start" | "middle" | "end"): boolean {
   if (!model.value || !type) return false;
   const from = model.value;
   const to = getToDate(from, type);
-  if (to <= from) return false;
   const day = wallDateToDayTs(date);
+  if (to <= from) return day === from && position !== "middle";
   if (position === "start") return day === from;
   if (position === "end") return day === to;
   return day > from && day < to;
@@ -105,6 +113,9 @@ onMounted(() => {
     inputEl: inputEl.value,
     openIn: "auto",
     cssClass: "rite-calendar",
+    // На телефоне календарь открывается листом: подложка и закрытие по ней, как у остальных листов
+    backdrop: true,
+    closeByBackdropClick: true,
     closeOnSelect: true,
     firstDay: 1,
     weekendDays: [0],
@@ -146,21 +157,136 @@ onBeforeUnmount(() => {
 <style lang="less">
 // Календарь рендерится вне записки (лист или поповер), поэтому стили не привязаны к .rite-popup
 .rite-calendar {
-  --f7-calendar-sheet-bg-color: var(--f7-popover-bg-color);
-  --f7-calendar-modal-bg-color: var(--f7-popover-bg-color);
-  --rite-range-bg: rgba(161, 109, 79, 0.3);
+  // Сетка как в макете: белая, числа чёрные. Иначе проценты чёрного не читаются на тёмной теме
+  --f7-calendar-sheet-bg-color: #fff;
+  --f7-calendar-modal-bg-color: #fff;
+  --f7-calendar-week-header-bg-color: #fff;
+  --f7-calendar-week-header-text-color: var(--content-color-black-60);
+  --rite-range-bg: #f4e6c7;
+  --rite-today-bg: var(--brand-color-secondary-accent);
 
-  // Период поминовения: полоса от первого до последнего дня, концы половинные
-  .calendar-day.rite-day-middle {
-    background: var(--rite-range-bg);
+  color: #1f1b1a;
+  background: #fff;
+
+  .toolbar {
+    --f7-toolbar-bg-color: #fff;
+    background: #fff;
   }
 
-  .calendar-day.rite-day-start {
-    background: linear-gradient(90deg, transparent 50%, var(--rite-range-bg) 50%);
+  .calendar-month-selector,
+  .calendar-year-selector,
+  .toolbar a {
+    color: #1f1b1a;
   }
 
+  .calendar-day-number {
+    font-weight: 700;
+    background: none;
+    color: inherit;
+  }
+
+  .calendar-day {
+    color: #1f1b1a;
+  }
+
+  .calendar-day-weekend {
+    color: var(--red-r-100);
+  }
+
+  // Числа соседнего месяца
+  .calendar-day-prev,
+  .calendar-day-next {
+    color: var(--content-color-black-60);
+
+    &.calendar-day-weekend {
+      color: var(--red-r-60);
+    }
+  }
+
+  // Недоступные для выбора: и этого месяца, и соседнего
+  .calendar-day-disabled {
+    color: var(--content-color-black-20);
+
+    &.calendar-day-weekend {
+      color: rgba(235, 87, 87, 0.2);
+    }
+  }
+
+  // Выбранный день не красится кругом темы: цвет даёт полоса периода
+  .calendar-day-selected .calendar-day-number {
+    background: none;
+    color: inherit;
+  }
+
+  // Период поминовения: сплошная бежевая полоса, концы скруглены, как в макете
+  .calendar-day.rite-day-start,
+  .calendar-day.rite-day-middle,
   .calendar-day.rite-day-end {
-    background: linear-gradient(90deg, var(--rite-range-bg) 50%, transparent 50%);
+    // Иначе полоса позиционируется от строки и растягивается на всю неделю
+    position: relative;
+    color: #1f1b1a;
+
+    &.calendar-day-weekend {
+      color: var(--red-r-100);
+    }
+
+    &::before {
+      content: "";
+      position: absolute;
+      z-index: 0;
+      top: 50%;
+      left: 0;
+      width: 100%;
+      height: 70%; //28px;
+      background: var(--rite-range-bg);
+      transform: translateY(-50%);
+    }
+
+    .calendar-day-number {
+      z-index: 1;
+      background: none;
+      color: inherit;
+    }
   }
+
+  .calendar-day.rite-day-start::before {
+    border-radius: 40px 0 0 40px;
+  }
+
+  .calendar-day.rite-day-end::before {
+    border-radius: 0 40px 40px 0;
+  }
+
+  // Полоса продолжается на соседней неделе: у края строки небольшое скругление
+  .calendar-day.rite-day-middle:first-child::before,
+  .calendar-day.rite-day-end:first-child::before {
+    border-top-left-radius: 2px;
+    border-bottom-left-radius: 2px;
+  }
+
+  .calendar-day.rite-day-middle:last-child::before,
+  .calendar-day.rite-day-start:last-child::before {
+    border-top-right-radius: 2px;
+    border-bottom-right-radius: 2px;
+  }
+
+  // Однодневная треба: тот же беж, что у периода, кругом на один день
+  .calendar-day.rite-day-start.rite-day-end::before {
+    border-radius: 40px;
+  }
+
+  // Сегодня: серый кружок поверх полосы, число остаётся своего цвета
+  .calendar-day-today .calendar-day-number,
+  .calendar-day.rite-day-start.calendar-day-today .calendar-day-number,
+  .calendar-day.rite-day-middle.calendar-day-today .calendar-day-number,
+  .calendar-day.rite-day-end.calendar-day-today .calendar-day-number {
+    background: var(--rite-today-bg);
+    color: inherit;
+  }
+}
+
+// Лист календаря рисуется поверх попапа, поэтому подложка должна быть выше попапа
+html:has(.rite-calendar.modal-in) .sheet-backdrop.backdrop-in {
+  z-index: 12000;
 }
 </style>
