@@ -163,7 +163,6 @@ onBeforeUnmount(() => {
   --f7-calendar-week-header-bg-color: #fff;
   --f7-calendar-week-header-text-color: var(--content-color-black-60);
   --rite-range-bg: #f4e6c7;
-  --rite-today-bg: var(--brand-color-secondary-accent);
 
   color: #1f1b1a;
   background: #fff;
@@ -275,12 +274,8 @@ onBeforeUnmount(() => {
     border-radius: 40px;
   }
 
-  // Сегодня: серый кружок поверх полосы, число остаётся своего цвета
-  .calendar-day-today .calendar-day-number,
-  .calendar-day.rite-day-start.calendar-day-today .calendar-day-number,
-  .calendar-day.rite-day-middle.calendar-day-today .calendar-day-number,
-  .calendar-day.rite-day-end.calendar-day-today .calendar-day-number {
-    background: var(--rite-today-bg);
+  .calendar-day-today .calendar-day-number {
+    background: none;
     color: inherit;
   }
 }
