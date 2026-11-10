@@ -299,7 +299,7 @@ watch(
 
 function setProcessing(active: boolean): void {
   processingDialog?.close();
-  processingDialog = active ? f7.dialog.preloader("Оформляем платёж...") : null;
+  processingDialog = active ? f7.dialog.preloader("Отправляем записки...") : null;
 }
 
 function focusEmail(): void {

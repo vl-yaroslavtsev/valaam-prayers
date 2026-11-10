@@ -2,6 +2,7 @@
   <f7-sheet
     v-model:opened="opened"
     class="rite-info-sheet"
+    :class="type?.type ? `rite-type-${type.type}` : undefined"
     bottom
     backdrop
     backdrop-el=".rite-popup .rite-sheet-backdrop"
@@ -10,19 +11,29 @@
   >
     <div class="swipe-handler"></div>
     <div class="rite-info-sheet__body">
-      <h2 class="rite-info-sheet__title">{{ type?.typeName }}</h2>
-
       <template v-if="prices.length">
-        <p class="rite-info-sheet__subtitle">Рекомендуемое пожертвование за 1 имя:</p>
+        <h2 class="rite-info-sheet__title">Рекомендуемое<br> пожертвование за 1 имя:</h2>
         <ul class="rite-info-sheet__prices">
-          <li v-for="item in prices" :key="item.name">
-            {{ item.name }} - {{ formatPrice(item.price) }}&nbsp;руб.
-          </li>
+          <li>Молебен, панихида, разовое - <b>10 руб.</b></li>
+          <li>Проскомидия (1 год) - <b>2000 руб.</b></li>
+          <li>Проскомидия (40 дней) - <b>500 руб.</b></li>
+          <li>Неусыпаемая Псалтырь (1 год) - <b>2000 руб.</b></li>
+          <li>Пожертвование добровольное. Сумму можно изменить.</li>
         </ul>
       </template>
 
+      <h2 class="rite-info-sheet__title">Как правильно заполнить</h2>
+      <p>Поминаются только <b>крещёные православные</b>.<br> Самоубийц писать нельзя.</p>
+      <p>Имена пишутся в родительном падеже (Олега, Владимира, Наталии, Елены) без пробелов и знаков препинания.</p>
+      <p>Пометка пишется в поле справа: <br>младенца, воина, иерея, и т.д.</p>
+      <p>При возникновении вопросов пишите нам на 
+        <a class="external" 
+           href="mailto:rites@valaam.ru" 
+           target="_blank">rites@valaam.ru</a>
+      </p>
+
       <template v-if="type">
-        <h3 class="rite-info-sheet__type">{{ type.shortName }}</h3>
+        <h2 class="rite-info-sheet__title">{{ type.shortName }}</h2>
         <!-- eslint-disable-next-line vue/no-v-html -->
         <div class="rite-info-sheet__description" v-html="description"></div>
       </template>
@@ -41,6 +52,8 @@ const { types, type } = defineProps<{
   /** Выбранный тип: по нему показываем вид записки и описание */
   type: RiteType | null;
 }>();
+
+console.log(type);
 
 const opened = defineModel<boolean>("opened", { default: false });
 
@@ -64,15 +77,20 @@ const description = computed(() =>
     height: 100%;
     overflow-y: auto;
     padding: 40px 20px calc(24px + var(--f7-safe-area-bottom));
-    font-size: 14px;
-    line-height: 18px;
+    font-size: 16px;
+    line-height: 20px;
+
+    a {
+      color: var(--brand-color-primary-accent-50);
+      text-decoration: underline;
+    }
   }
 
   &__title {
     margin: 0 0 16px;
     font-family: var(--font3), serif;
     font-size: 26px;
-    line-height: 32px;
+    line-height: 30px;
     font-weight: 400;
   }
 
@@ -99,11 +117,6 @@ const description = computed(() =>
     font-size: 18px;
     line-height: 24px;
     font-weight: 400;
-  }
-
-  &__description a {
-    color: var(--brand-color-primary-accent-50);
-    text-decoration: underline;
   }
 }
 </style>
