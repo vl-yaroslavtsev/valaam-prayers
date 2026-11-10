@@ -52,13 +52,13 @@ const BLOCK_SELECTOR = 'p, h1, h2, h3, h4, h5, h6, blockquote';
 // сопоставлении, иначе поиск не найдёт слово, набранное пользователем без них.
 const IGNORED_CHAR_REGEX = /[\p{Mn}\p{Cf}]/u;
 
-interface PlainTextIndex {
+export interface PlainTextIndex {
   plain: string; // текст в нижнем регистре, без диакритики/мягких переносов
   starts: number[]; // starts[i] — позиция символа plain[i] в исходном тексте
   ends: number[]; // ends[i] — позиция конца символа plain[i] (включая "прилипшие" к нему невидимые символы)
 }
 
-function buildPlainTextIndex(text: string): PlainTextIndex {
+export function buildPlainTextIndex(text: string): PlainTextIndex {
   const plain: string[] = [];
   const starts: number[] = [];
   const ends: number[] = [];

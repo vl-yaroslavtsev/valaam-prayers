@@ -43,7 +43,7 @@
               <SvgIcon icon="info" :color="iconColor" />
             </template>
           </f7-list-item>
-          <f7-list-item title="ПОИСК" link="#">
+          <f7-list-item title="ПОИСК" link="/search/" view="current" panel-close>
             <template #media>
               <SvgIcon icon="search" :color="iconColor" />
             </template>

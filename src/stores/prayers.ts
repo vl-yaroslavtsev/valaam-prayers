@@ -27,7 +27,7 @@ export interface PrayerText extends PrayerTextApiResponse {
   lang: Language[];
 }
 
-const BIBLE_SECTION_ID = 1078;
+export const BIBLE_SECTION_ID = 1078;
 const MOLITVOSLOV_SECTION_ID = 842;
 export const BOOKS_SECTION_ID = 1983;
 

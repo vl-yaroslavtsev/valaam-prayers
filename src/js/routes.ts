@@ -8,6 +8,7 @@ import PrayersTextPage from "../pages/prayersText.vue";
 import CalendarPage from "../pages/calendar.vue";
 import DayPage from "../pages/day.vue";
 import SaintPage from "../pages/saint.vue";
+import SearchPage from "../pages/search.vue";
 import RitesPage from "../pages/rites.vue";
 import RitesHistoryPage from "../pages/rites-history.vue";
 import RitesTestPage from "../pages/rites-test.vue";
@@ -87,6 +88,13 @@ const routes: Router.RouteParameters[] = [
     // Житие святого в читалке
     path: "/saints/:saintId/life",
     component: PrayersTextPage,
+  },
+  {
+    path: "/search/",
+    component: SearchPage,
+    options: {
+      transition: "fade-slide",
+    },
   },
   {
     path: "/rites/",
