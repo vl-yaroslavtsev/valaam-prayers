@@ -1,175 +1,128 @@
 <template>
-  <div class="rite-row" :class="{ 'rite-row--error': Boolean(nameError || explanationError) }">
-    <div ref="nameCell" class="rite-cell">
-      <f7-list class="rite-field" no-hairlines>
-        <f7-list-input
-          type="text"
-          :name="`name-${index}`"
-          placeholder="Имя"
-          autocomplete="off"
-          :aria-label="`Имя ${index + 1}`"
-          :value="name"
-          :error-message="nameError?.short"
-          :error-message-force="Boolean(nameError)"
-          @input="onNameInput"
-          @blur="nameTouched = true"
-        >
-          <template #input>
-            <button
-              v-if="nameError"
-              type="button"
-              class="rite-error-button"
-              aria-label="Описание ошибки"
-              @mousedown.prevent
-              @click="emit('show-error', nameError.full)"
-            >
-              !
-            </button>
-          </template>
-        </f7-list-input>
-      </f7-list>
-    </div>
-
-    <div ref="explanationCell" class="rite-cell">
-      <f7-list class="rite-field" no-hairlines>
-        <f7-list-input
-          type="text"
-          :name="`explanation-${index}`"
-          placeholder="Пометка"
-          autocomplete="off"
-          :aria-label="`Пометка ${index + 1}`"
-          :value="explanation"
-          :disabled="!isNameValid(name)"
-          :error-message="explanationError?.short"
-          :error-message-force="Boolean(explanationError)"
-          @input="onExplanationInput"
-          @blur="explanationTouched = true"
-        >
-          <template #input>
-            <button
-              v-if="explanationError"
-              type="button"
-              class="rite-error-button"
-              aria-label="Описание ошибки"
-              @mousedown.prevent
-              @click="emit('show-error', explanationError.full)"
-            >
-              !
-            </button>
-          </template>
-        </f7-list-input>
-      </f7-list>
-    </div>
-  </div>
+  <button
+    type="button"
+    class="rite-name-row"
+    :class="{ 'rite-name-row--error': Boolean(errorText) }"
+    :aria-label="ariaLabel"
+    @pointerdown="keepPlace"
+    @click="emit('select')"
+  >
+    <span class="rite-name-row__main">
+      <span class="rite-name-row__text" :class="{ 'rite-name-row__text--placeholder': showPlaceholder }">
+        {{ text || (showPlaceholder ? "Имя" : "") }}
+      </span>
+      <f7-icon
+        v-if="errorText"
+        class="rite-name-row__icon"
+        f7="exclamationmark_circle_fill"
+        aria-hidden="true"
+      />
+    </span>
+    <span v-if="errorText" class="rite-name-row__error">{{ errorText }}</span>
+  </button>
 </template>
 
 <script setup lang="ts">
-import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
-import { f7 } from "framework7-vue";
-import type { Autocomplete } from "framework7/types";
-import {
-  filterByPrefix,
-  isNameValid,
-  validateExplanation,
-  validateName,
-  type FieldError,
-} from "@/services/rites/riteForm";
+import { computed } from "vue";
+import { formatNoteRow } from "@/services/rites/riteForm";
 
-const MAX_NAME_HINTS = 15;
-
-const {
-  index,
-  names,
-  explanations,
-  showErrors,
-  serverNameError = null,
-  serverExplanationError = null,
-} = defineProps<{
+const { index, name, explanation, errorText = "" } = defineProps<{
   index: number;
-  /** Имена для подсказки */
-  names: string[];
-  /** Пометки текущего вида записки: и подсказки, и список допустимых значений */
-  explanations: string[];
-  /** Показать ошибки сразу, не дожидаясь ухода из поля: так после нажатия на кнопку отправки */
-  showErrors: boolean;
-  serverNameError?: FieldError | null;
-  serverExplanationError?: FieldError | null;
+  name: string;
+  explanation: string;
+  /** Короткий текст ошибки строки. Пустая строка: ошибки нет */
+  errorText?: string;
 }>();
-
-const name = defineModel<string>("name", { required: true });
-const explanation = defineModel<string>("explanation", { required: true });
 
 const emit = defineEmits<{
-  "show-error": [text: string];
+  select: [];
 }>();
 
-const nameTouched = ref(false);
-const explanationTouched = ref(false);
+const text = computed(() => formatNoteRow({ name, explanation }));
+const showPlaceholder = computed(() => !text.value && index === 0);
 
-// Ошибка сервера держится, пока поле не изменили: родитель сбрасывает её при вводе
-const nameError = computed(
-  () => serverNameError ?? (nameTouched.value || showErrors ? validateName(name.value) : null),
-);
-const explanationError = computed(
-  () =>
-    serverExplanationError ??
-    (explanationTouched.value || showErrors ? validateExplanation(explanation.value, explanations) : null),
-);
-
-function onNameInput(event: Event): void {
-  name.value = (event.target as HTMLInputElement).value;
+/** Фокус кнопки прокручивает бланк. Возвращаем его на место до следующей отрисовки */
+function keepPlace(event: PointerEvent): void {
+  const scroller = (event.currentTarget as HTMLElement).closest<HTMLElement>(".rite-scroll");
+  if (!scroller) return;
+  const top = scroller.scrollTop;
+  const restore = (): void => {
+    if (scroller.scrollTop !== top) scroller.scrollTop = top;
+  };
+  requestAnimationFrame(restore);
 }
-
-function onExplanationInput(event: Event): void {
-  explanation.value = (event.target as HTMLInputElement).value;
-}
-
-// Пометка доступна только при верном имени; очистили имя - пометка уходит вместе с ним
-watch(name, (value) => {
-  if (!value.trim()) explanation.value = "";
-});
-
-const nameCell = ref<HTMLElement | null>(null);
-const explanationCell = ref<HTMLElement | null>(null);
-let nameHints: Autocomplete.Autocomplete | null = null;
-let explanationHints: Autocomplete.Autocomplete | null = null;
-
-/** Выпадающий список под полем: его позиция задаётся стилями ячейки, а не F7 */
-function createHints(
-  cell: HTMLElement | null,
-  source: (query: string) => string[],
-): Autocomplete.Autocomplete | null {
-  const inputEl = cell?.querySelector("input");
-  if (!cell || !inputEl) return null;
-  const hints: Autocomplete.Autocomplete = f7.autocomplete.create({
-    inputEl,
-    openIn: "dropdown",
-    dropdownContainerEl: cell,
-    highlightMatches: false,
-    updateInputValueOnSelect: true,
-    source(query, render) {
-      const items = source(query);
-      render(items);
-      // Список может оказаться ниже видимой части: прокручиваем страницу к нему
-      if (items.length) {
-        requestAnimationFrame(() =>
-          (hints.$dropdownEl?.[0] as HTMLElement | undefined)?.scrollIntoView({ block: "nearest" }),
-        );
-      }
-    },
-  });
-  return hints;
-}
-
-onMounted(() => {
-  nameHints = createHints(nameCell.value, (query) => filterByPrefix(names, query, MAX_NAME_HINTS));
-  explanationHints = createHints(explanationCell.value, (query) =>
-    query.trim() ? filterByPrefix(explanations, query, MAX_NAME_HINTS) : explanations,
-  );
-});
-
-onBeforeUnmount(() => {
-  nameHints?.destroy();
-  explanationHints?.destroy();
+const ariaLabel = computed(() => {
+  const base = text.value || `Имя ${index + 1}`;
+  return errorText ? `${base}. ${errorText}` : base;
 });
 </script>
+
+<style lang="less">
+.rite-name-row {
+  position: relative;
+  isolation: isolate;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  width: 100%;
+  margin: 0;
+  padding: 8px 0 6px;
+  overflow: hidden;
+  border: 0;
+  border-bottom: 1px solid var(--rite-line);
+  background: transparent;
+  appearance: none;
+  font: inherit;
+  text-align: left;
+  color: inherit;
+  cursor: pointer;
+
+  &__main {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    min-width: 0;
+  }
+
+  &__text {
+    flex: 1;
+    min-width: 0;
+    min-height: 26px;
+    overflow: hidden;
+    font-size: 20px;
+    line-height: 26px;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+
+    &--placeholder {
+      color: var(--rite-muted);
+    }
+  }
+
+  &__icon {
+    flex: none;
+    font-size: 22px;
+    color: var(--rite-error);
+  }
+
+  &__error {
+    display: block;
+    margin-top: 2px;
+    overflow: hidden;
+    font-size: 12px;
+    line-height: 16px;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    color: var(--rite-error);
+  }
+
+  &--error {
+    border-bottom: 2px solid var(--rite-error);
+
+    .rite-name-row__text {
+      color: var(--rite-error);
+    }
+  }
+}
+</style>

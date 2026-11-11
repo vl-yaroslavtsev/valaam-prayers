@@ -6,14 +6,21 @@ import {
   calculateDonate,
   filterByPrefix,
   findExplanation,
+  formatNoteRow,
   mapServerErrors,
+  minimumDonate,
   parseDonate,
   pickTypeForKind,
+  recommendedDonate,
+  splitPrefix,
   externalMailLinks,
   prepareDescription,
   validateDonate,
+  validateDonateAmount,
   validateExplanation,
   validateName,
+  validateRow,
+  EXPLANATION_ERROR,
   NAME_ERROR,
 } from "@/services/rites/riteForm";
 
@@ -70,6 +77,43 @@ describe("riteForm", () => {
     expect(calculateDonate(["Иван"], null)).toBe(0);
   });
 
+  it("пометка без имени — ошибка имени, пустая строка — нет", () => {
+    expect(validateRow({ name: "", explanation: "" }, EXPLANATIONS)).toEqual({
+      name: null,
+      explanation: null,
+    });
+    expect(validateRow({ name: "", explanation: "воина" }, EXPLANATIONS).name?.short).toBe("Укажите имя");
+    expect(validateRow({ name: "Иван1", explanation: "нет" }, EXPLANATIONS)).toEqual({
+      name: NAME_ERROR,
+      explanation: EXPLANATION_ERROR,
+    });
+    expect(formatNoteRow({ name: "Наталии", explanation: "послушницы" })).toBe("послушницы Наталии");
+  });
+
+  it("в сумму входят только строки без ошибок", () => {
+    const type = makeType({ price: 500, minPrice: 100 });
+    const rows = [
+      { name: "Иван", explanation: "воина" },
+      { name: "Мария Петровна", explanation: "" },
+      { name: "", explanation: "младенца" },
+      { name: "Анна", explanation: "" },
+    ];
+    expect(recommendedDonate(rows, EXPLANATIONS, type)).toBe(1000);
+    expect(minimumDonate(rows, EXPLANATIONS, type)).toBe(200);
+    expect(recommendedDonate(rows, EXPLANATIONS, null)).toBe(0);
+  });
+
+  it("сумма меньше минимальной отличается от нулевой", () => {
+    expect(validateDonateAmount(0, 100)?.short).toBe("Сумма должна быть больше 0");
+    expect(validateDonateAmount(50, 100)?.short).toBe("Сумма меньше минимальной");
+    expect(validateDonateAmount(100, 100)).toBeNull();
+  });
+
+  it("префикс подсказки отделяется без учёта регистра", () => {
+    expect(splitPrefix("послушника", "по")).toEqual({ match: "по", rest: "слушника" });
+    expect(splitPrefix("воина", "")).toEqual({ match: "", rest: "воина" });
+  });
+
   it("запрос содержит все строки, пометка в написании списка", () => {
     expect(
       buildNames(
@@ -107,11 +151,7 @@ describe("riteForm", () => {
       });
       expect(result.fields.donate.short).toBe("Сумма меньше минимальной");
       expect(result.fields.donate.full).toBe("Сумма меньше рекомендуемой");
-      expect(result.general).toEqual([
-        "Сумма меньше рекомендуемой",
-        "Неверная дата",
-        "Система недоступна",
-      ]);
+      expect(result.general).toEqual(["Неверная дата", "Система недоступна"]);
     });
 
     it("поле без известного кода тоже не теряется", () => {

@@ -3,7 +3,6 @@
   <f7-popup v-model:opened="opened" class="rite-popup">
     <f7-page :page-content="false">
       <div
-        ref="cardEl"
         class="rite-card"
         :class="{ 'rite-card--repose': kind === 'repose' }"
         role="dialog"
@@ -69,14 +68,8 @@
                 :index="i"
                 :name="row.name"
                 :explanation="row.explanation"
-                :names="saintsNames"
-                :explanations="explanations"
-                :show-errors="submitted"
-                :server-name-error="serverErrors[`name-${i}`]"
-                :server-explanation-error="serverErrors[`explanation-${i}`]"
-                @update:name="onNameChanged(i, $event)"
-                @update:explanation="onExplanationChanged(i, $event)"
-                @show-error="showError"
+                :error-text="rowErrorText(i)"
+                @select="openNameSheet(i)"
               />
             </div>
           </div>
@@ -91,38 +84,34 @@
 
             <div class="rite-donate">
               <span class="rite-donate__label">{{ donateLabel }}</span>
-              <f7-list
-                class="rite-donate__field"
-                :class="{ 'rite-donate__field--readonly': donateReadonly }"
-                no-hairlines
+              <button
+                v-if="!strict"
+                type="button"
+                class="rite-donate__plaque"
+                :class="{ 'rite-donate__plaque--error': donateHighlighted }"
+                @click="openAmountSheet"
               >
-                <f7-list-input
-                  type="text"
-                  name="donate"
-                  inputmode="numeric"
-                  aria-label="Сумма пожертвования"
-                  :value="donateText"
-                  :readonly="donateReadonly"
-                  :error-message="donateMessage"
-                  :error-message-force="Boolean(donateMessage)"
-                  @input="onDonateInput"
-                  @focus="onDonateFocus"
-                  @blur="onDonateBlur"
-                >
-                  <template #input>
-                    <span class="rite-donate__currency" aria-hidden="true">₽</span>
-                  </template>
-                </f7-list-input>
-              </f7-list>
-            </div>
-
-            <div v-if="generalErrors.length" class="rite-alert" role="alert">
-              <span class="rite-alert__icon" aria-hidden="true">!</span>
-              <div class="rite-alert__text">
-                <!-- Сервер присылает разметку, например ссылку mailto -->
-                <!-- eslint-disable-next-line vue/no-v-html -->
-                <p v-for="message in generalErrors" :key="message" v-html="externalMailLinks(message)"></p>
-              </div>
+                <span>{{ formatPrice(donate) }}&nbsp;₽</span>
+                <f7-icon
+                  v-if="donateHighlighted"
+                  class="rite-donate__icon"
+                  f7="exclamationmark_circle_fill"
+                  aria-hidden="true"
+                />
+              </button>
+              <span
+                v-else
+                class="rite-donate__value"
+                :class="{ 'rite-donate__value--error': donateHighlighted }"
+              >
+                <span>{{ formatPrice(donate) }}&nbsp;₽</span>
+                <f7-icon
+                  v-if="donateHighlighted"
+                  class="rite-donate__icon"
+                  f7="exclamationmark_circle_fill"
+                  aria-hidden="true"
+                />
+              </span>
             </div>
 
             <f7-button
@@ -144,14 +133,39 @@
     <!-- Подложка внутри попапа: общая подложка приложения оказывается под попапом и не затемняет записку -->
     <div class="rite-sheet-backdrop sheet-backdrop"></div>
     <RiteInfoSheet v-model:opened="infoOpened" :types="types" :type="type" />
-    <RiteErrorSheet v-model:opened="errorOpened" :text="errorText" />
+    <NameEditSheet
+      v-model:opened="nameSheetOpened"
+      v-model:active-index="activeRowIndex"
+      :rows="rows"
+      :names="saintsNames"
+      :explanations="explanations"
+      :name-error="shownRowError(activeRowIndex).name"
+      :explanation-error="shownRowError(activeRowIndex).explanation"
+      @update:name="onNameChanged"
+      @update:explanation="onExplanationChanged"
+    />
+    <AmountEditSheet
+      v-model:opened="amountSheetOpened"
+      :amount="donate"
+      :recommended="recommendedAmount"
+      :min-amount="minAmount"
+      :server-error="serverErrors.donate ?? null"
+      :kind-name="type?.typeName ?? ''"
+      :type-name="type?.shortName ?? ''"
+      :rows="rows"
+      @apply="onDonateApply"
+      @clear-server-error="clearDonateServerError"
+    />
   </f7-popup>
 </template>
 
 <script setup lang="ts">
-import { computed, nextTick, onBeforeUnmount, onMounted, reactive, ref, watch } from "vue";
+import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from "vue";
+import { f7 } from "framework7-vue";
+import type { Dialog } from "framework7/types";
+import AmountEditSheet from "@/components/rites/AmountEditSheet.vue";
+import NameEditSheet from "@/components/rites/NameEditSheet.vue";
 import RiteDateField from "@/components/rites/RiteDateField.vue";
-import RiteErrorSheet from "@/components/rites/RiteErrorSheet.vue";
 import RiteInfoSheet from "@/components/rites/RiteInfoSheet.vue";
 import RiteNameRow from "@/components/rites/RiteNameRow.vue";
 import RiteSelect from "@/components/rites/RiteSelect.vue";
@@ -162,22 +176,24 @@ import {
   MESSAGE_NO_NAMES,
   MESSAGE_UNAVAILABLE,
   buildNames,
-  externalMailLinks,
-  calculateDonate,
+  isRowCountable,
   mapServerErrors,
-  parseDonate,
+  minimumDonate,
   pickTypeForKind,
+  recommendedDonate,
   typesOfKind,
-  validateDonate,
-  validateExplanation,
-  validateName,
+  validateDonateAmount,
+  validateRow,
   type FieldError,
-  type NameRow,
+  type NoteRowError,
+  type NoteRowItem,
+  type ServerValidationError,
 } from "@/services/rites/riteForm";
 import {
   collectErrors,
   loadTypeRestrictions,
   submitRite,
+  type ApiErrors,
   type Rite,
   type RiteType,
   type TypeRestriction,
@@ -191,6 +207,9 @@ import {
   mskDayStart,
 } from "@/services/rites/ritesDates";
 import { formatPrice, formatShortName, statusColor } from "@/services/rites/ritesFormat";
+import { useTheme } from "@/composables/useTheme";
+import { device } from "@/js/device";
+import { useSettingsStore } from "@/stores/settings";
 
 export type RitePopupMode = "create" | "edit" | "copy";
 
@@ -211,6 +230,30 @@ const emit = defineEmits<{
 
 const title = computed(() => (mode === "edit" ? "Форма редактирования записки" : "Форма подачи записки"));
 
+const settingsStore = useSettingsStore();
+const { isDarkMode } = useTheme();
+
+/** Как при входе в чтение со скрытыми меню: режим берётся из настройки системных панелей */
+function applyNoteSystemBars(): void {
+  const barsMode = settingsStore.readingSystemBars;
+  if (barsMode === "fullscreen") {
+    device.showStatusBar(false);
+    device.setFullScreen(true);
+  } else if (barsMode === "hide-status-bar") {
+    device.setFullScreen(false);
+    device.showStatusBar(false);
+  } else {
+    device.setFullScreen(false);
+    device.showStatusBar(true);
+  }
+}
+
+function restoreNoteSystemBars(): void {
+  device.setFullScreen(false);
+  device.showStatusBar(true);
+  device.setStatusBarTextColor(isDarkMode.value ? "light" : "dark");
+}
+
 const nowTs = (): number => Math.floor(Date.now() / 1000);
 
 // Данные с сервера
@@ -224,23 +267,22 @@ const saintsNames = ref<string[]>([]);
 // Поля формы
 const type = ref<RiteType | null>(null);
 const dateTs = ref<number | null>(null);
-const rows = reactive<NameRow[]>(Array.from({ length: MAX_NAMES }, () => ({ name: "", explanation: "" })));
+const rows = reactive<NoteRowItem[]>(Array.from({ length: MAX_NAMES }, () => ({ name: "", explanation: "" })));
+const rowTouched = ref<boolean[]>(Array.from({ length: MAX_NAMES }, () => false));
 const donate = ref(0);
-const donateText = ref("");
-const donateTouched = ref(false);
 const now = ref(nowTs());
 
 // Состояние отправки и ошибки
 const submitted = ref(false);
 const saving = ref(false);
 const serverErrors = ref<Record<string, FieldError>>({});
-const generalErrors = ref<string[]>([]);
 
 const infoOpened = ref(false);
-const errorOpened = ref(false);
-const errorText = ref("");
+const nameSheetOpened = ref(false);
+const amountSheetOpened = ref(false);
+const activeRowIndex = ref(0);
 
-const cardEl = ref<HTMLElement | null>(null);
+let errorDialog: Dialog.Dialog | null = null;
 
 const ready = computed(() => !loading.value && !loadError.value);
 const kind = computed<Kind>(() => type.value?.type ?? "health");
@@ -255,10 +297,11 @@ const strict = computed(
   () => mode === "edit" && Boolean(item?.status) && item?.status?.xmlId !== "new",
 );
 const skipDonateCheck = computed(() => strict.value && Boolean(item?.isFree));
-const donateReadonly = computed(() => strict.value || rows.every((row) => !row.name.trim()));
 const donateLabel = computed(() =>
   strict.value ? "Сумма пожертвования:" : "Рекомендуемая сумма пожертвования:",
 );
+const recommendedAmount = computed(() => recommendedDonate(rows, explanations.value, type.value));
+const minAmount = computed(() => minimumDonate(rows, explanations.value, type.value));
 const statusTextColor = computed(() => statusColor(item?.status ?? null, false) ?? "#1f1b1a");
 const buttonText = computed(() => {
   if (saving.value) return "Сохранение...";
@@ -292,27 +335,44 @@ const typeValue = computed<string | number>({
   },
 });
 
-const donateError = computed(() => {
-  if (serverErrors.value.donate) return serverErrors.value.donate;
-  if (skipDonateCheck.value || !(submitted.value || donateTouched.value)) return null;
-  return validateDonate(donate.value);
-});
-// Под полем только короткий текст. Длинное описание суммы сервер кладёт в общую плашку
-const donateMessage = computed(() => donateError.value?.short);
+/** Ошибка суммы на бланке: серверная сразу, клиентская после попытки отправки */
+const donateHighlighted = computed(
+  () => Boolean(serverErrors.value.donate) || (submitted.value && donateIsClientProblem()),
+);
 
-function clearGeneralErrors(): void {
-  generalErrors.value = [];
+function shownRowError(index: number): NoteRowError {
+  const client = validateRow(rows[index] ?? { name: "", explanation: "" }, explanations.value);
+  const showClient = submitted.value || rowTouched.value[index];
+  return {
+    name: serverErrors.value[`name-${index}`] ?? (showClient ? client.name : null),
+    explanation: serverErrors.value[`explanation-${index}`] ?? (showClient ? client.explanation : null),
+  };
+}
+
+function rowErrorText(index: number): string {
+  const error = shownRowError(index);
+  return error.name?.short ?? error.explanation?.short ?? "";
+}
+
+/**
+ * Нулевая сумма при пустой записке — не отдельная ошибка поля:
+ * о ней говорит сообщение «пустая записка».
+ */
+function donateIsClientProblem(): boolean {
+  if (skipDonateCheck.value) return false;
+  const counted = rows.filter((row) => isRowCountable(row, explanations.value)).length;
+  if (counted === 0 && donate.value <= 0) return false;
+  return validateDonateAmount(donate.value, minAmount.value) !== null;
 }
 
 function setDonate(value: number): void {
   donate.value = value;
-  donateText.value = formatPrice(value);
 }
 
 /** Рекомендуемая сумма пересчитывается при любом изменении имён или типа, пока записка не оплачена */
 function recalculateDonate(): void {
   if (strict.value) return;
-  setDonate(calculateDonate(rows.map((row) => row.name), type.value));
+  setDonate(recommendedAmount.value);
 }
 
 function firstValidDate(): number | null {
@@ -323,47 +383,94 @@ function firstValidDate(): number | null {
 function onTypeChanged(): void {
   dateTs.value = firstValidDate();
   recalculateDonate();
-  clearGeneralErrors();
 }
 
-watch(dateTs, clearGeneralErrors);
+function touchRow(index: number): void {
+  rowTouched.value[index] = true;
+}
 
 function onNameChanged(index: number, value: string): void {
   rows[index].name = value;
+  touchRow(index);
   delete serverErrors.value[`name-${index}`];
   recalculateDonate();
-  clearGeneralErrors();
 }
 
 function onExplanationChanged(index: number, value: string): void {
   rows[index].explanation = value;
+  touchRow(index);
   delete serverErrors.value[`explanation-${index}`];
+  recalculateDonate();
 }
 
-function onDonateInput(event: Event): void {
-  const input = event.target as HTMLInputElement;
-  const digits = input.value.replace(/\D/g, "");
-  input.value = digits;
-  donate.value = parseDonate(digits);
-  donateText.value = digits;
+function openNameSheet(index: number): void {
+  activeRowIndex.value = index;
+  amountSheetOpened.value = false;
+  nameSheetOpened.value = true;
+}
+
+function openAmountSheet(): void {
+  if (strict.value) return;
+  nameSheetOpened.value = false;
+  amountSheetOpened.value = true;
+}
+
+/** Оплаченную записку менять нельзя: ошибку суммы показываем тостом, шторку не открываем */
+function showDonateProblem(): void {
+  if (!strict.value) {
+    openAmountSheet();
+    return;
+  }
+  const text =
+    serverErrors.value.donate?.full ??
+    validateDonateAmount(donate.value, minAmount.value)?.short ??
+    "Неверная сумма";
+  showToast(plainText(text));
+}
+
+function onDonateApply(value: number): void {
+  setDonate(value);
+}
+
+function clearDonateServerError(): void {
   delete serverErrors.value.donate;
-  clearGeneralErrors();
 }
 
-// Пока сумму вводят, она без пробелов, чтобы курсор не прыгал
-function onDonateFocus(event: Event): void {
-  donateText.value = donate.value ? String(donate.value) : "";
-  (event.target as HTMLInputElement).value = donateText.value;
+function showToast(text: string): void {
+  f7.toast.show({ text, closeTimeout: 3500, position: "bottom" });
 }
 
-function onDonateBlur(): void {
-  donateTouched.value = true;
-  donateText.value = formatPrice(donate.value);
+function showRetryDialog(text: string): void {
+  errorDialog?.destroy();
+  errorDialog = f7.dialog.create({
+    text,
+    buttons: [{ text: "Закрыть" }, { text: "Повторить", strong: true }],
+    onClick(_dialog, index) {
+      if (index === 1) void submit();
+    },
+  });
+  errorDialog.open();
 }
 
-function showError(text: string): void {
-  errorText.value = text;
-  errorOpened.value = true;
+function plainText(html: string): string {
+  return html.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
+}
+
+/** true: отправку делать рано. Одна ошибка поля открывает шторку, несколько — тост */
+function presentProblems(rowIndexes: number[], donateProblem: boolean, general: string[]): boolean {
+  const fieldCount = rowIndexes.length + (donateProblem ? 1 : 0);
+  if (fieldCount === 0 && general.length === 0) return false;
+
+  if (fieldCount === 1 && rowIndexes.length === 1) openNameSheet(rowIndexes[0]);
+  else if (fieldCount === 1 && donateProblem) showDonateProblem();
+
+  if (fieldCount > 1) {
+    const prefix = general.length ? `${general.join(" ")} ` : "";
+    showToast(`${prefix}Проверьте выделенные поля`);
+  } else if (general.length) {
+    showToast(general.join(" "));
+  }
+  return true;
 }
 
 /** Поля с записью: для создания пустая записка, для копии и редактирования имена исходной */
@@ -397,11 +504,12 @@ function fillForm(): void {
 async function init(): Promise<void> {
   submitted.value = false;
   saving.value = false;
-  donateTouched.value = false;
   serverErrors.value = {};
-  generalErrors.value = [];
+  rowTouched.value = Array.from({ length: MAX_NAMES }, () => false);
   infoOpened.value = false;
-  errorOpened.value = false;
+  nameSheetOpened.value = false;
+  amountSheetOpened.value = false;
+  activeRowIndex.value = 0;
   loadError.value = "";
   loading.value = true;
 
@@ -431,8 +539,23 @@ async function init(): Promise<void> {
 }
 
 watch(opened, (value) => {
-  if (value) void init();
+  if (value) {
+    applyNoteSystemBars();
+    void init();
+    return;
+  }
+  restoreNoteSystemBars();
+  nameSheetOpened.value = false;
+  amountSheetOpened.value = false;
+  errorDialog?.close();
 });
+
+watch(
+  () => settingsStore.readingSystemBars,
+  () => {
+    if (opened.value) applyNoteSystemBars();
+  },
+);
 
 /**
  * Как на сайте: при возвращении на вкладку минимальная дата считается заново.
@@ -447,68 +570,65 @@ function refreshMinDate(): void {
 }
 
 onMounted(() => document.addEventListener("visibilitychange", refreshMinDate));
-onBeforeUnmount(() => document.removeEventListener("visibilitychange", refreshMinDate));
+onBeforeUnmount(() => {
+  document.removeEventListener("visibilitychange", refreshMinDate);
+  if (opened.value) restoreNoteSystemBars();
+  errorDialog?.destroy();
+});
 
-/** Первое поле с ошибкой: сверху вниз, как isFirstError на сайте */
-function firstInvalidSelector(): string {
-  for (let index = 0; index < rows.length; index++) {
-    if (serverErrors.value[`name-${index}`] || validateName(rows[index].name)) {
-      return `input[name="name-${index}"]`;
-    }
-    if (
-      serverErrors.value[`explanation-${index}`] ||
-      validateExplanation(rows[index].explanation, explanations.value)
-    ) {
-      return `input[name="explanation-${index}"]`;
-    }
-  }
-  if (!skipDonateCheck.value && (serverErrors.value.donate || validateDonate(donate.value))) {
-    return 'input[name="donate"]';
-  }
-  if (
-    type.value &&
-    (dateTs.value === null || dateTs.value < minDate.value || !isValidDate(dateTs.value, type.value, restrictions.value))
-  ) {
-    return ".rite-date__input";
-  }
-  return "";
-}
-
-/** Прокрутка к первому ошибочному полю и фокус в него */
-function focusFirstInvalid(): void {
-  const selector = firstInvalidSelector();
-  if (!selector) return;
-  void nextTick(() => {
-    const el = cardEl.value?.querySelector<HTMLElement>(selector);
-    if (!el) return;
-    if (!el.closest(".rite-footer")) el.scrollIntoView({ behavior: "smooth", block: "center" });
-    if (el instanceof HTMLInputElement && !el.disabled) el.focus({ preventScroll: true });
+function clientRowProblems(): number[] {
+  return rows.flatMap((row, index) => {
+    const error = validateRow(row, explanations.value);
+    return error.name || error.explanation ? [index] : [];
   });
 }
 
+function applyServerErrors(errors: ApiErrors | null): void {
+  const mapped = mapServerErrors(collectErrors(errors));
+  serverErrors.value = mapped.fields;
+  const fieldErrors: ServerValidationError[] = Object.entries(mapped.fields).map(([field, error]) => ({
+    field,
+    ...error,
+  }));
+  const rowIndexes = [
+    ...new Set(
+      fieldErrors.flatMap((error) => {
+        const match = /^(?:name|explanation)-(\d+)$/.exec(error.field);
+        return match ? [Number(match[1])] : [];
+      }),
+    ),
+  ];
+  const donateProblem = fieldErrors.some((error) => error.field === "donate");
+  const fieldCount = rowIndexes.length + (donateProblem ? 1 : 0);
+  if (fieldCount === 0) {
+    showRetryDialog(plainText(mapped.general[0] ?? MESSAGE_UNAVAILABLE));
+    return;
+  }
+  if (fieldCount === 1 && rowIndexes.length === 1) openNameSheet(rowIndexes[0]);
+  else if (fieldCount === 1) showDonateProblem();
+
+  if (fieldCount > 1) {
+    const extra = mapped.general.length ? ` ${plainText(mapped.general.join(" "))}` : "";
+    showToast(`Проверьте выделенные поля.${extra}`);
+  } else if (mapped.general.length) {
+    showToast(plainText(mapped.general.join(" ")));
+  }
+}
+
 async function submit(): Promise<void> {
-  if (!type.value) return;
+  if (!type.value || saving.value) return;
   submitted.value = true;
   serverErrors.value = {};
-  generalErrors.value = [];
 
   const general: string[] = [];
   if (rows.every((row) => !row.name.trim())) general.push(MESSAGE_NO_NAMES);
 
   const day = dateTs.value;
-  if (day === null || day < minDate.value || !isValidDate(day, type.value, restrictions.value)) {
-    general.push(MESSAGE_BAD_DATE);
-  }
+  const dateInvalid =
+    day === null || day < minDate.value || !isValidDate(day, type.value, restrictions.value);
+  if (dateInvalid) general.push(MESSAGE_BAD_DATE);
 
-  const hasFieldErrors = rows.some(
-    (row) => validateName(row.name) || validateExplanation(row.explanation, explanations.value),
-  );
-  const donateInvalid = !skipDonateCheck.value && Boolean(validateDonate(donate.value));
-  if (general.length || hasFieldErrors || donateInvalid || day === null) {
-    generalErrors.value = general;
-    focusFirstInvalid();
-    return;
-  }
+  if (presentProblems(clientRowProblems(), donateIsClientProblem(), general) || day === null) return;
 
   saving.value = true;
   try {
@@ -526,14 +646,10 @@ async function submit(): Promise<void> {
       return;
     }
 
-    const mapped = mapServerErrors(collectErrors(result.errors));
-    serverErrors.value = mapped.fields;
-    const hasFields = Object.keys(mapped.fields).length > 0;
-    generalErrors.value = mapped.general.length || hasFields ? mapped.general : [MESSAGE_UNAVAILABLE];
-    focusFirstInvalid();
+    applyServerErrors(result.errors);
   } catch (error) {
     console.error("Не удалось отправить записку:", error);
-    generalErrors.value = [MESSAGE_UNAVAILABLE];
+    showRetryDialog(MESSAGE_UNAVAILABLE);
   } finally {
     saving.value = false;
   }
@@ -542,11 +658,16 @@ async function submit(): Promise<void> {
 
 <style lang="less">
 .rite-popup {
+  // Иначе попап сидит внутри прокручиваемой страницы и уезжает, когда фокус попадает в поле шторки
+  &.popup {
+    position: fixed;
+  }
+
   // Записка всегда светлая: тёмной темы у неё нет
   --rite-text: #1f1b1a;
   --rite-muted: rgba(31, 27, 26, 0.6);
   --rite-accent: var(--red-r-100);
-  --rite-line: rgba(235, 87, 87, 0.35);
+  --rite-line: rgba(235, 87, 87, 0.65); //rgba(235, 87, 87, 0.35);
   --rite-line-active: var(--red-r-100);
   --rite-error: var(--red-r-100);
   --rite-paper: #fff;
@@ -562,14 +683,17 @@ async function submit(): Promise<void> {
 
   // Рамка записки: на телефоне на весь экран, на планшете карточка 480 x 774
   .rite-card {
+    --rite-card-margin: 2px;
+
     position: relative;
     display: flex;
     flex-direction: column;
     box-sizing: border-box;
-    height: 100%;
+    height: calc(100% - var(--rite-card-margin) * 2);
     overflow: hidden;
     border: 2px solid var(--rite-accent);
     background: var(--rite-paper);
+    margin: var(--rite-card-margin);
     // Только бумага записки: листы ошибки и описания живут рядом и берут цвет темы
     color: var(--rite-text);
     --f7-text-color: var(--rite-text);
@@ -579,7 +703,6 @@ async function submit(): Promise<void> {
     --f7-input-error-font-size: 12px;
     --f7-list-bg-color: transparent;
     --f7-list-item-title-text-color: var(--rite-text);
-    --f7-autocomplete-dropdown-text-color: var(--rite-text);
     --f7-page-bg-color: var(--rite-paper);
 
     &.rite-card--repose {
@@ -638,7 +761,7 @@ async function submit(): Promise<void> {
     --f7-button-padding-horizontal: 0;
 
     position: absolute;
-    top: calc(26px + var(--f7-safe-area-top));
+    top: 26px; //calc(26px + var(--f7-safe-area-top));
     z-index: 5;
     width: 32px;
     min-width: 32px;
@@ -677,7 +800,7 @@ async function submit(): Promise<void> {
     flex: 1;
     height: auto;
     min-height: 0;
-    padding: calc(23px + var(--f7-safe-area-top)) 30px 20px;
+    padding: 23px 30px 20px;//calc(23px + var(--f7-safe-area-top)) 30px 20px;
     scroll-padding-bottom: 20px;
   }
 
@@ -685,7 +808,7 @@ async function submit(): Promise<void> {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 10px;
+    gap: 6px; //10px;
     margin-bottom: 20px;
   }
 
@@ -711,7 +834,7 @@ async function submit(): Promise<void> {
     gap: 8px;
     width: fit-content;
     max-width: 100%;
-    margin: 0 auto 10px;
+    margin: 0 auto 20px; //10px;
     cursor: pointer;
 
     &__icon {
@@ -731,189 +854,6 @@ async function submit(): Promise<void> {
       text-align: center;
       cursor: pointer;
       -webkit-appearance: none;
-    }
-  }
-
-  // Строки записки: имя и пометка, под каждой строкой линия как на бумажной записке
-  .rite-row {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-    column-gap: 20px;
-    border-bottom: 1px solid var(--rite-line);
-    transition: border-color 0.2s;
-
-    &:focus-within {
-      border-bottom-color: var(--rite-line-active);
-    }
-
-    &--error,
-    &--error:focus-within {
-      border-bottom: 2px solid var(--rite-error);
-    }
-  }
-
-  .rite-cell {
-    position: relative;
-    min-width: 0;
-  }
-
-  // Сброс оформления списка F7: поле рисуем строкой записки
-  .rite-field,
-  .rite-donate__field {
-    margin: 0;
-
-    ul {
-      padding: 0;
-      background: none;
-
-      &::before,
-      &::after {
-        display: none;
-      }
-    }
-
-    li {
-      padding: 0;
-    }
-
-    .item-content {
-      min-height: 0;
-      margin: 0;
-      padding: 0;
-
-      &.item-input::before,
-      &.item-input::after,
-      &.item-input.item-input-with-value::after,
-      &.item-input.item-input-focused::after {
-        display: none;
-      }
-    }
-
-    .item-inner {
-      min-height: 0;
-      margin: 0;
-      padding: 0;
-
-      &::before,
-      &::after {
-        display: none;
-      }
-    }
-
-    .item-input-wrap {
-      position: relative;
-      margin: 0;
-    }
-
-    input {
-      width: 100%;
-      height: 40px; //36px;
-      padding: 14px 0 4px;
-      border: 0;
-      border-radius: 0;
-      background: transparent;
-      font-size: 20px; //16px;
-      line-height: 20px; //18px;
-      color: var(--rite-text);
-
-      &::placeholder {
-        color: var(--rite-muted);
-        opacity: 1;
-      }
-
-      &:disabled {
-        opacity: 1;
-      }
-    }
-
-    .item-input-error-message {
-      margin: 0;
-      padding-bottom: 2px;
-      font-size: 12px;
-      line-height: 16px;
-      color: var(--rite-error);
-    }
-
-    .item-input-with-error-message input {
-      padding-right: 28px;
-      color: var(--rite-error);
-    }
-  }
-
-  .rite-error-button {
-    position: absolute;
-    top: 14px;
-    right: 0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 18px;
-    height: 18px;
-    padding: 0;
-    border: 0;
-    border-radius: 50%;
-    background: var(--rite-error);
-    font-size: 12px;
-    line-height: 1;
-    font-weight: 700;
-    color: #fff;
-    cursor: pointer;
-  }
-
-  // Подсказки имён и пометок
-  .rite-cell .autocomplete-dropdown {
-    top: 100%;
-    z-index: 20;
-    width: 100%;
-    max-height: 260px;//224px;
-    overflow: auto;
-    border-radius: 8px;
-    background: var(--rite-paper);
-    box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
-    scrollbar-width: thin;
-    scrollbar-color: rgba(161, 109, 79, 0.6) transparent;
-
-    .autocomplete-dropdown-inner {
-      padding: 4px 6px;
-    }
-
-    .list {
-      --f7-list-item-padding-horizontal: 8px;
-      --f7-list-item-min-height: 0;
-
-      margin: 0;
-      font-size: 16px;
-      line-height: 20px;
-      color: var(--rite-text);
-    }
-
-    li {
-      border-radius: 6px;
-    }
-
-    .item-content {
-      min-height: 0;
-      padding: 0;
-    }
-
-    .item-inner {
-      min-height: 0;
-      padding: 6px 8px;
-
-      &::before,
-      &::after {
-        display: none;
-      }
-    }
-
-    .item-title {
-      font-size: 20px; //16px;
-      line-height: 26px; //20px;
-    }
-
-    .autocomplete-dropdown-selected,
-    label.active-state {
-      background: var(--content-color-baige-100);
     }
   }
 
@@ -954,110 +894,41 @@ async function submit(): Promise<void> {
     text-align: right;
   }
 
-  .rite-donate__field {
-    position: relative;
-    flex: none;
-    width: 92px;
-
-    .item-input-wrap {
-      border: 1px solid rgba(31, 27, 26, 0.2);
-      border-radius: 8px;
-      background: var(--rite-paper);
-    }
-
-    input {
-      height: 36px;
-      padding: 8px 28px 7px 10px;
-      font-size: 16px;
-      line-height: 20px;
-      font-weight: 700;
-      text-align: right;
-    }
-
-    .item-input-with-error-message .item-input-wrap {
-      border-color: var(--rite-error);
-    }
-
-    // Сумму нельзя менять: поле выглядит как текст, без рамки
-    &--readonly .item-input-wrap,
-    &--readonly .item-input-with-error-message .item-input-wrap {
-      border-color: transparent;
-    }
-
-    .item-input-with-error-message input {
-      padding-right: 28px;
-    }
-
-    // Место под сообщение F7 резервирует само, а здесь оно шире поля:
-    // выводим его поверх соседних строк, прижатым к правому краю
-    .item-input-with-error-message {
-      padding-bottom: 0 !important;
-    }
-
-    .item-input-error-message {
-      top: calc(100% + 2px);
-      right: 0;
-      left: auto;
-      width: max-content;
-      max-width: 260px;
-      overflow: visible;
-      white-space: normal;
-      text-align: right;
-    }
-  }
-
-  .rite-donate:has(.item-input-with-error-message) {
-    margin-bottom: 8px;
-  }
-
-  .rite-donate__currency {
-    position: absolute;
-    top: 8px;
-    right: 10px;
-    font-size: 16px;
-    line-height: 20px;
-    font-weight: 700;
-    pointer-events: none;
-  }
-
-  // Общие ошибки: розовая полоса над кнопкой
-  .rite-alert {
-    display: flex;
-    align-items: flex-start;
-    gap: 10px;
-    padding: 10px 12px;
+  .rite-donate__plaque {
+    display: inline-flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 6px;
+    width: 140px;
+    margin: 0;
+    padding: 8px 10px;
+    border: 1px solid rgba(31, 27, 26, 0.2);
     border-radius: 8px;
-    background: rgba(235, 87, 87, 0.12);
-    font-size: 14px;
-    line-height: 18px;
+    background: var(--rite-paper);
+    font: inherit;
+    font-weight: 700;
+    line-height: 20px;
     color: var(--rite-text);
+    cursor: pointer;
 
-    &__icon {
-      display: flex;
-      flex: none;
-      align-items: center;
-      justify-content: center;
-      width: 18px;
-      height: 18px;
-      border-radius: 50%;
-      background: var(--rite-error);
-      font-size: 12px;
-      line-height: 1;
-      font-weight: 700;
-      color: #fff;
+    &--error {
+      border-color: var(--rite-error);
+      color: var(--rite-error);
     }
+  }
 
-    &__text p {
-      margin: 0;
-    }
+  .rite-donate__icon {
+    font-size: 18px;
+    color: var(--rite-error);
+  }
 
-    &__text p + p {
-      margin-top: 4px;
-    }
+  .rite-donate__value {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
 
-    &__text a {
-      color: var(--brand-color-primary-accent-50);
-      text-decoration: underline;
+    &--error {
+      color: var(--rite-error);
     }
   }
 
