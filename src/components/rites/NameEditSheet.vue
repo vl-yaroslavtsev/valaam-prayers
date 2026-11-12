@@ -382,6 +382,11 @@ function onExplanationEnter(event: KeyboardEvent): void {
 </script>
 
 <style lang="less">
+// Шторка при открытии переносится в корень приложения, поэтому селектор от html
+html:has(.rite-name-sheet.modal-in) .rite-popup .rite-scroll {
+  overflow: hidden;
+}
+
 .rite-name-sheet {
   --f7-sheet-height: auto;
   --f7-toolbar-height: 60px;
@@ -401,6 +406,8 @@ function onExplanationEnter(event: KeyboardEvent): void {
   // padding-top: 32px;
   color: var(--content-color-black-primary);
   font-family: "PT Sans", sans-serif;
+
+  overscroll-behavior: none;
 
   &.sheet-modal {
     // Высота не зависит от текста ошибки и списка подсказок
