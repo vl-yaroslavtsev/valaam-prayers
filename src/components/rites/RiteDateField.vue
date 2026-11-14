@@ -156,6 +156,18 @@ onBeforeUnmount(() => {
 
 <style lang="less">
 // Календарь рендерится вне записки (лист или поповер), поэтому стили не привязаны к .rite-popup
+.sheet-modal.rite-calendar {
+  --f7-sheet-bg-color: #fff;
+  --f7-toolbar-bg-color: #fff;
+  background: #fff;
+}
+
+.popover.calendar-popover:has(.rite-calendar) {
+  --f7-popover-bg-color: #fff;
+  --f7-toolbar-bg-color: #fff;
+  background: #fff;
+}
+
 .rite-calendar {
   // Сетка как в макете: белая, числа чёрные. Иначе проценты чёрного не читаются на тёмной теме
   --f7-calendar-sheet-bg-color: #fff;

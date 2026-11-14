@@ -21,7 +21,7 @@
           :disabled="activeIndex === 0"
           @click="step(-1)"
         >
-          <SvgIcon class="is-prev" icon="arrow-circle" :size="32" :color="arrowColor" />
+          <SvgIcon class="is-prev" icon="arrow-circle" :size="32" color="black-primary" />
         </button>
         <button
           type="button"
@@ -30,7 +30,7 @@
           :disabled="activeIndex >= MAX_NAMES - 1"
           @click="step(1)"
         >
-          <SvgIcon icon="arrow-circle" :size="32" :color="arrowColor" />
+          <SvgIcon icon="arrow-circle" :size="32" color="black-primary" />
         </button>
       </div>
       <span class="rite-name-sheet__counter">Имя {{ activeIndex + 1 }} из {{ MAX_NAMES }}</span>
@@ -106,7 +106,6 @@ import type { Autocomplete } from "framework7/types";
 import SvgIcon from "@/components/SvgIcon.vue";
 import { focusSheetInput, useSheetFocusScrollLock } from "@/composables/focusSheetInput";
 import { useKeyboardInset } from "@/composables/useKeyboardInset";
-import { useTheme } from "@/composables/useTheme";
 import {
   EXPLANATION_HINT,
   MAX_NAMES,
@@ -143,8 +142,6 @@ const emit = defineEmits<{
 
 const inset = useKeyboardInset();
 useSheetFocusScrollLock();
-const { isDarkMode } = useTheme();
-const arrowColor = computed(() => (isDarkMode.value ? "white" : "black-primary"));
 const usage = ref(readSuggestionUsage());
 const bodyEl = ref<HTMLElement | null>(null);
 const nameField = ref<HTMLElement | null>(null);
@@ -508,10 +505,6 @@ html:has(.rite-name-sheet.modal-in) .rite-popup .rite-scroll {
       opacity: 0.35;
       pointer-events: none;
     }
-  }
-
-  .dark &__nav-button {
-    --arrow-circle-opacity: 0.3;
   }
 
   &__counter {

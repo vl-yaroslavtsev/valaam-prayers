@@ -68,8 +68,8 @@ const description = computed(() =>
 .rite-info-sheet {
   // Две трети экрана
   --f7-sheet-height: 66.67%;
-  // Записка красит текст в тёмный. Лист темнее, поэтому цвет берём у темы
-  color: var(--f7-md-on-surface);
+  // Лист светлый, как бланк записки: и в тёмной теме текст тёмный
+  color: var(--content-color-black-primary);
 
   // Внутренняя область листа не прокручивается сама
   &__body {
