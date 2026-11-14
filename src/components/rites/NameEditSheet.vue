@@ -37,9 +37,9 @@
       <f7-button fill round small type="button" class="rite-name-sheet__done" @click="close">Готово</f7-button>
     </f7-toolbar>
 
-    <div ref="bodyEl" class="page-content rite-name-sheet__body">
+    <div ref="bodyEl" class="rite-name-sheet__body page-content">
       <div ref="nameField" class="rite-name-sheet__field">
-        <f7-list no-hairlines>
+        <f7-list no-hairlines inset>
           <f7-list-input
             type="text"
             name="sheet-name"
@@ -67,7 +67,7 @@
       </div>
 
       <div ref="explanationBlock" class="rite-name-sheet__field">
-        <f7-list no-hairlines>
+        <f7-list no-hairlines inset>
           <f7-list-input
             type="text"
             name="sheet-explanation"
@@ -165,33 +165,6 @@ function explanationSuggestions(query: string): string[] {
   return withoutExactOnly(items, query);
 }
 
-/** Нижняя линия поля Material на 8px выше края .item-content, отсюда зазор */
-function inputBottom(input: HTMLInputElement): number {
-  const field = input.closest<HTMLElement>(".item-content");
-  if (!field) return input.getBoundingClientRect().bottom;
-  const line = parseFloat(getComputedStyle(field, "::after").bottom);
-  const fieldBottom = field.getBoundingClientRect().bottom;
-  return Number.isFinite(line) ? fieldBottom - line : input.getBoundingClientRect().bottom;
-}
-
-function alignDropdown(ac: Autocomplete.Autocomplete): void {
-  const dropdown = ac.el;
-  const input = ac.inputEl;
-  const container = dropdown?.parentElement;
-  if (!dropdown || !input || !container) return;
-  const anchor = input.closest(".item-content") ?? input;
-  const anchorRect = anchor.getBoundingClientRect();
-  const containerRect = container.getBoundingClientRect();
-  dropdown.style.top = `${inputBottom(input) - containerRect.top + container.scrollTop}px`;
-  dropdown.style.left = `${anchorRect.left - containerRect.left + container.scrollLeft}px`;
-  dropdown.style.width = `${anchorRect.width}px`;
-  const inner = dropdown.querySelector<HTMLElement>(".autocomplete-dropdown-inner");
-  if (inner) {
-    inner.style.paddingLeft = "";
-    inner.style.paddingRight = "";
-  }
-}
-
 const heldDropdowns = new WeakSet<HTMLElement>();
 
 /** Повторный фокус, если касание всё же успело снять его с поля */
@@ -219,11 +192,6 @@ function holdInputFocus(ac: Autocomplete.Autocomplete): void {
   });
 }
 
-function onAppResize(): void {
-  if (nameHints?.opened) alignDropdown(nameHints);
-  if (explanationHints?.opened) alignDropdown(explanationHints);
-}
-
 function syncEnterKeyHint(): void {
   const nameInput = inputOf(nameField.value);
   nameInput?.setAttribute("enterkeyhint", "next");
@@ -241,7 +209,6 @@ function focusName(): void {
 }
 
 function destroyHints(): void {
-  f7.off("resize", onAppResize);
   nameHints?.destroy();
   explanationHints?.destroy();
   nameHints = null;
@@ -263,7 +230,6 @@ function mountHints(): void {
       },
       on: {
         open(instance: Autocomplete.Autocomplete) {
-          alignDropdown(instance);
           holdInputFocus(instance);
         },
         change() {
@@ -284,7 +250,6 @@ function mountHints(): void {
       },
       on: {
         open(instance: Autocomplete.Autocomplete) {
-          alignDropdown(instance);
           holdInputFocus(instance);
         },
         change() {
@@ -293,7 +258,6 @@ function mountHints(): void {
       },
     });
   }
-  f7.on("resize", onAppResize);
 }
 
 /** Поле пометки не должно упираться в нижний край экрана */
@@ -495,10 +459,9 @@ html:has(.rite-name-sheet.modal-in) .rite-popup .rite-scroll {
     // --f7-button-font-weight: 700;
   }
 
-  // page-content нужен автокомплиту: без своего контейнера он встаёт в конец страницы
-  &__body.page-content {
+  // Не page-content: с этим классом Autocomplete ставит список в конец страницы и двигает его координатами
+  &__body {
     position: relative;
-    z-index: auto;
     flex: 1;
     height: auto;
     min-height: 0;
@@ -509,6 +472,12 @@ html:has(.rite-name-sheet.modal-in) .rite-popup .rite-scroll {
   .list {
     margin-top: 0;
     margin-bottom: 0;
+  }
+
+  .item-input .item-content, 
+  .item-input.item-content {
+    margin-left: 0;
+    margin-right: 0;
   }
 
   // Класс с компонента попадает на li. В теме Material линия — это .item-content::after
@@ -551,18 +520,15 @@ html:has(.rite-name-sheet.modal-in) .rite-popup .rite-scroll {
     color: var(--red-r-100);
   }
 
-  // Плавающий список сразу под инпутом, поверх подсказки, без обрезки по высоте.
   .autocomplete-dropdown {
     border-radius: 0 0 8px 8px;
     --f7-autocomplete-dropdown-bg-color: var(--content-color-white-100);
     box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
     clip-path: inset(0 -40px -40px -40px);
 
-
-    //positionDropdown ограничивает высоту остатком страницы под полем
     .autocomplete-dropdown-inner {
       height: auto;
-      max-height: none !important;
+      max-height: none!important;
       overflow: visible;
     }
 
@@ -577,7 +543,8 @@ html:has(.rite-name-sheet.modal-in) .rite-popup .rite-scroll {
     }
 
     &:has(ul:empty) {
-      display: none;
+      display: none !important;
+      box-shadow: none;
     }
   }
 }

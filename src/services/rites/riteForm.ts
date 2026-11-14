@@ -33,11 +33,11 @@ export const NAME_MISSING_ERROR: FieldError = {
 
 export const EXPLANATION_ERROR: FieldError = {
   short: "Выберите пометку из списка",
-  full: "Неверная пометка. Выберите значение из списка.",
+  full: "Неверная пометка. Выберите значение из списка или оставьте пустым.",
 };
 
 /** Серая подсказка под полем пометки, пока ошибки нет */
-export const EXPLANATION_HINT = "Для уточнения введите пометку: воина, младенца, иерея";
+export const EXPLANATION_HINT = "Например: воина, младенца, иерея";
 
 export const DONATE_ERROR: FieldError = {
   short: "Сумма должна быть больше 0",
