@@ -7,6 +7,8 @@ import {
   filterByPrefix,
   findExplanation,
   formatNoteRow,
+  sortByUsage,
+  suggestByPrefix,
   mapServerErrors,
   minimumDonate,
   parseDonate,
@@ -134,6 +136,17 @@ describe("riteForm", () => {
     expect(filterByPrefix(names, "ав", 2)).toEqual(["Авель", "Авраам"]);
     expect(filterByPrefix(names, "", 5)).toEqual([]);
     expect(filterByPrefix(names, "я", 5)).toEqual([]);
+  });
+
+  it("подсказки сортируются по частоте, при равенстве сохраняют порядок", () => {
+    const names = ["Авель", "Авраам", "Августин", "Борис"];
+    expect(suggestByPrefix(names, "ав", 3, { АВГУСТИН: 4, АВРААМ: 1 })).toEqual([
+      "Августин",
+      "Авраам",
+      "Авель",
+    ]);
+    expect(sortByUsage(["воина", "младенца"], { МЛАДЕНЦА: 2, ВОИНА: 2 })).toEqual(["воина", "младенца"]);
+    expect(suggestByPrefix(names, "", 5)).toEqual([]);
   });
 
   describe("ошибки сервера", () => {

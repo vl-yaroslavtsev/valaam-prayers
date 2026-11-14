@@ -52,6 +52,7 @@
             :value="row.name"
             @update:value="onNameValue"
             @focus="onNameFocus"
+            @blur="onNameBlur"
             @keydown.enter="onNameEnter"
           />
         </f7-list>
@@ -80,6 +81,7 @@
             :value="row.explanation"
             @update:value="onExplanationValue"
             @focus="onExplanationFocus"
+            @blur="onExplanationBlur"
             @keydown.enter="onExplanationEnter"
           />
         </f7-list>
@@ -109,10 +111,17 @@ import {
   EXPLANATION_HINT,
   MAX_NAMES,
   NAME_HINT,
-  filterByPrefix,
+  sortByUsage,
+  suggestByPrefix,
   type FieldError,
   type NoteRowItem,
 } from "@/services/rites/riteForm";
+import {
+  readSuggestionUsage,
+  rememberSuggestion,
+  usageKey,
+  type SuggestionKind,
+} from "@/services/rites/suggestionUsage";
 
 const MAX_HINTS = 15;
 
@@ -136,11 +145,15 @@ const inset = useKeyboardInset();
 useSheetFocusScrollLock();
 const { isDarkMode } = useTheme();
 const arrowColor = computed(() => (isDarkMode.value ? "white" : "black-primary"));
+const usage = ref(readSuggestionUsage());
 const bodyEl = ref<HTMLElement | null>(null);
 const nameField = ref<HTMLElement | null>(null);
 const explanationBlock = ref<HTMLElement | null>(null);
 let nameHints: Autocomplete.Autocomplete | null = null;
 let explanationHints: Autocomplete.Autocomplete | null = null;
+/** null: поле в этой строке ещё не фокусировали, ввод не засчитываем */
+let nameBaseline: string | null = null;
+let explanationBaseline: string | null = null;
 
 const row = computed(() => rows[activeIndex.value] ?? { name: "", explanation: "" });
 
@@ -156,13 +169,22 @@ function withoutExactOnly(items: string[], query: string): string[] {
 }
 
 function nameSuggestions(query: string): string[] {
-  return withoutExactOnly(filterByPrefix(names, query, MAX_HINTS), query);
+  return withoutExactOnly(suggestByPrefix(names, query, MAX_HINTS, usage.value.names), query);
 }
 
 function explanationSuggestions(query: string): string[] {
   const typed = query.trim();
-  const items = typed ? filterByPrefix(explanations, typed, MAX_HINTS) : explanations;
+  const items = typed
+    ? suggestByPrefix(explanations, typed, MAX_HINTS, usage.value.explanations)
+    : sortByUsage(explanations, usage.value.explanations);
   return withoutExactOnly(items, query);
+}
+
+function rememberIfChanged(kind: SuggestionKind, value: string, baseline: string): string {
+  const key = usageKey(value);
+  if (!key || key === baseline) return baseline;
+  usage.value = rememberSuggestion(kind, value);
+  return key;
 }
 
 const heldDropdowns = new WeakSet<HTMLElement>();
@@ -203,8 +225,11 @@ function syncEnterKeyHint(): void {
 
 function focusName(): void {
   void nextTick(() => {
+    if (!opened.value) return;
     syncEnterKeyHint();
-    focusSheetInput(inputOf(nameField.value));
+    const input = inputOf(nameField.value);
+    focusSheetInput(input);
+    nameBaseline = usageKey(input?.value ?? row.value.name);
   });
 }
 
@@ -233,6 +258,7 @@ function mountHints(): void {
           holdInputFocus(instance);
         },
         change() {
+          if (nameBaseline !== null) nameBaseline = rememberIfChanged("names", nameInput.value, nameBaseline);
           keepTyping(nameInput);
         },
       },
@@ -253,6 +279,9 @@ function mountHints(): void {
           holdInputFocus(instance);
         },
         change() {
+          if (explanationBaseline !== null) {
+            explanationBaseline = rememberIfChanged("explanations", explanationInput.value, explanationBaseline);
+          }
           keepTyping(explanationInput);
         },
       },
@@ -275,10 +304,37 @@ function revealExplanation(): void {
   });
 }
 
-onBeforeUnmount(destroyHints);
+function fieldValue(block: HTMLElement | null, fallback: string): string {
+  return inputOf(block)?.value ?? fallback;
+}
+
+function finishName(): void {
+  if (nameBaseline === null) return;
+  nameBaseline = rememberIfChanged("names", fieldValue(nameField.value, row.value.name), nameBaseline);
+}
+
+function finishExplanation(): void {
+  if (explanationBaseline === null) return;
+  const index = activeIndex.value;
+  const current = fieldValue(explanationBlock.value, rows[index]?.explanation ?? "");
+  explanationBaseline = rememberIfChanged("explanations", current, explanationBaseline);
+}
+
+function leaveRow(): void {
+  finishName();
+  finishExplanation();
+  nameBaseline = null;
+  explanationBaseline = null;
+}
+
+onBeforeUnmount(() => {
+  leaveRow();
+  destroyHints();
+});
 
 function onOpened(): void {
   void nextTick(() => {
+    if (!opened.value) return;
     mountHints();
     focusName();
   });
@@ -294,7 +350,9 @@ watch(activeIndex, () => {
 });
 
 watch(opened, (isOpen) => {
-  if (!isOpen) destroyHints();
+  if (isOpen) return;
+  leaveRow();
+  destroyHints();
 });
 
 watch(inset, () => {
@@ -304,6 +362,7 @@ watch(inset, () => {
 function step(delta: number): void {
   const next = activeIndex.value + delta;
   if (next < 0 || next >= MAX_NAMES) return;
+  leaveRow();
   activeIndex.value = next;
 }
 
@@ -320,12 +379,22 @@ function onExplanationValue(value: string): void {
 }
 
 function onNameFocus(): void {
+  nameBaseline = usageKey(fieldValue(nameField.value, row.value.name));
   syncEnterKeyHint();
 }
 
+function onNameBlur(): void {
+  finishName();
+}
+
 function onExplanationFocus(): void {
+  explanationBaseline = usageKey(fieldValue(explanationBlock.value, row.value.explanation));
   syncEnterKeyHint();
   revealExplanation();
+}
+
+function onExplanationBlur(): void {
+  finishExplanation();
 }
 
 function onNameEnter(event: KeyboardEvent): void {
@@ -341,6 +410,7 @@ function onExplanationEnter(event: KeyboardEvent): void {
     opened.value = false;
     return;
   }
+  leaveRow();
   activeIndex.value += 1;
 }
 </script>

@@ -172,6 +172,27 @@ export function filterByPrefix(list: string[], query: string, limit: number): st
   return result;
 }
 
+/** Частые значения выше. При равном счёте остаётся прежний порядок */
+export function sortByUsage(items: readonly string[], counts: Readonly<Record<string, number>>): string[] {
+  return items
+    .map((item, index) => ({ item, index, count: counts[item.trim().toUpperCase()] ?? 0 }))
+    .sort((a, b) => b.count - a.count || a.index - b.index)
+    .map(({ item }) => item);
+}
+
+/** Подсказки по началу текста: сначала частые, не больше limit */
+export function suggestByPrefix(
+  list: readonly string[],
+  query: string,
+  limit: number,
+  counts: Readonly<Record<string, number>> = {},
+): string[] {
+  const prefix = query.trim().toUpperCase();
+  if (!prefix) return [];
+  const matches = list.filter((item) => item.toUpperCase().startsWith(prefix));
+  return sortByUsage(matches, counts).slice(0, limit);
+}
+
 /** Совпавшее начало слова и хвост: для жирного префикса в подсказке */
 export function splitPrefix(value: string, query: string): { match: string; rest: string } {
   const prefix = query.trim();
