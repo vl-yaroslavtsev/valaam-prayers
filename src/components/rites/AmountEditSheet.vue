@@ -14,45 +14,65 @@
     <div class="swipe-handler"></div>
     <f7-toolbar class="rite-amount-sheet__toolbar" :outline="false">
       <span class="rite-amount-sheet__title">Сумма пожертвования</span>
-      <f7-button small fill class="rite-amount-sheet__apply" :disabled="!canApply" @click="apply">
+      <f7-button fill round small type="button" class="rite-amount-sheet__apply" :disabled="!canApply" @click="apply">
         Применить
       </f7-button>
     </f7-toolbar>
 
     <div ref="fieldEl" class="rite-amount-sheet__body">
-      <div class="rite-amount-sheet__field" :class="{ 'is-error': Boolean(visibleError) }">
-        <f7-list no-hairlines>
+      <div class="rite-amount-sheet__field">
+        <f7-list no-hairlines inset>
           <f7-list-input
             type="text"
             name="sheet-donate"
             inputmode="numeric"
             placeholder="0"
             clear-button
+            :class="{ 'item-input-invalid': Boolean(visibleError) }"
             :value="draftText"
             @update:value="onDraft"
             @keydown.enter="onEnter"
           >
             <template #input>
-              <span v-if="visibleError" class="rite-amount-sheet__error-icon" aria-hidden="true">
-                <img src="@/assets/rite/input-error.svg" width="20" height="20" alt="" />
-                <img class="is-hover" src="@/assets/rite/input-error-hover.svg" width="20" height="20" alt="" />
-              </span>
               <span class="rite-amount-sheet__currency" aria-hidden="true">₽</span>
             </template>
           </f7-list-input>
         </f7-list>
+        <f7-block class="rite-amount-sheet__note">Сумму можно изменить</f7-block>
+        <f7-block v-if="visibleError" class="rite-amount-sheet__message is-error">
+          <f7-icon
+            class="rite-amount-sheet__error-icon"
+            f7="exclamationmark_circle_fill"
+            aria-hidden="true"
+          />
+          <!-- Сервер может прислать ссылку mailto -->
+          <!-- eslint-disable-next-line vue/no-v-html -->
+          <span v-if="serverError" v-html="externalMailLinks(serverError.full || serverError.short)"></span>
+          <span v-else>{{ clientError?.short }}</span>
+        </f7-block>
       </div>
 
-      <f7-chip class="rite-amount-sheet__chip" outline @click="useRecommended">
-        Рекомендуемая сумма: {{ formatPrice(recommended) }} ₽
-      </f7-chip>
-
-      <p v-if="serverError" class="rite-amount-sheet__message">
-        <!-- Сервер может прислать ссылку mailto -->
-        <!-- eslint-disable-next-line vue/no-v-html -->
-        <span v-html="externalMailLinks(serverError.full || serverError.short)"></span>
-      </p>
-      <p v-else-if="clientError" class="rite-amount-sheet__message">{{ clientError.short }}</p>
+      <f7-block class="rite-amount-sheet__recommend">
+        <f7-chip class="rite-amount-sheet__chip" outline @click="useAmount(recommended)">
+          Рекомендуемая: {{ formatPrice(recommended) }} ₽
+        </f7-chip>
+        <f7-chip
+          v-if="halfAmount > 0"
+          class="rite-amount-sheet__chip"
+          outline
+          @click="useAmount(halfAmount)"
+        >
+          {{ formatPrice(halfAmount) }} ₽
+        </f7-chip>
+        <f7-chip
+          v-if="minAmount > 0"
+          class="rite-amount-sheet__chip"
+          outline
+          @click="useAmount(minAmount)"
+        >
+          {{ formatPrice(minAmount) }} ₽
+        </f7-chip>
+      </f7-block>
 
       <div v-if="belowMin" class="rite-amount-sheet__alert" role="alert">
         <f7-icon f7="exclamationmark_circle_fill" aria-hidden="true" />
@@ -107,6 +127,7 @@ const clientError = computed(() => validateDonateAmount(draftAmount.value, minAm
 const visibleError = computed(() => serverError ?? clientError.value);
 const canApply = computed(() => clientError.value === null);
 const belowMin = computed(() => draftAmount.value > 0 && draftAmount.value < minAmount);
+const halfAmount = computed(() => Math.floor(recommended / 2));
 
 const mailHref = computed(() => {
   const names = rows.map((row) => formatNoteRow(row)).filter(Boolean);
@@ -135,8 +156,8 @@ function onDraft(value: string): void {
   emit("clear-server-error");
 }
 
-function useRecommended(): void {
-  draftText.value = recommended > 0 ? String(recommended) : "";
+function useAmount(value: number): void {
+  draftText.value = value > 0 ? String(value) : "";
   emit("clear-server-error");
 }
 
@@ -156,19 +177,21 @@ function onEnter(event: KeyboardEvent): void {
 .rite-amount-sheet {
   --f7-sheet-height: auto;
   --f7-toolbar-height: 60px;
-  --f7-input-height: 60px;
-  --f7-input-font-size: 22px;
-  --f7-input-padding-left: 24px;
-  --f7-input-padding-right: 52px;
+  --f7-toolbar-inner-padding-left: 16px;
+  --f7-toolbar-inner-padding-right: 16px;
+  --f7-input-font-size: 20px;
+  --f7-input-item-bg-color: var(--content-color-white-100);
+  --f7-input-item-border-radius: 8px 8px 0 0;
   --f7-input-text-color: var(--content-color-black-primary);
   --f7-input-placeholder-color: var(--content-color-black-60);
-  padding-top: 32px;
+  --f7-input-invalid-border-color: var(--red-r-100);
+  --f7-input-clear-button-color: rgba(31, 27, 26, 0.45);
   color: var(--content-color-black-primary);
   font-family: "PT Sans", sans-serif;
 
   &.sheet-modal {
     bottom: var(--rite-keyboard-inset, 0px);
-    max-height: calc(100% - var(--rite-keyboard-inset, 0px));
+    max-height: calc(100% - var(--rite-keyboard-inset, 0px) - var(--f7-safe-area-top));
   }
 
   &.sheet-modal.modal-in {
@@ -177,6 +200,11 @@ function onEnter(event: KeyboardEvent): void {
   }
 
   .sheet-modal-inner {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    height: auto;
+    min-height: 0;
     overflow: visible;
   }
 
@@ -201,75 +229,42 @@ function onEnter(event: KeyboardEvent): void {
   }
 
   &__apply.button {
-    --f7-button-height: 32px;
-    --f7-button-font-size: 14px;
-    --f7-button-border-radius: 8px;
     width: auto;
     margin: 0;
   }
 
   &__body {
-    padding: 8px 20px calc(20px + var(--f7-safe-area-bottom));
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    padding: 8px 0 calc(12px + var(--f7-safe-area-bottom));
   }
 
   .list {
-    margin: 0;
+    margin-top: 0;
+    margin-bottom: 0;
   }
 
-  ul {
-    padding: 0;
-    background: none;
-
-    &::before,
-    &::after {
-      display: none;
-    }
+  .item-input .item-content,
+  .item-input.item-content {
+    margin-left: 0;
+    margin-right: 0;
   }
 
-  .item-content,
-  .item-inner {
-    min-height: 0;
-    margin: 0;
-    padding: 0;
-
-    &::before,
-    &::after {
-      display: none;
-    }
-  }
-
-  .item-input-wrap {
-    position: relative;
-    margin: 0;
-    border: 1px solid var(--content-color-black-20);
-    border-radius: 8px;
-    background: var(--content-color-white-100);
-  }
-
-  &__field:hover .item-input-wrap {
-    border-color: var(--content-color-black-40);
-  }
-
-  &__field:focus-within .item-input-wrap {
-    border-color: var(--content-color-black-60);
-  }
-
-  &__field.is-error .item-input-wrap,
-  &__field.is-error:hover .item-input-wrap,
-  &__field.is-error:focus-within .item-input-wrap {
-    border-color: var(--red-r-100);
+  li.item-input-invalid .item-content::after {
+    background: var(--red-r-100) !important;
+    transform: scaleY(2) !important;
   }
 
   .list input[type="text"] {
     box-sizing: border-box;
-    padding-top: 16px;
-    padding-bottom: 16px;
-    background: transparent;
+    padding-right: 28px;
     font-family: "PT Sans", sans-serif;
-    font-size: 22px;
+    font-size: 20px;
     line-height: 28px;
-    font-weight: 400;
     color: var(--content-color-black-primary);
+
+    text-align: right;
 
     &::placeholder {
       color: var(--content-color-black-60);
@@ -277,87 +272,32 @@ function onEnter(event: KeyboardEvent): void {
     }
   }
 
-  .item-input-with-value input {
-    --f7-input-padding-right: 80px;
-  }
-
-  .is-error input {
-    --f7-input-padding-right: 80px;
-    color: var(--content-color-black-primary);
-  }
-
-  .is-error .item-input-with-value input {
-    --f7-input-padding-right: 112px;
-  }
-
-  .input-clear-button {
-    right: 20px;
-  }
-
-  .is-error .input-clear-button {
-    right: 52px;
-  }
-
-  &__error-icon {
-    position: absolute;
-    top: 50%;
-    right: 24px;
-    width: 20px;
-    height: 20px;
-    margin-top: -10px;
-    pointer-events: none;
-
-    img {
-      display: block;
-      width: 20px;
-      height: 20px;
-    }
-
-    .is-hover {
-      display: none;
-    }
-  }
-
-  &__field.is-error:hover &__error-icon {
-    img {
-      display: none;
-    }
-
-    .is-hover {
-      display: block;
-    }
+  .item-input-with-value input[type="text"] {
+    padding-right: 56px;
   }
 
   &__currency {
     position: absolute;
+    z-index: 1;
     top: 50%;
-    right: 24px;
-    font-size: 22px;
+    right: 0;
+    font-size: 20px;
     line-height: 28px;
-    font-weight: 400;
     color: var(--content-color-black-primary);
     transform: translateY(-50%);
     pointer-events: none;
   }
 
   .item-input-with-value &__currency {
-    right: 48px;
+    right: 28px;
   }
 
-  .is-error &__currency {
-    right: 52px;
-  }
-
-  .is-error .item-input-with-value &__currency {
-    right: 80px;
-  }
-
-  &__chip {
-    margin-top: 12px;
-  }
-
-  &__message {
-    margin: 8px 0 0;
+  &__message.block {
+    display: flex;
+    align-items: flex-start;
+    gap: 6px;
+    margin-top: 0;
+    margin-bottom: 8px;
     font-size: 16px;
     line-height: 1.3;
     color: var(--red-r-100);
@@ -367,16 +307,47 @@ function onEnter(event: KeyboardEvent): void {
     }
   }
 
+  &__error-icon.icon {
+    flex: none;
+    margin-top: 2px;
+    font-size: 22px;
+    color: var(--red-r-100);
+  }
+
+  &__note.block {
+    margin-top: 0;
+    margin-bottom: 0;
+    font-size: 16px;
+    line-height: 1.3;
+    color: var(--content-color-black-60);
+  }
+
+  &__recommend.block {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 8px;
+    margin-bottom: 0;
+  }
+
+  &__chip.chip {
+    --f7-chip-outline-border-color: var(--content-color-black-20);
+    --f7-chip-text-color: var(--content-color-black-primary);
+    margin: 0;
+    color: var(--content-color-black-primary);
+  }
+
   &__alert {
     display: flex;
     align-items: flex-start;
     gap: 10px;
-    margin-top: 12px;
+    margin: 12px 16px 0;
     padding: 10px 12px;
     border-radius: 8px;
     background: rgba(235, 87, 87, 0.12);
     font-size: 14px;
     line-height: 18px;
+    color: var(--content-color-black-primary);
 
     .icon {
       flex: none;
