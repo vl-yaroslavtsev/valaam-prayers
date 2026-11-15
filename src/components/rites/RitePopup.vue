@@ -69,6 +69,7 @@
                 :name="row.name"
                 :explanation="row.explanation"
                 :error-text="rowErrorText(i)"
+                :add-placeholder="i === firstEmptyRow"
                 @select="openNameSheet(i)"
               />
             </div>
@@ -143,6 +144,8 @@
       :explanation-error="shownRowError(activeRowIndex).explanation"
       @update:name="onNameChanged"
       @update:explanation="onExplanationChanged"
+      @explanation-focus="explanationEditing = true"
+      @explanation-blur="explanationEditing = false"
     />
     <AmountEditSheet
       v-model:opened="amountSheetOpened"
@@ -176,14 +179,17 @@ import {
   MESSAGE_NO_NAMES,
   MESSAGE_UNAVAILABLE,
   buildNames,
+  formatNoteRow,
   isRowCountable,
   mapServerErrors,
   minimumDonate,
   pickTypeForKind,
   recommendedDonate,
+  soleExplanation,
   typesOfKind,
   validateDonateAmount,
   validateRow,
+  visibleExplanationError,
   type FieldError,
   type NoteRowError,
   type NoteRowItem,
@@ -281,6 +287,8 @@ const infoOpened = ref(false);
 const nameSheetOpened = ref(false);
 const amountSheetOpened = ref(false);
 const activeRowIndex = ref(0);
+/** Поле пометки в фокусе: пока есть подсказки, ошибку не показываем */
+const explanationEditing = ref(false);
 
 let errorDialog: Dialog.Dialog | null = null;
 
@@ -307,6 +315,8 @@ const buttonText = computed(() => {
   if (saving.value) return "Сохранение...";
   return mode === "edit" ? "Сохранить изменения" : "Добавить в корзину";
 });
+
+const firstEmptyRow = computed(() => rows.findIndex((row) => !formatNoteRow(row)));
 
 const kindOptions = computed(() =>
   (["health", "repose"] as const)
@@ -341,11 +351,15 @@ const donateHighlighted = computed(
 );
 
 function shownRowError(index: number): NoteRowError {
-  const client = validateRow(rows[index] ?? { name: "", explanation: "" }, explanations.value);
+  const row = rows[index] ?? { name: "", explanation: "" };
+  const client = validateRow(row, explanations.value);
   const showClient = submitted.value || rowTouched.value[index];
+  const editing = explanationEditing.value && nameSheetOpened.value && index === activeRowIndex.value;
   return {
     name: serverErrors.value[`name-${index}`] ?? (showClient ? client.name : null),
-    explanation: serverErrors.value[`explanation-${index}`] ?? (showClient ? client.explanation : null),
+    explanation:
+      serverErrors.value[`explanation-${index}`] ??
+      (showClient ? visibleExplanationError(row.explanation, explanations.value, editing) : null),
   };
 }
 
@@ -394,6 +408,19 @@ function onNameChanged(index: number, value: string): void {
   touchRow(index);
   delete serverErrors.value[`name-${index}`];
   recalculateDonate();
+}
+
+/** Префикс с единственной пометкой становится этой пометкой */
+function resolveExplanations(): void {
+  let changed = false;
+  rows.forEach((row, index) => {
+    const sole = soleExplanation(row.explanation, explanations.value);
+    if (!sole) return;
+    row.explanation = sole;
+    delete serverErrors.value[`explanation-${index}`];
+    changed = true;
+  });
+  if (changed) recalculateDonate();
 }
 
 function onExplanationChanged(index: number, value: string): void {
@@ -538,6 +565,10 @@ async function init(): Promise<void> {
   }
 }
 
+watch(nameSheetOpened, (isOpen) => {
+  if (!isOpen) explanationEditing.value = false;
+});
+
 watch(opened, (value) => {
   if (value) {
     applyNoteSystemBars();
@@ -545,6 +576,7 @@ watch(opened, (value) => {
     return;
   }
   restoreNoteSystemBars();
+  explanationEditing.value = false;
   nameSheetOpened.value = false;
   amountSheetOpened.value = false;
   errorDialog?.close();
@@ -617,6 +649,7 @@ function applyServerErrors(errors: ApiErrors | null): void {
 
 async function submit(): Promise<void> {
   if (!type.value || saving.value) return;
+  resolveExplanations();
   submitted.value = true;
   serverErrors.value = {};
 

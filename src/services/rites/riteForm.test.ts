@@ -7,8 +7,11 @@ import {
   filterByPrefix,
   findExplanation,
   formatNoteRow,
+  matchingExplanations,
+  soleExplanation,
   sortByUsage,
   suggestByPrefix,
+  visibleExplanationError,
   mapServerErrors,
   minimumDonate,
   parseDonate,
@@ -63,7 +66,9 @@ describe("riteForm", () => {
     expect(findExplanation("ВОИНА", EXPLANATIONS)).toBe("воина");
     expect(validateExplanation("", EXPLANATIONS)).toBeNull();
     expect(validateExplanation("воина", EXPLANATIONS)).toBeNull();
-    expect(validateExplanation("воин", EXPLANATIONS)?.short).toBe("Выберите из списка");
+    expect(validateExplanation("воин", EXPLANATIONS)?.short).toBe(
+      "Выберите пометку из списка или оставьте поле пустым",
+    );
   });
 
   it("сумма: берутся цифры, должна быть больше нуля", () => {
@@ -147,6 +152,19 @@ describe("riteForm", () => {
     ]);
     expect(sortByUsage(["воина", "младенца"], { МЛАДЕНЦА: 2, ВОИНА: 2 })).toEqual(["воина", "младенца"]);
     expect(suggestByPrefix(names, "", 5)).toEqual([]);
+  });
+
+  it("пометка: один вариант подставляется, ошибка ждёт ухода из поля", () => {
+    const list = ["воина", "вдовы", "младенца"];
+    expect(matchingExplanations("в", list)).toEqual(["воина", "вдовы"]);
+    expect(soleExplanation("м", list)).toBe("младенца");
+    expect(soleExplanation("в", list)).toBeNull();
+    expect(soleExplanation("ВОИНА", list)).toBeNull();
+    expect(visibleExplanationError("в", list, true)).toBeNull();
+    expect(visibleExplanationError("в", list, false)).toBe(EXPLANATION_ERROR);
+    expect(visibleExplanationError("нет", list, true)).toBe(EXPLANATION_ERROR);
+    expect(visibleExplanationError("", list, true)).toBeNull();
+    expect(visibleExplanationError("воина", list, false)).toBeNull();
   });
 
   describe("ошибки сервера", () => {

@@ -110,6 +110,7 @@ import {
   EXPLANATION_HINT,
   MAX_NAMES,
   NAME_HINT,
+  soleExplanation,
   sortByUsage,
   suggestByPrefix,
   type FieldError,
@@ -138,6 +139,8 @@ const { rows, names, explanations, nameError = null, explanationError = null } =
 const emit = defineEmits<{
   "update:name": [index: number, value: string];
   "update:explanation": [index: number, value: string];
+  "explanation-focus": [];
+  "explanation-blur": [];
 }>();
 
 const inset = useKeyboardInset();
@@ -151,6 +154,7 @@ let explanationHints: Autocomplete.Autocomplete | null = null;
 /** null: поле в этой строке ещё не фокусировали, ввод не засчитываем */
 let nameBaseline: string | null = null;
 let explanationBaseline: string | null = null;
+let openingHints = false;
 
 const row = computed(() => rows[activeIndex.value] ?? { name: "", explanation: "" });
 
@@ -184,6 +188,21 @@ function rememberIfChanged(kind: SuggestionKind, value: string, baseline: string
   return key;
 }
 
+/**
+ * После выбора и после крестика список закрыт.
+ * Новый ввод сам его не открывает: открываем, если есть подсказки.
+ */
+function reopenHints(ac: Autocomplete.Autocomplete | null, items: string[]): void {
+  const input = ac?.inputEl;
+  if (openingHints || !ac || ac.opened || items.length === 0 || document.activeElement !== input) return;
+  openingHints = true;
+  try {
+    ac.open();
+  } finally {
+    openingHints = false;
+  }
+}
+
 const heldDropdowns = new WeakSet<HTMLElement>();
 
 /** Повторный фокус, если касание всё же успело снять его с поля */
@@ -207,7 +226,7 @@ function holdInputFocus(ac: Autocomplete.Autocomplete): void {
 
   dropdown.addEventListener("mousedown", (event) => {
     event.preventDefault();
-    keepTyping(input);
+    if (input instanceof HTMLInputElement) keepTyping(input);
   });
 }
 
@@ -310,11 +329,14 @@ function finishName(): void {
   nameBaseline = rememberIfChanged("names", fieldValue(nameField.value, row.value.name), nameBaseline);
 }
 
+/** Единственная подходящая пометка подставляется, когда поле покидают */
 function finishExplanation(): void {
   if (explanationBaseline === null) return;
   const index = activeIndex.value;
   const current = fieldValue(explanationBlock.value, rows[index]?.explanation ?? "");
-  explanationBaseline = rememberIfChanged("explanations", current, explanationBaseline);
+  const sole = soleExplanation(current, explanations);
+  if (sole) emit("update:explanation", index, sole);
+  explanationBaseline = rememberIfChanged("explanations", sole ?? current, explanationBaseline);
 }
 
 function leaveRow(): void {
@@ -322,6 +344,7 @@ function leaveRow(): void {
   finishExplanation();
   nameBaseline = null;
   explanationBaseline = null;
+  emit("explanation-blur");
 }
 
 onBeforeUnmount(() => {
@@ -369,13 +392,16 @@ function close(): void {
 
 function onNameValue(value: string): void {
   emit("update:name", activeIndex.value, value);
+  reopenHints(nameHints, nameSuggestions(value));
 }
 
 function onExplanationValue(value: string): void {
   emit("update:explanation", activeIndex.value, value);
+  reopenHints(explanationHints, explanationSuggestions(value));
 }
 
 function onNameFocus(): void {
+  explanationHints?.close();
   nameBaseline = usageKey(fieldValue(nameField.value, row.value.name));
   syncEnterKeyHint();
 }
@@ -385,13 +411,16 @@ function onNameBlur(): void {
 }
 
 function onExplanationFocus(): void {
+  nameHints?.close();
   explanationBaseline = usageKey(fieldValue(explanationBlock.value, row.value.explanation));
+  emit("explanation-focus");
   syncEnterKeyHint();
   revealExplanation();
 }
 
 function onExplanationBlur(): void {
   finishExplanation();
+  emit("explanation-blur");
 }
 
 function onNameEnter(event: KeyboardEvent): void {

@@ -32,8 +32,8 @@ export const NAME_MISSING_ERROR: FieldError = {
 };
 
 export const EXPLANATION_ERROR: FieldError = {
-  short: "Выберите пометку из списка",
-  full: "Неверная пометка. Выберите значение из списка или оставьте пустым.",
+  short: "Выберите пометку из списка или оставьте поле пустым",
+  full: "Выберите пометку из списка или оставьте поле пустым",
 };
 
 /** Серая подсказка под полем пометки, пока ошибки нет */
@@ -65,7 +65,7 @@ export const isNameValid = (name: string): boolean => {
 };
 
 /** Пометка из списка (без учёта регистра) в написании списка; null, если такой нет */
-export function findExplanation(value: string, list: string[]): string | null {
+export function findExplanation(value: string, list: readonly string[]): string | null {
   const upper = value.trim().toUpperCase();
   return list.find((item) => item.toUpperCase() === upper) ?? null;
 }
@@ -159,7 +159,7 @@ export function buildNames(rows: NoteRowItem[], explanations: string[]): RiteNam
 }
 
 /** Подсказки по началу имени, без учёта регистра */
-export function filterByPrefix(list: string[], query: string, limit: number): string[] {
+export function filterByPrefix(list: readonly string[], query: string, limit: number): string[] {
   const prefix = query.trim().toUpperCase();
   if (!prefix) return [];
   const result: string[] = [];
@@ -170,6 +170,37 @@ export function filterByPrefix(list: string[], query: string, limit: number): st
     }
   }
   return result;
+}
+
+/** Все пометки, которые начинаются с введённого текста */
+export function matchingExplanations(value: string, list: readonly string[]): string[] {
+  const prefix = value.trim().toUpperCase();
+  if (!prefix) return [];
+  return list.filter((item) => item.toUpperCase().startsWith(prefix));
+}
+
+/**
+ * Единственная пометка по префиксу.
+ * Точное совпадение не подменяем: оно уже годится.
+ */
+export function soleExplanation(value: string, list: readonly string[]): string | null {
+  if (!value.trim() || findExplanation(value, list)) return null;
+  const matches = matchingExplanations(value, list);
+  return matches.length === 1 ? matches[0] : null;
+}
+
+/**
+ * Ошибка пометки на экране.
+ * Пока поле в фокусе и список подсказок не пуст, ошибку не показываем.
+ */
+export function visibleExplanationError(
+  value: string,
+  list: readonly string[],
+  editing: boolean,
+): FieldError | null {
+  if (!value.trim() || findExplanation(value, list)) return null;
+  if (editing && matchingExplanations(value, list).length > 0) return null;
+  return EXPLANATION_ERROR;
 }
 
 /** Частые значения выше. При равном счёте остаётся прежний порядок */
