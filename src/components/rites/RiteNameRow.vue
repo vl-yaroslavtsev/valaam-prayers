@@ -9,7 +9,7 @@
   >
     <span class="rite-name-row__main">
       <span class="rite-name-row__text" :class="{ 'rite-name-row__text--placeholder': showPlaceholder }">
-        {{ text || (showPlaceholder ? "Имя" : "") }}
+        {{ text || (showPlaceholder ? ADD_NAME : "") }}
       </span>
       <f7-icon
         v-if="errorText"
@@ -26,12 +26,16 @@
 import { computed } from "vue";
 import { formatNoteRow } from "@/services/rites/riteForm";
 
-const { index, name, explanation, errorText = "" } = defineProps<{
+const ADD_NAME = "Введите имя";
+
+const { index, name, explanation, errorText = "", addPlaceholder = false } = defineProps<{
   index: number;
   name: string;
   explanation: string;
   /** Короткий текст ошибки строки. Пустая строка: ошибки нет */
   errorText?: string;
+  /** Первая пустая строка бланка */
+  addPlaceholder?: boolean;
 }>();
 
 const emit = defineEmits<{
@@ -39,7 +43,7 @@ const emit = defineEmits<{
 }>();
 
 const text = computed(() => formatNoteRow({ name, explanation }));
-const showPlaceholder = computed(() => !text.value && index === 0);
+const showPlaceholder = computed(() => addPlaceholder && !text.value);
 
 /** Фокус кнопки прокручивает бланк. Возвращаем его на место до следующей отрисовки */
 function keepPlace(event: PointerEvent): void {
@@ -52,7 +56,7 @@ function keepPlace(event: PointerEvent): void {
   requestAnimationFrame(restore);
 }
 const ariaLabel = computed(() => {
-  const base = text.value || `Имя ${index + 1}`;
+  const base = text.value || (showPlaceholder.value ? ADD_NAME : `Имя ${index + 1}`);
   return errorText ? `${base}. ${errorText}` : base;
 });
 </script>
