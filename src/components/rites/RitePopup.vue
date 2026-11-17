@@ -729,6 +729,8 @@ async function submit(): Promise<void> {
     margin: var(--rite-card-margin);
     // Только бумага записки: листы ошибки и описания живут рядом и берут цвет темы
     color: var(--rite-text);
+    // Бумага всегда белая, а в тёмной теме ripple белый и на ней пропадает
+    --f7-touch-ripple-color: var(--f7-touch-ripple-black);
     --f7-text-color: var(--rite-text);
     --f7-input-text-color: var(--rite-text);
     --f7-input-placeholder-color: var(--rite-muted);
@@ -979,6 +981,10 @@ async function submit(): Promise<void> {
     font-weight: 700;
     letter-spacing: 0.7px;
     text-transform: uppercase;
+  }
+
+  .rite-sheet-backdrop {
+    overscroll-behavior: none;
   }
 }
 </style>
