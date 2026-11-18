@@ -729,6 +729,7 @@ async function submit(): Promise<void> {
     margin: var(--rite-card-margin);
     // Только бумага записки: листы ошибки и описания живут рядом и берут цвет темы
     color: var(--rite-text);
+    align-items: stretch;
     // Бумага всегда белая, а в тёмной теме ripple белый и на ней пропадает
     --f7-touch-ripple-color: var(--f7-touch-ripple-black);
     --f7-text-color: var(--rite-text);

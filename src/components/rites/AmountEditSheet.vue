@@ -19,39 +19,67 @@
       </f7-button>
     </f7-toolbar>
 
-    <div ref="fieldEl" class="rite-amount-sheet__body">
+    <div class="rite-amount-sheet__body">
       <div class="rite-amount-sheet__field">
         <f7-list no-hairlines inset>
-          <f7-list-input
-            type="text"
-            name="sheet-donate"
-            inputmode="numeric"
-            placeholder="0"
-            clear-button
-            :class="{ 'item-input-invalid': Boolean(visibleError) }"
-            :value="draftText"
-            @update:value="onDraft"
-            @keydown.enter="onEnter"
-          >
+          <f7-list-input :input="false" :value="draftText" :class="{ 'item-input-invalid': inputInvalid }">
             <template #input>
-              <span class="rite-amount-sheet__currency" aria-hidden="true">₽</span>
+              <div class="rite-amount-sheet__value" @click="focusInput">
+                <input
+                  ref="inputRef"
+                  class="rite-amount-sheet__input"
+                  type="text"
+                  name="sheet-donate"
+                  inputmode="numeric"
+                  enterkeyhint="done"
+                  autocomplete="off"
+                  aria-label="Сумма пожертвования"
+                  :placeholder="amountPlaceholder"
+                  :value="draftDisplay"
+                  :style="{ width: inputWidth }"
+                  @input="onInput"
+                  @keydown.enter="onEnter"
+                />
+                <span v-if="draftText" class="rite-amount-sheet__currency" aria-hidden="true">&nbsp;₽</span>
+                <span class="input-clear-button" :class="{ 'is-on': draftText }" @click.stop="clearDraft"></span>
+              </div>
             </template>
           </f7-list-input>
         </f7-list>
-        <f7-block class="rite-amount-sheet__note">Сумму можно изменить</f7-block>
-        <f7-block v-if="visibleError" class="rite-amount-sheet__message is-error">
-          <f7-icon
-            class="rite-amount-sheet__error-icon"
-            f7="exclamationmark_circle_fill"
-            aria-hidden="true"
-          />
-          <!-- Сервер может прислать ссылку mailto -->
-          <!-- eslint-disable-next-line vue/no-v-html -->
-          <span v-if="serverError" v-html="externalMailLinks(serverError.full || serverError.short)"></span>
-          <span v-else>{{ clientError?.short }}</span>
-        </f7-block>
+        <div class="rite-amount-sheet__notice">
+          <f7-block
+            class="rite-amount-sheet__message"
+            :class="{ 'is-error': fieldError, 'is-hidden': showAlert }"
+            :aria-hidden="showAlert ? true : undefined"
+          >
+            <f7-icon
+              v-if="fieldError"
+              class="rite-amount-sheet__error-icon"
+              f7="exclamationmark_circle_fill"
+              aria-hidden="true"
+            />
+            <!-- Сервер может прислать ссылку mailto -->
+            <!-- eslint-disable-next-line vue/no-v-html -->
+            <span v-if="fieldError && serverError" v-html="externalMailLinks(serverError.full || serverError.short)"></span>
+            <span v-else-if="fieldError">{{ fieldError.full }}</span>
+            <span v-else>Укажите любую посильную сумму от {{ formatPrice(minAmount) }} ₽</span>
+          </f7-block>
+          <div
+            class="rite-amount-sheet__alert"
+            :class="{ 'is-reserved': !showAlert }"
+            :role="showAlert ? 'alert' : undefined"
+            :aria-hidden="showAlert ? undefined : true"
+          >
+            <f7-icon f7="exclamationmark_circle_fill" aria-hidden="true" />
+            <p>
+              Мы не можем подать вашу записку в автоматическом режиме. Пожалуйста, напишите нам на
+              <a class="external" :href="mailHref" target="_blank" rel="noopener" :tabindex="showAlert ? undefined : -1">rites@valaam.ru</a>
+            </p>
+          </div>
+        </div>
       </div>
 
+      <!--
       <f7-block class="rite-amount-sheet__recommend">
         <f7-chip class="rite-amount-sheet__chip" outline @click="useAmount(recommended)">
           Рекомендуемая: {{ formatPrice(recommended) }} ₽
@@ -73,23 +101,17 @@
           {{ formatPrice(minAmount) }} ₽
         </f7-chip>
       </f7-block>
-
-      <div v-if="belowMin" class="rite-amount-sheet__alert" role="alert">
-        <f7-icon f7="exclamationmark_circle_fill" aria-hidden="true" />
-        <p>
-          Мы не можем подать вашу записку в автоматическом режиме. Пожалуйста, напишите нам на
-          <a class="external" :href="mailHref" target="_blank" rel="noopener">rites@valaam.ru</a>
-        </p>
-      </div>
+      -->
     </div>
   </f7-sheet>
 </template>
 
 <script setup lang="ts">
-import { computed, nextTick, ref } from "vue";
-import { useSheetFocusScrollLock } from "@/composables/focusSheetInput";
+import { computed, ref } from "vue";
+import { focusSheetInput, useSheetFocusScrollLock } from "@/composables/focusSheetInput";
 import { useKeyboardInset } from "@/composables/useKeyboardInset";
 import {
+  DONATE_BELOW_MIN,
   externalMailLinks,
   formatNoteRow,
   parseDonate,
@@ -120,13 +142,29 @@ const emit = defineEmits<{
 const inset = useKeyboardInset();
 useSheetFocusScrollLock();
 const draftText = ref("");
-const fieldEl = ref<HTMLElement | null>(null);
+const inputRef = ref<HTMLInputElement | null>(null);
 
+const amountPlaceholder = computed(() => `Рекомендуемая: ${formatPrice(recommended)} ₽`);
 const draftAmount = computed(() => parseDonate(draftText.value));
+const draftDisplay = computed(() => (draftText.value ? formatPrice(draftAmount.value) : ""));
+const inputWidth = computed(() => {
+  const text = draftDisplay.value || amountPlaceholder.value;
+  if (!draftDisplay.value) return `${Math.max(text.length, 1)}ch`;
+  const gaps = (text.match(/\s/g) ?? []).length;
+  const solids = Math.max(text.length - gaps, 1);
+  return gaps ? `calc(${solids}ch + ${gaps * 0.5}ch)` : `${solids}ch`;
+});
 const clientError = computed(() => validateDonateAmount(draftAmount.value, minAmount));
-const visibleError = computed(() => serverError ?? clientError.value);
+/** «Сумма меньше минимальной» не показываем: об этом говорит alert ниже */
+const fieldError = computed(() => {
+  if (serverError) return serverError;
+  const error = clientError.value;
+  return error && error !== DONATE_BELOW_MIN ? error : null;
+});
+const inputInvalid = computed(() => Boolean(serverError || clientError.value));
 const canApply = computed(() => clientError.value === null);
 const belowMin = computed(() => draftAmount.value > 0 && draftAmount.value < minAmount);
+const showAlert = computed(() => belowMin.value && !fieldError.value);
 const halfAmount = computed(() => Math.floor(recommended / 2));
 
 const mailHref = computed(() => {
@@ -143,17 +181,27 @@ const mailHref = computed(() => {
 
 function fillDraft(): void {
   draftText.value = amount > 0 ? String(amount) : "";
-  void nextTick(syncHint);
 }
 
-function syncHint(): void {
-  fieldEl.value?.querySelector("input")?.setAttribute("enterkeyhint", "done");
-  fieldEl.value?.querySelector("input")?.setAttribute("aria-label", "Сумма пожертвования");
+function focusInput(event: MouseEvent): void {
+  const target = event.target;
+  if (target instanceof HTMLInputElement) return;
+  if (target instanceof Element && target.closest(".input-clear-button")) return;
+  focusSheetInput(inputRef.value);
 }
 
-function onDraft(value: string): void {
-  draftText.value = value.replace(/\D/g, "");
+function onInput(event: Event): void {
+  const input = event.target as HTMLInputElement;
+  const value = input.value.replace(/\D/g, "");
+  if (input.value !== value) input.value = value;
+  draftText.value = value;
   emit("clear-server-error");
+}
+
+function clearDraft(): void {
+  draftText.value = "";
+  emit("clear-server-error");
+  focusSheetInput(inputRef.value);
 }
 
 function useAmount(value: number): void {
@@ -256,15 +304,30 @@ function onEnter(event: KeyboardEvent): void {
     transform: scaleY(2) !important;
   }
 
-  .list input[type="text"] {
-    box-sizing: border-box;
-    padding-right: 28px;
+  &__value {
+    position: relative;
+    display: flex;
+    align-items: center;
+    width: 100%;
+    min-height: var(--f7-input-height);
+    cursor: text;
+  }
+
+  &__input {
+    flex: none;
+    box-sizing: content-box;
+    min-width: 1ch;
+    max-width: calc(100% - 48px);
+    margin: 0;
+    padding: 0;
+    border: none;
+    outline: none;
+    background: transparent;
+    box-shadow: none;
     font-family: "PT Sans", sans-serif;
     font-size: 20px;
     line-height: 28px;
     color: var(--content-color-black-primary);
-
-    text-align: right;
 
     &::placeholder {
       color: var(--content-color-black-60);
@@ -272,35 +335,58 @@ function onEnter(event: KeyboardEvent): void {
     }
   }
 
-  .item-input-with-value input[type="text"] {
-    padding-right: 56px;
-  }
-
   &__currency {
-    position: absolute;
-    z-index: 1;
-    top: 50%;
-    right: 0;
+    flex: none;
     font-size: 20px;
     line-height: 28px;
     color: var(--content-color-black-primary);
-    transform: translateY(-50%);
     pointer-events: none;
   }
 
-  .item-input-with-value &__currency {
-    right: 28px;
+  &__value .input-clear-button {
+    top: 50%;
+    right: 0;
+    margin-top: calc(-1 * var(--f7-input-clear-button-size) / 2);
+    display: none;
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+
+    &.is-on {
+      display: block;
+      opacity: 1;
+      visibility: visible;
+      pointer-events: auto;
+    }
+  }
+
+  &__notice {
+    display: grid;
+
+    > .rite-amount-sheet__message,
+    > .rite-amount-sheet__alert {
+      grid-area: 1 / 1;
+      align-self: start;
+    }
   }
 
   &__message.block {
-    display: flex;
-    align-items: flex-start;
-    gap: 6px;
     margin-top: 0;
     margin-bottom: 8px;
     font-size: 16px;
     line-height: 1.3;
-    color: var(--red-r-100);
+    color: var(--content-color-black-60);
+
+    &.is-error {
+      display: flex;
+      align-items: flex-start;
+      gap: 6px;
+      color: var(--red-r-100);
+    }
+
+    &.is-hidden {
+      visibility: hidden;
+    }
 
     a {
       color: var(--brand-color-primary-accent-50);
@@ -310,16 +396,8 @@ function onEnter(event: KeyboardEvent): void {
   &__error-icon.icon {
     flex: none;
     margin-top: 2px;
-    font-size: 22px;
+    font-size: 20px;
     color: var(--red-r-100);
-  }
-
-  &__note.block {
-    margin-top: 0;
-    margin-bottom: 0;
-    font-size: 16px;
-    line-height: 1.3;
-    color: var(--content-color-black-60);
   }
 
   &__recommend.block {
@@ -341,17 +419,22 @@ function onEnter(event: KeyboardEvent): void {
     display: flex;
     align-items: flex-start;
     gap: 10px;
-    margin: 12px 16px 0;
+    margin: 0 16px;
     padding: 10px 12px;
     border-radius: 8px;
     background: rgba(235, 87, 87, 0.12);
-    font-size: 14px;
+    font-size: 16px;
     line-height: 18px;
     color: var(--content-color-black-primary);
 
+    // Текст всегда в вёрстке: появление предупреждения не меняет высоту шторки
+    &.is-reserved {
+      visibility: hidden;
+    }
+
     .icon {
       flex: none;
-      font-size: 18px;
+      font-size: 20px;
       color: var(--red-r-100);
     }
 
