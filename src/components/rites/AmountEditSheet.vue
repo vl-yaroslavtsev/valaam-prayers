@@ -9,7 +9,6 @@
     swipe-to-close
     swipe-handler=".swipe-handler"
     :style="{ '--rite-keyboard-inset': `${inset}px` }"
-    @sheet:open="fillDraft"
   >
     <div class="swipe-handler"></div>
     <f7-toolbar class="rite-amount-sheet__toolbar" :outline="false">
@@ -72,42 +71,30 @@
           >
             <f7-icon f7="exclamationmark_circle_fill" aria-hidden="true" />
             <p>
-              Мы не можем подать вашу записку в автоматическом режиме. Пожалуйста, напишите нам на
+              Мы не можем подать вашу записку в автоматическом режиме. Если хотите указать сумму меньше {{ formatPrice(minAmount) }} ₽, пожалуйста, напишите нам на
               <a class="external" :href="mailHref" target="_blank" rel="noopener" :tabindex="showAlert ? undefined : -1">rites@valaam.ru</a>
             </p>
           </div>
         </div>
       </div>
 
-      <!--
-      <f7-block class="rite-amount-sheet__recommend">
+      <!-- Высота строки зарезервирована: чипс появляется без скачка шторки -->
+      <f7-block
+        v-if="recommended > 0"
+        class="rite-amount-sheet__recommend"
+        :class="{ 'is-reserved': !showRecommendChip }"
+        :aria-hidden="showRecommendChip ? undefined : true"
+      >
         <f7-chip class="rite-amount-sheet__chip" outline @click="useAmount(recommended)">
           Рекомендуемая: {{ formatPrice(recommended) }} ₽
         </f7-chip>
-        <f7-chip
-          v-if="halfAmount > 0"
-          class="rite-amount-sheet__chip"
-          outline
-          @click="useAmount(halfAmount)"
-        >
-          {{ formatPrice(halfAmount) }} ₽
-        </f7-chip>
-        <f7-chip
-          v-if="minAmount > 0"
-          class="rite-amount-sheet__chip"
-          outline
-          @click="useAmount(minAmount)"
-        >
-          {{ formatPrice(minAmount) }} ₽
-        </f7-chip>
       </f7-block>
-      -->
     </div>
   </f7-sheet>
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from "vue";
+import { computed, ref, watch } from "vue";
 import { focusSheetInput, useSheetFocusScrollLock } from "@/composables/focusSheetInput";
 import { useKeyboardInset } from "@/composables/useKeyboardInset";
 import {
@@ -165,7 +152,8 @@ const inputInvalid = computed(() => Boolean(serverError || clientError.value));
 const canApply = computed(() => clientError.value === null);
 const belowMin = computed(() => draftAmount.value > 0 && draftAmount.value < minAmount);
 const showAlert = computed(() => belowMin.value && !fieldError.value);
-const halfAmount = computed(() => Math.floor(recommended / 2));
+/** Чипс нужен, когда в записке уже есть имена и в поле не рекомендуемая сумма */
+const showRecommendChip = computed(() => recommended > 0 && draftAmount.value !== recommended);
 
 const mailHref = computed(() => {
   const names = rows.map((row) => formatNoteRow(row)).filter(Boolean);
@@ -182,6 +170,10 @@ const mailHref = computed(() => {
 function fillDraft(): void {
   draftText.value = amount > 0 ? String(amount) : "";
 }
+
+watch(opened, (isOpen) => {
+  if (isOpen) fillDraft();
+}, { flush: "sync" });
 
 function focusInput(event: MouseEvent): void {
   const target = event.target;
@@ -406,6 +398,12 @@ function onEnter(event: KeyboardEvent): void {
     gap: 8px;
     margin-top: 8px;
     margin-bottom: 0;
+
+    // Текст чипса всегда в вёрстке: появление не меняет высоту шторки
+    &.is-reserved {
+      visibility: hidden;
+      pointer-events: none;
+    }
   }
 
   &__chip.chip {

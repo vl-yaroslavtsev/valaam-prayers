@@ -180,6 +180,7 @@ import {
   MESSAGE_UNAVAILABLE,
   buildNames,
   formatNoteRow,
+  isNameValid,
   isRowCountable,
   mapServerErrors,
   minimumDonate,
@@ -276,6 +277,8 @@ const dateTs = ref<number | null>(null);
 const rows = reactive<NoteRowItem[]>(Array.from({ length: MAX_NAMES }, () => ({ name: "", explanation: "" })));
 const rowTouched = ref<boolean[]>(Array.from({ length: MAX_NAMES }, () => false));
 const donate = ref(0);
+/** Сумму задали сами или она пришла не равной рекомендуемой: больше не подстраиваем её */
+const donateManual = ref(false);
 const now = ref(nowTs());
 
 // Состояние отправки и ошибки
@@ -306,9 +309,11 @@ const strict = computed(
 );
 const skipDonateCheck = computed(() => strict.value && Boolean(item?.isFree));
 const donateLabel = computed(() =>
-  strict.value ? "Сумма пожертвования:" : "Рекомендуемая сумма пожертвования:",
+  strict.value || donateManual.value ? "Сумма пожертвования:" : "Рекомендуемая сумма пожертвования:",
 );
 const recommendedAmount = computed(() => recommendedDonate(rows, explanations.value, type.value));
+const filledNameCount = computed(() => rows.filter((row) => row.name.trim()).length);
+const validNameCount = computed(() => rows.filter((row) => isNameValid(row.name)).length);
 const minAmount = computed(() => minimumDonate(rows, explanations.value, type.value));
 const statusTextColor = computed(() => statusColor(item?.status ?? null, false) ?? "#1f1b1a");
 const buttonText = computed(() => {
@@ -383,11 +388,18 @@ function setDonate(value: number): void {
   donate.value = value;
 }
 
-/** Рекомендуемая сумма пересчитывается при любом изменении имён или типа, пока записка не оплачена */
-function recalculateDonate(): void {
-  if (strict.value) return;
-  setDonate(recommendedAmount.value);
-}
+/**
+ * Сумма на бланке сама становится рекомендуемой только при смене требы,
+ * появлении или удалении имени и когда неверное имя стало верным.
+ * Правка букв в уже верном имени и правка пометки её не меняют.
+ * Ручная сумма остаётся как есть.
+ */
+watch([filledNameCount, validNameCount, () => type.value?.id ?? 0], ([filled, valid, typeId], previous) => {
+  if (strict.value || donateManual.value || !previous) return;
+  const [prevFilled, prevValid, prevTypeId] = previous;
+  const namesChanged = filled !== prevFilled || valid > prevValid;
+  if (typeId !== prevTypeId || namesChanged) setDonate(recommendedAmount.value);
+});
 
 function firstValidDate(): number | null {
   return type.value ? findNextValidDate(minDate.value, type.value, restrictions.value) : null;
@@ -396,7 +408,6 @@ function firstValidDate(): number | null {
 /** Смена типа сбрасывает дату на ближайшую допустимую, как на сайте */
 function onTypeChanged(): void {
   dateTs.value = firstValidDate();
-  recalculateDonate();
 }
 
 function touchRow(index: number): void {
@@ -407,27 +418,22 @@ function onNameChanged(index: number, value: string): void {
   rows[index].name = value;
   touchRow(index);
   delete serverErrors.value[`name-${index}`];
-  recalculateDonate();
 }
 
 /** Префикс с единственной пометкой становится этой пометкой */
 function resolveExplanations(): void {
-  let changed = false;
   rows.forEach((row, index) => {
     const sole = soleExplanation(row.explanation, explanations.value);
     if (!sole) return;
     row.explanation = sole;
     delete serverErrors.value[`explanation-${index}`];
-    changed = true;
   });
-  if (changed) recalculateDonate();
 }
 
 function onExplanationChanged(index: number, value: string): void {
   rows[index].explanation = value;
   touchRow(index);
   delete serverErrors.value[`explanation-${index}`];
-  recalculateDonate();
 }
 
 function openNameSheet(index: number): void {
@@ -456,6 +462,7 @@ function showDonateProblem(): void {
 }
 
 function onDonateApply(value: number): void {
+  donateManual.value = value !== recommendedAmount.value;
   setDonate(value);
 }
 
@@ -525,7 +532,9 @@ function fillForm(): void {
   dateTs.value = type.value ? findNextValidDate(start, type.value, restrictions.value) : null;
 
   if (source) setDonate(source.sum);
-  else recalculateDonate();
+  else setDonate(recommendedAmount.value);
+  // Копия и редактирование: чужая сумма не равна рекомендуемой, дальше её не пересчитываем
+  donateManual.value = source !== null && !strict.value && source.sum !== recommendedAmount.value;
 }
 
 async function init(): Promise<void> {
