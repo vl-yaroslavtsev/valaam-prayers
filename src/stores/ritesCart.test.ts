@@ -76,13 +76,13 @@ describe("useRitesCartStore", () => {
     expect(store.items).toHaveLength(3);
   });
 
-  it("добавленная записка встаёт наверх, изменённая сохраняет выбор", async () => {
+  it("добавленная записка встаёт в конец, изменённая сохраняет выбор", async () => {
     const store = useRitesCartStore();
     await store.load();
     store.items[0].checked = false;
 
     store.addItem(rite(4, 400));
-    expect(store.items[0].id).toBe(4);
+    expect(store.items.map((item) => item.id)).toEqual([3, 2, 1, 4]);
 
     store.updateItem({ ...rite(3, 999) });
     const updated = store.items.find((item) => item.id === 3);

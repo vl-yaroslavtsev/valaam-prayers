@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { RiteType } from "@/services/rites/ritesApi";
+import { formatPrice } from "@/services/rites/ritesFormat";
 import {
   buildNames,
   buildPriceList,
@@ -14,6 +15,7 @@ import {
   visibleExplanationError,
   mapServerErrors,
   minimumDonate,
+  editDonateText,
   parseDonate,
   pickTypeForKind,
   recommendedDonate,
@@ -76,6 +78,29 @@ describe("riteForm", () => {
     expect(parseDonate("")).toBe(0);
     expect(validateDonate(0)).not.toBeNull();
     expect(validateDonate(10)).toBeNull();
+  });
+
+  it("удаление нуля в «2 000» оставляет каретку после «2»", () => {
+    const shown = formatPrice(2000);
+    const zeroIndex = shown.indexOf("0");
+    const deleted = editDonateText(shown.slice(0, zeroIndex) + shown.slice(zeroIndex + 1), zeroIndex);
+
+    expect(deleted.digits).toBe("200");
+    expect(deleted.caret).toBe(1);
+    expect(deleted.display[deleted.caret - 1]).toBe("2");
+
+    const withTwo = deleted.display.slice(0, deleted.caret) + "2" + deleted.display.slice(deleted.caret);
+    const inserted = editDonateText(withTwo, deleted.caret + 1);
+    expect(inserted.display.replace(/\s/g, " ")).toBe("2 200");
+    expect(inserted.display.slice(0, inserted.caret).replace(/\D/g, "")).toBe("22");
+    expect(inserted.caret).toBeLessThan(inserted.display.length);
+  });
+
+  it("каретка в конце суммы остаётся в конце, когда появляется пробел разряда", () => {
+    const shown = formatPrice(200);
+    const typed = editDonateText(`${shown}0`, shown.length + 1);
+    expect(typed.display.replace(/\s/g, " ")).toBe("2 000");
+    expect(typed.caret).toBe(typed.display.length);
   });
 
   it("рекомендуемая сумма: цена типа за каждое верное имя", () => {

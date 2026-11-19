@@ -261,12 +261,13 @@ async function loadRitesPage(
   return { items: items ?? [], totalPages: nav?.totalPages ?? 1 };
 }
 
+/** Корзина от старых записок к новым: порядок добавления, кнопка добавления под списком */
 export async function loadCartRites(): Promise<Rite[]> {
   const statusId = await getNewStatusId();
   const rites: Rite[] = [];
 
   for (let page = 1; ; page++) {
-    const { items, totalPages } = await loadRitesPage([statusId], page, CART_PAGE_SIZE);
+    const { items, totalPages } = await loadRitesPage([statusId], page, CART_PAGE_SIZE, { order: "ASC" });
     rites.push(...items);
     if (page >= totalPages) break;
   }

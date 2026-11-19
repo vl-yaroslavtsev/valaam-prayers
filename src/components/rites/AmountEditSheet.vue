@@ -9,6 +9,7 @@
     swipe-to-close
     swipe-handler=".swipe-handler"
     :style="{ '--rite-keyboard-inset': `${inset}px` }"
+    @sheet:opened="onOpened"
   >
     <div class="swipe-handler"></div>
     <f7-toolbar class="rite-amount-sheet__toolbar" :outline="false">
@@ -94,11 +95,12 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, watch } from "vue";
+import { computed, nextTick, ref, watch } from "vue";
 import { focusSheetInput, useSheetFocusScrollLock } from "@/composables/focusSheetInput";
 import { useKeyboardInset } from "@/composables/useKeyboardInset";
 import {
   DONATE_BELOW_MIN,
+  editDonateText,
   externalMailLinks,
   formatNoteRow,
   parseDonate,
@@ -175,6 +177,18 @@ watch(opened, (isOpen) => {
   if (isOpen) fillDraft();
 }, { flush: "sync" });
 
+/** Фокус после открытия: поле уже на экране, и бланк под попапом не уезжает */
+function onOpened(): void {
+  void nextTick(() => {
+    if (!opened.value) return;
+    const input = inputRef.value;
+    focusSheetInput(input);
+    if (!input) return;
+    const end = input.value.length;
+    input.setSelectionRange(end, end);
+  });
+}
+
 function focusInput(event: MouseEvent): void {
   const target = event.target;
   if (target instanceof HTMLInputElement) return;
@@ -182,11 +196,27 @@ function focusInput(event: MouseEvent): void {
   focusSheetInput(inputRef.value);
 }
 
+let caretToken = 0;
+
+function placeDonateCaret(input: HTMLInputElement, display: string, caret: number): void {
+  const token = ++caretToken;
+  const place = () => {
+    const sameDigits = input.value.replace(/\D/g, "") === display.replace(/\D/g, "");
+    if (token !== caretToken || !sameDigits || document.activeElement !== input) return;
+    if (input.selectionStart === caret && input.selectionEnd === caret) return;
+    input.setSelectionRange(caret, caret);
+  };
+  place();
+  // iOS ставит каретку в конец уже после обработчика input
+  setTimeout(place, 0);
+}
+
 function onInput(event: Event): void {
   const input = event.target as HTMLInputElement;
-  const value = input.value.replace(/\D/g, "");
-  if (input.value !== value) input.value = value;
-  draftText.value = value;
+  const edited = editDonateText(input.value, input.selectionStart ?? input.value.length);
+  if (input.value !== edited.display) input.value = edited.display;
+  placeDonateCaret(input, edited.display, edited.caret);
+  draftText.value = edited.digits;
   emit("clear-server-error");
 }
 

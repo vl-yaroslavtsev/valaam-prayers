@@ -80,9 +80,9 @@ export const useRitesCartStore = defineStore("ritesCart", () => {
     }
   }
 
-  /** Новая записка из формы (добавляется сверху, как на сайте) */
+  /** Новая записка встаёт в конец: кнопка добавления под списком */
   function addItem(rite: Rite): void {
-    items.value.unshift(toCartItem(rite));
+    items.value.push(toCartItem(rite));
   }
 
   /** Записка после редактирования: выбор пользователя сохраняется */

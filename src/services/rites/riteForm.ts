@@ -1,4 +1,5 @@
 import type { ApiError, RiteName, RiteType } from "@/services/rites/ritesApi";
+import { formatPrice } from "@/services/rites/ritesFormat";
 
 /** Логика формы подачи записки (rites.modal на сайте), без интерфейса */
 
@@ -76,6 +77,36 @@ export function validateExplanation(value: string, list: string[]): FieldError |
 
 /** Сумма из текста поля: как на сайте, берутся только цифры */
 export const parseDonate = (text: string): number => parseInt(text.replace(/\D/g, ""), 10) || 0;
+
+/** Позиция каретки сразу после digitCount цифр; пробелы разрядов пропускаются */
+function caretAfterDigits(formatted: string, digitCount: number): number {
+  if (digitCount <= 0) return 0;
+  let digits = 0;
+  for (let index = 0; index < formatted.length; index++) {
+    const code = formatted.charCodeAt(index);
+    if (code >= 48 && code <= 57) {
+      digits += 1;
+      if (digits === digitCount) return index + 1;
+    }
+  }
+  return formatted.length;
+}
+
+/**
+ * Текст поля суммы после ввода.
+ * Пробел между разрядами меняет длину строки, поэтому каретка считается по цифрам
+ * и остаётся у той же цифры, а не уезжает в конец.
+ */
+export function editDonateText(
+  rawValue: string,
+  caret: number,
+): { digits: string; display: string; caret: number } {
+  const safeCaret = Math.max(0, Math.min(caret, rawValue.length));
+  const digitsBefore = rawValue.slice(0, safeCaret).replace(/\D/g, "").length;
+  const digits = rawValue.replace(/\D/g, "");
+  const display = digits ? formatPrice(parseDonate(digits)) : "";
+  return { digits, display, caret: caretAfterDigits(display, digitsBefore) };
+}
 
 export const validateDonate = (donate: number): FieldError | null =>
   donate > 0 ? null : DONATE_ERROR;

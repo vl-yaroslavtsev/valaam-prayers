@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { loadHistoryFilter, loadHistoryRites } from "@/services/rites/ritesApi";
+import { loadCartRites, loadHistoryFilter, loadHistoryRites } from "@/services/rites/ritesApi";
 
 const STATUSES = [
   { id: 17, xmlId: "new", name: "Сформирована", color: null },
@@ -35,6 +35,18 @@ beforeEach(() => {
 
 afterEach(() => {
   vi.unstubAllGlobals();
+});
+
+describe("loadCartRites", () => {
+  it("запрашивает корзину от старых записок к новым", async () => {
+    await loadCartRites();
+
+    const query = lastQuery();
+    expect(query.get("status[0]")).toBe("17");
+    expect(query.get("order")).toBe("ASC");
+    expect(query.get("orderBy")).toBe("date");
+    expect(query.get("perPage")).toBe("50");
+  });
 });
 
 describe("loadHistoryRites", () => {
