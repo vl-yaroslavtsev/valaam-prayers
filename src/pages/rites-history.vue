@@ -587,7 +587,7 @@ function onRiteSaved(rite: Rite): void {
       align-self: center;
       width: 243px;
       padding: 0 30px;
-      font-size: 12px;
+      font-size: 14px; // 12px;
       letter-spacing: 1.38px;
     }
 

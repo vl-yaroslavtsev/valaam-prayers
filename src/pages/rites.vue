@@ -622,7 +622,7 @@ onBeforeUnmount(() => {
       display: flex;
       align-items: center;
       gap: 12px;
-      font-size: 12px;
+      font-size: 14px; // 12px;
       line-height: 16px;
       font-weight: 700;
       color: var(--rites-select-text);
@@ -798,8 +798,8 @@ onBeforeUnmount(() => {
       border: 1px solid var(--rites-field-border);
       border-radius: 8px;
       background: var(--rites-field-bg);
-      font-size: 16px;
-      line-height: 20px;
+      font-size: 20px; // 16px;
+      line-height: 24px; // 20px;
       color: var(--rites-text);
 
       &::placeholder {
@@ -813,7 +813,7 @@ onBeforeUnmount(() => {
 
     .item-input-error-message {
       margin-top: 4px;
-      font-size: 12px;
+      font-size: 14px;
       line-height: 16px;
       color: var(--red-r-100);
     }
@@ -821,7 +821,7 @@ onBeforeUnmount(() => {
 
   .rites-note {
     margin: 0;
-    font-size: 12px;
+    font-size: 14px; // 12px;
     line-height: 16px;
     color: var(--rites-note);
   }
@@ -850,7 +850,7 @@ onBeforeUnmount(() => {
     .rites-history .button,
     .rites-empty .button-outline {
       padding: 0 64px;
-      font-size: 12px;
+      font-size: 14px; // 12px;
       letter-spacing: 1.38px;
     }
 

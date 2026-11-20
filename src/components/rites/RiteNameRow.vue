@@ -114,7 +114,7 @@ const ariaLabel = computed(() => {
     display: block;
     margin-top: 2px;
     overflow: hidden;
-    font-size: 12px;
+    font-size: 14px; // 12px;
     line-height: 16px;
     white-space: nowrap;
     text-overflow: ellipsis;

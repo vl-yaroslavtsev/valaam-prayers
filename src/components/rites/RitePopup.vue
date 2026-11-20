@@ -745,7 +745,7 @@ async function submit(): Promise<void> {
     --f7-input-text-color: var(--rite-text);
     --f7-input-placeholder-color: var(--rite-muted);
     --f7-input-error-text-color: var(--rite-error);
-    --f7-input-error-font-size: 12px;
+    --f7-input-error-font-size: 14px; // 12px;
     --f7-list-bg-color: transparent;
     --f7-list-item-title-text-color: var(--rite-text);
     --f7-page-bg-color: var(--rite-paper);

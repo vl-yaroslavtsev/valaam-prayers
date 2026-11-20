@@ -160,8 +160,8 @@ const shortName = computed(() => (item.type ? formatShortName(item.type.shortNam
 
   &__names {
     margin: 8px 0 0 40px;
-    font-size: 16px;
-    line-height: 18px;
+    font-size: 20px; //16px;
+    line-height: 24px; //18px;
     color: var(--rites-text);
   }
 
@@ -247,7 +247,7 @@ const shortName = computed(() => (item.type ? formatShortName(item.type.shortNam
 
   &__error {
     margin: 10px 0 0;
-    font-size: 12px;
+    font-size: 14px; // 12px;
     line-height: 16px;
     color: var(--red-r-100);
   }
@@ -314,8 +314,8 @@ const shortName = computed(() => (item.type ? formatShortName(item.type.shortNam
     }
 
     &__type {
-      font-size: 14px;
-      line-height: 18px;
+      font-size: 18px; // 14px;
+      line-height: 22px; // 18px;
     }
 
     &__names {
@@ -324,8 +324,8 @@ const shortName = computed(() => (item.type ? formatShortName(item.type.shortNam
       align-items: center;
       margin: 0;
       padding-left: 10px;
-      font-size: 14px;
-      line-height: 18px;
+      font-size: 18px; // 14px;
+      line-height: 22px; // 18px;
 
       &::before {
         content: "";

@@ -30,7 +30,7 @@ defineProps<{
 
 .rite-type-chip.chip {
   --f7-chip-height: 20px;
-  --f7-chip-font-size: 12px;
+  --f7-chip-font-size: 14px; // 12px;
   --f7-chip-font-weight: 400;
   --f7-chip-border-radius: 30px;
   --f7-chip-padding-horizontal: 8px;
@@ -43,9 +43,9 @@ defineProps<{
   border: 1px solid var(--rite-chip-border);
   background: var(--rite-chip-bg);
   color: var(--rite-chip-color);
-  font-size: 12px;
+  // font-size: 12px;
   font-weight: 400;
-  line-height: 18px;
+  // line-height: 18px;
 }
 </style>
 

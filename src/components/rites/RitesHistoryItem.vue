@@ -133,8 +133,8 @@ const shortName = computed(() => (item.type ? formatShortName(item.type.shortNam
 
   &__names {
     margin-top: 8px;
-    font-size: 16px;
-    line-height: 20px;
+    font-size: 20px; // 16px;
+    line-height: 24px; // 20 px;
     color: var(--history-value);
     overflow-wrap: break-word;
   }
@@ -248,7 +248,7 @@ const shortName = computed(() => (item.type ? formatShortName(item.type.shortNam
     }
 
     .history-item__button.button {
-      font-size: 12px;
+      font-size: 14px; // 12px;
       line-height: 18px;
       letter-spacing: 1.38px;
     }
