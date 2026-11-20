@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { device } from "@/js/device";
 import { planReminderEvents, type PlannedReminder } from "@/js/reminderCalendarPlan";
 import { resetReminderCalendarForTests, scheduleReminderSync } from "@/services/native/reminderCalendar";
 import { CALENDAR_RESULT_MESSAGE } from "@/services/native/protocol";
@@ -62,6 +63,7 @@ describe("синхронизация напоминаний", () => {
     delete (window as any).androidJsHandler;
     dialogMock.create.mockReset();
     dialogMock.alert.mockReset();
+    vi.restoreAllMocks();
   });
 
   const install = (platform: NativePlatform) => {
@@ -171,12 +173,7 @@ describe("синхронизация напоминаний", () => {
     });
 
     let createdDialog: any = null;
-    let openedSettingsType: string | null = null;
-    (window as any).androidJsHandler = {
-      openSettings: (type: string) => {
-        openedSettingsType = type;
-      },
-    };
+    const openSettings = vi.spyOn(device, "openSettings");
     dialogMock.create.mockImplementation((params: any) => {
       createdDialog = {
         params,
@@ -190,14 +187,14 @@ describe("синхронизация напоминаний", () => {
 
     expect(permissionRequests).toBe(1);
     expect(createdDialog).not.toBeNull();
-    expect(createdDialog.params.title).toBe("Нет доступа к календарю");
+    expect(createdDialog.params.title).toBe("Доступ к календарю");
     expect(createdDialog.open).toHaveBeenCalled();
 
     const settingsBtn = createdDialog.params.buttons.find((btn: any) => btn.text === "Настройки");
     expect(settingsBtn).toBeDefined();
 
     settingsBtn.onClick();
-    expect(openedSettingsType).toBe("settings");
+    expect(openSettings).toHaveBeenCalledWith("settings");
 
     // После нажатия «Настройки» флаг permissionAsked сбрасывается для повторной проверки
     scheduleReminderSync("page", () => reminders(true));

@@ -69,7 +69,7 @@ describe("joinReadingPages", () => {
     expect(root.querySelector(".splitted")).toBeNull();
     expect(root.querySelector("p")?.textContent?.replace(/\u2060/g, "")).toBe("Благословение");
     expect(root.querySelector("p")?.dataset.flowPage).toBe("4");
-    expect(root.querySelector(".flow-page-anchor")?.dataset.flowPage).toBe("5");
+    expect(root.querySelector<HTMLElement>(".flow-page-anchor")?.dataset.flowPage).toBe("5");
     const heading = root.querySelector("h2");
     expect(heading?.dataset.flowPage).toBe("6");
     expect(heading?.getAttribute("style")).toBeNull();

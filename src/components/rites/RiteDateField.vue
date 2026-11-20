@@ -113,9 +113,9 @@ onMounted(() => {
     inputEl: inputEl.value,
     openIn: "auto",
     cssClass: "rite-calendar",
-    // На телефоне календарь открывается листом: подложка и закрытие по ней, как у остальных листов
+    // На телефоне календарь открывается листом. Подложка как у остальных листов;
+    // закрытие по ней уже включено у календаря по умолчанию
     backdrop: true,
-    closeByBackdropClick: true,
     closeOnSelect: true,
     firstDay: 1,
     weekendDays: [0],
