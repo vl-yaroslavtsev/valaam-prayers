@@ -143,6 +143,7 @@ describe("оплата записок: виджет ЮKassa (без нативн
   const destroy = vi.fn();
 
   beforeEach(() => {
+    vi.mocked(requestGid).mockResolvedValue("gid-1");
     handlers = {};
     widgetConfig = undefined;
     window.YooMoneyCheckoutWidget = class {
@@ -169,7 +170,13 @@ describe("оплата записок: виджет ЮKassa (без нативн
     handlers.complete({ status: "success" });
 
     expect(await promise).toEqual({ status: "success" });
-    expect(initiatePayment).toHaveBeenCalledWith({ ids: [1, 2], email: "a@b.ru", payment: "widget" });
+    expect(requestGid).toHaveBeenCalled();
+    expect(initiatePayment).toHaveBeenCalledWith({
+      ids: [1, 2],
+      email: "a@b.ru",
+      payment: "widget",
+      gid: "gid-1",
+    });
     expect(widgetConfig?.confirmation_token).toBe("ct");
     expect(destroy).toHaveBeenCalledTimes(1);
   });

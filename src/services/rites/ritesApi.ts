@@ -162,8 +162,27 @@ export function getConfirmedEmail(): string {
   return localStorage.getItem(CONFIRMED_EMAIL_KEY) || "";
 }
 
+/** Адрес без хэша: в ссылке из письма хранится `addr|hash`, в поле почты нужен только addr */
+function emailAddress(value: string): string {
+  const separator = value.indexOf("|");
+  return (separator >= 0 ? value.slice(0, separator) : value).trim();
+}
+
 export function getSavedEmail(): string {
-  return localStorage.getItem(EMAIL_KEY) || getConfirmedEmail();
+  return localStorage.getItem(EMAIL_KEY) || emailAddress(getConfirmedEmail());
+}
+
+/** Подтверждённая почта из письма: `addr|hash`. Дальше уходит в запросы вместе с clientId */
+export function rememberConfirmedEmail(email: string | null | undefined): void {
+  const value = email?.trim();
+  if (value) localStorage.setItem(CONFIRMED_EMAIL_KEY, value);
+}
+
+/** Ищет EMAIL в query ссылки. %7C это разделитель хэша */
+export function rememberConfirmedEmailFromUrl(url: string): void {
+  const queryIndex = url.indexOf("?");
+  if (queryIndex < 0) return;
+  rememberConfirmedEmail(new URLSearchParams(url.slice(queryIndex + 1)).get("EMAIL"));
 }
 
 export function saveEmail(email: string): void {
@@ -435,12 +454,34 @@ export function initiatePayment(params: InitiatePaymentParams): Promise<ApiResul
   );
 }
 
-/** gid нужен для статистики. Не получили за таймаут, платим без него */
+type GidPlatform = "android" | "ios";
+
+/**
+ * Платформа события valaam.prayers.*.
+ * В нативке её сообщает мост. В браузере и у иконки на главном экране моста нет,
+ * поэтому смотрим user agent: иначе пожертвование считается с сайта valaam.ru.
+ */
+function gidPlatform(): GidPlatform | null {
+  const native = getNativePlatform();
+  if (native === "android" || native === "ios") return native;
+  if (typeof navigator === "undefined") return null;
+
+  const ua = navigator.userAgent || "";
+  if (/android/i.test(ua)) return "android";
+  // iPadOS 13+ в Safari выглядит как Macintosh, но это планшет
+  const iPadOs = navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1;
+  if (/iPad|iPhone|iPod/i.test(ua) || iPadOs) return "ios";
+  return null;
+}
+
+/** gid нужен для статистики. Не получили за таймаут или это компьютер — платим без него */
 export async function requestGid(): Promise<string | null> {
+  const platform = gidPlatform();
+  if (!platform) return null;
+
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), GID_TIMEOUT_MS);
   try {
-    const platform = getNativePlatform() ?? "web";
     const result = await request<{ gid?: string }>(
       `/rites/valaamGid?referer1=valaam.prayers.${platform}`,
       { signal: controller.signal },

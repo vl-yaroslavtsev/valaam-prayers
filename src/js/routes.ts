@@ -104,7 +104,9 @@ const routes: Router.RouteParameters[] = [
     },
   },
   {
+    // Ссылка из письма: #rites:/my?EMAIL=addr|hash
     path: "/rites/history/",
+    alias: "/my",
     component: RitesHistoryPage,
     options: {
       transition: "fade-slide",

@@ -167,6 +167,7 @@ import RitePopup, { type RitePopupMode } from "@/components/rites/RitePopup.vue"
 import RitesCartItem from "@/components/rites/RitesCartItem.vue";
 import {
   getSavedEmail,
+  rememberConfirmedEmail,
   saveEmail,
   toErrorList,
   type ApiErrors,
@@ -178,9 +179,13 @@ import { formatPrice, isValidEmail } from "@/services/rites/ritesFormat";
 import { payRites, prepareRitesPayment } from "@/services/rites/ritesPayment";
 import { ERROR_VISIBLE_MS, useRitesCartStore, type CartItem } from "@/stores/ritesCart";
 
-const { f7router } = defineProps<{
+const { f7router, f7route } = defineProps<{
   f7router: Router.Router;
+  f7route: Router.Route;
 }>();
+
+// Ссылка может открыть корзину с ?EMAIL=: запоминаем до первого чтения поля
+rememberConfirmedEmail(f7route.query.EMAIL);
 
 const store = useRitesCartStore();
 
@@ -243,6 +248,8 @@ async function refreshCart(): Promise<void> {
 
 function onPageShown(): void {
   isActive.value = true;
+  rememberConfirmedEmail(f7route.query.EMAIL);
+  if (!email.value.trim()) email.value = getSavedEmail();
   void refreshCart();
   void prepareRitesPayment();
 }

@@ -1,5 +1,10 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { loadCartRites, loadHistoryFilter, loadHistoryRites } from "@/services/rites/ritesApi";
+import {
+  loadCartRites,
+  loadHistoryFilter,
+  loadHistoryRites,
+  rememberConfirmedEmailFromUrl,
+} from "@/services/rites/ritesApi";
 
 const STATUSES = [
   { id: 17, xmlId: "new", name: "Сформирована", color: null },
@@ -90,6 +95,25 @@ describe("loadHistoryRites", () => {
       }),
     );
     await expect(loadHistoryRites({ page: 1 })).rejects.toThrow("Система недоступна");
+  });
+});
+
+describe("подтверждённая почта", () => {
+  it("уходит в историю и корзину вместе с clientId", async () => {
+    rememberConfirmedEmailFromUrl(
+      "/my?EMAIL=vl.yaroslavtsev@gmail.com%7C7d78cb3ba261cf6efa541e75f271aa17",
+    );
+
+    await loadHistoryRites({ page: 1 });
+    expect(lastQuery().get("email")).toBe(
+      "vl.yaroslavtsev@gmail.com|7d78cb3ba261cf6efa541e75f271aa17",
+    );
+    expect(lastQuery().get("clientId")).toBeTruthy();
+
+    await loadCartRites();
+    expect(lastQuery().get("email")).toBe(
+      "vl.yaroslavtsev@gmail.com|7d78cb3ba261cf6efa541e75f271aa17",
+    );
   });
 });
 

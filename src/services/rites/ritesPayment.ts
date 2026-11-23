@@ -46,16 +46,14 @@ export interface RitesPayOptions {
   onProcessing?: (active: boolean) => void;
 }
 
-// gid живёт до следующей оплаты: запрашиваем заново при каждом открытии корзины
+// gid живёт до оплаты: запрашиваем заранее при открытии корзины и заново перед следующей
 let gidPromise: Promise<string | null> | null = null;
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
-/** Вызывать при открытии корзины: заранее запрашивает gid, чтобы не задерживать нативную оплату */
-export async function prepareRitesPayment(): Promise<void> {
-  if (await ensureNativePay()) {
-    gidPromise = requestGid();
-  }
+/** Вызывать при открытии корзины: заранее запрашивает gid, чтобы не задерживать оплату */
+export function prepareRitesPayment(): void {
+  gidPromise = requestGid();
 }
 
 /**
@@ -187,9 +185,10 @@ function loadYooKassaScript(): Promise<void> {
 async function payWidget({ ids, email, onProcessing }: RitesPayOptions): Promise<RitesPayResult> {
   onProcessing?.(true);
   try {
-    await loadYooKassaScript();
+    gidPromise ??= requestGid();
+    const [gid] = await Promise.all([gidPromise, loadYooKassaScript()]);
 
-    const result = await initiatePayment({ ids, email, payment: "widget" });
+    const result = await initiatePayment({ ids, email, payment: "widget", gid });
     if (!result.ok) {
       return { status: "failed", message: "", errors: result.errors };
     }
@@ -234,6 +233,7 @@ async function payWidget({ ids, email, onProcessing }: RitesPayOptions): Promise
       checkout.render();
     });
   } finally {
+    gidPromise = null;
     onProcessing?.(false);
   }
 }

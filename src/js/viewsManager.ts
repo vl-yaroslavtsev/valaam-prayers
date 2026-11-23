@@ -4,6 +4,7 @@
 import { Dom7 as $$ } from "framework7";
 import type { Router } from "framework7/types";
 import { f7 } from "framework7-vue";
+import { rememberConfirmedEmailFromUrl } from "@/services/rites/ritesApi";
 import { device } from "./device";
 
 const viewsNames = [
@@ -30,6 +31,11 @@ function parseHash(): void {
 
   if (!(viewsNames as readonly string[]).includes(viewName)) {
     return;
+  }
+
+  // Письмо: #rites:/my?EMAIL=addr|hash. Сохраняем до открытия вкладки, иначе корзина запросит список без почты.
+  if (viewName === "rites" && url) {
+    rememberConfirmedEmailFromUrl(url);
   }
 
   // До показа вкладки, иначе первая инициализация роутера допишет hash к стартовому URL.

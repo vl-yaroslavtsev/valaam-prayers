@@ -179,14 +179,16 @@ import { useTheme } from "@/composables/useTheme";
 import {
   loadHistoryFilter,
   loadHistoryRites,
+  rememberConfirmedEmail,
   type HistoryFilter,
   type Rite,
   type RitesOrder,
 } from "@/services/rites/ritesApi";
 import { useRitesCartStore } from "@/stores/ritesCart";
 
-const { f7router } = defineProps<{
+const { f7router, f7route } = defineProps<{
   f7router: Router.Router;
+  f7route: Router.Route;
 }>();
 
 const cartStore = useRitesCartStore();
@@ -364,6 +366,8 @@ watch([selectedType, selectedStatus], () => {
 watch(order, () => void loadFirst());
 
 function onPageShown(): void {
+  // Ссылка из письма несёт EMAIL=addr|hash: запоминаем до запросов истории и фильтра
+  rememberConfirmedEmail(f7route.query.EMAIL);
   // Возврат на страницу обновляет первую порцию тихо: статусы записок со временем меняются
   void loadFirst(isLoaded.value);
   void refreshFilter();
