@@ -6,13 +6,12 @@
     @scrollend.passive="handleVerticalScrollEnd"
     @touchstart.passive="handleVerticalTouchStart"
     @touchend.passive="handleVerticalTouchEnd"
+    @pointerdown.passive="handleTextPointerDown"
     @click="handleTextClick"
   >
     <div
       v-if="showCurrentBookmark"
       class="page-bookmark-tab"
-      @touchstart.stop="onBookmarkTabTouchStart"
-      @touchend.stop="onBookmarkTabTouchEnd"
       @click.stop="onBookmarkTabClick"
     >
       <SvgIcon icon="bookmark-filled" color="primary-accent-50" :size="24" />
@@ -42,7 +41,8 @@ import { useSettingsStore } from "@/stores/settings";
 import type { TextTheme, Language } from "@/types/common";
 import SvgIcon from "@/components/SvgIcon.vue";
 import { detectTapZone } from "./tapZone";
-import { createTextActions, htmlHasElementId, type TextAction } from "@/text-processing-v3/readingAnnotations";
+import { htmlHasElementId, type TextAction } from "@/text-processing-v3/readingAnnotations";
+import { useTextTap } from "./useTextTap";
 import {
   joinReadingPages,
   planFlowChunks,
@@ -98,8 +98,6 @@ const emit = defineEmits<{
   "update:progress": [progress: number];
   "update:transitioning": [value: boolean];
 }>();
-
-const textActions = createTextActions((action) => emit("action", action));
 
 const verticalContainerRef = useTemplateRef<HTMLElement>("verticalContainerRef");
 const flowWindowRef = useTemplateRef<HTMLElement>("flowWindowRef");
@@ -524,63 +522,14 @@ const markProgrammaticScrollStart = () => {
 const isTouchingVertical = ref(false);
 let verticalScrollSettleTimeout: ReturnType<typeof setTimeout> | null = null;
 const supportsScrollEnd = typeof window !== "undefined" && "onscrollend" in window;
-let verticalTouchStartPoint: { x: number; y: number } | null = null;
-const VERTICAL_TAP_MOVE_THRESHOLD = 10;
-const BOOKMARK_TAB_TAP_DEBOUNCE_MS = 50;
-const BOOKMARK_TAB_CLICK_SUPPRESS_MS = 700;
-let bookmarkTabTouchStart: { x: number; y: number } | null = null;
-let lastBookmarkTabTapAt = 0;
-let bookmarkTabTouchAt = 0;
-
 const isTransitioning = ref(false);
-const isMomentumScrolling = computed(
-  () => isTransitioning.value && !isTouchingVertical.value && !isProgrammaticScroll.value
-);
-
-const emitBookmarkTabTap = (bookmarkPage: number, clientX: number, clientY: number) => {
-  if (isLoading || isCalculating) return;
-  const now = performance.now();
-  if (now - lastBookmarkTabTapAt < BOOKMARK_TAB_TAP_DEBOUNCE_MS) return;
-  lastBookmarkTabTapAt = now;
-  emit("tap", { type: "bookmark", x: clientX, y: clientY, page: bookmarkPage });
-};
-
-const onBookmarkTabTouchStart = (event: TouchEvent) => {
-  const touch = event.touches[0];
-  bookmarkTabTouchStart = touch ? { x: touch.clientX, y: touch.clientY } : null;
-};
-
-const onBookmarkTabTouchEnd = (event: TouchEvent) => {
-  const start = bookmarkTabTouchStart;
-  bookmarkTabTouchStart = null;
-  const touch = event.changedTouches[0];
-  if (!start || !touch || page.value <= 0) return;
-  if (Math.hypot(touch.clientX - start.x, touch.clientY - start.y) > VERTICAL_TAP_MOVE_THRESHOLD) return;
-  event.preventDefault();
-  bookmarkTabTouchAt = performance.now();
-  emitBookmarkTabTap(page.value, touch.clientX, touch.clientY);
-};
 
 const onBookmarkTabClick = (event: MouseEvent) => {
-  if (page.value <= 0) return;
-  if (bookmarkTabTouchAt > 0 && performance.now() - bookmarkTabTouchAt < BOOKMARK_TAB_CLICK_SUPPRESS_MS) return;
-  emitBookmarkTabTap(page.value, event.clientX, event.clientY);
+  if (isLoading || isCalculating || page.value <= 0) return;
+  emit("tap", { type: "bookmark", x: event.clientX, y: event.clientY, page: page.value });
 };
 
-const handleTextClick = (event: MouseEvent) => {
-  if (isSelected.value) {
-    textActions.suppress();
-    return;
-  }
-  textActions.handle(event);
-};
-
-const tryEmitVerticalTap = (clientX: number, clientY: number) => {
-  if (isLoading || isCalculating) return;
-  if (isSelected.value) {
-    clearSelection();
-    return;
-  }
+const emitVerticalTap = (clientX: number, clientY: number) => {
   const el = verticalContainerRef.value;
   if (!el) return;
   const rect = el.getBoundingClientRect();
@@ -590,14 +539,16 @@ const tryEmitVerticalTap = (clientX: number, clientY: number) => {
   emit("tap", { type, x, y });
 };
 
-let verticalTouchStoppedMomentum = false;
+const { handlePointerDown: handleTextPointerDown, handleClick: handleTextClick } = useTextTap({
+  isBlocked: () => isLoading || isCalculating,
+  clearSelection,
+  onAction: (action) => emit("action", action),
+  onTap: emitVerticalTap,
+});
 
 const handleVerticalTouchStart = (event: TouchEvent) => {
   if (isLoading || isCalculating) return;
-  verticalTouchStoppedMomentum = isMomentumScrolling.value;
   isTouchingVertical.value = true;
-  const touch = event.touches[0];
-  verticalTouchStartPoint = touch ? { x: touch.clientX, y: touch.clientY } : null;
   emit("touchstart", { swiper: null, event });
 };
 
@@ -605,25 +556,6 @@ const handleVerticalTouchEnd = (event: TouchEvent) => {
   if (isLoading || isCalculating) return;
   isTouchingVertical.value = false;
   if (!event.isTrusted) event.stopPropagation();
-
-  const startPoint = verticalTouchStartPoint;
-  verticalTouchStartPoint = null;
-  const touch = event.changedTouches[0];
-  const stoppedMomentum = verticalTouchStoppedMomentum;
-  verticalTouchStoppedMomentum = false;
-
-  if (startPoint && touch && !stoppedMomentum) {
-    const dx = touch.clientX - startPoint.x;
-    const dy = touch.clientY - startPoint.y;
-    if (Math.hypot(dx, dy) <= VERTICAL_TAP_MOVE_THRESHOLD) {
-      if (isSelected.value) {
-        textActions.suppress();
-        clearSelection();
-      } else if (!textActions.handle(event)) {
-        tryEmitVerticalTap(touch.clientX, touch.clientY);
-      }
-    }
-  }
   emit("touchend", event);
 };
 

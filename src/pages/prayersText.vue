@@ -38,8 +38,7 @@
         ref="textPaginator" 
         @tap="onTextPaginatorTap"
         @action="onTextAction"
-        @touchstart="onTextPaginatorTouchStart"
-        @touchend="onTextPaginatorTouchEnd" />
+        @touchstart="onTextPaginatorTouchStart" />
       <!-- Пока протяжка ползунка не устоялась, реальный переход отложен —
            закрываем текст фоном текущей темы чтения (не сам reading-text,
            у которого горизонтальный режим рендерит слайды через Shadow DOM) -->
@@ -588,7 +587,10 @@ const onTextPaginatorTap = (payload: { type: "center" | "left" | "right" | "top"
 
   console.log("onTextPaginatorTap", payload);
 
-  if (isNavbarHiding || isPageNavHiding) {
+  // Касание, которое закрыло меню, только закрывает их: ни открыть снова,
+  // ни пролистать страницу. click приходит уже после touchend.
+  if (menusClosedByTouch) {
+    menusClosedByTouch = false;
     return;
   }
 
@@ -609,13 +611,8 @@ const onTextPaginatorTap = (payload: { type: "center" | "left" | "right" | "top"
   }
 
   if (type === "center") {
-    if (!isNavbarHiding) {
-      isNavbarHidden.value = false;
-    }
-    
-    if (!isPageNavHiding) {
-      isPageNavHidden.value = false;
-    }
+    isNavbarHidden.value = false;
+    isPageNavHidden.value = false;
 
   } else if (type === "bookmark") {
     onCornerTap(payload.page);
@@ -628,8 +625,8 @@ const onTextPaginatorTap = (payload: { type: "center" | "left" | "right" | "top"
   }
 };
 
-let isNavbarHiding = false;
-let isPageNavHiding = false;
+// Последнее касание закрыло верхнее или нижнее меню. Сбрасывается в следующем touchstart.
+let menusClosedByTouch = false;
 
 const readClientX = (event: Event): number | null => {
   if (event instanceof MouseEvent) {
@@ -643,6 +640,7 @@ const readClientX = (event: Event): number | null => {
 
 const onTextPaginatorTouchStart = (payload: { swiper: Swiper | null, event: Event }) => {
   console.log("onTextPaginatorTouchStart", payload);
+  menusClosedByTouch = false;
   // Верхний статус-бар скрыт: свайп от края — системный «Назад», меню не закрываем.
   const clientX = readClientX(payload.event);
   if (
@@ -655,22 +653,13 @@ const onTextPaginatorTouchStart = (payload: { swiper: Swiper | null, event: Even
 
   if (!isNavbarHidden.value) {
     isNavbarHidden.value = true;
-    isNavbarHiding = true;
+    menusClosedByTouch = true;
   }
 
   if (!isPageNavHidden.value) {
     isPageNavHidden.value = true;
-    isPageNavHiding = true;
+    menusClosedByTouch = true;
   }
-};
-
-const onTextPaginatorTouchEnd = (event: Event) => {
-  console.log("onTextPaginatorTouchEnd", event);
-  if (!event.isTrusted) {
-    return;
-  }
-  isNavbarHiding = false;
-  isPageNavHiding = false;
 };
 
 // Состояние навигации по страницам

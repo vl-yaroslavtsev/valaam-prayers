@@ -1,6 +1,5 @@
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it } from "vitest";
 import {
-  createTextActions,
   htmlHasElementId,
   prepareReadingHtml,
   textActionFromEvent,
@@ -82,50 +81,5 @@ describe("textActionFromEvent", () => {
     expect(footnote).toEqual({ type: "footnote", id: "2" });
     expect(anchor).toEqual({ type: "anchor", id: "v-a" });
     document.body.innerHTML = "";
-  });
-});
-
-describe("createTextActions", () => {
-  it("повторное событие того же касания не открывает сноску второй раз", () => {
-    const emit = vi.fn();
-    const actions = createTextActions(emit);
-    const chip = document.createElement("div");
-    chip.className = "badge fn-badge";
-    chip.dataset.fn = "1";
-    document.body.append(chip);
-
-    const fire = (type: string) => {
-      let handled = false;
-      const listener = (event: Event) => {
-        handled = actions.handle(event);
-      };
-      chip.addEventListener(type, listener);
-      chip.dispatchEvent(new MouseEvent(type, { bubbles: true, cancelable: true }));
-      chip.removeEventListener(type, listener);
-      return handled;
-    };
-
-    expect(fire("pointerup")).toBe(true);
-    expect(fire("click")).toBe(true);
-    expect(emit).toHaveBeenCalledTimes(1);
-    chip.remove();
-  });
-
-  it("после выделения текста касание бейджа сноску не открывает", () => {
-    const emit = vi.fn();
-    const actions = createTextActions(emit);
-    const chip = document.createElement("div");
-    chip.className = "badge fn-badge";
-    chip.dataset.fn = "1";
-    document.body.append(chip);
-    actions.suppress();
-
-    chip.addEventListener("click", (event) => {
-      actions.handle(event);
-    });
-    chip.dispatchEvent(new MouseEvent("click", { bubbles: true, cancelable: true }));
-
-    expect(emit).not.toHaveBeenCalled();
-    chip.remove();
   });
 });

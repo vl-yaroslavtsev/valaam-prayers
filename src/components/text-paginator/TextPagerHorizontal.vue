@@ -29,7 +29,6 @@
     @pointerup.passive="handlePointerUp"
     @pointercancel.passive="handlePointerCancel"
     @click="handleTextClick"
-    @swipertap="handleSwiperTap"
     @swiperslidechange="handleSlideChange"
     @swiperprogress="handleProgress"
     @swipersettransition="handleSetTransition"
@@ -45,7 +44,8 @@ import type { SwiperContainer } from "swiper/element";
 import type { Swiper } from "swiper";
 import type { TextTheme, Language } from "@/types/common";
 import { detectTapZone } from "./tapZone";
-import { createTextActions, type TextAction } from "@/text-processing-v3/readingAnnotations";
+import { useTextTap } from "./useTextTap";
+import type { TextAction } from "@/text-processing-v3/readingAnnotations";
 
 const { isLoading = false, isCalculating = false } = defineProps<{
   theme: TextTheme;
@@ -70,23 +70,8 @@ const emit = defineEmits<{
   "update:transitioning": [value: boolean];
 }>();
 
-const textActions = createTextActions((action) => emit("action", action));
-let suppressTapUntil = 0;
-
-const takeTextAction = (event: Event): boolean => {
-  if (!textActions.handle(event)) return false;
-  // swipertap приходит следом за pointerup и больше не видит цель касания
-  suppressTapUntil = performance.now() + 400;
-  return true;
-};
-
 const swiperRef = useTemplateRef<SwiperContainer>("swiperRef");
 const { clearSelection, isSelected } = useTextSelection();
-
-const TAP_MOVE_THRESHOLD = 10;
-const TAP_DEBOUNCE_MS = 50;
-let pointerStart: { x: number; y: number; id: number } | null = null;
-let lastTapAt = 0;
 
 const updateSlides = (slides: string[]) => {
   const template = `<div class="text-page">$content</div>`;
@@ -111,22 +96,7 @@ const updateSlides = (slides: string[]) => {
   syncPage();
 };
 
-const emitTapFromClientPoint = (clientX: number, clientY: number) => {
-  if (isLoading || isCalculating || performance.now() < suppressTapUntil) {
-    return;
-  }
-
-  const now = performance.now();
-  if (now - lastTapAt < TAP_DEBOUNCE_MS) {
-    return;
-  }
-  lastTapAt = now;
-
-  if (isSelected.value) {
-    clearSelection();
-    return;
-  }
-
+const emitTap = (clientX: number, clientY: number) => {
   const el = swiperRef.value;
   if (!el) {
     return;
@@ -139,22 +109,12 @@ const emitTapFromClientPoint = (clientX: number, clientY: number) => {
   emit("tap", { type, x, y });
 };
 
-const handleSwiperTap = (e: CustomEvent<[swiper: Swiper, event: PointerEvent]>) => {
-  const pointer = e.detail?.[1];
-  if (!pointer || typeof pointer.clientX !== "number") {
-    return;
-  }
-  if (takeTextAction(pointer)) return;
-  emitTapFromClientPoint(pointer.clientX, pointer.clientY);
-};
-
-const handleTextClick = (event: MouseEvent) => {
-  if (isSelected.value) {
-    textActions.suppress();
-    return;
-  }
-  takeTextAction(event);
-};
+const { handlePointerDown: handleTextPointerDown, handleClick: handleTextClick } = useTextTap({
+  isBlocked: () => isLoading || isCalculating,
+  clearSelection,
+  onAction: (action) => emit("action", action),
+  onTap: emitTap,
+});
 
 // Номер страницы — активный слайд, а не swiper.progress. Прогресс на границе
 // слайда из‑за округления translate чуть меньше целого шага, и progressToPage
@@ -178,6 +138,8 @@ const handleSlideChange = () => {
 };
 
 const handlePointerDown = (event: PointerEvent) => {
+  handleTextPointerDown(event);
+
   if (isLoading || isCalculating) {
     return;
   }
@@ -185,8 +147,6 @@ const handlePointerDown = (event: PointerEvent) => {
   if (!event.isPrimary || event.button !== 0) {
     return;
   }
-
-  pointerStart = { x: event.clientX, y: event.clientY, id: event.pointerId };
 
   const swiper = swiperRef.value?.swiper;
   if (!swiper) {
@@ -204,27 +164,10 @@ const handlePointerUp = (event: PointerEvent) => {
     return;
   }
 
-  const start = pointerStart;
-  pointerStart = null;
-
-  if (start && start.id === event.pointerId) {
-    const dx = event.clientX - start.x;
-    const dy = event.clientY - start.y;
-    if (Math.hypot(dx, dy) <= TAP_MOVE_THRESHOLD) {
-      if (isSelected.value) {
-        textActions.suppress();
-        clearSelection();
-      } else if (!takeTextAction(event)) {
-        emitTapFromClientPoint(event.clientX, event.clientY);
-      }
-    }
-  }
-
   emit("touchend", event);
 };
 
 const handlePointerCancel = (event: PointerEvent) => {
-  pointerStart = null;
   emit("touchend", event);
 };
 

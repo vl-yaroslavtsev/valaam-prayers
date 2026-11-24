@@ -163,32 +163,3 @@ export function textActionFromEvent(event: Event): TextAction | null {
   }
   return null;
 }
-
-/**
- * Касание бейджа или якоря не листает страницу.
- * Повтор того же касания (pointerup и следом click) открывает сноску один раз.
- * Конец выделения текста сноску не открывает.
- */
-export function createTextActions(emit: (action: TextAction) => void) {
-  let lastEmit = 0;
-  let suppressUntil = 0;
-
-  return {
-    suppress(): void {
-      suppressUntil = performance.now() + 400;
-    },
-    handle(event: Event): boolean {
-      const action = textActionFromEvent(event);
-      if (!action) return false;
-      if (event.cancelable) event.preventDefault();
-      if (event.type === "click") event.stopPropagation();
-      const now = performance.now();
-      if (now < suppressUntil) return true;
-      if (now - lastEmit > 500) {
-        lastEmit = now;
-        emit(action);
-      }
-      return true;
-    },
-  };
-}
