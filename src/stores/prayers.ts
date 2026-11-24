@@ -14,6 +14,7 @@ import {
   metadataStorage,
 } from "@/services/storage";
 import { PrayersApiResponse } from "@/services/api/PrayersApi";
+import { scopeReadingAnnotations } from "@/text-processing-v3/readingAnnotations";
 
 export interface PrayerElement extends PrayerApiElement {
   url: string;
@@ -25,8 +26,6 @@ export interface PrayerSection extends PrayerApiSection {
 
 export interface PrayerText extends PrayerTextApiResponse {
   lang: Language[];
-  /** Сноски текста: id из data-fn → HTML. Нет поля — сносок нет. */
-  footnotes?: Record<string, string>;
 }
 
 export const BIBLE_SECTION_ID = 1078;
@@ -363,7 +362,8 @@ export const usePrayersStore = defineStore("prayers", () => {
     sectionId: number, 
     prayerTexts: PrayerTextApiResponse[], 
     headerLevel: number = 2,
-    language: Language | '' = 'cs-cf'
+    language: Language | '' = 'cs-cf',
+    state: { blockIndex: number } = { blockIndex: 0 }
   ): string => {
     let result = '';
     const maxHeaderLevel = 6;
@@ -404,14 +404,16 @@ export const usePrayersStore = defineStore("prayers", () => {
             }
             return match;
           });
-          
+
+          text = scopeReadingAnnotations(text, `b${++state.blockIndex}`);
+
           result += text + '\n\n';
         }
       } else {
         const currentHeaderLevel = Math.min(headerLevel, maxHeaderLevel);
         const headerTag = `h${currentHeaderLevel}`;
         result += `<${headerTag}>${item.name}</${headerTag}>\n\n`;
-        result += buildSectionText(item.id, prayerTexts, headerLevel + 1, language);
+        result += buildSectionText(item.id, prayerTexts, headerLevel + 1, language, state);
       }
     }
     

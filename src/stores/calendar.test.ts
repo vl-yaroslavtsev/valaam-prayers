@@ -121,10 +121,10 @@ describe("useCalendarStore", () => {
     expect(calendarDaysStorage!.put).not.toHaveBeenCalled();
   });
 
-  it("getDayByCode игнорирует указания старым текстом и читает день из сети", async () => {
+  it("getDayByCode игнорирует указания в старом объектном формате и читает день из сети", async () => {
     const stale = {
       ...calendarDay("20260106"),
-      instructions: "<p>старые</p>",
+      instructions: { html: "<p>старые</p>", footnotes: {} },
     } as unknown as ReturnType<typeof calendarDay>;
     const fromNetwork = calendarDay("20260106");
     vi.mocked(calendarDaysStorage!.get).mockResolvedValue(stale);

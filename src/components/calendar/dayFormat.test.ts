@@ -87,6 +87,14 @@ describe("htmlToText", () => {
   it("убирает теги и схлопывает пробелы", () => {
     expect(htmlToText("<p>Один<br />\nдва</p>\n<p>три</p>")).toBe("Один два три");
   });
+
+  it("вырезает метки сносок и блок data-footnotes из превью", () => {
+    const html = [
+      '<p>Служба<sup class="fn-ref" data-fn="1"><a href="#fn-1">1</a></sup> продолжается.</p>',
+      '<section class="footnotes" data-footnotes><ol><li data-fn="1"><p>Текст сноски</p></li></ol></section>',
+    ].join("");
+    expect(htmlToText(html)).toBe("Служба продолжается.");
+  });
 });
 
 describe("картинки", () => {

@@ -37,7 +37,7 @@ export interface PaginationHashSettings {
 }
 
 /** Меняется вместе с алгоритмом нарезки, чтобы не показывать страницы из старого кэша. */
-const PAGINATION_ALGO = "columns-v3-f7-badge";
+const PAGINATION_ALGO = "columns-v3-inline-footnotes";
 
 export type PaginationCacheMode = "horizontal" | "vertical";
 

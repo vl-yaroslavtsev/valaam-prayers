@@ -1,18 +1,31 @@
 /**
  * Сноски и якоря внутри текста читалки.
- * Метки сносок приходят как <sup class="fn-ref" data-fn="1">1</sup>,
+ * Метки сносок приходят как <sup class="fn-ref" data-fn="1"><a href="#fn-1" ...>1</a></sup>,
+ * тексты сносок — в конце блока в <section data-footnotes><ol><li data-fn="1">...</li></ol></section>,
  * переходы по тексту — как <a href="#v-a"> на пустой <a id="v-a"></a>.
  */
-
-import { h, render } from "vue";
-import { f7Badge } from "framework7-vue";
 
 export type TextAction =
   | { type: "footnote"; id: string }
   | { type: "anchor"; id: string };
 
+export interface PreparedReadingHtml {
+  html: string;
+  footnotes: Record<string, string>;
+}
+
 const BLOCK_TAGS = new Set(["P", "H1", "H2", "H3", "H4", "H5", "H6", "BLOCKQUOTE", "LI", "DIV"]);
 const WORD_JOINER = "\u2060";
+const ANNOTATION_HINT_RE = /(?:data-footnotes|fn-ref|\sid=)/i;
+
+const decodeFragment = (href: string): string => {
+  const raw = href.slice(1);
+  try {
+    return decodeURIComponent(raw);
+  } catch {
+    return raw;
+  }
+};
 
 const isFirstContent = (block: Element, anchor: Element): boolean => {
   for (const node of block.childNodes) {
@@ -46,25 +59,15 @@ const liftEmptyAnchors = (root: HTMLElement): void => {
   });
 };
 
-/** f7-badge — span: внутри <p> он не разрывает абзац, в отличие от div у f7-chip. */
-const renderFootnoteBadge = (label: string, id: string): HTMLElement | null => {
-  const host = document.createElement("div");
-  render(
-    h(
-      f7Badge,
-      {
-        class: "fn-badge",
-        role: "button",
-        "data-fn": id,
-        "aria-label": `Сноска ${label}`,
-      },
-      () => label,
-    ),
-    host,
-  );
-  const badge = host.firstElementChild?.cloneNode(true);
-  render(null, host);
-  return badge instanceof HTMLElement ? badge : null;
+/** Классы совпадают с f7-badge (span), чтобы не тянуть сюда Vue и framework7-vue. */
+const renderFootnoteBadge = (label: string, id: string): HTMLElement => {
+  const badge = document.createElement("span");
+  badge.className = "badge fn-badge";
+  badge.dataset.fn = id;
+  badge.setAttribute("role", "button");
+  badge.setAttribute("aria-label", `Сноска ${label}`);
+  badge.textContent = label;
+  return badge;
 };
 
 /** Последнее слово перед меткой и сам бейдж переносятся только вместе. */
@@ -87,29 +90,93 @@ const attachToWord = (sup: Element, badge: HTMLElement): void => {
   sup.replaceWith(wrap);
 };
 
-const replaceFootnoteRefs = (root: HTMLElement, footnotes: Record<string, string>): void => {
-  root.querySelectorAll("sup.fn-ref").forEach((sup) => {
-    const id = sup.getAttribute("data-fn");
-    if (!id || !footnotes[id]) return;
-    const label = (sup.textContent || id).trim() || id;
-    const badge = renderFootnoteBadge(label, id);
-    if (badge) attachToWord(sup, badge);
+const extractFootnoteContent = (li: Element): string => {
+  li.querySelectorAll(".footnote-backref").forEach((backref) => backref.remove());
+  li.querySelectorAll("p").forEach((p) => {
+    if (p.childElementCount === 0 && !(p.textContent || "").trim()) p.remove();
   });
+  return li.innerHTML.replace(/\s+(<\/p>)/g, "$1").trim();
 };
 
 /**
- * Готовит HTML к пагинации: метки сносок становятся бейджами,
- * пустые якоря переезжают на абзац, чтобы не исчезнуть при нарезке.
+ * Изолирует локальные номера сносок и якоря внутри одного текстового блока,
+ * чтобы при склейке нескольких текстов (главы книги) `data-fn="1"` и `id="v-a"`
+ * из разных блоков не пересекались.
  */
-export function prepareReadingHtml(html: string, footnotes: Record<string, string> = {}): string {
-  const hasFootnotes = Object.keys(footnotes).length > 0;
-  if (!hasFootnotes && !/<a\b[^>]*\sid=/.test(html)) return html;
+export function scopeReadingAnnotations(html: string, scope: string): string {
+  if (!scope || !ANNOTATION_HINT_RE.test(html)) return html;
 
   const root = document.createElement("div");
   root.innerHTML = html;
-  if (hasFootnotes) replaceFootnoteRefs(root, footnotes);
-  liftEmptyAnchors(root);
+
+  root.querySelectorAll("sup.fn-ref[data-fn]").forEach((sup) => {
+    const rawId = sup.getAttribute("data-fn")?.trim();
+    if (rawId) sup.setAttribute("data-fn", `${scope}:${rawId}`);
+  });
+
+  root.querySelectorAll("[data-footnotes] li[data-fn]").forEach((li) => {
+    const rawId = li.getAttribute("data-fn")?.trim();
+    if (rawId) li.setAttribute("data-fn", `${scope}:${rawId}`);
+  });
+
+  const scopedAnchorIds = new Set<string>();
+  root.querySelectorAll("[id]").forEach((el) => {
+    if (el.closest("[data-footnotes]") || el.closest("sup.fn-ref")) return;
+    const id = el.getAttribute("id");
+    if (!id) return;
+    scopedAnchorIds.add(id);
+    el.setAttribute("id", `${scope}--${id}`);
+  });
+
+  if (scopedAnchorIds.size > 0) {
+    root.querySelectorAll('a[href^="#"]').forEach((link) => {
+      if (link.closest("sup.fn-ref") || link.classList.contains("footnote-backref")) return;
+      const href = link.getAttribute("href");
+      if (!href || href.length <= 1) return;
+      const targetId = decodeFragment(href);
+      if (scopedAnchorIds.has(targetId)) {
+        link.setAttribute("href", `#${scope}--${targetId}`);
+      }
+    });
+  }
+
   return root.innerHTML;
+}
+
+/**
+ * Готовит HTML к пагинации: вырезает блоки `[data-footnotes]` и извлекает тексты сносок,
+ * заменяет метки сносок бейджами, переносит пустые якоря на абзац, чтобы не исчезли при нарезке.
+ * При склейке нескольких текстов ключи заранее разводятся через `scopeReadingAnnotations`.
+ */
+export function prepareReadingHtml(html: string): PreparedReadingHtml {
+  if (!ANNOTATION_HINT_RE.test(html)) {
+    return { html, footnotes: {} };
+  }
+
+  const root = document.createElement("div");
+  root.innerHTML = html;
+
+  const footnotes: Record<string, string> = {};
+  root.querySelectorAll("[data-footnotes]").forEach((section) => {
+    section.querySelectorAll("li[data-fn]").forEach((li) => {
+      const id = li.getAttribute("data-fn")?.trim();
+      if (!id) return;
+      const content = extractFootnoteContent(li);
+      if (content) footnotes[id] = content;
+    });
+    section.remove();
+  });
+
+  root.querySelectorAll("sup.fn-ref[data-fn]").forEach((sup) => {
+    const id = sup.getAttribute("data-fn")?.trim();
+    if (!id || !footnotes[id]) return;
+    const label = (sup.textContent || "").trim() || id.slice(id.lastIndexOf(":") + 1);
+    attachToWord(sup, renderFootnoteBadge(label, id));
+  });
+
+  liftEmptyAnchors(root);
+
+  return { html: root.innerHTML, footnotes };
 }
 
 export function htmlHasElementId(html: string, id: string): boolean {
@@ -131,35 +198,30 @@ const actionFromElement = (node: Element): TextAction | null => {
   if (node instanceof HTMLAnchorElement) {
     const href = node.getAttribute("href");
     if (href?.startsWith("#") && href.length > 1) {
-      let id = href.slice(1);
-      try {
-        id = decodeURIComponent(id);
-      } catch {
-        // в адресе остаётся как есть
-      }
+      const id = decodeFragment(href);
       if (id) return { type: "anchor", id };
     }
   }
   return null;
 };
 
+const ancestors = (target: EventTarget | null): Node[] => {
+  const nodes: Node[] = [];
+  let current = target instanceof Node ? target : null;
+  while (current) {
+    nodes.push(current);
+    current = current.parentNode;
+  }
+  return nodes;
+};
+
 export function textActionFromEvent(event: Event): TextAction | null {
   const path = event.composedPath();
-  for (const node of path) {
+  const nodes = path.length > 0 ? path : ancestors(event.target);
+  for (const node of nodes) {
     if (!(node instanceof Element)) continue;
     const action = actionFromElement(node);
     if (action) return action;
-  }
-  // После завершения события composedPath пуст: идём от target вверх по DOM.
-  if (path.length === 0 && event.target instanceof Node) {
-    let current: Node | null = event.target;
-    while (current) {
-      if (current instanceof Element) {
-        const action = actionFromElement(current);
-        if (action) return action;
-      }
-      current = current.parentNode;
-    }
   }
   return null;
 }

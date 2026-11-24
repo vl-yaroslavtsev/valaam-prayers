@@ -34,17 +34,17 @@ describe("buildDayText", () => {
     const day = {
       ...calendarDay("20261013"),
       parabel: "<p>Притча</p>",
-      instructions: { html: "<p>Указания</p>", footnotes: { "1": "<p>Сноска</p>" } },
+      instructions:
+        '<p>Указания<sup class="fn-ref" data-fn="1"><a href="#fn-1">1</a></sup></p><section data-footnotes><ol><li data-fn="1"><p>Сноска</p></li></ol></section>',
     };
 
     const parabel = buildDayText(day, "parabel");
     expect(parabel.prayerText.text).toBe("<p>Притча</p>");
     expect(parabel.prayerText.lang).toEqual([]);
-    expect(parabel.prayerText.footnotes).toBeUndefined();
 
     const instructions = buildDayText(day, "instructions").prayerText;
-    expect(instructions.text).toBe("<p>Указания</p>");
-    expect(instructions.footnotes).toEqual({ "1": "<p>Сноска</p>" });
+    expect(instructions.text).toBe(day.instructions);
+    expect(instructions.lang).toEqual([]);
   });
 
   it("мысль дня содержит картинку, подпись и текст", () => {

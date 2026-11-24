@@ -10,16 +10,31 @@
   >
     <div class="swipe-handler"></div>
     <!-- eslint-disable-next-line vue/no-v-html -->
-    <div class="footnote-sheet__body" v-html="html"></div>
+    <div class="footnote-sheet__body" v-html="html" @click="onBodyClick"></div>
   </f7-sheet>
 </template>
 
 <script setup lang="ts">
+import { textActionFromEvent } from "@/text-processing-v3/readingAnnotations";
+
 const opened = defineModel<boolean>("opened", { default: false });
 
 defineProps<{
   html: string;
 }>();
+
+const emit = defineEmits<{
+  anchor: [id: string];
+}>();
+
+const onBodyClick = (event: MouseEvent) => {
+  const action = textActionFromEvent(event);
+  if (action?.type !== "anchor") return;
+  event.preventDefault();
+  event.stopPropagation();
+  opened.value = false;
+  emit("anchor", action.id);
+};
 </script>
 
 <style lang="less">

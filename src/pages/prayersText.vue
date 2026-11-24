@@ -150,7 +150,11 @@
       @closeSearch="onCloseSearch"
     />
 
-    <FootnoteSheet v-model:opened="isFootnoteSheetOpened" :html="footnoteHtml" />
+    <FootnoteSheet
+      v-model:opened="isFootnoteSheetOpened"
+      :html="footnoteHtml"
+      @anchor="onFootnoteAnchor"
+    />
     <ReadingBasicsTutorial
       v-if="isBasicsTutorialActive"
       :page-mode="settingsStore.pageMode"
@@ -169,7 +173,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watchEffect, useTemplateRef, ComponentPublicInstance, watch, nextTick, onMounted, onUnmounted } from "vue";
+import { ref, shallowRef, computed, watchEffect, useTemplateRef, ComponentPublicInstance, watch, nextTick, onMounted, onUnmounted } from "vue";
 import type { Router } from "framework7/types";
 import { f7 } from "framework7-vue";
 import type { Swiper } from "swiper";
@@ -446,7 +450,9 @@ const updatePrayerText = (language: Language | null) => {
       prayerText = data.value.text || '';
   }
 
-  prayerText = prepareReadingHtml(prayerText, data.value.footnotes ?? {});
+  const prepared = prepareReadingHtml(prayerText);
+  currentFootnotes.value = prepared.footnotes;
+  prayerText = prepared.html;
 
   const hasExistingHeader = /^\s*<h[12]/.test(prayerText);
   
@@ -465,6 +471,7 @@ const initialProgress = computed(() =>
 watch(error, async () => {
   if (!error.value) return;
   console.log("error", error.value);
+  currentFootnotes.value = {};
   text.value = `Данные не найдены`;
 });
 
@@ -557,6 +564,7 @@ const textTheme = computed(() => {
   return textPaginator.value?.theme || "light";
 });
 
+const currentFootnotes = shallowRef<Record<string, string>>({});
 const footnoteHtml = ref("");
 const isFootnoteSheetOpened = ref(false);
 
@@ -569,17 +577,21 @@ const hideReadingBars = () => {
   });
 };
 
+const onFootnoteAnchor = (id: string) => {
+  if (textPaginator.value?.scrollToAnchor(id)) {
+    hideReadingBars();
+  }
+};
+
 const onTextAction = (action: TextAction) => {
   if (action.type === "footnote") {
-    const html = data.value?.footnotes?.[action.id];
+    const html = currentFootnotes.value[action.id];
     if (!html) return;
     footnoteHtml.value = html;
     isFootnoteSheetOpened.value = true;
     return;
   }
-  if (textPaginator.value?.scrollToAnchor(action.id)) {
-    hideReadingBars();
-  }
+  onFootnoteAnchor(action.id);
 };
 
 const onTextPaginatorTap = (payload: { type: "center" | "left" | "right" | "top" | "bottom" | "bookmark"; x: number; y: number; page?: number }) => {
@@ -1290,6 +1302,7 @@ watch(isSearchPageOpened, (opened) => {
 
 // Сбрасываем поиск при смене языка — страницы пересчитываются, старые совпадения не валидны
 watch(displayLanguage, () => {
+  isFootnoteSheetOpened.value = false;
   onCloseSearch();
   closeBookmarkNav();
   closeChapterNav();

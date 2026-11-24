@@ -218,4 +218,31 @@ describe("usePrayersStore", () => {
     expect(prayersApi.getPrayerTextsBySection).toHaveBeenCalledWith(10);
     expect(prayerDetailsStorage!.put).not.toHaveBeenCalled();
   });
+
+  it("getComposedPrayerText изолирует локальные сноски и якоря между главами", async () => {
+    await initComposedTree();
+    vi.mocked(prayerDetailsStorage!.getMany).mockResolvedValue([undefined, undefined]);
+    const makeChapter = (body: string, note: string) =>
+      `<p>${body}<sup class="fn-ref" data-fn="1"><a href="#fn-1">1</a></sup> <a href="#v-a">(А)</a></p>` +
+      `<p><a id="v-a"></a>${body}</p>` +
+      `<section data-footnotes><ol><li data-fn="1" id="fn-1" value="1"><p>${note} <a class="footnote-backref" href="#fnref-1">↩︎</a></p></li></ol></section>`;
+
+    vi.mocked(prayersApi.getPrayerTextsBySection).mockResolvedValue([
+      { ...prayerText(1), text_ru: makeChapter("Первая", "Сноска первой") },
+      { ...prayerText(2), text_ru: makeChapter("Вторая", "Сноска второй") },
+    ]);
+
+    const composed = await usePrayersStore().getComposedPrayerText(10);
+    const { prepareReadingHtml } = await import("@/text-processing-v3/readingAnnotations");
+    const prepared = prepareReadingHtml(composed.text_ru);
+
+    expect(prepared.footnotes).toEqual({
+      "b1:1": "<p>Сноска первой</p>",
+      "b2:1": "<p>Сноска второй</p>",
+    });
+    expect(prepared.html).toContain('href="#b1--v-a"');
+    expect(prepared.html).toContain('href="#b2--v-a"');
+    expect(prepared.html).toContain('id="b1--v-a"');
+    expect(prepared.html).toContain('id="b2--v-a"');
+  });
 });

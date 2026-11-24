@@ -103,7 +103,9 @@ export function parseSaintLine(line: string): SaintLine {
 
 /** Текст из HTML для превью (DOMParser не загружает картинки и не выполняет скрипты) */
 export function htmlToText(html: string): string {
-  const text = new DOMParser().parseFromString(html, "text/html").body.textContent ?? "";
+  const doc = new DOMParser().parseFromString(html, "text/html");
+  doc.body.querySelectorAll("[data-footnotes], sup.fn-ref").forEach((el) => el.remove());
+  const text = doc.body.textContent ?? "";
   return text.replace(/\s+/g, " ").trim();
 }
 

@@ -10,15 +10,8 @@ export interface CalendarDay {
   description: string;
 }
 
-const isCurrentCalendarDay = (day: CalendarDayApiElement): boolean => {
-  const instructions = day.instructions as { html?: unknown } | string | null | undefined;
-  return (
-    day.fasting != null &&
-    typeof instructions === "object" &&
-    instructions !== null &&
-    typeof instructions.html === "string"
-  );
-};
+const isCurrentCalendarDay = (day: CalendarDayApiElement): boolean =>
+  day.fasting != null && typeof day.instructions === "string";
 
 export const useCalendarStore = defineStore("calendar", () => {
   // State
@@ -104,8 +97,8 @@ export const useCalendarStore = defineStore("calendar", () => {
    */
   const readCachedDay = async (code: string): Promise<CalendarDayApiElement | null> => {
     const cached = await calendarDaysStorage?.get(code);
-    // Дни, скачанные до смены формата API, не содержат fasting,
-    // а указания были строкой, а не { html, footnotes } — их читаем заново из сети
+    // Дни, скачанные до смены формата API, не содержат fasting
+    // или хранят instructions объектом { html, footnotes } вместо строки — их читаем заново из сети
     return cached && isCurrentCalendarDay(cached) ? cached : null;
   };
 

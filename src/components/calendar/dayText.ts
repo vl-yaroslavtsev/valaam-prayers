@@ -59,8 +59,7 @@ const escapeHtml = (value: string): string =>
 export const createPrayerText = (
   id: number,
   name: string,
-  texts: { text?: string; text_cs?: string; text_ru?: string },
-  footnotes?: Record<string, string>
+  texts: { text?: string; text_cs?: string; text_ru?: string }
 ): PrayerText => {
   const lang: Language[] = [];
   if (texts.text_cs) lang.push("cs");
@@ -76,7 +75,6 @@ export const createPrayerText = (
     text_ru: texts.text_ru ?? "",
     modified_ts: 0,
     lang,
-    ...(footnotes ? { footnotes } : {}),
   };
 };
 
@@ -100,14 +98,13 @@ const buildThoughtHtml = (day: CalendarDayApiElement): string => {
 export function buildDayText(day: CalendarDayApiElement, kind: DayTextKind): DayText {
   const name = getDayTextTitle(day.code, kind);
   const text =
-    kind === "thought" ? buildThoughtHtml(day) : kind === "parabel" ? day.parabel : day.instructions.html;
-  const footnotes = kind === "instructions" ? day.instructions.footnotes : undefined;
+    kind === "thought" ? buildThoughtHtml(day) : kind === "parabel" ? day.parabel : day.instructions;
 
   return {
     id: getDayTextId(day.code, kind),
     name,
     url: getDayTextUrl(day.code, kind),
-    prayerText: createPrayerText(getDayTextId(day.code, kind), name, { text }, footnotes),
+    prayerText: createPrayerText(getDayTextId(day.code, kind), name, { text }),
   };
 }
 

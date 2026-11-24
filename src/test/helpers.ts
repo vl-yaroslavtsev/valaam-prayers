@@ -96,7 +96,7 @@ export function calendarDay(code: string): CalendarDayApiElement {
     tone: null,
     fasting: { type: "none", title: "Поста нет", rules: { monastic: null, lay: null } },
     saints_blocks: [],
-    instructions: { html: "", footnotes: {} },
+    instructions: "",
     date_ts: 0,
   };
 }

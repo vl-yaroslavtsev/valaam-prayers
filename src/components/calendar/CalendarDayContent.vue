@@ -87,7 +87,7 @@
     </a>
 
     <a
-      v-if="day.instructions.html"
+      v-if="day.instructions"
       class="day-section day-link"
       :href="getDayTextUrl(day.code, 'instructions')"
     >
