@@ -550,7 +550,7 @@ const getFavoritesByType = (filterType: Exclude<FilterType, "all">) => {
       if (item) {
         extra.name = item.name;
         extra.url = item.url;
-        extra.lang = 'lang' in item ? item.lang : [];
+        extra.lang = prayersStore.getItemLanguages(item);
       }
     } else if (type === "saints") {
       const saint = saintsStore.getSaintById(f.id);

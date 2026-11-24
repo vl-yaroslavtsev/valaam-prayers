@@ -83,6 +83,7 @@ const prayers = computed(() =>
       progress: history.progress,
       pages: history.pages,
       ...p,
+      lang: prayersStore.getItemLanguages(p),
     };
   })
 );

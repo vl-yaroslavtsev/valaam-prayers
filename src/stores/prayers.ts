@@ -1,5 +1,5 @@
 import { defineStore } from "pinia";
-import { ref, shallowRef } from "vue";
+import { computed, ref, shallowRef } from "vue";
 import type { Language } from "@/types/common";
 import { prayersApi } from "@/services/api";
 import type {
@@ -30,6 +30,8 @@ export interface PrayerText extends PrayerTextApiResponse {
 export const BIBLE_SECTION_ID = 1078;
 const MOLITVOSLOV_SECTION_ID = 842;
 export const BOOKS_SECTION_ID = 1983;
+
+const LANGUAGE_ORDER: Language[] = ["cs", "cs-cf", "ru"];
 
 export const usePrayersStore = defineStore("prayers", () => {
   // State
@@ -414,6 +416,69 @@ export const usePrayersStore = defineStore("prayers", () => {
     return result;
   };
 
+  /**
+   * Языки составного раздела: объединение языков всех вложенных молитв.
+   * Считается один раз на текущий индекс, чтобы списки книг не обходили дерево заново.
+   */
+  const composedSectionLanguages = computed(() => {
+    const childSectionIds = new Map<number, number[]>();
+    for (const section of sections.value) {
+      if (section.parent == null) continue;
+      const siblings = childSectionIds.get(section.parent);
+      if (siblings) {
+        siblings.push(section.id);
+      } else {
+        childSectionIds.set(section.parent, [section.id]);
+      }
+    }
+
+    const elementLangsBySection = new Map<number, Language[][]>();
+    for (const element of elements.value) {
+      for (const parentId of element.parents) {
+        const lists = elementLangsBySection.get(parentId);
+        if (lists) {
+          lists.push(element.lang);
+        } else {
+          elementLangsBySection.set(parentId, [element.lang]);
+        }
+      }
+    }
+
+    const result = new Map<number, Language[]>();
+
+    const collect = (sectionId: number, visiting: Set<number>): Language[] => {
+      const cached = result.get(sectionId);
+      if (cached) return cached;
+      if (visiting.has(sectionId)) return [];
+
+      visiting.add(sectionId);
+      const langs = new Set<Language>();
+      for (const langList of elementLangsBySection.get(sectionId) ?? []) {
+        for (const lang of langList) langs.add(lang);
+      }
+      for (const childId of childSectionIds.get(sectionId) ?? []) {
+        for (const lang of collect(childId, visiting)) langs.add(lang);
+      }
+      visiting.delete(sectionId);
+
+      const ordered = LANGUAGE_ORDER.filter((lang) => langs.has(lang));
+      result.set(sectionId, ordered);
+      return ordered;
+    };
+
+    for (const section of sections.value) {
+      if (section.compose) collect(section.id, new Set());
+    }
+
+    return result;
+  });
+
+  const getItemLanguages = (item: PrayerElement | PrayerSection): Language[] => {
+    if ("lang" in item) return item.lang;
+    if (!item.compose) return [];
+    return composedSectionLanguages.value.get(item.id) ?? [];
+  };
+
   const getItemsBySection = (sectionId: number) => {
     let items: Array<PrayerElement | PrayerSection> = [];
 
@@ -537,6 +602,7 @@ export const usePrayersStore = defineStore("prayers", () => {
     error,
     // Getters
     getItemsBySection,
+    getItemLanguages,
     getItemById,
     isSection,
     isItemInSection,

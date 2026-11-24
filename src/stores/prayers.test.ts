@@ -152,6 +152,27 @@ describe("usePrayersStore", () => {
     await usePrayersStore().initStore();
   }
 
+  it("getItemLanguages у составного раздела собирает языки вложенных молитв", async () => {
+    vi.mocked(prayersIndexStorage!.getAll).mockResolvedValue([
+      { ...prayerElement(1, [11]), lang: ["ru"] },
+      { ...prayerElement(2, [10]), lang: ["cs-cf", "cs"] },
+      { ...prayerElement(3, [99]), lang: ["ru"] },
+    ]);
+    vi.mocked(sectionsStorage!.getAll).mockResolvedValue([
+      { ...prayerSection(10), compose: true },
+      { ...prayerSection(11, 10), compose: true },
+      prayerSection(12),
+    ]);
+
+    const store = usePrayersStore();
+    await store.initStore();
+
+    expect(store.getItemLanguages(store.getItemById(10)!)).toEqual(["cs", "cs-cf", "ru"]);
+    expect(store.getItemLanguages(store.getItemById(11)!)).toEqual(["ru"]);
+    expect(store.getItemLanguages(store.getItemById(12)!)).toEqual([]);
+    expect(store.getItemLanguages(store.getItemById(2)!)).toEqual(["cs-cf", "cs"]);
+  });
+
   it("getComposedPrayerText при полном кэше не вызывает сеть", async () => {
     await initComposedTree();
     vi.mocked(prayerDetailsStorage!.getMany).mockImplementation(async (ids) =>
