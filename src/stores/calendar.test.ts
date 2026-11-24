@@ -121,6 +121,25 @@ describe("useCalendarStore", () => {
     expect(calendarDaysStorage!.put).not.toHaveBeenCalled();
   });
 
+  it("getDayByCode игнорирует указания старым текстом и читает день из сети", async () => {
+    const stale = {
+      ...calendarDay("20260106"),
+      instructions: "<p>старые</p>",
+    } as unknown as ReturnType<typeof calendarDay>;
+    const fromNetwork = calendarDay("20260106");
+    vi.mocked(calendarDaysStorage!.get).mockResolvedValue(stale);
+    vi.mocked(daysApi.getDaysPage).mockResolvedValue({
+      items: [fromNetwork],
+      nav: { page_count: 1, page_num: 1, page_size: 1, record_count: 1, nav_num: 1 },
+      byteSize: 1,
+    });
+
+    const result = await useCalendarStore().getDayByCode("20260106");
+
+    expect(result).toEqual(fromNetwork);
+    expect(daysApi.getDaysPage).toHaveBeenCalledWith("20260106", "20260106", 1, 1);
+  });
+
   it("getDayByCode игнорирует день из БД в старом формате и читает его из сети", async () => {
     const stale = { id: 1, code: "20260103" } as ReturnType<typeof calendarDay>;
     const fromNetwork = calendarDay("20260103");

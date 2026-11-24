@@ -7,6 +7,7 @@
     :isLoading="isLoading"
     :isCalculating="isCalculating"
     @tap="emit('tap', $event)"
+    @action="emit('action', $event)"
     @touchstart="emit('touchstart', $event)"
     @touchend="emit('touchend', $event)"
     @update:progress="currentProgress = $event"
@@ -23,6 +24,7 @@
     :show-bookmark-tabs="showBookmarkTabs"
     :pages-count="pagesCount"
     @tap="emit('tap', $event)"
+    @action="emit('action', $event)"
     @touchstart="emit('touchstart', $event)"
     @touchend="emit('touchend', $event)"
     @update:progress="currentProgress = $event"
@@ -62,6 +64,7 @@ import type { PaginationCacheItemHeader } from "@/services/storage/PaginationCac
 import type { Swiper } from "swiper";
 import type { Language } from "@/types/common";
 import { paginateText, type SearchMatch } from "@/text-processing-v3";
+import { htmlHasElementId, type TextAction } from "@/text-processing-v3/readingAnnotations";
 import { progressToPage } from "@/composables/useBookmarks";
 
 import TextPagerHorizontal from "./text-paginator/TextPagerHorizontal.vue";
@@ -145,6 +148,7 @@ const theme = computed(() => settingsStore.textTheme);
 // Events
 const emit = defineEmits<{
   tap: [payload: { type: "center" | "left" | "right" | "top" | "bottom" | "bookmark"; x: number; y: number; page?: number }];
+  action: [action: TextAction];
   progress: [payload: { progress: number, pages: number }];
   touchstart: [payload: { swiper: Swiper | null, event: Event }];
   touchend: [event: Event];
@@ -423,6 +427,16 @@ defineExpose({
     if (header) {
       pager.value?.goToPage(header.page, false);
     }
+  },
+  scrollToAnchor: (id: string): boolean => {
+    if (mode.value === "vertical") {
+      const scrolled = (pager.value as InstanceType<typeof TextPagerVertical> | null)?.scrollToAnchor(id);
+      if (scrolled) return true;
+    }
+    const index = pages.value.findIndex((html) => htmlHasElementId(html, id));
+    if (index < 0) return false;
+    pager.value?.goToPage(index + 1, false);
+    return true;
   },
   setProgress: (progress: number) => {
     pager.value?.setProgress(progress);

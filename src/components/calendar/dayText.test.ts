@@ -31,13 +31,20 @@ describe("id и адреса текстов дня", () => {
 
 describe("buildDayText", () => {
   it("притча и указания отдают HTML как есть, язык не выбирается", () => {
-    const day = { ...calendarDay("20261013"), parabel: "<p>Притча</p>", instructions: "<p>Указания</p>" };
+    const day = {
+      ...calendarDay("20261013"),
+      parabel: "<p>Притча</p>",
+      instructions: { html: "<p>Указания</p>", footnotes: { "1": "<p>Сноска</p>" } },
+    };
 
     const parabel = buildDayText(day, "parabel");
     expect(parabel.prayerText.text).toBe("<p>Притча</p>");
     expect(parabel.prayerText.lang).toEqual([]);
+    expect(parabel.prayerText.footnotes).toBeUndefined();
 
-    expect(buildDayText(day, "instructions").prayerText.text).toBe("<p>Указания</p>");
+    const instructions = buildDayText(day, "instructions").prayerText;
+    expect(instructions.text).toBe("<p>Указания</p>");
+    expect(instructions.footnotes).toEqual({ "1": "<p>Сноска</p>" });
   });
 
   it("мысль дня содержит картинку, подпись и текст", () => {

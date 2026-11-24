@@ -25,6 +25,8 @@ export interface PrayerSection extends PrayerApiSection {
 
 export interface PrayerText extends PrayerTextApiResponse {
   lang: Language[];
+  /** Сноски текста: id из data-fn → HTML. Нет поля — сносок нет. */
+  footnotes?: Record<string, string>;
 }
 
 export const BIBLE_SECTION_ID = 1078;

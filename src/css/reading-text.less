@@ -141,6 +141,57 @@ html.reading-compact-padding {
     margin-bottom: 0;
   }
 
+  .fn-word {
+    white-space: nowrap;
+  }
+
+  .fn-badge.badge {
+    // Вариант 1: Мягкий бейдж в тон киновари (автоматически адаптируется под все темы)
+    --f7-badge-bg-color: color-mix(in srgb, var(--reading-text-kinovar-color) 16%, transparent);
+    --f7-badge-text-color: var(--reading-text-kinovar-color);
+
+    // Вариант 2: Мягкий нейтральный бейдж (в тон основного текста)
+    // --f7-badge-bg-color: color-mix(in srgb, var(--reading-text-text-color) 12%, transparent);
+    // --f7-badge-text-color: var(--reading-text-text-color);
+
+    // Вариант 3 (исходный): Контрастный инверсный бейдж
+    // --f7-badge-bg-color: var(--content-color-black-primary);
+    // --f7-badge-text-color: var(--content-color-baige-100);
+
+    --f7-badge-size: 1.35em;
+    --f7-badge-font-size: 0.7em;
+    --f7-badge-font-weight: 600;
+    position: relative;
+    top: -0.35em;
+    margin-left: 0.15em;
+    margin-right: 0.05em;
+    cursor: pointer;
+    user-select: none;
+    hyphens: none;
+  }
+
+  // Тёмная бумага читалки
+  &.theme-dark .fn-badge.badge {
+    // Вариант 1: Мягкий бейдж в тон киновари (чуть плотнее фон на тёмном)
+    --f7-badge-bg-color: color-mix(in srgb, var(--reading-text-kinovar-color) 22%, transparent);
+    --f7-badge-text-color: var(--reading-text-kinovar-color);
+
+    // Вариант 2: Мягкий нейтральный бейдж
+    // --f7-badge-bg-color: var(--content-color-baige-20);
+    // --f7-badge-text-color: var(--content-color-baige-90);
+
+    // Вариант 3 (исходный): Контрастный инверсный бейдж
+    // --f7-badge-bg-color: var(--content-color-baige-100);
+    // --f7-badge-text-color: var(--content-color-black-primary);
+  }
+
+  a[href^="#"] {
+    color: var(--reading-text-kinovar-color);
+    text-decoration-line: underline;
+    text-decoration-thickness: 1px;
+    text-underline-offset: 0.15em;
+  }
+
   &.prayer-text {
 
     &.lang-cs {

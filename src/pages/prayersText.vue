@@ -37,6 +37,7 @@
         :show-bookmark-tabs="isNavbarHidden"
         ref="textPaginator" 
         @tap="onTextPaginatorTap"
+        @action="onTextAction"
         @touchstart="onTextPaginatorTouchStart"
         @touchend="onTextPaginatorTouchEnd" />
       <!-- Пока протяжка ползунка не устоялась, реальный переход отложен —
@@ -150,6 +151,7 @@
       @closeSearch="onCloseSearch"
     />
 
+    <FootnoteSheet v-model:opened="isFootnoteSheetOpened" :html="footnoteHtml" />
     <ReadingBasicsTutorial
       v-if="isBasicsTutorialActive"
       :page-mode="settingsStore.pageMode"
@@ -197,6 +199,7 @@ import PrayersTextSearchPage from "@/components/PrayersTextSearchPage.vue";
 import TextPaginator from "@/components/TextPaginator.vue"
 import TextSettingsSelector from "@/components/TextSettingsSelector.vue";
 import PrayersTextNavbar from "@/components/PrayersTextNavbar.vue";
+import FootnoteSheet from "@/components/FootnoteSheet.vue";
 import PageNavigationToolbar from "@/components/PageNavigationToolbar.vue";
 import SearchNavigationToolbar from "@/components/SearchNavigationToolbar.vue";
 import BookmarkNavigationToolbar from "@/components/BookmarkNavigationToolbar.vue";
@@ -217,6 +220,7 @@ import {
   isDayTextKind,
 } from "@/components/calendar/dayText";
 import { buildSaintLifeText, getSaintLifeId, getSaintLifeUrl } from "@/components/saint/saintText";
+import { prepareReadingHtml, type TextAction } from "@/text-processing-v3/readingAnnotations";
 
 const { elementId, sectionId, code, kind, readingId, saintId, f7router } = defineProps<{
   elementId?: string;
@@ -443,6 +447,8 @@ const updatePrayerText = (language: Language | null) => {
       prayerText = data.value.text || '';
   }
 
+  prayerText = prepareReadingHtml(prayerText, data.value.footnotes ?? {});
+
   const hasExistingHeader = /^\s*<h[12]/.test(prayerText);
   
   if (hasExistingHeader) {
@@ -521,6 +527,7 @@ const onPageBeforeOut = () => {
   // Sheet живёт с внешним backdrop вне страницы. destroy() его не закрывает,
   // и прозрачный backdrop остаётся поверх главной и съедает тапы.
   isTextSettingsSheetOpened.value = false;
+  isFootnoteSheetOpened.value = false;
   dismissBookmarkTransient();
 };
 
@@ -550,6 +557,31 @@ const isTextCalculating = computed(() => {
 const textTheme = computed(() => {
   return textPaginator.value?.theme || "light";
 });
+
+const footnoteHtml = ref("");
+const isFootnoteSheetOpened = ref(false);
+
+const hideReadingBars = () => {
+  readingBarsAnimate.value = false;
+  isNavbarHidden.value = true;
+  isPageNavHidden.value = true;
+  nextTick(() => {
+    readingBarsAnimate.value = true;
+  });
+};
+
+const onTextAction = (action: TextAction) => {
+  if (action.type === "footnote") {
+    const html = data.value?.footnotes?.[action.id];
+    if (!html) return;
+    footnoteHtml.value = html;
+    isFootnoteSheetOpened.value = true;
+    return;
+  }
+  if (textPaginator.value?.scrollToAnchor(action.id)) {
+    hideReadingBars();
+  }
+};
 
 const onTextPaginatorTap = (payload: { type: "center" | "left" | "right" | "top" | "bottom" | "bookmark"; x: number; y: number; page?: number }) => {
   const { type, x, y } = payload;

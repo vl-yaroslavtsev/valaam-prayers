@@ -738,6 +738,16 @@ const resolveBreak = (
     return { end: { kind: "after", node: heading }, hyphenTag: null };
   }
 
+  // Слово со сноской не рвётся: бейдж остаётся на том же слове и на той же странице.
+  const glued = (node.parentElement?.closest(".fn-word, .fn-badge") ?? null) as HTMLElement | null;
+  if (glued) {
+    const beforeGlued: BreakPoint = { kind: "before", node: glued };
+    if (!isRangeEmpty(start, beforeGlued, container)) {
+      return { end: beforeGlued, hyphenTag: null };
+    }
+    return { end: { kind: "after", node: glued }, hyphenTag: null };
+  }
+
   const end: BreakPoint = { kind: "text", node, offset };
   if (isRangeEmpty(start, end, container)) {
     return { end, hyphenTag: null };

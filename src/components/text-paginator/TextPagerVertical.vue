@@ -6,6 +6,7 @@
     @scrollend.passive="handleVerticalScrollEnd"
     @touchstart.passive="handleVerticalTouchStart"
     @touchend.passive="handleVerticalTouchEnd"
+    @click="handleTextClick"
   >
     <div
       v-if="showCurrentBookmark"
@@ -41,6 +42,7 @@ import { useSettingsStore } from "@/stores/settings";
 import type { TextTheme, Language } from "@/types/common";
 import SvgIcon from "@/components/SvgIcon.vue";
 import { detectTapZone } from "./tapZone";
+import { createTextActions, htmlHasElementId, type TextAction } from "@/text-processing-v3/readingAnnotations";
 import {
   joinReadingPages,
   planFlowChunks,
@@ -90,11 +92,14 @@ const pageTurnScrollBehavior = computed<"smooth" | "instant">(() =>
 
 const emit = defineEmits<{
   tap: [payload: { type: "center" | "left" | "right" | "top" | "bottom" | "bookmark"; x: number; y: number; page?: number }];
+  action: [action: TextAction];
   touchstart: [payload: { swiper: null; event: Event }];
   touchend: [event: Event];
   "update:progress": [progress: number];
   "update:transitioning": [value: boolean];
 }>();
+
+const textActions = createTextActions((action) => emit("action", action));
 
 const verticalContainerRef = useTemplateRef<HTMLElement>("verticalContainerRef");
 const flowWindowRef = useTemplateRef<HTMLElement>("flowWindowRef");
@@ -562,6 +567,14 @@ const onBookmarkTabClick = (event: MouseEvent) => {
   emitBookmarkTabTap(page.value, event.clientX, event.clientY);
 };
 
+const handleTextClick = (event: MouseEvent) => {
+  if (isSelected.value) {
+    textActions.suppress();
+    return;
+  }
+  textActions.handle(event);
+};
+
 const tryEmitVerticalTap = (clientX: number, clientY: number) => {
   if (isLoading || isCalculating) return;
   if (isSelected.value) {
@@ -603,7 +616,12 @@ const handleVerticalTouchEnd = (event: TouchEvent) => {
     const dx = touch.clientX - startPoint.x;
     const dy = touch.clientY - startPoint.y;
     if (Math.hypot(dx, dy) <= VERTICAL_TAP_MOVE_THRESHOLD) {
-      tryEmitVerticalTap(touch.clientX, touch.clientY);
+      if (isSelected.value) {
+        textActions.suppress();
+        clearSelection();
+      } else if (!textActions.handle(event)) {
+        tryEmitVerticalTap(touch.clientX, touch.clientY);
+      }
     }
   }
   emit("touchend", event);
@@ -741,6 +759,35 @@ const scrollToHeader = (index: number): boolean => {
   return true;
 };
 
+const scrollToAnchor = (id: string): boolean => {
+  const pageIndex = pageHtml.findIndex((html) => htmlHasElementId(html, id));
+  const chunk = pageIndex >= 0 ? chunkByPage[pageIndex] : undefined;
+  const host = measurerRef.value;
+  const width = contentWidth();
+  if (!chunk || !host || width < 1) return false;
+  let selector: string;
+  try {
+    selector = `[id="${CSS.escape(id)}"]`;
+  } catch {
+    return false;
+  }
+  ensureMeasuredThrough(Math.max(0, chunk.pageEnd - 1));
+  recomputeTops();
+  host.style.width = `${width}px`;
+  host.innerHTML = chunkHtml(chunk);
+  const node = host.querySelector<HTMLElement>(selector);
+  if (!node) {
+    host.innerHTML = "";
+    return false;
+  }
+  const local = node.getBoundingClientRect().top - host.getBoundingClientRect().top;
+  const marginTop = parseFloat(getComputedStyle(node).marginTop) || 0;
+  host.innerHTML = "";
+  const dest = Math.max(0, (layout.value.tops[chunk.index] ?? 0) + local - marginTop);
+  queueScroll(dest, false);
+  return true;
+};
+
 onMounted(() => {
   flushPages();
   const el = verticalContainerRef.value;
@@ -781,6 +828,7 @@ defineExpose({
   goToPage,
   setProgress: (progress: number) => scrollToProgress(progress, false),
   scrollToHeader,
+  scrollToAnchor,
   slidePrev: () => scrollByPage(-1),
   slideNext: () => scrollByPage(1),
   page,

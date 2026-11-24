@@ -77,6 +77,16 @@ export interface DayReading {
   text: string;
 }
 
+export interface DayInstructions {
+  /** HTML с мягкими переносами, '' если нет.
+   * Метки сносок: `<sup class="fn-ref" data-fn="1">1</sup>`.
+   * Переходы к вариантам службы: `<a href="#v-a">(А)</a>`, цель `<a id="v-a"></a>`.
+   */
+  html: string;
+  /** Тексты сносок по id из data-fn. {} если сносок нет */
+  footnotes: Record<string, string>;
+}
+
 /**
  * День календаря: ответ /days/{code} и элемент ответа /days/list
  */
@@ -105,8 +115,8 @@ export interface CalendarDayApiElement {
   fasting: FastingInfo;
   /** Блоки -> строки HTML. Строка может начинаться с токена знака праздника */
   saints_blocks: string[][];
-  /** HTML, '' если нет */
-  instructions: string;
+  /** Богослужебные указания и сноски. html — '' если указаний нет */
+  instructions: DayInstructions;
   date_ts: number;
 }
 

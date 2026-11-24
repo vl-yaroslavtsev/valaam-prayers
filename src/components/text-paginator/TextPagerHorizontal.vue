@@ -28,6 +28,7 @@
     @pointerdown.passive="handlePointerDown"
     @pointerup.passive="handlePointerUp"
     @pointercancel.passive="handlePointerCancel"
+    @click="handleTextClick"
     @swipertap="handleSwiperTap"
     @swiperslidechange="handleSlideChange"
     @swiperprogress="handleProgress"
@@ -44,6 +45,7 @@ import type { SwiperContainer } from "swiper/element";
 import type { Swiper } from "swiper";
 import type { TextTheme, Language } from "@/types/common";
 import { detectTapZone } from "./tapZone";
+import { createTextActions, type TextAction } from "@/text-processing-v3/readingAnnotations";
 
 const { isLoading = false, isCalculating = false } = defineProps<{
   theme: TextTheme;
@@ -61,11 +63,22 @@ const programmaticTurnSpeed = computed(() =>
 
 const emit = defineEmits<{
   tap: [payload: { type: "center" | "left" | "right" | "top" | "bottom" | "bookmark"; x: number; y: number; page?: number }];
+  action: [action: TextAction];
   touchstart: [payload: { swiper: Swiper; event: Event }];
   touchend: [event: Event];
   "update:progress": [progress: number];
   "update:transitioning": [value: boolean];
 }>();
+
+const textActions = createTextActions((action) => emit("action", action));
+let suppressTapUntil = 0;
+
+const takeTextAction = (event: Event): boolean => {
+  if (!textActions.handle(event)) return false;
+  // swipertap приходит следом за pointerup и больше не видит цель касания
+  suppressTapUntil = performance.now() + 400;
+  return true;
+};
 
 const swiperRef = useTemplateRef<SwiperContainer>("swiperRef");
 const { clearSelection, isSelected } = useTextSelection();
@@ -99,7 +112,7 @@ const updateSlides = (slides: string[]) => {
 };
 
 const emitTapFromClientPoint = (clientX: number, clientY: number) => {
-  if (isLoading || isCalculating) {
+  if (isLoading || isCalculating || performance.now() < suppressTapUntil) {
     return;
   }
 
@@ -131,7 +144,16 @@ const handleSwiperTap = (e: CustomEvent<[swiper: Swiper, event: PointerEvent]>) 
   if (!pointer || typeof pointer.clientX !== "number") {
     return;
   }
+  if (takeTextAction(pointer)) return;
   emitTapFromClientPoint(pointer.clientX, pointer.clientY);
+};
+
+const handleTextClick = (event: MouseEvent) => {
+  if (isSelected.value) {
+    textActions.suppress();
+    return;
+  }
+  takeTextAction(event);
 };
 
 // Номер страницы — активный слайд, а не swiper.progress. Прогресс на границе
@@ -189,7 +211,12 @@ const handlePointerUp = (event: PointerEvent) => {
     const dx = event.clientX - start.x;
     const dy = event.clientY - start.y;
     if (Math.hypot(dx, dy) <= TAP_MOVE_THRESHOLD) {
-      emitTapFromClientPoint(event.clientX, event.clientY);
+      if (isSelected.value) {
+        textActions.suppress();
+        clearSelection();
+      } else if (!takeTextAction(event)) {
+        emitTapFromClientPoint(event.clientX, event.clientY);
+      }
     }
   }
 
