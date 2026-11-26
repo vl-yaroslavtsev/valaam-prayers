@@ -256,13 +256,16 @@ const retry = () => {
   void fillBuffers();
 };
 
-// Первый день, чей низ ниже верха видимой области - день «вверху экрана»
+// Первый день, чей низ ниже линии начала списка под навбаром - день «вверху экрана».
+// Учитываем margin-top списка и запас на дробное округление scrollTop, чтобы нижний край
+// предыдущей карточки после prependRows не сдвигал выбранный день на вчера
 const updateTopCode = () => {
   const list = vl;
   if (!list?.el.isConnected) return;
-  const viewTop = getViewTop(list.pageContentEl);
+  const listMarginTop = parseFloat(getComputedStyle(list.el).marginTop) || 0;
+  const threshold = getViewTop(list.pageContentEl) + listMarginTop + 4;
   for (const row of list.el.querySelectorAll<HTMLElement>("li.week-item")) {
-    if (row.getBoundingClientRect().bottom > viewTop + 1) {
+    if (row.getBoundingClientRect().bottom > threshold) {
       if (row.dataset.code && row.dataset.code !== topCode.value) topCode.value = row.dataset.code;
       return;
     }
@@ -292,6 +295,24 @@ const onListCreated = (list: VirtualList.VirtualList) => {
   tabEl?.addEventListener("tab:show", relayout);
   resetWindow(topCode.value);
 };
+
+const scrollToDay = (code: string) => {
+  const list = vl;
+  if (!list) return;
+  const target = clampCode(code);
+  const rows = items();
+  const index = rows.findIndex((row) => row.code === target);
+  if (index >= 0) {
+    const top = rows.slice(0, index).reduce((sum, row) => sum + row.height, 0);
+    list.pageContentEl.scrollTop = top;
+    list.update();
+    void nextTick(updateTopCode);
+  } else {
+    resetWindow(target);
+  }
+};
+
+defineExpose({ scrollToDay });
 
 onBeforeUnmount(() => {
   updateTopCode();

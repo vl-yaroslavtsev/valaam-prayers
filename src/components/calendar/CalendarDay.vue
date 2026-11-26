@@ -1,11 +1,13 @@
 <template>
-  <f7-page-content class="calendar-day-view">
-    <div v-if="!isReady" class="calendar-day-state">
-      <template v-if="markersError">
-        <p>Не удалось загрузить календарь</p>
-        <f7-button small outline @click="calendarStore.refreshMarkers()">Повторить</f7-button>
-      </template>
-      <f7-preloader v-else />
+  <div class="calendar-day-view">
+    <div v-if="!isReady" class="page-content">
+      <div class="calendar-day-state">
+        <template v-if="markersError">
+          <p>Не удалось загрузить календарь</p>
+          <f7-button small outline @click="calendarStore.refreshMarkers()">Повторить</f7-button>
+        </template>
+        <f7-preloader v-else />
+      </div>
     </div>
 
     <swiper-container
@@ -28,7 +30,7 @@
         :data-swiper-slide-index="virtualData.from + index"
         :style="{ left: `${virtualData.offset}px` }"
       >
-        <div class="calendar-day-scroll">
+        <div class="page-content calendar-day-scroll">
           <CalendarDayContent
             v-if="getDay(code)"
             :day="getDay(code)!"
@@ -48,7 +50,7 @@
         </div>
       </swiper-slide>
     </swiper-container>
-  </f7-page-content>
+  </div>
 </template>
 
 <script setup lang="ts">
@@ -238,14 +240,32 @@ watch(
       swiper.virtual.slides = codes;
       swiper.virtual.update(true, false, index);
       swiper.slideTo(index, 0, false);
+      syncNavbarScroll();
     } else if (swiper.activeIndex !== index) {
       swiper.slideTo(index, 0, false);
+      syncNavbarScroll();
     }
 
     prefetchAround(index);
   },
   { immediate: true }
 );
+
+// Уведомляем прозрачный навбар Framework7 о scrollTop активного слайда
+const syncNavbarScroll = () => {
+  const swiper = swiperRef.value?.swiper;
+  if (!swiper || swiper.destroyed) return;
+  const findScrollEl = () =>
+    swiper.slidesEl.querySelector<HTMLElement>(
+      `swiper-slide[data-swiper-slide-index="${swiper.activeIndex}"] .calendar-day-scroll`
+    );
+  const scrollEl = findScrollEl();
+  if (scrollEl) {
+    scrollEl.dispatchEvent(new Event("scroll"));
+  } else {
+    void nextTick(() => findScrollEl()?.dispatchEvent(new Event("scroll")));
+  }
+};
 
 const onSlideChange = () => {
   const swiper = swiperRef.value?.swiper;
@@ -254,6 +274,7 @@ const onSlideChange = () => {
   if (code && code !== currentCode.value) {
     currentCode.value = code;
   }
+  syncNavbarScroll();
 };
 
 // При ресайзе Swiper сдвигает virtual.offset без renderExternal - синхронизируем, чтобы Vue не перетёр left
@@ -273,11 +294,13 @@ const onTabShow = () => {
   swiper.update();
   const index = currentIndex.value;
   if (index >= 0) swiper.slideTo(index, 0, false);
+  syncNavbarScroll();
 };
 
 const onSwiperInit = () => {
   tabEl = swiperRef.value?.closest(".tab") ?? null;
   tabEl?.addEventListener("tab:show", onTabShow);
+  syncNavbarScroll();
 };
 
 onBeforeUnmount(() => {
@@ -287,6 +310,7 @@ onBeforeUnmount(() => {
 
 <style scoped lang="less">
 .calendar-day-view {
+  height: 100%;
   overflow: hidden;
 }
 

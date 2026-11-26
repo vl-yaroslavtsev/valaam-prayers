@@ -1,14 +1,6 @@
 <template>
-  <f7-page name="saint" class="saint-page">
-    <f7-navbar back-link>
-      <f7-nav-right>
-        <f7-link icon-only :href="todayUrl" aria-label="Сегодня">
-          <SvgIcon icon="calendar-day" :color="navIconColor" :size="24" />
-        </f7-link>
-      </f7-nav-right>
-    </f7-navbar>
-
-    <h1 class="saint-headline">{{ title }}</h1>
+  <f7-page ref="pageRef" name="saint" class="saint-page">
+    <f7-navbar large transparent :title="title" back-link />
 
     <div v-if="state === 'loading'" class="saint-state">
       <f7-preloader />
@@ -86,14 +78,12 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, shallowRef } from "vue";
+import { computed, onBeforeUnmount, onMounted, ref, shallowRef } from "vue";
+import { f7 } from "framework7-vue";
 import CollapsibleList from "@/components/CollapsibleList.vue";
-import SvgIcon from "@/components/SvgIcon.vue";
-import { toDateCode } from "@/components/calendar/calendarMarkers";
 import { buildSrcset, htmlToText, resolveImageUrl } from "@/components/calendar/dayFormat";
 import { buildMemoDay, getServiceDateLabel, type SaintMemoDay } from "@/components/saint/memoDays";
 import { getSaintLifeUrl } from "@/components/saint/saintText";
-import { useTheme } from "@/composables/useTheme";
 import { usePrayersStore } from "@/stores/prayers";
 import { useSaintsStore, type SaintDetails } from "@/stores/saints";
 
@@ -117,7 +107,6 @@ const saintId = Number(id);
 
 const saintsStore = useSaintsStore();
 const prayersStore = usePrayersStore();
-const { isDarkMode } = useTheme();
 
 const state = ref<"loading" | "loaded" | "error">("loading");
 const details = shallowRef<SaintDetails | null>(null);
@@ -135,8 +124,54 @@ const title = computed(
   () => details.value?.name ?? saintsStore.getSaintById(saintId)?.name ?? ""
 );
 
-const navIconColor = computed(() => (isDarkMode.value ? "baige-90" : "black-primary"));
-const todayUrl = computed(() => `/days/${toDateCode(new Date())}`);
+const pageRef = ref<{ $el: HTMLElement } | null>(null);
+let titleObserver: ResizeObserver | null = null;
+let lastLargeTitleHeight = 0;
+
+// Длинное имя святого переносится на несколько строк: синхронизируем высоту title-large
+// с CSS-переменной и обработчиком схлопывания Framework7
+const syncLargeTitleHeight = () => {
+  const pageEl = pageRef.value?.$el;
+  const navbarEl = pageEl?.querySelector<HTMLElement>(".navbar");
+  const titleLargeEl = navbarEl?.querySelector<HTMLElement>(".title-large");
+  if (!pageEl || !navbarEl || !titleLargeEl) return;
+
+  const height = Math.ceil(titleLargeEl.offsetHeight);
+  if (!height || height === lastLargeTitleHeight) return;
+
+  lastLargeTitleHeight = height;
+  pageEl.style.setProperty("--f7-navbar-large-title-height", `${height}px`);
+
+  const f7Page = pageEl as HTMLElement & { f7DetachNavbarScrollHandlers?: () => void };
+  if (f7Page.f7DetachNavbarScrollHandlers) {
+    f7Page.f7DetachNavbarScrollHandlers();
+    (
+      f7.navbar as unknown as {
+        initNavbarOnScroll?: (
+          page: HTMLElement,
+          navbar: HTMLElement,
+          needHide: boolean,
+          needCollapse: boolean,
+          needTransparent: boolean
+        ) => void;
+      }
+    ).initNavbarOnScroll?.(pageEl, navbarEl, false, true, false);
+  }
+};
+
+onMounted(() => {
+  syncLargeTitleHeight();
+  const titleLargeEl = pageRef.value?.$el?.querySelector<HTMLElement>(".navbar .title-large");
+  if (titleLargeEl && typeof ResizeObserver !== "undefined") {
+    titleObserver = new ResizeObserver(syncLargeTitleHeight);
+    titleObserver.observe(titleLargeEl);
+  }
+});
+
+onBeforeUnmount(() => {
+  titleObserver?.disconnect();
+  titleObserver = null;
+});
 
 const pictureSrc = computed(() => resolveImageUrl(details.value?.picture ?? null));
 const pictureSrcset = computed(() =>
@@ -219,6 +254,18 @@ const sections = computed<Section[]>(() => {
   --saint-muted: var(--content-color-black-60);
   --saint-subtle: var(--content-color-black-40);
   --saint-line: var(--content-color-black-10);
+
+  :deep(.navbar .title-large) {
+    height: auto;
+    min-height: 54px;
+    white-space: normal;
+  }
+
+  :deep(.navbar .title-large-text) {
+    white-space: normal;
+    text-overflow: clip;
+    padding-bottom: 12px;
+  }
 }
 
 .dark .saint-page {
@@ -229,19 +276,6 @@ const sections = computed<Section[]>(() => {
   --saint-muted: var(--content-color-baige-60);
   --saint-subtle: var(--content-color-baige-40);
   --saint-line: var(--content-color-baige-10);
-}
-
-// Название святого продолжает верхнюю панель
-.saint-headline {
-  margin: 0;
-  padding: 0 16px 20px;
-  border-bottom: 1px solid var(--f7-navbar-border-color);
-  background: var(--f7-navbar-bg-color);
-  font-family: var(--font-family);
-  font-size: var(--mobile-heading-h3);
-  font-weight: 700;
-  line-height: 34px;
-  color: var(--f7-navbar-text-color);
 }
 
 .saint-state {

@@ -3,6 +3,7 @@ import { getBridgeInfo } from "@/services/native/nativeRpc";
 import { FakeNativeBackend, type FakeNativeOptions } from "@/test/fakeNativeBackend";
 import {
   buildSrcset,
+  formatDayShortDate,
   formatMonthTitle,
   getDayHeader,
   getSectionTitle,
@@ -47,6 +48,13 @@ describe("formatMonthTitle", () => {
   it("месяц в именительном падеже с большой буквы и год", () => {
     expect(formatMonthTitle("20260513")).toBe("Май 2026");
     expect(formatMonthTitle("20261231")).toBe("Декабрь 2026");
+  });
+});
+
+describe("formatDayShortDate", () => {
+  it("число и месяц в родительном падеже без года", () => {
+    expect(formatDayShortDate("20261117")).toBe("17 ноября");
+    expect(formatDayShortDate("20260101")).toBe("1 января");
   });
 });
 

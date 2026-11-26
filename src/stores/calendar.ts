@@ -41,6 +41,11 @@ export const useCalendarStore = defineStore("calendar", () => {
   const markers = shallowRef<CalendarMarkersResponse | null>(null);
   const isMarkersLoading = ref(false);
   const markersError = ref<string | null>(null);
+  // Выбранный день на вкладке «Календарь» (YYYYMMDD); null - сегодняшний
+  const selectedDayCode = ref<string | null>(null);
+  const setSelectedDayCode = (code: string | null) => {
+    selectedDayCode.value = code;
+  };
 
   /**
    * Загружает раскраску дней с сервера и сохраняет снимок в кэш.
@@ -188,6 +193,7 @@ export const useCalendarStore = defineStore("calendar", () => {
     markers,
     isMarkersLoading,
     markersError,
+    selectedDayCode,
     // Getters
     getDays,
     getDayById,
@@ -196,5 +202,6 @@ export const useCalendarStore = defineStore("calendar", () => {
     // Actions
     initStore,
     refreshMarkers,
+    setSelectedDayCode,
   };
 });

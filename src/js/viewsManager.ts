@@ -5,7 +5,16 @@ import { Dom7 as $$ } from "framework7";
 import type { Router } from "framework7/types";
 import { f7 } from "framework7-vue";
 import { rememberConfirmedEmailFromUrl } from "@/services/rites/ritesApi";
+import { useCalendarStore } from "@/stores/calendar";
+import { useSettingsStore } from "@/stores/settings";
 import { device } from "./device";
+
+const CALENDAR_DAY_URL_REGEXP = /^\/days\/(\d{8})\/?$/;
+
+/** Извлекает код дня из диплинка вида `/days/20261031` (подпути вроде `/readings/...` не трогаем) */
+export function parseCalendarDayUrl(url: string): string | null {
+  return CALENDAR_DAY_URL_REGEXP.exec(url)?.[1] ?? null;
+}
 
 const viewsNames = [
   "home",
@@ -38,6 +47,14 @@ function parseHash(): void {
     rememberConfirmedEmailFromUrl(url);
   }
 
+  // Диплинк на день (#calendar:/days/YYYYMMDD): открываем его прямо на корневой странице календаря
+  // в режиме дня, а не пушим отдельную страницу day.vue поверх вкладки
+  const calendarDayCode = viewName === "calendar" && url ? parseCalendarDayUrl(url) : null;
+  if (calendarDayCode) {
+    useSettingsStore().setCalendarView("day");
+    useCalendarStore().setSelectedDayCode(calendarDayCode);
+  }
+
   // До показа вкладки, иначе первая инициализация роутера допишет hash к стартовому URL.
   document.location.hash = "";
 
@@ -48,7 +65,34 @@ function parseHash(): void {
     return;
   }
 
+  if (calendarDayCode) {
+    if (view.router.history.length > 1) {
+      returnToRootWhenReady(view.router);
+    }
+    return;
+  }
+
   navigateWhenReady(view.router, url);
+}
+
+/**
+ * Возвращает роутер к корневой странице вкладки (если поверх календаря открыты святой/чтение).
+ */
+export function returnToRootWhenReady(router: Router.Router): void {
+  const backToRoot = () => {
+    if (router.history.length === 2) {
+      router.back("", { animate: false });
+    } else if (router.history.length > 2) {
+      router.back(router.history[0], { force: true, animate: false });
+    }
+  };
+
+  if (router.allowPageChange) {
+    backToRoot();
+    return;
+  }
+
+  router.once("pageAfterIn", backToRoot);
 }
 
 /**

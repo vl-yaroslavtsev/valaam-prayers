@@ -76,6 +76,11 @@ export function formatDayTitleDate(code: string): string {
   return formatDate(parseDayCode(code), "d MMMM yyyy");
 }
 
+/** Короткая дата для заголовка навбара: «17 ноября» */
+export function formatDayShortDate(code: string): string {
+  return formatDate(parseDayCode(code), "d MMMM");
+}
+
 export type HolidaySign = "great" | "vigil" | "polyeleos" | "doxology" | "six";
 
 const SIGN_TOKENS: Record<string, HolidaySign> = {
