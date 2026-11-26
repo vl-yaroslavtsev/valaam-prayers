@@ -21,14 +21,15 @@
         </template>
       </div>
 
-      <f7-link
+      <f7-button
+        type="button"
+        round
         class="rite-card__edit"
-        icon-only
         :aria-label="`Редактировать записку №${item.number}`"
         @click="emit('edit')"
       >
         <SvgIcon icon="pencil" :size="24" :color="actionColor" />
-      </f7-link>
+      </f7-button>
     </div>
 
     <div v-if="namesText" class="rite-card__names">
@@ -54,22 +55,26 @@
     <div class="rite-card__line"></div>
 
     <div class="rite-card__actions">
-      <f7-link
+      <f7-button
+        type="button"
+        small
         class="rite-card__action rite-card__action--copy"
         :aria-label="`Дублировать записку №${item.number}`"
         @click="emit('copy')"
       >
         <span class="rite-card__action-text">Дублировать</span>
         <span class="rite-card__action-icon"><SvgIcon icon="copy" :size="24" :color="actionColor" /></span>
-      </f7-link>
-      <f7-link
+      </f7-button>
+      <f7-button
+        type="button"
+        small
         class="rite-card__action rite-card__action--delete"
         :aria-label="`Удалить записку №${item.number}`"
         @click="emit('remove')"
       >
         <span class="rite-card__action-text">Удалить</span>
         <span class="rite-card__action-icon"><SvgIcon icon="delete" :size="24" :color="actionColor" /></span>
-      </f7-link>
+      </f7-button>
       <span class="rite-card__sum">{{ formatPrice(item.sum) }}&nbsp;₽</span>
     </div>
 
@@ -207,8 +212,8 @@ const shortName = computed(() => (item.type ? formatShortName(item.type.shortNam
   &__actions {
     display: flex;
     align-items: center;
-    gap: 27px;
-    margin-left: 40px;
+    gap: 8px;
+    margin: -6px 0 -6px 32px;
   }
 
   &__sum {
@@ -219,30 +224,31 @@ const shortName = computed(() => (item.type ? formatShortName(item.type.shortNam
     white-space: nowrap;
   }
 
-  &__edit.link,
-  &__action-icon {
-    width: 24px;
-    height: 24px;
+  &__edit.button {
+    --f7-button-height: 36px;
+    --f7-button-min-width: 36px;
+    --f7-button-padding-horizontal: 0;
+
+    width: 36px;
+    margin: -6px;
+    flex-shrink: 0;
   }
 
-  &__edit.link {
-    justify-content: center;
-  }
+  &__action.button {
+    --f7-button-small-height: 36px;
+    --f7-button-small-font-size: 16px; // 14px;
+    --f7-button-small-font-weight: 400;
+    --f7-button-padding-horizontal: 8px;
+    --f7-button-text-color: var(--rites-accent);
 
-  &__action.link {
-    height: auto;
-    padding: 0;
-    justify-content: flex-start;
-    color: var(--rites-accent);
-    font-size: 16px;//14px;
-    line-height: 20px;//18px;
-    font-weight: 400;
-    text-transform: none;
-    letter-spacing: normal;
+    width: auto;
+    flex-shrink: 0;
   }
 
   &__action-icon {
     display: none;
+    width: 24px;
+    height: 24px;
   }
 
   &__error {
@@ -376,45 +382,50 @@ const shortName = computed(() => (item.type ? formatShortName(item.type.shortNam
       padding-right: 10px;
       padding-left: 10px;
 
-      &::before {
+      &::before,
+      &::after {
         content: "";
         position: absolute;
         top: 0;
         bottom: 0;
-        left: 0;
         width: 1px;
         background: var(--rites-divider);
+      }
+
+      &::before {
+        left: 0;
+      }
+
+      &::after {
+        right: 0;
       }
     }
 
-    &__edit.link {
-      position: relative;
-      grid-column: 7;
-      grid-row: 1;
-      // margin-left: 11px;
+    &__edit.button,
+    &__action.button {
+      --f7-button-height: 32px;
+      --f7-button-small-height: 32px;
+      --f7-button-min-width: 32px;
+      --f7-button-padding-horizontal: 0;
+      --f7-button-border-radius: 50%;
 
-      &::before {
-        content: "";
-        position: absolute;
-        top: -12px;
-        bottom: -12px;
-        left: -10px;
-        width: 1px;
-        background: var(--rites-divider);
-      }
+      width: 32px;
+      margin: -4px;
+      justify-self: center;
+      grid-row: 1;
+    }
+
+    &__edit.button {
+      grid-column: 7;
     }
 
     &__action {
-      &--copy.link {
+      &--copy.button {
         grid-column: 8;
-        grid-row: 1;
-        // margin-left: 6px;
       }
 
-      &--delete.link {
+      &--delete.button {
         grid-column: 9;
-        grid-row: 1;
-        // margin-left: 6px;
       }
     }
 
@@ -424,6 +435,8 @@ const shortName = computed(() => (item.type ? formatShortName(item.type.shortNam
 
     &__action-icon {
       display: flex;
+      align-items: center;
+      justify-content: center;
     }
 
     &__error {
@@ -433,7 +446,7 @@ const shortName = computed(() => (item.type ? formatShortName(item.type.shortNam
     }
   }
 
-  .link .rite-card__action-icon {
+  .button .rite-card__action-icon {
     margin: 0;
   }
 }
