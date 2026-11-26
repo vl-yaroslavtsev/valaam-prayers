@@ -11,12 +11,30 @@
   // --button-fill-dark-bg: var(--brand-color-secondary-accent);
   // --button-fill-dark-text: var(--content-color-black-primary);
 
+  // Tonal: спокойная тёплая заливка для повторяющихся и вторичных действий
+  --button-tonal-light-bg: var(--brand-color-secondary-accent);
+  --button-tonal-light-text: var(--brand-color-primary-accent-30);
+  --button-tonal-dark-bg: var(--brand-color-primary-accent-30);
+  --button-tonal-dark-text: var(--brand-color-secondary-accent);
+
+  // Нейтральный вариант tonal
+  // --button-tonal-light-bg: var(--content-color-black-10);
+  // --button-tonal-light-text: var(--content-color-black-primary);
+  // --button-tonal-dark-bg: var(--content-color-baige-10);
+  // --button-tonal-dark-text: var(--content-color-white-100);
+
   --f7-button-fill-bg-color: var(--button-fill-light-bg);
   --f7-button-fill-text-color: var(--button-fill-light-text);
+  --f7-button-tonal-bg-color: var(--button-tonal-light-bg);
+  --f7-button-tonal-text-color: var(--button-tonal-light-text);
   --f7-button-font-size: 16px;
 
   .button-fill {
     --f7-touch-ripple-color: var(--f7-touch-ripple-white);
+  }
+
+  .button-tonal {
+    --f7-touch-ripple-color: var(--f7-touch-ripple-black);
   }
 
   .dialog-button {
@@ -26,9 +44,15 @@
   &.dark, & .dark {
     --f7-button-fill-bg-color: var(--button-fill-dark-bg);
     --f7-button-fill-text-color: var(--button-fill-dark-text);
+    --f7-button-tonal-bg-color: var(--button-tonal-dark-bg);
+    --f7-button-tonal-text-color: var(--button-tonal-dark-text);
 
     .button-fill {
       --f7-touch-ripple-color: var(--f7-touch-ripple-black);
+    }
+
+    .button-tonal {
+      --f7-touch-ripple-color: var(--f7-touch-ripple-white);
     }
   }
 }

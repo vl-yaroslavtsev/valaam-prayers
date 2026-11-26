@@ -43,14 +43,14 @@
           <f7-button fill large @click="openPopup('create')">
             Подать записку
           </f7-button>
-          <f7-button outline large @click="onHistory">История записок</f7-button>
+          <f7-button outline large @click="onHistory">Мои записки</f7-button>
         </div>
       </div>
 
       <!-- Корзина -->
       <template v-else>
         <div class="rites-history">
-          <f7-button outline large @click="onHistory">История записок</f7-button>
+          <f7-button outline large @click="onHistory">Мои записки</f7-button>
         </div>
 
         <div class="rites-select">
@@ -521,19 +521,20 @@ onBeforeUnmount(() => {
 
     &--card {
       height: 190px;
+      border-radius: 16px;
     }
   }
 
   // Пустая корзина: карточка с текстом и двумя кнопками
   .rites-cart--empty {
-    padding: 30px 15px;
+    padding: 30px 16px;
   }
 
   .rites-empty {
     display: flex;
     flex-direction: column;
     gap: 40px;
-    padding: 20px 14px 10px;
+    padding: 16px;
     border-radius: 16px;
     background: var(--rites-empty-bg);
 
@@ -609,7 +610,7 @@ onBeforeUnmount(() => {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 10px;
+    padding: 16px;
     border-radius: 8px;
     background: var(--rites-card-bg);
 

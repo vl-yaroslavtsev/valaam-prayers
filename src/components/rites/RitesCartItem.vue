@@ -120,7 +120,7 @@ const shortName = computed(() => (item.type ? formatShortName(item.type.shortNam
   position: relative;
   padding: var(--rite-card-padding);
   border: 1px solid transparent;
-  border-radius: 8px;
+  border-radius: 16px;
   background: var(--rites-card-bg);
   list-style: none;
   color: var(--rites-text);
@@ -133,7 +133,7 @@ const shortName = computed(() => (item.type ? formatShortName(item.type.shortNam
     display: grid;
     grid-template-columns: 24px minmax(0, 1fr) auto;
     column-gap: 16px;
-    align-items: center;
+    align-items: start;
   }
 
   &__select {

@@ -11,14 +11,6 @@
     <div class="swipe-handler"></div>
     <div class="history-filter-sheet__header">
       <h2 class="history-filter-sheet__title">Фильтры</h2>
-      <f7-link
-        class="history-filter-sheet__close"
-        icon-only
-        aria-label="Закрыть"
-        @click="opened = false"
-      >
-        <SvgIcon icon="cancel" :size="12" color="primary-accent-50" />
-      </f7-link>
     </div>
 
     <div class="history-filter-sheet__fields">
@@ -51,7 +43,6 @@ import { ref } from "vue";
 import RitesHistorySelect, {
   type HistorySelectOption,
 } from "@/components/rites/RitesHistorySelect.vue";
-import SvgIcon from "@/components/SvgIcon.vue";
 
 defineProps<{
   typeOptions: HistorySelectOption[];
@@ -85,15 +76,11 @@ function apply(): void {
   --rites-text: var(--content-color-black-primary);
   --rites-field-border: var(--content-color-black-20);
   --rites-field-bg: transparent;
-  --history-close-bg: var(--brand-color-secondary-accent);
 
   color: var(--rites-text);
 
   &__header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 40px 10px 0;
+    padding: 32px 16px 0;
   }
 
   &__title {
@@ -103,23 +90,15 @@ function apply(): void {
     font-weight: 700;
   }
 
-  &__close.link {
-    width: 32px;
-    height: 32px;
-    justify-content: center;
-    border-radius: 50%;
-    background: var(--history-close-bg);
-  }
-
   &__fields {
     display: flex;
     flex-direction: column;
-    gap: 10px;
-    padding: 30px 10px 40px;
+    gap: 16px;
+    padding: 24px 16px;
   }
 
   &__footer {
-    padding: 0 10px calc(10px + var(--f7-safe-area-bottom));
+    padding: 0 16px calc(16px + var(--f7-safe-area-bottom));
   }
 
   .history-filter-sheet__apply.button {
@@ -137,10 +116,5 @@ function apply(): void {
 .dark .history-filter-sheet {
   --rites-text: var(--content-color-white-100);
   --rites-field-border: var(--content-color-baige-30);
-  --history-close-bg: var(--brand-color-secondary-accent);
-
-  .history-filter-sheet__close .icon {
-    color: var(--brand-color-primary-accent-30);
-  }
 }
 </style>

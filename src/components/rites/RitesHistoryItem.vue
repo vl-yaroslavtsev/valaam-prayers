@@ -47,7 +47,7 @@
       </f7-button>
       <f7-button
         v-else
-        fill
+        tonal
         large
         class="history-item__button"
         :aria-label="`Подать ещё раз записку №${item.number}`"
@@ -106,7 +106,7 @@ const shortName = computed(() => (item.type ? formatShortName(item.type.shortNam
   &__head {
     display: flex;
     flex-direction: column;
-    padding: 20px 25px;
+    padding: 16px;
     border-bottom: 1px solid var(--history-divider);
   }
 
@@ -148,7 +148,7 @@ const shortName = computed(() => (item.type ? formatShortName(item.type.shortNam
     display: flex;
     flex-direction: column;
     gap: 30px;
-    padding: 20px 25px;
+    padding: 16px;
   }
 
   &__details {
