@@ -85,9 +85,6 @@ function apply(): void {
   --rites-text: var(--content-color-black-primary);
   --rites-field-border: var(--content-color-black-20);
   --rites-field-bg: transparent;
-  --rites-pay-bg: var(--content-color-black-primary);
-  --rites-pay-text: var(--content-color-white-100);
-  --rites-pay-border: var(--content-color-baige-5);
   --history-close-bg: var(--brand-color-secondary-accent);
 
   color: var(--rites-text);
@@ -128,11 +125,7 @@ function apply(): void {
   .history-filter-sheet__apply.button {
     --f7-button-height: 52px;
     --f7-button-border-radius: 10px;
-    --f7-button-bg-color: var(--rites-pay-bg);
-    --f7-button-fill-bg-color: var(--rites-pay-bg);
-    --f7-button-fill-text-color: var(--rites-pay-text);
 
-    border: 1px solid var(--rites-pay-border);
     font-size: 14px;
     line-height: 18px;
     font-weight: 700;
@@ -144,9 +137,6 @@ function apply(): void {
 .dark .history-filter-sheet {
   --rites-text: var(--content-color-white-100);
   --rites-field-border: var(--content-color-baige-30);
-  --rites-pay-bg: var(--content-color-white-100);
-  --rites-pay-text: var(--content-color-black-primary);
-  --rites-pay-border: var(--content-color-black-10);
   --history-close-bg: var(--brand-color-secondary-accent);
 
   .history-filter-sheet__close .icon {

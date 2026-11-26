@@ -106,11 +106,11 @@ const namesText = computed(() => formatNames(item.names));
 const shortName = computed(() => (item.type ? formatShortName(item.type.shortName) : ""));
 </script>
 
-<style lang="less">
+<style scoped lang="less">
 // Мобильная карточка: треба и чип, под ними имена, затем номер, период и действия с суммой.
 // На планшете те же узлы собираются в строку таблицы: номер остаётся у чекбокса, сумма уходит в свою колонку.
 .rite-card {
-  --rite-card-padding: 10px;
+  --rite-card-padding: 16px;
 
   position: relative;
   padding: var(--rite-card-padding);
@@ -185,8 +185,8 @@ const shortName = computed(() => (item.type ? formatShortName(item.type.shortNam
   &__row {
     display: flex;
     gap: 6px;
-    font-size: 14px;
-    line-height: 16px;
+    font-size: 16px;//14px;
+    line-height: 18px;//16px;
   }
 
   &__label {
@@ -234,8 +234,8 @@ const shortName = computed(() => (item.type ? formatShortName(item.type.shortNam
     padding: 0;
     justify-content: flex-start;
     color: var(--rites-accent);
-    font-size: 14px;
-    line-height: 18px;
+    font-size: 16px;//14px;
+    line-height: 20px;//18px;
     font-weight: 400;
     text-transform: none;
     letter-spacing: normal;

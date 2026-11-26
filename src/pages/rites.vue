@@ -40,7 +40,7 @@
           </p>
         </div>
         <div class="rites-empty__actions">
-          <f7-button fill large class="rites-primary-button" @click="openPopup('create')">
+          <f7-button fill large @click="openPopup('create')">
             Подать записку
           </f7-button>
           <f7-button outline large @click="onHistory">История записок</f7-button>
@@ -443,9 +443,6 @@ onBeforeUnmount(() => {
   --rites-field-border: var(--content-color-black-20);
   --rites-field-bg: var(--content-color-white-100);
   --rites-field-placeholder: var(--content-color-black-60);
-  --rites-pay-bg: var(--content-color-black-primary);
-  --rites-pay-text: var(--content-color-white-100);
-  --rites-pay-border: var(--content-color-baige-5);
   --rites-select-text: #333;
   --rites-select-link: var(--content-color-black-60);
   --rites-empty-bg: var(--content-color-white-100);
@@ -467,9 +464,6 @@ onBeforeUnmount(() => {
   --rites-field-border: var(--content-color-baige-30);
   --rites-field-bg: var(--content-color-black-secondary);
   --rites-field-placeholder: var(--content-color-baige-60);
-  --rites-pay-bg: var(--content-color-white-100);
-  --rites-pay-text: var(--content-color-black-primary);
-  --rites-pay-border: var(--content-color-black-10);
   --rites-select-text: var(--content-color-baige-90);
   --rites-select-link: var(--content-color-baige-60);
   --rites-empty-bg: var(--content-color-black-secondary);
@@ -481,8 +475,8 @@ onBeforeUnmount(() => {
     box-sizing: border-box;
     display: flex;
     flex-direction: column;
-    gap: 20px;
-    padding: 20px 10px 30px;
+    gap: 30px;
+    padding: 20px 16px 30px;
     color: var(--rites-text);
   }
 
@@ -611,12 +605,6 @@ onBeforeUnmount(() => {
     --f7-button-border-width: 1px;
   }
 
-  .rites-primary-button.button-fill {
-    --f7-button-bg-color: var(--rites-pay-bg);
-    --f7-button-fill-bg-color: var(--rites-pay-bg);
-    --f7-button-fill-text-color: var(--rites-pay-text);
-  }
-
   .rites-select {
     display: flex;
     align-items: center;
@@ -663,7 +651,7 @@ onBeforeUnmount(() => {
     ul {
       display: flex;
       flex-direction: column;
-      gap: 10px;
+      gap: 16px;
       padding: 0;
       background: none;
 
@@ -711,7 +699,7 @@ onBeforeUnmount(() => {
       left: 50%;
       width: 14px;
       height: 1.5px;
-      background: var(--content-color-white-100);
+      background: var(--f7-button-fill-text-color);
       transform: translate(-50%, -50%);
     }
 
@@ -751,6 +739,10 @@ onBeforeUnmount(() => {
     display: flex;
     flex-direction: column;
     gap: 16px;
+
+    .rites-pay {
+      margin-top: 14px;
+    } 
   }
 
   .rites-email {
@@ -831,14 +823,6 @@ onBeforeUnmount(() => {
     font-size: 14px; // 12px;
     line-height: 16px;
     color: var(--rites-note);
-  }
-
-  .rites-pay.button-fill {
-    --f7-button-bg-color: var(--rites-pay-bg);
-    --f7-button-fill-bg-color: var(--rites-pay-bg);
-    --f7-button-fill-text-color: var(--rites-pay-text);
-
-    border: 1px solid var(--rites-pay-border);
   }
 }
 

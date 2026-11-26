@@ -49,7 +49,7 @@
         v-else
         fill
         large
-        class="history-item__button history-item__button--fill"
+        class="history-item__button"
         :aria-label="`Подать ещё раз записку №${item.number}`"
         @click="emit('copy')"
       >
@@ -179,9 +179,6 @@ const shortName = computed(() => (item.type ? formatShortName(item.type.shortNam
   .history-item__button.button {
     --f7-button-height: 52px;
     --f7-button-border-radius: 10px;
-    --f7-button-border-color: var(--rites-text);
-    --f7-button-text-color: var(--rites-text);
-    --f7-button-border-width: 1px;
 
     padding: 0 30px;
     font-size: 14px;
@@ -191,16 +188,10 @@ const shortName = computed(() => (item.type ? formatShortName(item.type.shortNam
     text-transform: uppercase;
   }
 
-  .history-item__button--fill.button {
-    --f7-button-bg-color: var(--rites-pay-bg);
-    --f7-button-fill-bg-color: var(--rites-pay-bg);
-    --f7-button-fill-text-color: var(--rites-pay-text);
-    --f7-button-text-color: var(--rites-pay-text);
-    // Ссылка .dark a перекрывает color у .button, поэтому цвет задаём явно
-    color: var(--rites-pay-text);
-    background-color: var(--rites-pay-bg);
-
-    border: 1px solid var(--rites-pay-border);
+  .history-item__button.button-outline {
+    --f7-button-border-color: var(--rites-text);
+    --f7-button-text-color: var(--rites-text);
+    --f7-button-border-width: 1px;
   }
 }
 

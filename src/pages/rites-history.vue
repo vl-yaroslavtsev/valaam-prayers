@@ -43,7 +43,7 @@
           </p>
         </div>
         <div class="rites-empty__actions">
-          <f7-button fill large class="rites-primary-button" @click="openPopup('create')">
+          <f7-button fill large @click="openPopup('create')">
             Подать записку
           </f7-button>
         </div>

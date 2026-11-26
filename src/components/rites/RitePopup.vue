@@ -698,7 +698,7 @@ async function submit(): Promise<void> {
 }
 </script>
 
-<style lang="less">
+<style scoped lang="less">
 .rite-popup {
   // Иначе попап сидит внутри прокручиваемой страницы и уезжает, когда фокус попадает в поле шторки
   &.popup {
@@ -881,25 +881,25 @@ async function submit(): Promise<void> {
     max-width: 100%;
     margin: 0 auto 20px; //10px;
     cursor: pointer;
+  }
 
-    &__icon {
-      flex: none;
-    }
+  :deep( .rite-date__input) {
+    width: auto;
+    max-width: 100%;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    field-sizing: content;
+    font-size: 16px;
+    line-height: 18px;
+    color: var(--rite-text);
+    text-align: center;
+    cursor: pointer;
+    -webkit-appearance: none;
+  }
 
-    &__input {
-      width: auto;
-      max-width: 100%;
-      padding: 0;
-      border: 0;
-      background: transparent;
-      field-sizing: content;
-      font-size: 16px;
-      line-height: 18px;
-      color: var(--rite-text);
-      text-align: center;
-      cursor: pointer;
-      -webkit-appearance: none;
-    }
+  :deep( .rite-date__icon) {
+    flex: none;
   }
 
   .rite-footer {
@@ -980,12 +980,11 @@ async function submit(): Promise<void> {
   .rite-submit.button {
     --f7-button-height: 52px;
     --f7-button-border-radius: 10px;
-    --f7-button-bg-color: var(--content-color-black-primary);
-    --f7-button-fill-bg-color: var(--content-color-black-primary);
-    --f7-button-fill-text-color: #fff;
+    --f7-button-fill-bg-color: var(--button-fill-light-bg);
+    --f7-button-fill-text-color: var(--button-fill-light-text);
+    --f7-touch-ripple-color: var(--f7-touch-ripple-white);
 
     padding: 0 30px;
-    border: 1px solid rgba(241, 241, 241, 0.05);
     font-size: 14px;
     line-height: 18px;
     font-weight: 700;
