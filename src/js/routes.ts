@@ -12,7 +12,6 @@ import DayPage from "../pages/day.vue";
 import SaintPage from "../pages/saint.vue";
 import SearchPage from "../pages/search.vue";
 import RitesPage from "../pages/rites.vue";
-import RitesHistoryPage from "../pages/rites-history.vue";
 import RitesTestPage from "../pages/rites-test.vue";
 import SettingsPage from "../pages/settings.vue";
 import SettingsTestPage from "../pages/settingsTest.vue";
@@ -108,7 +107,7 @@ const routes: Router.RouteParameters[] = [
   {
     // Ссылка из письма: #rites:/my?EMAIL=addr|hash
     path: "/rites/my/",
-    component: RitesHistoryPage,
+    component: RitesPage,
     options: {
       transition: "fade-slide",
     },

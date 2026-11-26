@@ -2,152 +2,218 @@
   <f7-page
     name="rites"
     class="rites-page"
+    :page-content="false"
     @page:beforein="onPageBeforeIn"
     @page:afterin="onPageShown"
     @page:tabshow="onPageShown"
     @page:beforeout="isActive = false"
     @page:tabhide="isActive = false"
   >
-    <f7-navbar large transparent>
+    <f7-navbar no-hairline>
       <f7-nav-left :back-link="!isFirstPage">
         <f7-link v-if="isFirstPage" panel-open="left" v-html="BurgerIcon"></f7-link>
       </f7-nav-left>
-      <f7-nav-title sliding>Корзина записок</f7-nav-title>
-      <f7-nav-title-large>Корзина записок</f7-nav-title-large>
+      <f7-nav-title>Записки</f7-nav-title>
+      <f7-nav-right v-if="activeTab === 'history' && historyNav.showControls">
+        <div
+          class="history-nav-actions"
+          :class="{ 'history-nav-actions--visible': historyNav.showNavActions }"
+        >
+          <f7-link
+            icon-only
+            class="history-nav-action ripple-blur"
+            :tabindex="historyNav.showNavActions ? 0 : -1"
+            aria-label="Фильтры"
+            aria-haspopup="dialog"
+            @click="historyTabRef?.openFilters()"
+          >
+            <SvgIcon icon="sliders" :size="24" :color="navIconColor" />
+            <span
+              v-if="historyNav.isFilterActive"
+              class="history-nav-action__dot"
+              aria-hidden="true"
+            ></span>
+          </f7-link>
+          <f7-link
+            icon-only
+            class="history-nav-action ripple-blur"
+            :tabindex="historyNav.showNavActions ? 0 : -1"
+            popover-open=".history-order-popover"
+            :aria-label="`Сортировка: ${historyNav.currentOrderLabel}`"
+            aria-haspopup="listbox"
+          >
+            <SvgIcon icon="arrow-up-down" :size="24" :color="navIconColor" />
+          </f7-link>
+        </div>
+      </f7-nav-right>
     </f7-navbar>
 
-    <div class="rites-cart" :class="{ 'rites-cart--empty': isEmpty }">
-      <!-- Загрузка корзины -->
-      <div v-if="!store.isLoaded" class="rites-state" aria-busy="true">
-        <f7-skeleton-block class="rites-skeleton rites-skeleton--button" effect="wave" />
-        <f7-skeleton-block class="rites-skeleton rites-skeleton--select" effect="wave" />
-        <f7-skeleton-block class="rites-skeleton rites-skeleton--card" effect="wave" />
-        <f7-skeleton-block class="rites-skeleton rites-skeleton--card" effect="wave" />
-      </div>
+    <f7-toolbar tabbar top class="rites-tabbar">
+      <f7-link
+        class="rites-tabbar__link"
+        :tab-link-active="activeTab === 'cart'"
+        @click="selectTab('cart')"
+      >
+        <span>В корзине</span>
+        <span v-if="store.items.length > 0" class="rites-tabbar__badge">
+          {{ store.items.length }}
+        </span>
+      </f7-link>
+      <f7-link
+        class="rites-tabbar__link"
+        :tab-link-active="activeTab === 'history'"
+        @click="selectTab('history')"
+      >
+        <span>Поданные</span>
+      </f7-link>
+    </f7-toolbar>
 
-      <!-- Ошибка загрузки -->
-      <div v-else-if="store.loadError" class="rites-state rites-state--center">
-        <p class="rites-state__text">{{ store.loadError }}</p>
-        <f7-button outline large @click="store.load()">Повторить</f7-button>
-      </div>
-
-      <!-- Пустая корзина -->
-      <div v-else-if="isEmpty" class="rites-empty">
-        <div class="rites-empty__text">
-          <p class="rites-empty__title">Корзина записок пуста</p>
-          <p class="rites-empty__hint">
-            У Вас нет пожертвованных записок. Заполните форму подачи записки, и она появится здесь.
-          </p>
-        </div>
-        <div class="rites-empty__actions">
-          <f7-button fill large @click="openPopup('create')">
-            Подать записку
-          </f7-button>
-          <f7-button outline large @click="onHistory">Мои записки</f7-button>
-        </div>
-      </div>
-
-      <!-- Корзина -->
-      <template v-else>
-        <div class="rites-history">
-          <f7-button outline large @click="onHistory">Мои записки</f7-button>
+    <f7-page-content v-show="activeTab === 'cart'" class="rites-tab-content">
+      <div class="rites-cart" :class="{ 'rites-cart--empty': isEmpty }">
+        <!-- Загрузка корзины -->
+        <div v-if="!store.isLoaded" class="rites-state" aria-busy="true">
+          <f7-skeleton-block class="rites-skeleton rites-skeleton--select" effect="wave" />
+          <f7-skeleton-block class="rites-skeleton rites-skeleton--card" effect="wave" />
+          <f7-skeleton-block class="rites-skeleton rites-skeleton--card" effect="wave" />
         </div>
 
-        <div class="rites-select">
-          <label class="rites-select__all">
-            <f7-checkbox
-              :checked="store.allSelected"
-              aria-label="Выбрать все записки"
-              @change="store.allSelected = ($event.target as HTMLInputElement).checked"
-            />
-            <span>Выбрать все</span>
-          </label>
-          <f7-link
-            class="rites-select__remove"
-            :class="{ disabled: !store.anySelected }"
-            @click="store.removeSelected()"
-          >
-            Удалить выбранные
-          </f7-link>
+        <!-- Ошибка загрузки -->
+        <div v-else-if="store.loadError" class="rites-state rites-state--center">
+          <p class="rites-state__text">{{ store.loadError }}</p>
+          <f7-button outline large @click="store.load()">Повторить</f7-button>
         </div>
 
-        <!-- Шапка таблицы: только на планшете -->
-        <div class="rites-table-head" aria-hidden="true">
-          <span class="rites-table-head__number">Номер</span>
-          <span class="rites-table-head__type">Поминовение</span>
-          <span class="rites-table-head__period">Период</span>
-          <span class="rites-table-head__names">Имена</span>
-          <span class="rites-table-head__sum">Сумма</span>
-        </div>
-
-        <f7-list class="rites-list" no-hairlines no-hairlines-between>
-          <template #list>
-            <!-- Без tag: список остаётся прямым потомком ul, а удаление и возврат записки анимируются хуками -->
-            <TransitionGroup
-              :css="false"
-              @before-enter="onItemBeforeEnter"
-              @enter="onItemEnter"
-              @leave="onItemLeave"
-            >
-              <RitesCartItem
-                v-for="item in store.items"
-                :key="item.id"
-                :item="item"
-                @toggle="item.checked = $event"
-                @edit="openPopup('edit', item)"
-                @copy="openPopup('copy', item)"
-                @remove="store.removeItems([item.id])"
-              />
-            </TransitionGroup>
-          </template>
-        </f7-list>
-
-        <div class="rites-summary">
-          <f7-link class="rites-add" @click="openPopup('create')">
-            <span class="rites-add__icon" aria-hidden="true"></span>
-            <span>Добавить записку</span>
-          </f7-link>
-
-          <div class="rites-total">
-            <span class="rites-total__label">Всего:</span>
-            <span class="rites-total__sum">{{ formatPrice(store.total) }}&nbsp;₽</span>
+        <!-- Пустая корзина -->
+        <div v-else-if="isEmpty" class="rites-empty">
+          <div class="rites-empty__text">
+            <p class="rites-empty__title">Корзина записок пуста</p>
+            <p class="rites-empty__hint">
+              У Вас нет пожертвованных записок. Заполните форму подачи записки, и она появится здесь.
+            </p>
+          </div>
+          <div class="rites-empty__actions">
+            <f7-button fill large @click="openPopup('create')">
+              Подать записку
+            </f7-button>
           </div>
         </div>
 
-        <form class="rites-form" novalidate @submit.prevent="onPay">
-          <f7-list class="rites-email" no-hairlines>
-            <f7-list-input
-              v-model:value="email"
-              type="email"
-              name="email"
-              label="Электронная почта"
-              placeholder="Введите электронную почту"
-              autocomplete="email"
-              inputmode="email"
-              :error-message="emailErrorText"
-              :error-message-force="emailError"
-              @input="emailError = false"
-            />
+        <!-- Корзина -->
+        <template v-else>
+          <div class="rites-select">
+            <label class="rites-select__all">
+              <f7-checkbox
+                :checked="store.allSelected"
+                aria-label="Выбрать все записки"
+                @change="store.allSelected = ($event.target as HTMLInputElement).checked"
+              />
+              <span>Выбрать все</span>
+            </label>
+            <f7-link
+              class="rites-select__remove"
+              :class="{ disabled: !store.anySelected }"
+              @click="store.removeSelected()"
+            >
+              Удалить выбранные
+            </f7-link>
+          </div>
+
+          <!-- Шапка таблицы: только на планшете -->
+          <div class="rites-table-head" aria-hidden="true">
+            <span class="rites-table-head__number">Номер</span>
+            <span class="rites-table-head__type">Поминовение</span>
+            <span class="rites-table-head__period">Период</span>
+            <span class="rites-table-head__names">Имена</span>
+            <span class="rites-table-head__sum">Сумма</span>
+          </div>
+
+          <f7-list class="rites-list" no-hairlines no-hairlines-between>
+            <template #list>
+              <!-- Без tag: список остаётся прямым потомком ul, а удаление и возврат записки анимируются хуками -->
+              <TransitionGroup
+                :css="false"
+                @before-enter="onItemBeforeEnter"
+                @enter="onItemEnter"
+                @leave="onItemLeave"
+              >
+                <RitesCartItem
+                  v-for="item in store.items"
+                  :key="item.id"
+                  :item="item"
+                  @toggle="item.checked = $event"
+                  @edit="openPopup('edit', item, 'cart')"
+                  @copy="openPopup('copy', item, 'cart')"
+                  @remove="store.removeItems([item.id])"
+                />
+              </TransitionGroup>
+            </template>
           </f7-list>
 
-          <p class="rites-note">
-            При возникновении вопросов пишите нам на <b>rites@valaam.ru</b>
-          </p>
+          <div class="rites-summary">
+            <f7-link class="rites-add" @click="openPopup('create')">
+              <span class="rites-add__icon" aria-hidden="true"></span>
+              <span>Добавить записку</span>
+            </f7-link>
 
-          <f7-button
-            fill
-            large
-            type="submit"
-            class="rites-pay"
-            :disabled="isSubmitting"
-            :preloader="isSubmitting"
-            :loading="isSubmitting"
-          >
-            Пожертвовать
-          </f7-button>
-        </form>
-      </template>
-    </div>
+            <div class="rites-total">
+              <span class="rites-total__label">Всего:</span>
+              <span class="rites-total__sum">{{ formatPrice(store.total) }}&nbsp;₽</span>
+            </div>
+          </div>
+
+          <form class="rites-form" novalidate @submit.prevent="onPay">
+            <f7-list class="rites-email" no-hairlines>
+              <f7-list-input
+                v-model:value="email"
+                type="email"
+                name="email"
+                label="Электронная почта"
+                placeholder="Введите электронную почту"
+                autocomplete="email"
+                inputmode="email"
+                :error-message="emailErrorText"
+                :error-message-force="emailError"
+                @input="emailError = false"
+              />
+            </f7-list>
+
+            <p class="rites-note">
+              При возникновении вопросов пишите нам на <b>rites@valaam.ru</b>
+            </p>
+
+            <f7-button
+              fill
+              large
+              type="submit"
+              class="rites-pay"
+              :disabled="isSubmitting"
+              :preloader="isSubmitting"
+              :loading="isSubmitting"
+            >
+              Пожертвовать
+            </f7-button>
+          </form>
+        </template>
+      </div>
+    </f7-page-content>
+
+    <f7-page-content
+      v-show="activeTab === 'history'"
+      class="rites-tab-content"
+      infinite
+      :infinite-distance="200"
+      :infinite-preloader="historyNav.hasMore"
+      @infinite="historyTabRef?.loadMore()"
+    >
+      <RitesHistoryTab
+        ref="historyTabRef"
+        :active="activeTab === 'history'"
+        @create="openPopup('create')"
+        @edit="openPopup('edit', $event, 'history')"
+        @copy="openPopup('copy', $event, 'history')"
+        @nav-state="historyNav = $event"
+      />
+    </f7-page-content>
 
     <RitePopup
       v-model:opened="popupOpened"
@@ -163,8 +229,11 @@ import { f7 } from "framework7-vue";
 import type { Dialog, Router, Toast } from "framework7/types";
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import BurgerIcon from "@/assets/icons/burger.svg?raw";
+import SvgIcon from "@/components/SvgIcon.vue";
 import RitePopup, { type RitePopupMode } from "@/components/rites/RitePopup.vue";
 import RitesCartItem from "@/components/rites/RitesCartItem.vue";
+import RitesHistoryTab, { type HistoryNavState } from "@/components/rites/RitesHistoryTab.vue";
+import { useTheme } from "@/composables/useTheme";
 import {
   getSavedEmail,
   rememberConfirmedEmail,
@@ -177,17 +246,47 @@ import { onItemBeforeEnter, onItemEnter, onItemLeave } from "@/services/rites/co
 import { closeOpenToast, syncUndoToast } from "@/services/rites/undoToast";
 import { formatPrice, isValidEmail } from "@/services/rites/ritesFormat";
 import { payRites, prepareRitesPayment } from "@/services/rites/ritesPayment";
-import { ERROR_VISIBLE_MS, useRitesCartStore, type CartItem } from "@/stores/ritesCart";
+import {
+  ERROR_VISIBLE_MS,
+  useRitesCartStore,
+  type RitesTab,
+} from "@/stores/ritesCart";
 
 const { f7router, f7route } = defineProps<{
   f7router: Router.Router;
   f7route: Router.Route;
 }>();
 
-// Ссылка может открыть корзину с ?EMAIL=: запоминаем до первого чтения поля
+// Ссылка может открыть страницу с ?EMAIL=: запоминаем до первого чтения поля
 rememberConfirmedEmail(f7route.query.EMAIL);
 
 const store = useRitesCartStore();
+const { isDarkMode } = useTheme();
+const navIconColor = computed(() => (isDarkMode.value ? "white" : "black-primary"));
+
+if (f7route.path === "/rites/my/") {
+  store.setActiveTab("history");
+}
+
+const activeTab = computed(() => store.activeTab);
+const historyTabRef = ref<InstanceType<typeof RitesHistoryTab> | null>(null);
+const historyNav = ref<HistoryNavState>({
+  showControls: false,
+  showNavActions: false,
+  isFilterActive: false,
+  currentOrderLabel: "Сначала новые",
+  hasMore: false,
+});
+
+function selectTab(tab: RitesTab): void {
+  store.setActiveTab(tab);
+}
+
+watch(activeTab, (tab) => {
+  if (tab === "history") {
+    historyTabRef.value?.refresh();
+  }
+});
 
 const isEmpty = computed(
   () => store.isLoaded && !store.loadError && store.items.length === 0,
@@ -195,7 +294,7 @@ const isEmpty = computed(
 
 // Корневая страница вкладки открывает левую панель, открытая из панели — кнопку «Назад»
 const isFirstPage = ref(true);
-// Страница на экране: возврат в приложение обновляет корзину только на ней
+// Страница на экране: возврат в приложение обновляет данные только на ней
 const isActive = ref(false);
 const onPageBeforeIn = () => {
   isFirstPage.value = f7router.history.length <= 1;
@@ -209,6 +308,7 @@ const isSubmitting = ref(false);
 const popupOpened = ref(false);
 const popupMode = ref<RitePopupMode>("create");
 const popupItem = ref<Rite | null>(null);
+const popupSource = ref<RitesTab>("cart");
 
 let undoToast: Toast.Toast | null = null;
 let errorToast: Toast.Toast | null = null;
@@ -252,25 +352,34 @@ function onPageShown(): void {
   if (!email.value.trim()) email.value = getSavedEmail();
   void refreshCart();
   void prepareRitesPayment();
+  if (activeTab.value === "history") {
+    historyTabRef.value?.refresh();
+  }
 }
 
-function onHistory(): void {
-  f7router.navigate("/rites/my/");
-}
-
-function openPopup(mode: RitePopupMode, item: CartItem | null = null): void {
+function openPopup(
+  mode: RitePopupMode,
+  item: Rite | null = null,
+  source: RitesTab = activeTab.value,
+): void {
   popupMode.value = mode;
   popupItem.value = item;
+  popupSource.value = source;
   popupOpened.value = true;
 }
 
 function onRiteSaved(rite: Rite): void {
-  if (popupMode.value === "edit") {
-    store.updateItem(rite);
-  } else {
-    store.addItem(rite);
-  }
   popupOpened.value = false;
+  if (popupMode.value === "edit") {
+    if (popupSource.value === "history") {
+      historyTabRef.value?.applyEdited(rite);
+    } else {
+      store.updateItem(rite);
+    }
+    return;
+  }
+  store.addItem(rite);
+  store.setActiveTab("cart");
 }
 
 function openUndoToast(text: string): Toast.Toast {
@@ -414,6 +523,9 @@ const onVisibilityChange = () => {
   } else if (isActive.value) {
     // Вернулись в приложение, возможно на следующий день: даты могли устареть
     void refreshCart();
+    if (activeTab.value === "history") {
+      historyTabRef.value?.refresh();
+    }
   }
 };
 
@@ -471,19 +583,131 @@ onBeforeUnmount(() => {
 }
 
 .rites-page {
+  --f7-navbar-bg-color: var(--rites-bg);
+  --f7-navbar-border-color: transparent;
+
+  .navbar .title {
+    font-weight: 700;
+  }
+
+  .history-nav-actions {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    opacity: 0;
+    transform: translateY(-4px) scale(0.92);
+    pointer-events: none;
+    transition: opacity 180ms ease, transform 180ms ease;
+
+    &--visible {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+      pointer-events: auto;
+    }
+  }
+
+  .history-nav-action.link {
+    position: relative;
+    width: 40px;
+    height: 40px;
+    padding: 0;
+    overflow: hidden;
+    border-radius: 50%;
+  }
+
+  .history-nav-action__dot {
+    position: absolute;
+    top: 7px;
+    right: 7px;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--rites-accent);
+  }
+
+  .rites-tabbar {
+    --f7-toolbar-height: 48px;
+    --f7-toolbar-bg-color: var(--rites-bg);
+    --f7-toolbar-border-color: var(--rites-divider);
+    --f7-tabbar-link-text-transform: none;
+    --f7-tabbar-link-letter-spacing: normal;
+    --f7-tabbar-link-font-weight: 600;
+    --f7-tabbar-link-inactive-color: var(--rites-muted);
+    --f7-tabbar-link-active-color: var(--rites-text);
+
+    border-bottom: 1px solid var(--rites-divider);
+
+    .toolbar-inner {
+      padding: 0 16px;
+    }
+
+    .tab-link-highlight {
+      display: none;
+    }
+
+    &__link.link {
+      position: relative;
+      flex-direction: row;
+      gap: 6px;
+      height: 100%;
+      min-height: 0;
+      font-size: 15px;
+      line-height: 20px;
+
+      &.tab-link-active {
+        font-weight: 700;
+
+        &::after {
+          content: "";
+          position: absolute;
+          left: 8px;
+          right: 8px;
+          bottom: 0;
+          height: 3px;
+          border-radius: 3px 3px 0 0;
+          background: var(--rites-accent);
+        }
+      }
+    }
+
+    &__badge {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 20px;
+      height: 20px;
+      padding: 0 6px;
+      border-radius: 10px;
+      background: var(--button-tonal-light-bg);
+      color: var(--button-tonal-light-text);
+      font-size: 12px;
+      line-height: 1;
+      font-weight: 700;
+    }
+
+    .tab-link-active .rites-tabbar__badge {
+      background: var(--rites-accent);
+      color: var(--f7-button-fill-text-color);
+    }
+  }
+
+  .rites-tab-content {
+    --f7-toolbar-height: 48px;
+  }
+
   .rites-cart {
     box-sizing: border-box;
     display: flex;
     flex-direction: column;
-    gap: 30px;
-    padding: 20px 16px 30px;
+    gap: 24px;
+    padding: 16px 16px 30px;
     color: var(--rites-text);
   }
 
   .rites-state {
     display: flex;
     flex-direction: column;
-    gap: 20px;
+    gap: 16px;
 
     &--center {
       align-items: center;
@@ -509,12 +733,6 @@ onBeforeUnmount(() => {
   .rites-skeleton {
     border-radius: 8px;
 
-    &--button {
-      height: 52px;
-      width: 190px;
-      align-self: center;
-    }
-
     &--select {
       height: 44px;
     }
@@ -525,9 +743,9 @@ onBeforeUnmount(() => {
     }
   }
 
-  // Пустая корзина: карточка с текстом и двумя кнопками
+  // Пустая корзина: карточка с текстом и кнопкой
   .rites-cart--empty {
-    padding: 30px 16px;
+    padding: 24px 16px 30px;
   }
 
   .rites-empty {
@@ -575,7 +793,6 @@ onBeforeUnmount(() => {
   // Кнопки: контур и заливка по макету
   .rites-state .button,
   .rites-empty .button,
-  .rites-history .button,
   .rites-pay.button {
     --f7-button-height: 52px;
     --f7-button-border-radius: 10px;
@@ -586,17 +803,6 @@ onBeforeUnmount(() => {
     font-weight: 700;
     letter-spacing: 0.7px;
     text-transform: uppercase;
-  }
-
-  .rites-history {
-    display: flex;
-    justify-content: center;
-
-    .button {
-      --f7-button-border-color: var(--rites-text);
-      --f7-button-text-color: var(--rites-text);
-      --f7-button-border-width: 1px;
-    }
   }
 
   .rites-state .button-outline,
@@ -827,19 +1033,29 @@ onBeforeUnmount(() => {
   }
 }
 
+.dark .rites-page {
+  .rites-tabbar__badge {
+    background: var(--button-tonal-dark-bg);
+    color: var(--button-tonal-dark-text);
+  }
+}
+
 @media (min-width: 744px) {
   .rites-page {
-    --f7-navbar-large-title-font-size: 32px;
-    --f7-navbar-large-title-line-height: 34px;
+    .rites-tabbar .toolbar-inner {
+      right: 0;
+      max-width: 924px;
+      margin: 0 auto;
+      padding: 0 30px;
+    }
 
     .rites-cart {
       max-width: 924px;
       margin: 0 auto;
-      padding: 30px;
-      gap: 30px;
+      padding: 24px 30px 30px;
+      gap: 24px;
     }
 
-    .rites-history .button,
     .rites-empty .button-outline {
       padding: 0 64px;
       font-size: 14px; // 12px;

@@ -19,6 +19,8 @@ export const ERROR_VISIBLE_MS = 15000;
 /** Ограничения дат на сервере меняются редко: не запрашиваем чаще */
 const RESTRICTIONS_TTL_MS = 10 * 60 * 1000;
 
+export type RitesTab = "cart" | "history";
+
 export interface CartItem extends Rite {
   checked: boolean;
   errors: ApiError[];
@@ -27,10 +29,15 @@ export interface CartItem extends Rite {
 const toCartItem = (rite: Rite, checked = true): CartItem => ({ ...rite, checked, errors: [] });
 
 export const useRitesCartStore = defineStore("ritesCart", () => {
+  const activeTab = ref<RitesTab>("cart");
   const items = ref<CartItem[]>([]);
   const isLoaded = ref(false);
   const isLoading = ref(false);
   const loadError = ref<string | null>(null);
+
+  function setActiveTab(tab: RitesTab): void {
+    activeTab.value = tab;
+  }
 
   /** Убраны из списка, но на сервере ещё есть: до таймаута можно вернуть */
   const pendingDeleted = ref<CartItem[]>([]);
@@ -231,6 +238,8 @@ export const useRitesCartStore = defineStore("ritesCart", () => {
   }
 
   return {
+    activeTab,
+    setActiveTab,
     items,
     isLoaded,
     isLoading,

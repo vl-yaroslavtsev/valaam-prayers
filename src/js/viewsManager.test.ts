@@ -14,6 +14,7 @@ vi.mock("framework7-vue", () => ({
 }));
 
 import {
+  isRitesHistoryUrl,
   navigateWhenReady,
   openViewUrl,
   parseCalendarDayUrl,
@@ -75,6 +76,20 @@ describe("parseCalendarDayUrl", () => {
     expect(parseCalendarDayUrl("/days/20261031/readings/105194")).toBeNull();
     expect(parseCalendarDayUrl("/days/20261031/text/thought")).toBeNull();
     expect(parseCalendarDayUrl("/saints/42")).toBeNull();
+  });
+});
+
+describe("isRitesHistoryUrl", () => {
+  it("распознаёт ссылки на вкладку «Мои записки» с параметрами и без", () => {
+    expect(isRitesHistoryUrl("/my")).toBe(true);
+    expect(isRitesHistoryUrl("/my?EMAIL=user@example.com|abc")).toBe(true);
+    expect(isRitesHistoryUrl("/rites/my/")).toBe(true);
+    expect(isRitesHistoryUrl("/rites/my/?EMAIL=user@example.com|abc")).toBe(true);
+  });
+
+  it("не путает с другими маршрутами раздела записок", () => {
+    expect(isRitesHistoryUrl("/rites/")).toBe(false);
+    expect(isRitesHistoryUrl("/rites/test/")).toBe(false);
   });
 });
 

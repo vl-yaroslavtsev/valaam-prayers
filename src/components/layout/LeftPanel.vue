@@ -72,8 +72,9 @@ import SeparatorLine from "../SeparatorLine.vue";
 
 import { f7 } from "framework7-vue";
 import { computed } from "vue";
-import { openViewUrl } from "@/js/viewsManager";
+import { returnToRootWhenReady } from "@/js/viewsManager";
 import { useTheme } from "@/composables/useTheme";
+import { useRitesCartStore } from "@/stores/ritesCart";
 import { useSettingsStore } from "@/stores/settings";
 
 const props = defineProps<{
@@ -82,7 +83,12 @@ const props = defineProps<{
 }>();
 
 const openMyRites = (): void => {
-  openViewUrl("rites", "/rites/my/");
+  useRitesCartStore().setActiveTab("history");
+  f7.tab.show("#view-rites");
+  const view = f7.view.get("#view-rites");
+  if (view && view.router.history.length > 1) {
+    returnToRootWhenReady(view.router);
+  }
 };
 
 const updateApp = (): void => {

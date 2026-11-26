@@ -1,202 +1,141 @@
 <template>
-  <f7-page
-    name="rites-history"
-    class="rites-page history-page"
-    infinite
-    :infinite-distance="200"
-    :infinite-preloader="hasMore"
-    @infinite="loadMore"
-    @page:beforein="onPageBeforeIn"
-    @page:afterin="onPageShown"
-  >
-    <f7-navbar large transparent>
-      <f7-nav-left :back-link="!isFirstPage">
-        <f7-link v-if="isFirstPage" panel-open="left" v-html="BurgerIcon"></f7-link>
-      </f7-nav-left>
-      <f7-nav-title sliding>Мои записки</f7-nav-title>
-      <f7-nav-right v-if="showControls">
-        <div
-          class="history-nav-actions"
-          :class="{ 'history-nav-actions--visible': showNavActions }"
-        >
+  <div ref="rootRef" class="history" :class="{ 'history--empty': isEmptyHistory }">
+    <!-- Первая загрузка -->
+    <div v-if="!isLoaded && !error" class="history-state" aria-busy="true">
+      <f7-skeleton-block class="history-skeleton history-skeleton--filters" effect="wave" />
+      <f7-skeleton-block
+        v-if="isTablet"
+        class="history-skeleton history-skeleton--alert"
+        effect="wave"
+      />
+      <f7-skeleton-block class="history-skeleton history-skeleton--card" effect="wave" />
+      <f7-skeleton-block class="history-skeleton history-skeleton--card" effect="wave" />
+    </div>
+
+    <!-- Ошибка первой загрузки -->
+    <div v-else-if="error && !isLoaded" class="history-state history-state--center">
+      <p class="history-state__text">{{ error }}</p>
+      <f7-button outline large class="history-button" @click="loadFirst()">Повторить</f7-button>
+    </div>
+
+    <!-- История пуста: нет записок и фильтр не задан -->
+    <div v-else-if="isEmptyHistory" class="rites-empty">
+      <div class="rites-empty__text">
+        <p class="rites-empty__title">Записок нет</p>
+        <p class="rites-empty__hint">
+          Если Вы подавали записки ранее, то можете перейти в историю записок по ссылке из
+          сообщения, отправленного на указанную Вами почту при оформлении записок.
+        </p>
+      </div>
+      <div class="rites-empty__actions">
+        <f7-button fill large @click="emit('create')">
+          Подать записку
+        </f7-button>
+      </div>
+    </div>
+
+    <template v-else>
+      <!-- Фильтры и сортировка: на телефоне в одну строку, на планшете три поля в ряд -->
+      <div ref="filtersRef" class="history-filters" :class="{ 'history-filters--tablet': isTablet }">
+        <template v-if="isTablet">
+          <RitesHistorySelect
+            v-model="selectedType"
+            name="historyType"
+            label="Требы"
+            all-label="Все требы"
+            :options="typeOptions"
+          />
+          <RitesHistorySelect
+            v-model="selectedStatus"
+            name="historyStatus"
+            label="Статус"
+            all-label="Статус любой"
+            :options="statusOptions"
+          />
+          <RitesHistorySelect
+            v-model="order"
+            name="historyOrder"
+            label="Сортировка по дате"
+            icon="arrow-up-down"
+            :options="orderOptions"
+          />
           <f7-link
-            icon-only
-            class="history-nav-action ripple-blur"
-            :tabindex="showNavActions ? 0 : -1"
-            aria-label="Фильтры"
+            class="history-filters__reset history-filters__reset--tablet"
+            :class="{ 'history-filters__reset--hidden': !isFilterActive }"
+            :tabindex="isFilterActive ? 0 : -1"
+            @click="clearFilter"
+          >
+            Сбросить
+          </f7-link>
+        </template>
+        <div v-else class="history-controls">
+          <f7-link
+            class="history-controls__filter ripple-blur"
+            :class="{ 'history-controls__filter--active': isFilterActive }"
             aria-haspopup="dialog"
             @click="filterSheetOpened = true"
           >
-            <SvgIcon icon="sliders" :size="24" :color="iconColor" />
-            <span v-if="isFilterActive" class="history-nav-action__dot" aria-hidden="true"></span>
+            <SvgIcon icon="sliders" :size="20" :color="iconColor" />
+            <span>Фильтры</span>
+            <span v-if="activeFilterCount > 0" class="history-controls__badge">
+              {{ activeFilterCount }}
+            </span>
           </f7-link>
           <f7-link
-            icon-only
-            class="history-nav-action ripple-blur"
-            :tabindex="showNavActions ? 0 : -1"
+            class="history-controls__sort ripple-blur"
             popover-open=".history-order-popover"
-            :aria-label="`Сортировка: ${currentOrderLabel}`"
             aria-haspopup="listbox"
+            :aria-label="`Сортировка: ${currentOrderLabel}`"
           >
-            <SvgIcon icon="arrow-up-down" :size="24" :color="iconColor" />
+            <SvgIcon icon="arrow-up-down" :size="20" :color="iconColor" />
+            <span class="history-controls__sort-label">{{ currentOrderLabel }}</span>
+            <SvgIcon class="history-controls__chevron" icon="chevron-down" :size="20" :color="iconColor" />
           </f7-link>
         </div>
-      </f7-nav-right>
-      <f7-nav-title-large>Мои записки</f7-nav-title-large>
-    </f7-navbar>
-
-    <div ref="historyRef" class="history" :class="{ 'history--empty': isEmptyHistory }">
-      <!-- Первая загрузка -->
-      <div v-if="!isLoaded && !error" class="history-state" aria-busy="true">
-        <f7-skeleton-block class="history-skeleton history-skeleton--filters" effect="wave" />
-        <f7-skeleton-block
-          v-if="isTablet"
-          class="history-skeleton history-skeleton--alert"
-          effect="wave"
-        />
-        <f7-skeleton-block class="history-skeleton history-skeleton--card" effect="wave" />
-        <f7-skeleton-block class="history-skeleton history-skeleton--card" effect="wave" />
       </div>
 
-      <!-- Ошибка первой загрузки -->
-      <div v-else-if="error && !isLoaded" class="history-state history-state--center">
+      <div v-if="showEditAlert" class="history-alert" role="note">
+        <span class="history-alert__text">
+          Вы можете внести правки в поданную записку до того, как она попадет в церковную лавку
+        </span>
+        <f7-link
+          icon-only
+          class="history-alert__close ripple-blur"
+          aria-label="Скрыть подсказку"
+          @click="dismissEditHint"
+        >
+          <SvgIcon icon="cancel" :size="12" :color="iconColor" />
+        </f7-link>
+      </div>
+
+      <div v-if="error" class="history-state history-state--center">
         <p class="history-state__text">{{ error }}</p>
         <f7-button outline large class="history-button" @click="loadFirst()">Повторить</f7-button>
       </div>
 
-      <!-- История пуста: нет записок и фильтр не задан -->
-      <div v-else-if="isEmptyHistory" class="rites-empty">
-        <div class="rites-empty__text">
-          <p class="rites-empty__title">Записок нет</p>
-          <p class="rites-empty__hint">
-            Если Вы подавали записки ранее, то можете перейти в историю записок по ссылке из
-            сообщения, отправленного на указанную Вами почту при оформлении записок.
-          </p>
-        </div>
-        <div class="rites-empty__actions">
-          <f7-button fill large @click="openPopup('create')">
-            Подать записку
-          </f7-button>
-        </div>
+      <!-- Фильтр ничего не нашёл -->
+      <div v-else-if="items.length === 0" class="history-state history-state--center">
+        <p class="history-state__text">Записок не найдено</p>
+        <f7-button outline large class="history-button" @click="clearFilter">Сбросить</f7-button>
       </div>
 
-      <template v-else>
-        <!-- Фильтры и сортировка: на телефоне в одну строку, на планшете три поля в ряд -->
-        <div ref="filtersRef" class="history-filters" :class="{ 'history-filters--tablet': isTablet }">
-          <template v-if="isTablet">
-            <RitesHistorySelect
-              v-model="selectedType"
-              name="historyType"
-              label="Требы"
-              all-label="Все требы"
-              :options="typeOptions"
-            />
-            <RitesHistorySelect
-              v-model="selectedStatus"
-              name="historyStatus"
-              label="Статус"
-              all-label="Статус любой"
-              :options="statusOptions"
-            />
-            <RitesHistorySelect
-              v-model="order"
-              name="historyOrder"
-              label="Сортировка по дате"
-              icon="arrow-up-down"
-              :options="orderOptions"
-            />
-            <f7-link
-              class="history-filters__reset history-filters__reset--tablet"
-              :class="{ 'history-filters__reset--hidden': !isFilterActive }"
-              :tabindex="isFilterActive ? 0 : -1"
-              @click="clearFilter"
-            >
-              Сбросить
-            </f7-link>
-          </template>
-          <div v-else class="history-controls">
-            <f7-link
-              class="history-controls__filter ripple-blur"
-              :class="{ 'history-controls__filter--active': isFilterActive }"
-              aria-haspopup="dialog"
-              @click="filterSheetOpened = true"
-            >
-              <SvgIcon icon="sliders" :size="20" :color="iconColor" />
-              <span>Фильтры</span>
-              <span v-if="activeFilterCount > 0" class="history-controls__badge">
-                {{ activeFilterCount }}
-              </span>
-            </f7-link>
-            <f7-link
-              class="history-controls__sort ripple-blur"
-              popover-open=".history-order-popover"
-              aria-haspopup="listbox"
-              :aria-label="`Сортировка: ${currentOrderLabel}`"
-            >
-              <SvgIcon icon="arrow-up-down" :size="20" :color="iconColor" />
-              <span class="history-controls__sort-label">{{ currentOrderLabel }}</span>
-              <SvgIcon class="history-controls__chevron" icon="chevron-down" :size="20" :color="iconColor" />
-            </f7-link>
-          </div>
-        </div>
-
-        <div v-if="showEditAlert" class="history-alert" role="note">
-          <span class="history-alert__text">
-            Вы можете внести правки в поданную записку до того, как она попадет в церковную лавку
-          </span>
-          <f7-link
-            icon-only
-            class="history-alert__close ripple-blur"
-            aria-label="Скрыть подсказку"
-            @click="dismissEditHint"
-          >
-            <SvgIcon icon="cancel" :size="12" :color="iconColor" />
-          </f7-link>
-        </div>
-
-        <div v-if="error" class="history-state history-state--center">
-          <p class="history-state__text">{{ error }}</p>
-          <f7-button outline large class="history-button" @click="loadFirst()">Повторить</f7-button>
-        </div>
-
-        <!-- Фильтр ничего не нашёл -->
-        <div v-else-if="items.length === 0" class="history-state history-state--center">
-          <p class="history-state__text">Записок не найдено</p>
-          <f7-button outline large class="history-button" @click="clearFilter">Сбросить</f7-button>
-        </div>
-
-        <f7-list
-          v-else
-          class="history-list"
-          :class="{ 'history-list--busy': isRefreshing }"
-          no-hairlines
-          no-hairlines-between
-        >
-          <template #list>
-            <RitesHistoryItem
-              v-for="item in items"
-              :key="item.id"
-              :item="item"
-              @edit="openPopup('edit', item)"
-              @copy="openPopup('copy', item)"
-            />
-          </template>
-        </f7-list>
-      </template>
-    </div>
-
-    <template #fixed>
-      <f7-fab
-        v-if="items.length > 0"
-        position="right-bottom"
-        class="history-fab"
-        :class="{ 'history-fab--collapsed': fabCollapsed }"
-        aria-label="Подать записку"
-        @click="openPopup('create')"
+      <f7-list
+        v-else
+        class="history-list"
+        :class="{ 'history-list--busy': isRefreshing }"
+        no-hairlines
+        no-hairlines-between
       >
-        <span class="history-fab__plus" aria-hidden="true"></span>
-        <span class="history-fab__label">Подать записку</span>
-      </f7-fab>
+        <template #list>
+          <RitesHistoryItem
+            v-for="item in items"
+            :key="item.id"
+            :item="item"
+            @edit="emit('edit', item)"
+            @copy="emit('copy', item)"
+          />
+        </template>
+      </f7-list>
     </template>
 
     <f7-popover class="history-order-popover">
@@ -221,21 +160,11 @@
       :type-options="typeOptions"
       :status-options="statusOptions"
     />
-
-    <RitePopup
-      v-model:opened="popupOpened"
-      :mode="popupMode"
-      :item="popupItem"
-      @saved="onRiteSaved"
-    />
-  </f7-page>
+  </div>
 </template>
 
 <script setup lang="ts">
-import type { Router } from "framework7/types";
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from "vue";
-import BurgerIcon from "@/assets/icons/burger.svg?raw";
-import RitePopup, { type RitePopupMode } from "@/components/rites/RitePopup.vue";
 import RitesHistoryFilterSheet from "@/components/rites/RitesHistoryFilterSheet.vue";
 import RitesHistoryItem from "@/components/rites/RitesHistoryItem.vue";
 import RitesHistorySelect, {
@@ -246,19 +175,30 @@ import { useTheme } from "@/composables/useTheme";
 import {
   loadHistoryFilter,
   loadHistoryRites,
-  rememberConfirmedEmail,
   type HistoryFilter,
   type Rite,
   type RitesOrder,
 } from "@/services/rites/ritesApi";
-import { useRitesCartStore } from "@/stores/ritesCart";
 
-const { f7router, f7route } = defineProps<{
-  f7router: Router.Router;
-  f7route: Router.Route;
+export interface HistoryNavState {
+  showControls: boolean;
+  showNavActions: boolean;
+  isFilterActive: boolean;
+  currentOrderLabel: string;
+  hasMore: boolean;
+}
+
+const props = defineProps<{
+  active: boolean;
 }>();
 
-const cartStore = useRitesCartStore();
+const emit = defineEmits<{
+  create: [];
+  edit: [item: Rite];
+  copy: [item: Rite];
+  navState: [state: HistoryNavState];
+}>();
+
 const { isDarkMode } = useTheme();
 const iconColor = computed(() => (isDarkMode.value ? "white" : "black-primary"));
 
@@ -283,12 +223,6 @@ function dismissEditHint(): void {
   }
 }
 
-// Корневая страница вкладки открывает левую панель, открытая из корзины: кнопку «Назад»
-const isFirstPage = ref(true);
-const onPageBeforeIn = () => {
-  isFirstPage.value = f7router.history.length <= 1;
-};
-
 // Планшетная вёрстка как в корзине: от 744px
 const TABLET_QUERY = "(min-width: 744px)";
 const isTablet = ref(false);
@@ -297,40 +231,23 @@ const onTabletChange = (event: MediaQueryListEvent) => {
   isTablet.value = event.matches;
 };
 
-const historyRef = ref<HTMLElement | null>(null);
+const rootRef = ref<HTMLElement | null>(null);
 const filtersRef = ref<HTMLElement | null>(null);
 const showNavActions = ref(false);
-const fabCollapsed = ref(false);
-
 let scrollEl: HTMLElement | null = null;
-let lastScrollTop = 0;
 
 function syncNavActions(): void {
-  if (!showControls.value || !filtersRef.value || !scrollEl) {
+  if (!props.active || !showControls.value || !filtersRef.value || !scrollEl) {
     showNavActions.value = false;
     return;
   }
   const pageEl = scrollEl.closest(".page");
-  const navbarInner = pageEl?.querySelector<HTMLElement>(".navbar-inner");
-  const navBottom = navbarInner ? navbarInner.getBoundingClientRect().bottom : 56;
+  const topBar =
+    pageEl?.querySelector<HTMLElement>(".rites-tabbar") ??
+    pageEl?.querySelector<HTMLElement>(".navbar-inner");
+  const barBottom = topBar ? topBar.getBoundingClientRect().bottom : 98;
   const filtersRect = filtersRef.value.getBoundingClientRect();
-  showNavActions.value = filtersRect.bottom <= navBottom + 4;
-}
-
-function onPageScroll(): void {
-  if (!scrollEl) return;
-  syncNavActions();
-
-  const scrollTop = scrollEl.scrollTop;
-  const delta = scrollTop - lastScrollTop;
-  if (scrollTop <= 24) {
-    fabCollapsed.value = false;
-  } else if (delta > 6) {
-    fabCollapsed.value = true;
-  } else if (delta < -6) {
-    fabCollapsed.value = false;
-  }
-  lastScrollTop = scrollTop;
+  showNavActions.value = filtersRect.bottom <= barBottom + 4;
 }
 
 onMounted(() => {
@@ -338,16 +255,13 @@ onMounted(() => {
   isTablet.value = tabletMedia.matches;
   tabletMedia.addEventListener("change", onTabletChange);
 
-  scrollEl = historyRef.value?.closest<HTMLElement>(".page-content") ?? null;
-  if (scrollEl) {
-    lastScrollTop = scrollEl.scrollTop;
-    scrollEl.addEventListener("scroll", onPageScroll, { passive: true });
-  }
+  scrollEl = rootRef.value?.closest<HTMLElement>(".page-content") ?? null;
+  scrollEl?.addEventListener("scroll", syncNavActions, { passive: true });
 });
 
 onBeforeUnmount(() => {
   tabletMedia?.removeEventListener("change", onTabletChange);
-  scrollEl?.removeEventListener("scroll", onPageScroll);
+  scrollEl?.removeEventListener("scroll", syncNavActions);
 });
 
 const items = ref<Rite[]>([]);
@@ -404,10 +318,6 @@ const hasEditableItems = computed(() => items.value.some((item) => item.canChang
 const showEditAlert = computed(() => hasEditableItems.value && !editHintDismissed.value);
 
 const filterSheetOpened = ref(false);
-
-const popupOpened = ref(false);
-const popupMode = ref<RitePopupMode>("create");
-const popupItem = ref<Rite | null>(null);
 
 // Счётчик запросов: ответ устаревшего запроса (фильтр уже сменился) отбрасывается
 let requestId = 0;
@@ -501,108 +411,78 @@ function clearFilter(): void {
   selectedStatus.value = "";
 }
 
-watch([selectedType, selectedStatus], () => {
-  void loadFirst();
-  void refreshFilter();
-});
-watch(order, () => void loadFirst());
-watch([items, isTablet, showControls], () => {
-  void nextTick(() => {
-    syncNavActions();
-    if (!scrollEl || scrollEl.scrollTop <= 24) {
-      fabCollapsed.value = false;
-    }
-  });
-});
-
-function onPageShown(): void {
-  // Ссылка из письма несёт EMAIL=addr|hash: запоминаем до запросов истории и фильтра
-  rememberConfirmedEmail(f7route.query.EMAIL);
-  // Возврат на страницу обновляет первую порцию тихо: статусы записок со временем меняются
+function refresh(): void {
   void loadFirst(isLoaded.value);
   void refreshFilter();
   void nextTick(syncNavActions);
 }
 
-function openPopup(mode: RitePopupMode, item: Rite | null = null): void {
-  popupMode.value = mode;
-  popupItem.value = item;
-  popupOpened.value = true;
+function openFilters(): void {
+  filterSheetOpened.value = true;
 }
 
-function onRiteSaved(rite: Rite): void {
-  popupOpened.value = false;
-  if (popupMode.value === "edit") {
-    items.value = items.value.map((item) => (item.id === rite.id ? rite : item));
-    return;
-  }
-  // Новая записка (подача, повтор) попадает в корзину
-  cartStore.addItem(rite);
-  f7router.navigate("/rites/");
+function applyEdited(rite: Rite): void {
+  items.value = items.value.map((item) => (item.id === rite.id ? rite : item));
 }
+
+watch([selectedType, selectedStatus], () => {
+  void loadFirst();
+  void refreshFilter();
+});
+watch(order, () => void loadFirst());
+watch(
+  [items, isTablet, showControls, () => props.active],
+  () => {
+    void nextTick(syncNavActions);
+  },
+);
+watch(
+  [showControls, showNavActions, isFilterActive, currentOrderLabel, hasMore],
+  () => {
+    emit("navState", {
+      showControls: showControls.value,
+      showNavActions: showNavActions.value,
+      isFilterActive: isFilterActive.value,
+      currentOrderLabel: currentOrderLabel.value,
+      hasMore: hasMore.value,
+    });
+  },
+  { immediate: true },
+);
+
+defineExpose({
+  refresh,
+  loadMore,
+  openFilters,
+  applyEdited,
+});
 </script>
 
 <style lang="less">
-.history-page {
+.rites-page {
   --history-alert-border: var(--brand-color-primary-accent-50);
   --history-alert-text: #000;
   --history-link: var(--brand-color-primary-accent-50);
 }
 
-.dark .history-page {
+.dark .rites-page {
   --history-alert-border: var(--brand-color-primary-accent-70);
   --history-alert-text: var(--content-color-white-100);
   --history-link: var(--brand-color-primary-accent-70);
 }
 
-.history-page {
-  .history-nav-actions {
-    display: flex;
-    align-items: center;
-    gap: 4px;
-    opacity: 0;
-    transform: translateY(-4px) scale(0.92);
-    pointer-events: none;
-    transition: opacity 180ms ease, transform 180ms ease;
-
-    &--visible {
-      opacity: 1;
-      transform: translateY(0) scale(1);
-      pointer-events: auto;
-    }
-  }
-
-  .history-nav-action.link {
-    position: relative;
-    width: 40px;
-    height: 40px;
-    padding: 0;
-    overflow: hidden;
-    border-radius: 50%;
-  }
-
-  .history-nav-action__dot {
-    position: absolute;
-    top: 7px;
-    right: 7px;
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
-    background: var(--history-link);
-  }
-
+.rites-page {
   .history {
     box-sizing: border-box;
     display: flex;
     flex-direction: column;
     gap: 16px;
-    padding: 12px 16px 96px;
+    padding: 16px 16px 30px;
     color: var(--rites-text);
   }
 
   .history--empty {
-    padding-top: 30px;
-    padding-bottom: 30px;
+    padding-top: 24px;
   }
 
   .history-state {
@@ -641,10 +521,12 @@ function onRiteSaved(rite: Rite): void {
     }
   }
 
-  // Кнопки: контур по макету (кнопка в пустой истории стилизуется стилями корзины)
   .history-button.button {
     --f7-button-height: 52px;
     --f7-button-border-radius: 10px;
+    --f7-button-border-color: var(--rites-text);
+    --f7-button-text-color: var(--rites-text);
+    --f7-button-border-width: 1px;
 
     padding: 0 30px;
     font-size: 14px;
@@ -652,12 +534,6 @@ function onRiteSaved(rite: Rite): void {
     font-weight: 700;
     letter-spacing: 0.7px;
     text-transform: uppercase;
-  }
-
-  .history-button.button {
-    --f7-button-border-color: var(--rites-text);
-    --f7-button-text-color: var(--rites-text);
-    --f7-button-border-width: 1px;
   }
 
   .history-filters {
@@ -805,87 +681,9 @@ function onRiteSaved(rite: Rite): void {
       }
     }
   }
-
-  .history-fab {
-    --f7-fab-bg-color: var(--f7-button-tonal-bg-color);
-    --f7-fab-text-color: var(--f7-button-tonal-text-color);
-    --f7-fab-size: 56px;
-    --f7-fab-border-radius: 16px;
-    --f7-fab-box-shadow: 0 3px 10px rgba(0, 0, 0, 0.14), 0 1px 3px rgba(0, 0, 0, 0.08);
-
-    > a {
-      --f7-touch-ripple-color: var(--f7-touch-ripple-black);
-
-      width: auto;
-      min-width: 56px;
-      height: 56px;
-      padding: 0 20px 0 16px;
-      transition: padding 220ms ease;
-    }
-
-    &__plus {
-      position: relative;
-      flex: 0 0 24px;
-      width: 24px;
-      height: 24px;
-
-      &::before,
-      &::after {
-        content: "";
-        position: absolute;
-        top: 50%;
-        left: 50%;
-        width: 16px;
-        height: 2px;
-        border-radius: 1px;
-        background: currentColor;
-        transform: translate(-50%, -50%);
-      }
-
-      &::after {
-        transform: translate(-50%, -50%) rotate(90deg);
-      }
-    }
-
-    &__label {
-      max-width: 160px;
-      margin-left: 8px;
-      overflow: hidden;
-      white-space: nowrap;
-      font-size: 14px;
-      line-height: 18px;
-      font-weight: 700;
-      letter-spacing: 0.7px;
-      text-transform: uppercase;
-      opacity: 1;
-      transition: max-width 220ms ease, margin-left 220ms ease, opacity 180ms ease;
-    }
-
-    &--collapsed {
-      > a {
-        padding: 0 16px;
-      }
-
-      .history-fab__label {
-        max-width: 0;
-        margin-left: 0;
-        opacity: 0;
-      }
-    }
-  }
-
-  .infinite-scroll-preloader {
-    margin: 0 auto 30px;
-  }
 }
 
-.dark .history-page {
-  .history-fab > a {
-    --f7-touch-ripple-color: var(--f7-touch-ripple-white);
-  }
-}
-
-// Поповер сортировки переносится в корень приложения, поэтому стили вне .history-page
+// Поповер сортировки переносится в корень приложения, поэтому стили вне .rites-page
 .history-order-popover.popover {
   --f7-popover-width: 220px;
   --f7-popover-border-radius: 8px;
@@ -935,20 +733,16 @@ function onRiteSaved(rite: Rite): void {
 }
 
 @media (min-width: 744px) {
-  .history-page {
-    --f7-navbar-large-title-font-size: 32px;
-    --f7-navbar-large-title-line-height: 34px;
-
+  .rites-page {
     .history {
       max-width: 924px;
       margin: 0 auto;
-      padding: 30px 30px 96px;
-      gap: 30px;
+      padding: 24px 30px 30px;
+      gap: 24px;
     }
 
     .history--empty {
       padding-top: 30px;
-      padding-bottom: 30px;
     }
 
     .history-skeleton--filters {

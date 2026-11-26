@@ -6,14 +6,21 @@ import type { Router } from "framework7/types";
 import { f7 } from "framework7-vue";
 import { rememberConfirmedEmailFromUrl } from "@/services/rites/ritesApi";
 import { useCalendarStore } from "@/stores/calendar";
+import { useRitesCartStore } from "@/stores/ritesCart";
 import { useSettingsStore } from "@/stores/settings";
 import { device } from "./device";
 
 const CALENDAR_DAY_URL_REGEXP = /^\/days\/(\d{8})\/?$/;
+const RITES_HISTORY_URL_REGEXP = /^\/(?:rites\/)?my\/?(?:\?|$)/;
 
 /** Извлекает код дня из диплинка вида `/days/20261031` (подпути вроде `/readings/...` не трогаем) */
 export function parseCalendarDayUrl(url: string): string | null {
   return CALENDAR_DAY_URL_REGEXP.exec(url)?.[1] ?? null;
+}
+
+/** Проверяет, ведёт ли диплинк на вкладку «Мои записки» (`/my`, `/rites/my/`) */
+export function isRitesHistoryUrl(url: string): boolean {
+  return RITES_HISTORY_URL_REGEXP.test(url);
 }
 
 const viewsNames = [
@@ -45,8 +52,12 @@ function parseHash(): void {
   }
 
   // Письмо: #rites:/my?EMAIL=addr|hash. Сохраняем до открытия вкладки, иначе корзина запросит список без почты.
+  const openRitesHistory = viewName === "rites" && Boolean(url) && isRitesHistoryUrl(url);
   if (viewName === "rites" && url) {
     rememberConfirmedEmailFromUrl(url);
+    if (openRitesHistory) {
+      useRitesCartStore().setActiveTab("history");
+    }
   }
 
   // Диплинк на день (#calendar:/days/YYYYMMDD): открываем его прямо на корневой странице календаря
@@ -67,7 +78,7 @@ function parseHash(): void {
     return;
   }
 
-  if (calendarDayCode) {
+  if (calendarDayCode || openRitesHistory) {
     if (view.router.history.length > 1) {
       returnToRootWhenReady(view.router);
     }
