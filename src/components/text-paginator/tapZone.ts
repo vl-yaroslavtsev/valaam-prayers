@@ -1,5 +1,12 @@
 export type TapZoneType = "center" | "left" | "right" | "top" | "bottom" | "bookmark";
 
+export interface TextTapPayload {
+  type: TapZoneType;
+  x: number;
+  y: number;
+  page?: number;
+}
+
 // Область тапа для закладки в правом верхнем углу — задана в абсолютных px, так как
 // угол физически всегда сверху-справа на экране, независимо от orientation (в отличие
 // от along/across осей ниже, которые переставляются между горизонтальным и вертикальным режимом)

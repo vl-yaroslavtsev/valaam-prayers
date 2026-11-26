@@ -141,7 +141,7 @@ import Swiper from "swiper";
 const { itemId, title, headers, page, lang, bookmarks = [], initialTab = "content", activeBookmarkId = null, activeHeaderIndex = null } = defineProps<{
   itemId: string;
   title: string;
-  headers: PaginationCacheItemHeader[];
+  headers: readonly PaginationCacheItemHeader[];
   page: number;
   lang?: Language | null;
   bookmarks?: BookmarkWithPage[];

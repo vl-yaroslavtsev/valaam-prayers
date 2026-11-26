@@ -1,8 +1,9 @@
-import { ref } from "vue";
+import { nextTick, ref } from "vue";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { createPinia, setActivePinia } from "pinia";
 import { bookmarksStorage } from "@/services/storage";
 import { useBookmarksStore } from "@/stores/bookmarks";
+import { useSettingsStore } from "@/stores/settings";
 import { bookmarkProgressToPage, pageToProgress, progressToPage, useBookmarks } from "@/composables/useBookmarks";
 
 vi.mock("@/services/storage", () => ({
@@ -64,5 +65,29 @@ describe("useBookmarks current page", () => {
     expect(currentPageBookmark.value?.page).toBe(15);
     currentPage.value = 16;
     expect(currentPageBookmark.value).toBeNull();
+  });
+
+  it("переходит на страницу закладки через onGoToPage и закрывает режим при отключении панели", async () => {
+    const store = useBookmarksStore();
+    const settingsStore = useSettingsStore();
+    const onGoToPage = vi.fn();
+
+    const { goToBookmark, isBookmarkNavActive } = useBookmarks(
+      "prayer:2",
+      ref(1),
+      ref(10),
+      { onGoToPage }
+    );
+
+    const created = await store.addBookmark("prayer:2", pageToProgress(7, 10));
+    goToBookmark(created.id);
+    await nextTick();
+
+    expect(isBookmarkNavActive.value).toBe(true);
+    expect(onGoToPage).toHaveBeenCalledWith(7);
+
+    settingsStore.setIsBookmarkNavToolbarEnabled(false);
+    await nextTick();
+    expect(isBookmarkNavActive.value).toBe(false);
   });
 });

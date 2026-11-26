@@ -69,6 +69,7 @@ import { progressToPage } from "@/composables/useBookmarks";
 
 import TextPagerHorizontal from "./text-paginator/TextPagerHorizontal.vue";
 import TextPagerVertical from "./text-paginator/TextPagerVertical.vue";
+import type { TextTapPayload } from "./text-paginator/tapZone";
 
 const { 
   text, 
@@ -147,7 +148,7 @@ const theme = computed(() => settingsStore.textTheme);
 
 // Events
 const emit = defineEmits<{
-  tap: [payload: { type: "center" | "left" | "right" | "top" | "bottom" | "bookmark"; x: number; y: number; page?: number }];
+  tap: [payload: TextTapPayload];
   action: [action: TextAction];
   progress: [payload: { progress: number, pages: number }];
   touchstart: [payload: { swiper: Swiper | null, event: Event }];

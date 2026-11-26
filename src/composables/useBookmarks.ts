@@ -1,7 +1,12 @@
-import { ref, computed, onUnmounted, type Ref } from "vue";
+import { ref, computed, watch, onUnmounted, type Ref } from "vue";
 import { f7 } from "framework7-vue";
 import type { Dialog, Toast } from "framework7/types";
 import { useBookmarksStore, type Bookmark } from "@/stores/bookmarks";
+import { useSettingsStore } from "@/stores/settings";
+
+export interface UseBookmarksOptions {
+  onGoToPage?: (page: number) => void;
+}
 
 export interface BookmarkWithPage extends Bookmark {
   page: number;
@@ -56,8 +61,14 @@ export const pageToProgress = (page: number, totalPages: number): number => {
  * скролла). С progressToPage(swiper.progress) её сравнивать нельзя: на границе float
  * даёт предыдущий номер, и иконка закладки видна на двух соседних страницах.
  */
-export function useBookmarks(itemId: string, currentPage: Ref<number>, totalPages: Ref<number>) {
+export function useBookmarks(
+  itemId: string,
+  currentPage: Ref<number>,
+  totalPages: Ref<number>,
+  options: UseBookmarksOptions = {}
+) {
   const store = useBookmarksStore();
+  const settingsStore = useSettingsStore();
 
   const bookmarksForItem = computed<BookmarkWithPage[]>(() =>
     store.getBookmarksByItem(itemId).map((bookmark) => ({
@@ -105,6 +116,29 @@ export function useBookmarks(itemId: string, currentPage: Ref<number>, totalPage
     isBookmarkNavActive.value = false;
     activeBookmarkId.value = null;
   };
+
+  if (options.onGoToPage) {
+    const onGoToPage = options.onGoToPage;
+    // При переходе к закладке — открываем начало её страницы, а не позицию внутри
+    watch(
+      activeBookmark,
+      (bookmark) => {
+        if (isBookmarkNavActive.value && bookmark) {
+          onGoToPage(bookmark.page);
+        }
+      },
+      { flush: "post" }
+    );
+  }
+
+  watch(
+    () => settingsStore.isBookmarkNavToolbarEnabled,
+    (enabled) => {
+      if (!enabled) {
+        closeBookmarkNav();
+      }
+    }
+  );
 
   // --- Тосты «закладка добавлена / удалена» ---
   // destroy() без close() снимает экземпляр, но оставляет .toast.modal-in в DOM:
