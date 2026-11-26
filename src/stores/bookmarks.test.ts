@@ -22,7 +22,7 @@ describe("useBookmarksStore", () => {
   it("initStore подхватывает кэш", async () => {
     const cached = {
       id: "bm-1",
-      itemId: 10,
+      itemId: "prayer:10",
       progress: 2,
       name: "Закладка 1",
       createdAt: new Date(),
@@ -32,21 +32,21 @@ describe("useBookmarksStore", () => {
     const store = useBookmarksStore();
     await store.initStore();
 
-    expect(store.getBookmarksByItem(10)).toEqual([cached]);
+    expect(store.getBookmarksByItem("prayer:10")).toEqual([cached]);
   });
 
   it("addBookmark обновляет state и storage", async () => {
     const store = useBookmarksStore();
-    const created = await store.addBookmark(10, 3);
+    const created = await store.addBookmark("prayer:10", 3);
 
     expect(store.bookmarks).toHaveLength(1);
-    expect(created.itemId).toBe(10);
+    expect(created.itemId).toBe("prayer:10");
     expect(bookmarksStorage!.put).toHaveBeenCalledWith(created);
   });
 
   it("deleteBookmark обновляет state и storage, undo восстанавливает", async () => {
     const store = useBookmarksStore();
-    const created = await store.addBookmark(10, 3);
+    const created = await store.addBookmark("prayer:10", 3);
 
     await store.deleteBookmark(created.id);
     expect(store.bookmarks).toHaveLength(0);

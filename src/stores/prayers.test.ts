@@ -7,7 +7,7 @@ import {
   prayersIndexStorage,
   sectionsStorage,
 } from "@/services/storage";
-import { usePrayersStore } from "@/stores/prayers";
+import { BIBLE_SECTION_ID, BOOKS_SECTION_ID, usePrayersStore } from "@/stores/prayers";
 import { prayerDetail, prayerElement, prayerSection, prayerText } from "@/test/helpers";
 
 vi.mock("@/services/storage", () => ({
@@ -244,5 +244,35 @@ describe("usePrayersStore", () => {
     expect(prepared.html).toContain('href="#b2--v-a"');
     expect(prepared.html).toContain('id="b1--v-a"');
     expect(prepared.html).toContain('id="b2--v-a"');
+  });
+
+  it("getFavoriteType различает Библию, книги и молитвы", async () => {
+    vi.mocked(sectionsStorage!.getAll).mockResolvedValue([
+      prayerSection(BIBLE_SECTION_ID),
+      prayerSection(2001, BIBLE_SECTION_ID),
+      prayerSection(BOOKS_SECTION_ID),
+      prayerSection(2002, BOOKS_SECTION_ID),
+      prayerSection(842),
+    ]);
+    vi.mocked(prayersIndexStorage!.getAll).mockResolvedValue([
+      prayerElement(3001, [2001]),
+      prayerElement(3002, [2002]),
+      prayerElement(3003, [842]),
+    ]);
+
+    const store = usePrayersStore();
+    await store.initStore();
+
+    expect(store.isBible(3001)).toBe(true);
+    expect(store.isBook(3001)).toBe(true);
+    expect(store.getFavoriteType(3001)).toBe("bible");
+
+    expect(store.isBible(3002)).toBe(false);
+    expect(store.isBook(3002)).toBe(true);
+    expect(store.getFavoriteType(3002)).toBe("books");
+
+    expect(store.isBible(3003)).toBe(false);
+    expect(store.isBook(3003)).toBe(false);
+    expect(store.getFavoriteType(3003)).toBe("prayers");
   });
 });

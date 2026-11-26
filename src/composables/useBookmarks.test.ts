@@ -57,9 +57,9 @@ describe("useBookmarks current page", () => {
     const store = useBookmarksStore();
     const currentPage = ref(15);
     const totalPages = ref(27);
-    const { currentPageBookmark } = useBookmarks(1, currentPage, totalPages);
+    const { currentPageBookmark } = useBookmarks("prayer:1", currentPage, totalPages);
 
-    await store.addBookmark(1, pageToProgress(15, 27));
+    await store.addBookmark("prayer:1", pageToProgress(15, 27));
 
     expect(currentPageBookmark.value?.page).toBe(15);
     currentPage.value = 16;

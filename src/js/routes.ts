@@ -5,6 +5,8 @@ import AboutPage from "../pages/about.vue";
 import FormPage from "../pages/form.vue";
 import PrayersPage from "../pages/prayers.vue";
 import PrayersTextPage from "../pages/prayersText.vue";
+import DayTextPage from "../pages/dayText.vue";
+import SaintLifePage from "../pages/saintLife.vue";
 import CalendarPage from "../pages/calendar.vue";
 import DayPage from "../pages/day.vue";
 import SaintPage from "../pages/saint.vue";
@@ -71,11 +73,11 @@ const routes: Router.RouteParameters[] = [
   {
     // Мысль, притча, богослужебные указания дня в читалке
     path: "/days/:code/text/:kind",
-    component: PrayersTextPage,
+    component: DayTextPage,
   },
   {
     path: "/days/:code/readings/:readingId",
-    component: PrayersTextPage,
+    component: DayTextPage,
   },
   {
     path: "/saints/:id",
@@ -87,7 +89,7 @@ const routes: Router.RouteParameters[] = [
   {
     // Житие святого в читалке
     path: "/saints/:saintId/life",
-    component: PrayersTextPage,
+    component: SaintLifePage,
   },
   {
     path: "/search/",

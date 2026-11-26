@@ -117,7 +117,7 @@
       <span v-if="day.thought.title" class="day-preview">{{ day.thought.title }}</span>
     </a>
 
-    <a v-if="parabelPreview" class="day-section day-link" :href="getDayTextUrl(day.code, 'parabel')">
+    <a v-if="parabelPreview" class="day-section day-link" :href="getDayTextUrl(day.code, 'parable')">
       <span class="day-section-header">
         <span class="day-section-title">Притча дня</span>
         <SvgIcon icon="arrow-small" :size="24" :color="arrowColor" />

@@ -59,7 +59,7 @@ import type { SwiperContainer } from "swiper/element";
 import { formatLastReadAt } from "@/components/formatLastReadAt";
 
 interface HistoryItem {
-  id: number;
+  id: string;
   name: string;
   url: string;
   progress: number;
@@ -73,7 +73,7 @@ const { items, isLoading } = defineProps<{
 }>();
 
 const skeletonItems = Array.from({ length: 2 }, (_, index) => ({
-  id: -(index + 1),
+  id: `skeleton-${index}`,
 }));
 
 const swiperRef = useTemplateRef<SwiperContainer>("swiper");

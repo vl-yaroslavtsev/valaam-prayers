@@ -29,9 +29,9 @@
 - `saint-details`: `id`; колонка `modified_ts`.
 - `calendar-days`: `code` (строка `YYYYMMDD`).
 - `calendar-markers`: `id` (строка, единственная запись `snapshot`).
-- `favorites`: `id`; колонки `type`, `sort` (User DB).
-- `bookmarks`: `id` (строка); колонка `itemId` (User DB).
-- `reading-history`: `id`; колонка `lastReadAt` (ISO, хранится как миллисекунды) (User DB).
+- `favorites`: `id` (строка); колонки `type`, `sort` (User DB).
+- `bookmarks`: `id` (строка); колонка `itemId` (строка) (User DB).
+- `reading-history`: `id` (строка); колонка `lastReadAt` (ISO, хранится как миллисекунды) (User DB).
 - `metadata`: `key` (строка).
 
 Методы (все асинхронные, значения хранятся как JSON-строка payload без потерь неизвестных полей):

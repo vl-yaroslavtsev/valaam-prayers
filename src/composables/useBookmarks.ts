@@ -56,7 +56,7 @@ export const pageToProgress = (page: number, totalPages: number): number => {
  * скролла). С progressToPage(swiper.progress) её сравнивать нельзя: на границе float
  * даёт предыдущий номер, и иконка закладки видна на двух соседних страницах.
  */
-export function useBookmarks(itemId: number, currentPage: Ref<number>, totalPages: Ref<number>) {
+export function useBookmarks(itemId: string, currentPage: Ref<number>, totalPages: Ref<number>) {
   const store = useBookmarksStore();
 
   const bookmarksForItem = computed<BookmarkWithPage[]>(() =>

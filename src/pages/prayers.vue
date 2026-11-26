@@ -53,6 +53,7 @@ import SvgIcon from "@/components/SvgIcon.vue";
 import SeparatorLine from "@/components/SeparatorLine.vue";
 
 import { useTheme } from "@/composables/useTheme";
+import { getPrayerItemKey } from "@/js/itemKey";
 import { usePrayersStore } from "@/stores/prayers";
 import { useReadingHistoryStore } from "@/stores/readingHistory";
 
@@ -75,7 +76,7 @@ const title = computed(() => prayersStore.getItemById(sectionId)?.name);
 
 const prayers = computed(() =>
   prayersStore.getItemsBySection(sectionId).map((p) => {
-    const history = historyStore.getItem(p.id) ?? {
+    const history = historyStore.getItem(getPrayerItemKey(p.id)) ?? {
       progress: 0,
       pages: 0,
     };
@@ -94,7 +95,7 @@ const onPageBeforeIn = () => {
 
 const onResetItemProgress = (id: number) => {
   console.log("prayers page onResetItemProgress ", id);
-  historyStore.resetProgress(id);
+  historyStore.resetProgress(getPrayerItemKey(id));
 };
 
 const onUndoResetItemProgress = () => {

@@ -1,6 +1,19 @@
 <template>
   <f7-page ref="pageRef" name="saint" class="saint-page">
-    <f7-navbar large transparent :title="title" back-link />
+    <f7-navbar large transparent>
+      <f7-nav-left :back-link="true" />
+      <f7-nav-title sliding>{{ title }}</f7-nav-title>
+      <f7-nav-right>
+        <f7-link icon-only @click="toggleFavorite">
+          <SvgIcon
+            :icon="isSaintFavorite ? 'favorite-filled' : 'favorite'"
+            :color="navIconColor"
+            :size="24"
+          />
+        </f7-link>
+      </f7-nav-right>
+      <f7-nav-title-large>{{ title }}</f7-nav-title-large>
+    </f7-navbar>
 
     <div v-if="state === 'loading'" class="saint-state">
       <f7-preloader />
@@ -81,9 +94,14 @@
 import { computed, onBeforeUnmount, onMounted, ref, shallowRef } from "vue";
 import { f7 } from "framework7-vue";
 import CollapsibleList from "@/components/CollapsibleList.vue";
+import SvgIcon from "@/components/SvgIcon.vue";
 import { buildSrcset, htmlToText, resolveImageUrl } from "@/components/calendar/dayFormat";
 import { buildMemoDay, getServiceDateLabel, type SaintMemoDay } from "@/components/saint/memoDays";
 import { getSaintLifeUrl } from "@/components/saint/saintText";
+import { useInfoToast } from "@/composables/useInfoToast";
+import { useTheme } from "@/composables/useTheme";
+import { getSaintKey } from "@/js/itemKey";
+import { useFavoritesStore } from "@/stores/favorites";
 import { usePrayersStore } from "@/stores/prayers";
 import { useSaintsStore, type SaintDetails } from "@/stores/saints";
 
@@ -107,6 +125,30 @@ const saintId = Number(id);
 
 const saintsStore = useSaintsStore();
 const prayersStore = usePrayersStore();
+const { addFavorite, deleteFavorite, isFavorite } = useFavoritesStore();
+const { isDarkMode } = useTheme();
+
+const navIconColor = computed(() => (isDarkMode.value ? "baige-90" : "black-primary"));
+const saintFavoriteKey = getSaintKey(saintId);
+const isSaintFavorite = computed(() => isFavorite(saintFavoriteKey));
+
+const { showInfoToast: showAddedToFavoritesToast } = useInfoToast({
+  text: "Добавлено в избранное",
+});
+const { showInfoToast: showRemovedFromFavoritesToast } = useInfoToast({
+  text: "Удалено из избранного",
+});
+
+const toggleFavorite = async () => {
+  if (!Number.isFinite(saintId)) return;
+  if (isFavorite(saintFavoriteKey)) {
+    await deleteFavorite(saintFavoriteKey);
+    showRemovedFromFavoritesToast();
+  } else {
+    await addFavorite(saintFavoriteKey, "saints");
+    showAddedToFavoritesToast();
+  }
+};
 
 const state = ref<"loading" | "loaded" | "error">("loading");
 const details = shallowRef<SaintDetails | null>(null);

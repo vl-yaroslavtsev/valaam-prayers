@@ -88,7 +88,7 @@ async function mountReading() {
   document.body.appendChild(root);
   app = createApp({
     setup() {
-      return () => h(TextPaginator, { text: "<p>Молитва</p>", itemId: 1, lang: "ru" });
+      return () => h(TextPaginator, { text: "<p>Молитва</p>", itemId: "prayer:1", lang: "ru" });
     },
   });
   app.use(pinia);

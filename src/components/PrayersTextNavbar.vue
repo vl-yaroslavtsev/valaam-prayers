@@ -19,7 +19,12 @@
         ref="languageSelector"
         v-model="currentLanguage" 
         :available-languages="availableLanguages" />
-      <f7-link ref="favoriteLink" icon-only>
+      <f7-link
+        v-if="favorite"
+        ref="favoriteLink"
+        icon-only
+        :class="{ disabled: isFavoriteDisabled }"
+      >
         <SvgIcon 
           :icon="isElementFavorite ? 'favorite-filled' : 'favorite'" 
           :color="navIconColor" 
@@ -81,9 +86,8 @@ import { f7 } from "framework7-vue";
 import type { Router } from "framework7/types";
 import type { Language } from "@/types/common";
 
-import { usePrayersStore } from "@/stores/prayers";
 import { useSettingsStore } from "@/stores/settings";
-import { useFavoritesStore } from "@/stores/favorites";
+import { useFavoritesStore, type FavoriteType } from "@/stores/favorites";
 import { useInfoToast } from "@/composables/useInfoToast";
 import { useTheme } from "@/composables/useTheme";
 import { device } from "@/js/device";
@@ -92,17 +96,24 @@ import SvgIcon from "@/components/SvgIcon.vue";
 import LanguageSelector from "@/components/LanguageSelector.vue";
 import PrayersTextMorePopup from "@/components/PrayersTextMorePopup.vue";
 
+export interface NavbarFavoriteConfig {
+  type: FavoriteType;
+  meta?: { title: string; url: string };
+}
+
 interface Props {
   title: string;
   subtitle: string[];
-  itemId: number;
+  itemId: string;
   itemUrl: string;
   availableLanguages: Language[];
   textTheme: string;
   isHidden: boolean;
   animateVisibility?: boolean;
-  /** Задан у текстов дня календаря: они попадают в избранное с типом "days" и своим названием и адресом */
-  dayFavorite?: { title: string; url: string };
+  /** Если null/undefined — кнопка «Избранное» скрыта (например, у жития святого) */
+  favorite?: NavbarFavoriteConfig | null;
+  /** Блокирует добавление в Избранное, пока текст не загружен (чтобы не сохранить пустое/временное название) */
+  isFavoriteDisabled?: boolean;
 }
 
 interface Emits {
@@ -134,7 +145,6 @@ onBeforeUnmount(() => {
 const { isDarkMode } = useTheme();
 const navIconColor = computed(() => (isDarkMode.value ? "baige-90" : "black-primary"));
 
-const prayersStore = usePrayersStore();
 const settingsStore = useSettingsStore();
 const { addFavorite, deleteFavorite, isFavorite } = useFavoritesStore();
 
@@ -175,15 +185,12 @@ const { showInfoToast: showRemovedFromFavoritesToast } = useInfoToast({
 const isElementFavorite = computed(() => isFavorite(props.itemId));
 
 const toggleFavorite = async () => {
+  if (!props.favorite || props.isFavoriteDisabled) return;
   if (isFavorite(props.itemId)) {
     await deleteFavorite(props.itemId);
     showRemovedFromFavoritesToast();
-  } else if (props.dayFavorite) {
-    await addFavorite(props.itemId, "days", props.dayFavorite);
-    showAddedToFavoritesToast();
   } else {
-    const type = prayersStore.isBook(props.itemId) ? "books" : "prayers";
-    await addFavorite(props.itemId, type);
+    await addFavorite(props.itemId, props.favorite.type, props.favorite.meta);
     showAddedToFavoritesToast();
   }
 };

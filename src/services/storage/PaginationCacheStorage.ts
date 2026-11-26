@@ -57,7 +57,7 @@ export class PaginationCacheStorage extends BaseStorage<"pagination-cache"> {
    * чтобы режимы не затирали страницы друг друга.
    */
   private createCacheKey(
-    id: number,
+    id: string,
     language: Language | 'default',
     pageMode: PaginationCacheMode = "horizontal"
   ): string {
@@ -108,7 +108,7 @@ export class PaginationCacheStorage extends BaseStorage<"pagination-cache"> {
    * Получает кэшированные страницы для заданного id, языка и настроек
    */
   async getCachedPages(
-    id: number,
+    id: string,
     language: Language | 'default',
     settings: PaginationHashSettings,
     modifiedTs: number,
@@ -151,7 +151,7 @@ export class PaginationCacheStorage extends BaseStorage<"pagination-cache"> {
    * Сохраняет страницы в кэш
    */
   async setCachedPages(
-    id: number,
+    id: string,
     language: Language | 'default',
     settings: PaginationHashSettings,
     pages: string[],
@@ -281,7 +281,7 @@ export class PaginationCacheStorage extends BaseStorage<"pagination-cache"> {
   /**
    * Удаляет кэш для конкретного элемента и языка
    */
-  async removeCachedPages(id: number, language: Language | 'default'): Promise<void> {
+  async removeCachedPages(id: string, language: Language | 'default'): Promise<void> {
     const keys = [
       this.createCacheKey(id, language, "horizontal"),
       this.createCacheKey(id, language, "vertical"),

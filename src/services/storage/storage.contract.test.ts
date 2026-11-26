@@ -121,11 +121,11 @@ describe.each(backends)("хранилище: $name", ({ setup, tableClass }) => 
     const createdAt = new Date("2026-03-01T10:20:30.000Z");
     const lastReadAt = new Date("2026-03-02T11:00:00.000Z");
 
-    await storage.bookmarksStorage!.put({ id: "b1", itemId: 5, progress: 0.5, name: "Закладка", createdAt });
-    await storage.readingHistoryStorage!.put({ id: 5, progress: 0.1, pages: 10, type: "prayers", lastReadAt });
+    await storage.bookmarksStorage!.put({ id: "b1", itemId: "prayer:5", progress: 0.5, name: "Закладка", createdAt });
+    await storage.readingHistoryStorage!.put({ id: "prayer:5", progress: 0.1, pages: 10, type: "prayers", lastReadAt });
 
     const bookmark = await storage.bookmarksStorage!.get("b1");
-    const history = await storage.readingHistoryStorage!.get(5);
+    const history = await storage.readingHistoryStorage!.get("prayer:5");
     expect(bookmark?.createdAt).toBeInstanceOf(Date);
     expect(bookmark?.createdAt.getTime()).toBe(createdAt.getTime());
     expect(history?.lastReadAt).toBeInstanceOf(Date);

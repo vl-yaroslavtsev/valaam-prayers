@@ -520,8 +520,18 @@ export const usePrayersStore = defineStore("prayers", () => {
     return items;
   };
 
+  const isBible = (itemId: number) => {
+    return isItemInSection(itemId, BIBLE_SECTION_ID);
+  };
+
   const isBook = (itemId: number) => {
-    return isItemInSection(itemId, BOOKS_SECTION_ID) || isItemInSection(itemId, BIBLE_SECTION_ID);
+    return isItemInSection(itemId, BOOKS_SECTION_ID) || isBible(itemId);
+  };
+
+  const getFavoriteType = (itemId: number): "bible" | "books" | "prayers" => {
+    if (isBible(itemId)) return "bible";
+    if (isBook(itemId)) return "books";
+    return "prayers";
   };
 
   const isItemInSection = (itemId: number, sectionId: number) => {
@@ -610,7 +620,9 @@ export const usePrayersStore = defineStore("prayers", () => {
     getItemById,
     isSection,
     isItemInSection,
+    isBible,
     isBook,
+    getFavoriteType,
     // Actions
     initStore,
     fetchPrayers,

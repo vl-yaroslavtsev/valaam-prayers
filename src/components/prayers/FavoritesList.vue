@@ -82,12 +82,13 @@ import { useSwipeoutEdgeGuard, swipeoutClearCache } from "@/composables/useSwipe
 import { useComponentsStore } from "@/stores/components";
 
 interface FavoriteListItem {
-  id: number;
+  id: string;
   name: string;
   url: string;
   lang?: Language[];
   progress?: number;
   pages?: number;
+  canResetProgress?: boolean;
 }
 // Props
 const {
@@ -104,25 +105,26 @@ const {
   cssClass?: string;
   isLoading?: boolean;
   // Во время тура на главной всегда показываем кнопку сброса на этой строке
-  tutorialItemId?: number | null;
+  tutorialItemId?: string | null;
 }>();
 
 const shouldShowResetButton = (item: FavoriteListItem) =>
+  item.canResetProgress !== false &&
   Boolean((item.progress && item.pages) || item.id === tutorialItemId);
 
 // Events
 const emit = defineEmits<{
-  deleteItem: [id: number];
+  deleteItem: [id: string];
   undoDeleteItem: [];
-  resetItemProgress: [id: number];
+  resetItemProgress: [id: string];
   undoResetItemProgress: [];
-  sorted: [id: number, prevId: number | null];
+  sorted: [id: string, prevId: string | null];
 }>();
 
 const { isDarkMode } = useTheme();
 
 const skeletonItems = Array(5).fill(null).map((_, index) => ({
-  id: -(index + 1),
+  id: `skeleton-${index}`,
   name: "________________________________",
   url: "javascript:void(0)",
   progress: 0.5,
@@ -179,11 +181,12 @@ const deleteItem = (item: FavoriteListItem) => {
   showUndoDeleteToast();
 };
 
-const onSortableSort = ({ from, to, el }: { from: number; to: number; el: HTMLElement }) => {
+const onSortableSort = ({ el }: { from: number; to: number; el: HTMLElement }) => {
   const prevEl = el.previousElementSibling;
-  const prevId = prevEl ? Number((prevEl as HTMLElement).dataset.id) : null;
-  const id = Number(el.dataset.id);
-  emit("sorted", id, Number.isFinite(prevId) ? prevId : null);
+  const prevId = prevEl ? (prevEl as HTMLElement).dataset.id ?? null : null;
+  const id = el.dataset.id;
+  if (!id) return;
+  emit("sorted", id, prevId);
 };
 
 const { getComponent } = useComponentsStore();

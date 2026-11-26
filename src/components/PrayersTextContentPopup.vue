@@ -139,7 +139,7 @@ import SvgIcon from "@/components/SvgIcon.vue";
 import Swiper from "swiper";
 
 const { itemId, title, headers, page, lang, bookmarks = [], initialTab = "content", activeBookmarkId = null, activeHeaderIndex = null } = defineProps<{
-  itemId: number;
+  itemId: string;
   title: string;
   headers: PaginationCacheItemHeader[];
   page: number;

@@ -7,6 +7,7 @@
   >
     <div class="header">
       <f7-link 
+        v-if="showResetProgress !== false"
         ref="resetLink"
         class="reset-link" 
         icon-only 
@@ -54,6 +55,7 @@ interface Props {
   totalPages: number;
   isHidden: boolean;
   animateVisibility?: boolean;
+  showResetProgress?: boolean;
 }
 
 interface Emits {

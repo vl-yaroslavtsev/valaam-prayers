@@ -7,7 +7,7 @@ export class BookmarksStorage extends BaseStorage<"bookmarks"> {
   }
 
   async getByItem(
-    itemId: number
+    itemId: string
   ): Promise<ValaamDB["bookmarks"]["value"][]> {
     return this.db.getAllFromIndex(this.name, "by-item", itemId);
   }

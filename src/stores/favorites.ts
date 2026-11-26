@@ -4,13 +4,16 @@ import { favoritesStorage } from "@/services/storage";
 
 export type FavoriteType =
   | "prayers"
+  | "bible"
   | "books"
   | "saints"
   | "thoughts"
-  | "days";
+  | "parables"
+  | "readings"
+  | "instructions";
 
 export interface FavoritesItem {
-  id: number;
+  id: string;
   type: FavoriteType;
   sort: number;
   /** Название и адрес хранятся у текстов дня календаря: по id их не восстановить */
@@ -52,7 +55,7 @@ export const useFavoritesStore = defineStore("favorites", () => {
       .sort((a, b) => a.sort - b.sort);
 
   // Actions
-  const deleteFavorite = async (id: number) => {
+  const deleteFavorite = async (id: string) => {
     const index = favorites.value.findIndex((p) => p.id === id);
     if (index !== -1) {
       dataToUndoDelete = { item: favorites.value[index], index };
@@ -82,7 +85,7 @@ export const useFavoritesStore = defineStore("favorites", () => {
   };
 
   const addFavorite = async (
-    id: number,
+    id: string,
     type: FavoriteType,
     meta?: { title: string; url: string }
   ) => {
@@ -109,11 +112,11 @@ export const useFavoritesStore = defineStore("favorites", () => {
     }
   };
 
-  const isFavorite = (id: number) => {
+  const isFavorite = (id: string) => {
     return !!favorites.value.find((p) => p.id === id);
   };
 
-  const moveFavorite = async (id: number, prevId: number | null) => {
+  const moveFavorite = async (id: string, prevId: string | null) => {
     const item = favorites.value.find((p) => p.id === id);
     if (!item) return;
 

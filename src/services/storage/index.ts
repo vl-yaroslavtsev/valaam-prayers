@@ -57,8 +57,8 @@ function initNativeStorage(): void {
   prayerDetailsStorage = new NativePrayerDetailsStorage();
   saintsIndexStorage = new NativeTableStorage<number, ValaamDB["saints-index"]["value"]>("saints-index");
   saintDetailsStorage = new NativeTableStorage<number, ValaamDB["saint-details"]["value"]>("saint-details");
-  favoritesStorage = new NativeTableStorage<number, ValaamDB["favorites"]["value"]>("favorites");
-  readingHistoryStorage = new NativeTableStorage<number, ValaamDB["reading-history"]["value"]>(
+  favoritesStorage = new NativeTableStorage<string, ValaamDB["favorites"]["value"]>("favorites");
+  readingHistoryStorage = new NativeTableStorage<string, ValaamDB["reading-history"]["value"]>(
     "reading-history",
     ["lastReadAt"]
   );

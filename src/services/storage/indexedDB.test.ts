@@ -81,4 +81,33 @@ describe("indexedDB", () => {
     expect(names).toContain("download-progress");
     expect(await metadataStorage?.getValue("keep")).toBe("yes");
   });
+
+  it("при апгрейде до v10 пересоздаёт пользовательские сторы со строковыми ключами", async () => {
+    closeDB();
+    Object.defineProperty(globalThis, "indexedDB", {
+      value: new IDBFactory(),
+      writable: true,
+      configurable: true,
+    });
+
+    await new Promise<void>((resolve, reject) => {
+      const request = indexedDB.open("valaam-prayers", 9);
+      request.onupgradeneeded = () => {
+        const database = request.result;
+        const favs = database.createObjectStore("favorites", { keyPath: "id" });
+        favs.put({ id: 83820, type: "saints", sort: 0 });
+      };
+      request.onsuccess = () => {
+        request.result.close();
+        resolve();
+      };
+      request.onerror = () => reject(request.error);
+    });
+
+    await initStorage();
+
+    const favs = await getDB().getAll("favorites");
+    expect(favs.length).toBeGreaterThan(0);
+    expect(favs.every((item) => typeof item.id === "string")).toBe(true);
+  });
 });

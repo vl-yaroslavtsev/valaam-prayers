@@ -35,7 +35,7 @@
     <f7-block-title class="now-reading-title">Сейчас читаю</f7-block-title>
     <HistorySlider :items="lastReadings" :isLoading="isHistoryLoading" />
     <f7-block-title class="favorites-title">Избранное</f7-block-title>
-    <f7-block ref="chipsBlockRef" class="chips-block">
+    <f7-block v-if="chips.length > 0" ref="chipsBlockRef" class="chips-block">
       <f7-chip
         v-for="chip in chips"
         :key="chip.id"
@@ -81,18 +81,23 @@
 <script setup lang="ts">
 import { ref, watch, watchEffect, computed, nextTick, useTemplateRef } from "vue";
 import { useTheme } from "@/composables/useTheme";
-import { useFavoritesStore, type FavoritesItem } from "@/stores/favorites";
-import { usePrayersStore } from "@/stores/prayers";
+import { useFavoritesStore } from "@/stores/favorites";
+import { usePrayersStore, type PrayerElement, type PrayerSection } from "@/stores/prayers";
 import { useSaintsStore } from "@/stores/saints";
-import { useThoughtsStore } from "@/stores/thoughts";
 import { useReadingHistoryStore } from "@/stores/readingHistory";
 import { useErrorToast } from "@/composables/useErrorToast";
 import {
   useHomeTutorial,
   type HomeTutorialKind,
 } from "@/composables/useHomeTutorial";
-import type { Language } from "@/types/common";
 
+import {
+  buildLastReadingItems,
+  filterFavoritesByChip,
+  getAvailableFavoriteChips,
+  hydrateFavoriteItem,
+  type FavoriteFilterId,
+} from "@/components/home/favoritesFilter";
 import SvgIcon from "@/components/SvgIcon.vue";
 import SeparatorLine from "@/components/SeparatorLine.vue";
 import HistorySlider from "@/components/HistorySlider.vue";
@@ -108,37 +113,12 @@ const pencilInactiveColor = computed(() => (isDarkMode.value ? "baige-90" : "bla
 const favoritesStore = useFavoritesStore();
 const prayersStore = usePrayersStore();
 const saintsStore = useSaintsStore();
-const thoughtsStore = useThoughtsStore();
 const historyStore = useReadingHistoryStore();
 
-type FilterType = "all" | "prayers" | "books" | "calendar";
+/** Только фильтры, для которых есть избранное; при одной категории чипсы не показываются. */
+const chips = computed(() => getAvailableFavoriteChips(favoritesStore.favorites));
 
-const ALL_CHIPS: { id: FilterType; title: string }[] = [
-  { id: "all", title: "Все" },
-  { id: "prayers", title: "Молитвы" },
-  { id: "books", title: "Книги" },
-  { id: "calendar", title: "Календарь" },
-];
-
-const hasFavoritesOfType = (filterType: Exclude<FilterType, "all">) => {
-  if (filterType === "calendar") {
-    return favoritesStore.favorites.some(
-      (f) => f.type === "saints" || f.type === "thoughts" || f.type === "days"
-    );
-  }
-  return favoritesStore.favorites.some((f) => f.type === filterType);
-};
-
-/** Только фильтры, для которых есть избранное; «Все» — если есть хотя бы один тип. */
-const chips = computed(() => {
-  const available = ALL_CHIPS.filter((chip) => {
-    if (chip.id === "all") return favoritesStore.favorites.length > 0;
-    return hasFavoritesOfType(chip.id);
-  });
-  return available;
-});
-
-const selectedFilter = ref<FilterType>("all");
+const selectedFilter = ref<FavoriteFilterId>("all");
 
 watch(chips, (availableChips) => {
   if (!availableChips.some((chip) => chip.id === selectedFilter.value)) {
@@ -153,7 +133,7 @@ const favoritesListRef = useTemplateRef("favoritesList");
 const favoritesSectionMinHeight = ref<string | null>(null);
 
 const isHomeVisible = ref(true);
-const tutorialItemId = ref<number | null>(null);
+const tutorialItemId = ref<string | null>(null);
 const hintTargets = ref<SpotlightTarget[] | null>(null);
 const lockHomeNavbar = ref(false);
 const isTutorialStarting = ref(false);
@@ -322,7 +302,9 @@ const tryStartHomeTutorial = async (kind: HomeTutorialKind = "favorites") => {
     return;
   }
 
-  const tutorialItem = currentFavorites.value[0];
+  const tutorialItem =
+    currentFavorites.value.find((item) => item.canResetProgress) ??
+    currentFavorites.value[0];
   if (!tutorialItem) return;
 
   isTutorialStarting.value = true;
@@ -406,7 +388,7 @@ const getF7El = (refValue: unknown): HTMLElement | null => {
 };
 
 /** Сохраняет позицию chips при смене фильтра: короткие списки не схлопывают scrollHeight. */
-const onFilterClick = async (id: FilterType) => {
+const onFilterClick = async (id: FavoriteFilterId) => {
   if (selectedFilter.value === id) return;
 
   const chipsEl = getF7El(chipsBlockRef.value);
@@ -439,60 +421,45 @@ const isLoading = computed(() => {
   if (selectedFilter.value === "prayers" || selectedFilter.value === "books") {
     return prayersStore.isLoading;
   }
-  if (selectedFilter.value === "calendar") {
-    return saintsStore.isLoading || thoughtsStore.isLoading;
+  if (selectedFilter.value === "scripture") {
+    const hasBible = favoritesStore.favorites.some((f) => f.type === "bible");
+    return hasBible && prayersStore.isLoading;
   }
-  return (
-    prayersStore.isLoading ||
-    saintsStore.isLoading ||
-    thoughtsStore.isLoading
-  );
+  if (selectedFilter.value === "saints") {
+    return saintsStore.isLoading;
+  }
+  if (
+    selectedFilter.value === "thoughts" ||
+    selectedFilter.value === "instructions"
+  ) {
+    return false;
+  }
+  return prayersStore.isLoading || saintsStore.isLoading;
 });
 
 const isHistoryLoading = computed(
-  () =>
-    prayersStore.isLoading ||
-    saintsStore.isLoading ||
-    thoughtsStore.isLoading
+  () => prayersStore.isLoading || saintsStore.isLoading
 );
 
 const lastReadings = computed(() =>
-  historyStore.getLastItems("all", 10).map((r) => {
-    let name = "";
-    let url = "";
-
-    if (r.type === "prayers" || r.type === "books") {
-      const item = prayersStore.getItemById(r.id);
-      if (item) {
-        name = item.name;
-        url = item.url;
-      }
-    } else if (r.type === "saints") {
-      const saint = saintsStore.getSaintById(r.id);
-      if (saint) {
-        name = saint.name;
-      }
-      url = "/saints/" + r.id;
-    }
-
-    return {
-      name,
-      url,
-      ...r,
-    };
-  })
+  buildLastReadingItems(historyStore.getRecentItems(10), (id) =>
+    prayersStore.getItemById(id)
+  )
 );
 
-const currentFavorites = computed(() => {
-  if (selectedFilter.value === "all") {
-    return [
-      ...getFavoritesByType("prayers"),
-      ...getFavoritesByType("books"),
-      ...getFavoritesByType("calendar"),
-    ].sort((a, b) => a.sort - b.sort);
-  }
-  return getFavoritesByType(selectedFilter.value);
-});
+const homeDataLookups = {
+  getPrayerById: (id: number) => prayersStore.getItemById(id),
+  getPrayerLanguages: (item: { name: string; url: string }) =>
+    prayersStore.getItemLanguages(item as PrayerElement | PrayerSection),
+  getSaintById: (id: number) => saintsStore.getSaintById(id),
+  getHistoryItem: (id: string) => historyStore.getItem(id),
+};
+
+const currentFavorites = computed(() =>
+  filterFavoritesByChip(favoritesStore.favorites, selectedFilter.value).map((f) =>
+    hydrateFavoriteItem(f, homeDataLookups)
+  )
+);
 
 const isEmptyList = computed(
   () => !isLoading.value && currentFavorites.value.length === 0
@@ -503,9 +470,10 @@ const showErrorToast = useErrorToast({
 });
 
 const isError = computed(() => {
-  return (prayersStore.error && prayersStore.elements.length === 0)
-  || (saintsStore.error && saintsStore.saints.length === 0)
-  || (thoughtsStore.error && thoughtsStore.thoughts.length === 0);
+  return (
+    (prayersStore.error && prayersStore.elements.length === 0) ||
+    (saintsStore.error && saintsStore.saints.length === 0)
+  );
 });
 
 watchEffect(() => {
@@ -513,71 +481,6 @@ watchEffect(() => {
     showErrorToast.showErrorToast();
   }
 });
-
-
-// Используем методы из store
-const getFavoritesByType = (filterType: Exclude<FilterType, "all">) => {
-  let favorites: FavoritesItem[] = [];
-  if (filterType === "books") {
-    favorites = favoritesStore.getFavoritesByType("books");
-
-  } else if (filterType === "prayers") {
-    favorites = favoritesStore.getFavoritesByType("prayers");
-
-  } else if (filterType === "calendar") {
-    favorites = [
-      ...favoritesStore.getFavoritesByType("saints"),
-      ...favoritesStore.getFavoritesByType("thoughts"),
-      ...favoritesStore.getFavoritesByType("days"),
-    ].sort((a, b) => a.sort - b.sort);
-
-  }
-  return favorites.map((f) => {
-    const type = f.type;
-    const history = historyStore.getItem(f.id);
-    let extra: {
-      name: string;
-      url: string;
-      lang: Language[];
-    } = {
-      name: "",
-      url: "",
-      lang: [],
-    };
-
-    if (["books", "prayers"].includes(type)) {
-      const item = prayersStore.getItemById(f.id);
-      if (item) {
-        extra.name = item.name;
-        extra.url = item.url;
-        extra.lang = prayersStore.getItemLanguages(item);
-      }
-    } else if (type === "saints") {
-      const saint = saintsStore.getSaintById(f.id);
-      if (saint) {
-        extra.name = saint.name;
-      }
-      extra.url = "/saints/" + f.id;
-    } else if (type === "thoughts") {
-      const thought = thoughtsStore.getThoughtById(String(f.id));
-      if (thought) {
-        extra.name = thought.name;
-      }
-      extra.url = "/thoughts/" + f.id;
-    } else if (type === "days") {
-      extra.name = f.title ?? "";
-      extra.url = f.url ?? "";
-    }
-
-    return {
-      ...f,
-      progress: history?.progress,
-      pages: history?.pages,
-      lastReadAt: history?.lastReadAt,
-      ...extra,
-    };
-  });
-};
 
 const onDeleteItem = favoritesStore.deleteFavorite;
 const onUndoDeleteItem = favoritesStore.undoDeleteFavorite;
@@ -609,34 +512,28 @@ watch(
   { immediate: true, flush: "post" }
 );
 
-const onSorted = (id: number, prevId: number | null) => {
+const onSorted = (id: string, prevId: string | null) => {
   favoritesStore.moveFavorite(id, prevId);
 };
 </script>
 
 <style scoped lang="less">
 .chips-block {
-  --filter-chip-selected-border: var(--brand-color-primary-accent-50);
-  --filter-chip-bg-color: var(--content-color-black-10);
-
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
   gap: 8px;
   margin-bottom: 0;
 
+  &::-webkit-scrollbar {
+    display: none;
+  }
+
   :deep(.chip) {
-    background-color: var( --filter-chip-bg-color);
-    border: 2px solid transparent;
+    flex-shrink: 0;
   }
-
-  :deep(.chip-selected) {
-    border-color: var(--filter-chip-selected-border);
-  }
-}
-
-:global(.dark .chips-block) {
-  // --filter-chip-selected-border: var(--content-color-white-100);
-  --filter-chip-bg-color: var(--content-color-baige-5);
 }
 
 .favorites-section {

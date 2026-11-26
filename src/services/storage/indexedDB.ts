@@ -5,6 +5,8 @@ import type { PaginationCacheItemHeader } from './PaginationCacheStorage';
 import type { CalendarDayApiElement, CalendarMarkersResponse } from '@/services/api/DaysApi';
 import type { SaintDetailApiElement } from '@/services/api/SaintsApi';
 import type { DownloadModuleId, ModuleDownloadState, PrayerDownloadModuleId } from '@/services/download/types';
+import type { FavoriteType } from '@/stores/favorites';
+import type { ReadingType } from '@/stores/readingHistory';
 
 /**
  * Схема базы данных
@@ -39,10 +41,10 @@ interface ValaamDB extends DBSchema {
     };
   };
   favorites: {
-    key: number;
+    key: string;
     value: {
-      id: number;
-      type: 'prayers' | 'books' | 'saints' | 'thoughts' | 'days';
+      id: string;
+      type: FavoriteType;
       sort: number;
       title?: string;
       url?: string;
@@ -107,13 +109,15 @@ interface ValaamDB extends DBSchema {
     };
   };
   'reading-history': {
-    key: number;
+    key: string;
     value: {
-      id: number;
+      id: string;
       progress: number;
       pages: number;
-      type: 'prayers' | 'books' | 'saints';
+      type: ReadingType;
       lastReadAt: Date;
+      title?: string;
+      url?: string;
     };
     indexes: {
       'by-last-read': Date;
@@ -138,13 +142,13 @@ interface ValaamDB extends DBSchema {
     key: string;
     value: {
       id: string;
-      itemId: number;
+      itemId: string;
       progress: number;
       name: string;
       createdAt: Date;
     };
     indexes: {
-      'by-item': number;
+      'by-item': string;
     };
   };
   // Дни календаря, скачанные для офлайна. Наполняется только DownloadManager'ом
@@ -165,7 +169,7 @@ interface ValaamDB extends DBSchema {
 }
 
 const DB_NAME: string = 'valaam-prayers';
-const DB_VERSION: number = 9;
+const DB_VERSION: number = 10;
 
 let db: IDBPDatabase<ValaamDB> | null = null;
 let initPromise: Promise<void> | null = null;
@@ -193,6 +197,16 @@ async function initIndexedDB() {
 
       if (oldVersion < 6 && oldVersion >= 4 && db.objectStoreNames.contains('prayer-details')) {
         db.deleteObjectStore('prayer-details');
+      }
+
+      // Переход пользовательских таблиц на строковые ключи (prayer:id, saint:id, ...)
+      if (oldVersion < 10) {
+        const userStores = ['favorites', 'reading-history', 'bookmarks'] as const;
+        for (const name of userStores) {
+          if (db.objectStoreNames.contains(name)) {
+            db.deleteObjectStore(name);
+          }
+        }
       }
 
       // Создаем хранилище молитв

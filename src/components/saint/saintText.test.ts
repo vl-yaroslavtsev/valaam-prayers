@@ -1,16 +1,38 @@
 import { describe, expect, it } from "vitest";
-import { buildSaintLifeText, getSaintLifeId, getSaintLifeUrl } from "./saintText";
+import {
+  buildSaintLifeText,
+  getSaintLifeId,
+  getSaintLifeUrl,
+  resolveSaintLifeReaderConfig,
+} from "./saintText";
 import { getDayTextId } from "@/components/calendar/dayText";
+import { getPrayerItemKey, getSaintKey } from "@/js/itemKey";
 
 describe("saintText", () => {
-  it("id жития не пересекается с id молитв и текстов дня", () => {
-    // Наибольшие id: молитвы ~1.8 млн, святые ~1.5 млн
-    expect(getSaintLifeId(3)).toBeGreaterThan(1_800_000);
-    expect(getSaintLifeId(1_460_099)).toBeLessThan(getDayTextId("19000101", "thought"));
+  it("строковый ключ жития не пересекается с молитвами, карточками святых и текстами дня", () => {
+    expect(getSaintLifeId(5)).toBe("saint-life:5");
+    expect(getSaintLifeId(5)).not.toBe(getSaintKey(5));
+    expect(getSaintLifeId(5)).not.toBe(getPrayerItemKey(5));
+    expect(getSaintLifeId(5)).not.toBe(getDayTextId("20261013", "thought"));
   });
 
   it("адрес жития", () => {
     expect(getSaintLifeUrl(99187)).toBe("/saints/99187/life");
+  });
+
+  it("resolveSaintLifeReaderConfig отключает избранное и включает историю с метаданными", () => {
+    const config = resolveSaintLifeReaderConfig("99187", "Свт. Николай");
+
+    expect(config).toEqual({
+      saintId: 99187,
+      itemId: "saint-life:99187",
+      initialTitle: "Свт. Николай",
+      itemUrl: "/saints/99187/life",
+      favorite: null,
+      history: { type: "saints", withMeta: true },
+    });
+
+    expect(() => resolveSaintLifeReaderConfig(undefined)).toThrow();
   });
 
   it("строит текст для читалки из карточки святого", () => {
@@ -29,7 +51,7 @@ describe("saintText", () => {
       memoDays: [],
     });
 
-    expect(text.id).toBe(getSaintLifeId(5));
+    expect(text.id).toBe(5);
     expect(text.name).toBe("Святой");
     expect(text.text).toBe("<p>Житие</p>");
   });

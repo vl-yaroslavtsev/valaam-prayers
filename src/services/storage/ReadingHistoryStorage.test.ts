@@ -7,12 +7,12 @@ describe("ReadingHistoryStorage", () => {
     await resetIndexedDB();
     const storage = new ReadingHistoryStorage();
     await storage.putAll([
-      { id: 1, progress: 0, pages: 1, type: "prayers", lastReadAt: new Date("2026-01-01T00:00:00.000Z") },
-      { id: 2, progress: 0, pages: 1, type: "prayers", lastReadAt: new Date("2026-03-01T00:00:00.000Z") },
-      { id: 3, progress: 0, pages: 1, type: "books", lastReadAt: new Date("2026-02-01T00:00:00.000Z") },
+      { id: "prayer:1", progress: 0, pages: 1, type: "prayers", lastReadAt: new Date("2026-01-01T00:00:00.000Z") },
+      { id: "prayer:2", progress: 0, pages: 1, type: "prayers", lastReadAt: new Date("2026-03-01T00:00:00.000Z") },
+      { id: "prayer:3", progress: 0, pages: 1, type: "books", lastReadAt: new Date("2026-02-01T00:00:00.000Z") },
     ]);
 
     const result = await storage.getRecent(2);
-    expect(result.map((item) => item.id)).toEqual([2, 3]);
+    expect(result.map((item) => item.id)).toEqual(["prayer:2", "prayer:3"]);
   });
 });

@@ -7,12 +7,12 @@ describe("BookmarksStorage", () => {
     await resetIndexedDB();
     const storage = new BookmarksStorage();
     await storage.putAll([
-      { id: "a", itemId: 10, progress: 0, name: "A", createdAt: new Date() },
-      { id: "b", itemId: 20, progress: 1, name: "B", createdAt: new Date() },
-      { id: "c", itemId: 10, progress: 2, name: "C", createdAt: new Date() },
+      { id: "a", itemId: "prayer:10", progress: 0, name: "A", createdAt: new Date() },
+      { id: "b", itemId: "prayer:20", progress: 1, name: "B", createdAt: new Date() },
+      { id: "c", itemId: "prayer:10", progress: 2, name: "C", createdAt: new Date() },
     ]);
 
-    const result = await storage.getByItem(10);
+    const result = await storage.getByItem("prayer:10");
     expect(result.map((item) => item.id).sort()).toEqual(["a", "c"]);
   });
 });

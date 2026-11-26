@@ -2,21 +2,42 @@
 import { defineStore } from "pinia";
 import { readingHistoryStorage } from "../services/storage";
 
-type ReadingType = "prayers" | "books" | "saints";
+export type ReadingType =
+  | "prayers"
+  | "books"
+  | "saints"
+  | "readings"
+  | "instructions";
 
-interface ReadingHistoryItem {
-  id: number;
+export interface ReadingHistoryMeta {
+  title: string;
+  url: string;
+}
+
+export interface ReadingHistoryItem {
+  id: string;
   progress: number;
   pages: number;
   type: ReadingType;
   lastReadAt: Date;
+  /** Название и адрес для текстов без общего индекса (жития, указания, чтения дня) */
+  title?: string;
+  url?: string;
 }
+
+/** Типы истории, которые попадают в блок «Сейчас читаю» на главной */
+const RECENT_READING_TYPES: ReadonlySet<ReadingType> = new Set([
+  "prayers",
+  "books",
+  "saints",
+  "instructions",
+]);
 
 export const useReadingHistoryStore = defineStore("readingHistory", {
   state: () => ({
     history: [] as ReadingHistoryItem[],
     snapshot: {
-      id: 0,
+      id: "",
       progress: 0,
       pages: 0,
       type: "prayers",
@@ -27,19 +48,14 @@ export const useReadingHistoryStore = defineStore("readingHistory", {
   }),
 
   getters: {
-    getItem: (state) => (id: number) => {
+    getItem: (state) => (id: string) => {
       return state.history.find((item) => item.id === id);
     },
-    getLastItems:
+    getRecentItems:
       (state) =>
-      (type: ReadingType | "all" = "all", count: number = 10) => {
-        let history = [...state.history];
-
-        if (type != "all") {
-          history = history.filter((h) => h.type === type);
-        }
-
-        return history
+      (count: number = 10) => {
+        return state.history
+          .filter((h) => RECENT_READING_TYPES.has(h.type))
           .sort((a, b) => b.lastReadAt.getTime() - a.lastReadAt.getTime())
           .slice(0, count);
       },
@@ -56,7 +72,7 @@ export const useReadingHistoryStore = defineStore("readingHistory", {
           this.history = cachedHistory;
         }
       } catch (error) {
-        console.error('Failed to load reading history from cache:', error);
+        console.error("Failed to load reading history from cache:", error);
       } finally {
         this.isInitialized = true;
         this.isInitializing = false;
@@ -64,34 +80,40 @@ export const useReadingHistoryStore = defineStore("readingHistory", {
     },
 
     async updateProgress(
-      id: number,
+      id: string,
       progress: number,
       pages?: number,
-      type: ReadingType = "prayers"
+      type?: ReadingType,
+      meta?: ReadingHistoryMeta
     ) {
       let item = this.history.find((item) => item.id === id);
 
       if (item) {
         this.snapshot = { ...item };
         item.progress = progress;
-        item.type = type;
+        if (type !== undefined) item.type = type;
         if (pages !== undefined) item.pages = pages;
+        if (meta) {
+          item.title = meta.title;
+          item.url = meta.url;
+        }
         item.lastReadAt = new Date();
       } else {
         item = {
           id,
           progress,
           pages: pages ?? 0,
-          type,
+          type: type ?? "prayers",
           lastReadAt: new Date(),
+          ...meta,
         };
         this.history.push(item);
       }
       await readingHistoryStorage?.put(item);
     },
 
-    resetProgress(id: number) {
-      this.updateProgress(id, 0);
+    resetProgress(id: string) {
+      void this.updateProgress(id, 0);
     },
 
     undoResetProgress() {

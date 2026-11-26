@@ -1,0 +1,36 @@
+.md {
+  --f7-chip-bg-color: var(--content-color-black-10);
+  --f7-chip-text-color: var(--content-color-black-primary);
+  --f7-chip-outline-border-color: var(--content-color-black-20);
+  --f7-chip-outline-text-color: var(--content-color-black-primary);
+
+  --chip-selected-bg-color: var(--brand-color-primary-accent-50);
+  --chip-selected-text-color: var(--content-color-white-100);
+
+  .chip {
+    transition:
+      background-color 0.2s ease,
+      color 0.2s ease;
+  }
+
+  .chip-selected {
+    --f7-chip-bg-color: var(--chip-selected-bg-color);
+    --f7-chip-text-color: var(--chip-selected-text-color);
+    --f7-touch-ripple-color: var(--f7-touch-ripple-white);
+  }
+
+  &.dark,
+  & .dark {
+    --f7-chip-bg-color: var(--content-color-baige-10);
+    --f7-chip-text-color: var(--content-color-baige-90);
+    --f7-chip-outline-border-color: var(--content-color-baige-20);
+    --f7-chip-outline-text-color: var(--content-color-baige-90);
+
+    --chip-selected-bg-color: var(--brand-color-primary-accent-70);
+    --chip-selected-text-color: var(--content-color-black-primary);
+
+    .chip-selected {
+      --f7-touch-ripple-color: var(--f7-touch-ripple-black);
+    }
+  }
+}

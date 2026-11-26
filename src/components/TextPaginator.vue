@@ -75,7 +75,7 @@ const {
   lang = null, 
   isLoading = false, 
   initialProgress = 0,
-  itemId = 0,
+  itemId = "",
   modifiedTs = 0,
   highlightTransform,
   bookmarkedPages = [],
@@ -85,7 +85,7 @@ const {
   initialProgress?: number;
   lang?: Language | null;
   isLoading?: boolean;
-  itemId: number;
+  itemId: string;
   // PHP-таймстамп последнего изменения текста; нужен, чтобы не брать устаревший кэш страниц
   modifiedTs?: number;
   // Трансформация HTML страницы перед отображением (например, подсветка поиска).

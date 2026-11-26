@@ -51,7 +51,7 @@
           v-if="!isSection(item.id, item.url)"
           @click="toggleFavorite(item)"
         >
-          <SvgIcon :icon="isFavorite(item.id) ? 'favorite-filled' : 'favorite'" :size="27" color="primary-accent-50" />
+          <SvgIcon :icon="isFavorite(getPrayerItemKey(item.id)) ? 'favorite-filled' : 'favorite'" :size="27" color="primary-accent-50" />
         </f7-swipeout-button>
       </f7-swipeout-actions>
     </f7-list-item>
@@ -75,6 +75,7 @@ import SvgIcon from "@/components/SvgIcon.vue";
 
 import { usePrayersStore } from "@/stores/prayers";
 import { useFavoritesStore } from "@/stores/favorites";
+import { getPrayerItemKey } from "@/js/itemKey";
 import { useInfoToast } from "@/composables/useInfoToast";
 import { useSwipeoutEdgeGuard, swipeoutClearCache } from "@/composables/useSwipeout";
 import { useComponentsStore } from "@/stores/components";
@@ -237,7 +238,7 @@ const { showUndoToast: showUndoResetItemProgressToast } = useUndoToast({
   },
 });
 
-const { isSection } = usePrayersStore();
+const { isSection, getFavoriteType } = usePrayersStore();
 
 const { addFavorite, deleteFavorite, isFavorite } = useFavoritesStore();
 
@@ -250,11 +251,12 @@ const { showInfoToast: showRemovedFromFavoritesToast } = useInfoToast({
 });
 
 const toggleFavorite = async (item: PrayerListItem) => {
-  if (isFavorite(item.id)) {
-    await deleteFavorite(item.id);
+  const key = getPrayerItemKey(item.id);
+  if (isFavorite(key)) {
+    await deleteFavorite(key);
     showRemovedFromFavoritesToast();
   } else {
-    await addFavorite(item.id, "prayers");
+    await addFavorite(key, getFavoriteType(item.id));
     showAddedToFavoritesToast();
   }
 };
