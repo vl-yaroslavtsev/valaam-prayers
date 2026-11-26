@@ -24,6 +24,8 @@ const viewsNames = [
   "rites",
 ] as const;
 
+export type ViewName = (typeof viewsNames)[number];
+
 let backButtonAttempts = 0;
 
 function viewsManager(): void {
@@ -109,6 +111,22 @@ export function navigateWhenReady(router: Router.Router, url: string): void {
   router.once("pageAfterIn", () => {
     router.navigate(url);
   });
+}
+
+/**
+ * Переключает активную вкладку на viewName и открывает в ней url,
+ * если в этом view уже не открыт тот же путь.
+ */
+export function openViewUrl(viewName: ViewName, url: string): void {
+  const selector = `#view-${viewName}`;
+  f7.tab.show(selector);
+
+  const view = f7.view.get(selector);
+  if (!view || view.router.currentRoute?.path === url) {
+    return;
+  }
+
+  navigateWhenReady(view.router, url);
 }
 
 /**

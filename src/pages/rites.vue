@@ -255,7 +255,7 @@ function onPageShown(): void {
 }
 
 function onHistory(): void {
-  f7router.navigate("/rites/history/");
+  f7router.navigate("/rites/my/");
 }
 
 function openPopup(mode: RitePopupMode, item: CartItem | null = null): void {

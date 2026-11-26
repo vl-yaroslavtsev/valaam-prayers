@@ -13,7 +13,7 @@
               <SvgIcon icon="pray" :color="iconColor" />
             </template>
           </f7-list-item>
-          <f7-list-item title="МОИ ЗАПИСКИ" link="/rites/history/" view="current" panel-close>
+          <f7-list-item title="МОИ ЗАПИСКИ" link="#" panel-close @click="openMyRites">
             <template #media>
               <SvgIcon icon="notes" :color="iconColor" />
             </template>
@@ -72,6 +72,7 @@ import SeparatorLine from "../SeparatorLine.vue";
 
 import { f7 } from "framework7-vue";
 import { computed } from "vue";
+import { openViewUrl } from "@/js/viewsManager";
 import { useTheme } from "@/composables/useTheme";
 import { useSettingsStore } from "@/stores/settings";
 
@@ -79,6 +80,10 @@ const props = defineProps<{
   needRefresh: boolean;
   updateSW: () => void;
 }>();
+
+const openMyRites = (): void => {
+  openViewUrl("rites", "/rites/my/");
+};
 
 const updateApp = (): void => {
   f7.dialog.preloader("Обновляем приложение...");

@@ -1,11 +1,34 @@
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { Router } from "framework7/types";
-import { navigateWhenReady, parseCalendarDayUrl, returnToRootWhenReady } from "./viewsManager";
 
-function createRouter(allowPageChange: boolean, history: string[] = ["/calendar/"]) {
+const f7Mocks = vi.hoisted(() => ({
+  tabShow: vi.fn(),
+  viewGet: vi.fn(),
+}));
+
+vi.mock("framework7-vue", () => ({
+  f7: {
+    tab: { show: f7Mocks.tabShow },
+    view: { get: f7Mocks.viewGet },
+  },
+}));
+
+import {
+  navigateWhenReady,
+  openViewUrl,
+  parseCalendarDayUrl,
+  returnToRootWhenReady,
+} from "./viewsManager";
+
+function createRouter(
+  allowPageChange: boolean,
+  history: string[] = ["/calendar/"],
+  currentPath?: string,
+) {
   const router = {
     allowPageChange,
     history,
+    currentRoute: currentPath ? { path: currentPath } : undefined,
     navigate: vi.fn(),
     back: vi.fn(),
     once: vi.fn(),
@@ -84,5 +107,50 @@ describe("returnToRootWhenReady", () => {
     onPageAfterIn();
 
     expect(router.back).toHaveBeenCalledWith("", { animate: false });
+  });
+});
+
+describe("openViewUrl", () => {
+  beforeEach(() => {
+    f7Mocks.tabShow.mockReset();
+    f7Mocks.viewGet.mockReset();
+  });
+
+  it("переключает вкладку на указанный view и открывает url", () => {
+    const router = createRouter(true, ["/rites/"], "/rites/");
+    f7Mocks.viewGet.mockReturnValue({ router });
+
+    openViewUrl("rites", "/rites/my/");
+
+    expect(f7Mocks.tabShow).toHaveBeenCalledWith("#view-rites");
+    expect(f7Mocks.viewGet).toHaveBeenCalledWith("#view-rites");
+    expect(router.navigate).toHaveBeenCalledWith("/rites/my/");
+  });
+
+  it("ждёт инициализации роутера при первом открытии вкладки", () => {
+    const router = createRouter(false, []);
+    f7Mocks.viewGet.mockReturnValue({ router });
+
+    openViewUrl("rites", "/rites/my/");
+
+    expect(f7Mocks.tabShow).toHaveBeenCalledWith("#view-rites");
+    expect(router.navigate).not.toHaveBeenCalled();
+    expect(router.once).toHaveBeenCalledWith("pageAfterIn", expect.any(Function));
+
+    const onPageAfterIn = router.once.mock.calls[0][1] as () => void;
+    onPageAfterIn();
+
+    expect(router.navigate).toHaveBeenCalledWith("/rites/my/");
+  });
+
+  it("не дублирует переход, если нужный путь уже открыт в этом view", () => {
+    const router = createRouter(true, ["/rites/", "/rites/my/"], "/rites/my/");
+    f7Mocks.viewGet.mockReturnValue({ router });
+
+    openViewUrl("rites", "/rites/my/");
+
+    expect(f7Mocks.tabShow).toHaveBeenCalledWith("#view-rites");
+    expect(router.navigate).not.toHaveBeenCalled();
+    expect(router.once).not.toHaveBeenCalled();
   });
 });

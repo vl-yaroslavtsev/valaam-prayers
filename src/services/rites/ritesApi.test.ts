@@ -63,8 +63,8 @@ describe("почта из письма", () => {
 
   it("ссылка без EMAIL не затирает сохранённую почту", () => {
     rememberConfirmedEmail(CONFIRMED);
-    rememberConfirmedEmailFromUrl("/rites/history/");
-    rememberConfirmedEmailFromUrl("/my?EMAIL=");
+    rememberConfirmedEmailFromUrl("/rites/my/");
+    rememberConfirmedEmailFromUrl("/rites/my/?EMAIL=");
 
     expect(getConfirmedEmail()).toBe(CONFIRMED);
   });
