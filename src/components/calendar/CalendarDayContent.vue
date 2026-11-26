@@ -70,6 +70,45 @@
       </template>
     </section>
 
+    <section v-if="schedule.sections.length" class="day-section">
+      <p class="day-section-title">Чтения Священного Писания</p>
+      <div class="day-list">
+        <div
+          v-for="(section, sectionIndex) in visibleSections.sections"
+          :key="sectionIndex"
+          class="day-readings-section"
+        >
+          <p v-if="getSectionTitle(section)" class="day-readings-title">
+            {{ getSectionTitle(section) }}
+          </p>
+          <template v-for="(item, itemIndex) in section.items" :key="itemIndex">
+            <hr v-if="itemIndex > 0" class="day-line" />
+            <component
+              :is="item.id != null ? 'a' : 'div'"
+              class="day-list-row"
+              :href="item.id != null ? getReadingUrl(day.code, item.id) : undefined"
+            >
+              <span class="day-list-text">
+                <span v-if="item.prefix" class="day-muted">{{ item.prefix }}&nbsp;</span
+                >{{ item.ref }}<span v-if="item.note" class="day-muted"> ({{ item.note }})</span
+                ><sup v-if="item.footnote">{{ item.footnote }}</sup>
+              </span>
+              <SvgIcon v-if="item.id != null" icon="arrow-small" :size="24" :color="arrowColor" />
+            </component>
+          </template>
+        </div>
+      </div>
+      <button
+        v-if="visibleSections.isCollapsible && !isScheduleExpanded"
+        class="day-readings-more"
+        type="button"
+        @click="isScheduleExpanded = true"
+      >
+        Показать все
+      </button>
+      <div v-if="notesHtml" class="day-readings-notes" v-html="notesHtml"></div>
+    </section>
+
     <a v-if="day.thought.text" class="day-section day-link" :href="getDayTextUrl(day.code, 'thought')">
       <span class="day-section-header">
         <span class="day-section-title">Мысли на каждый день года</span>
@@ -110,47 +149,6 @@
         </template>
       </div>
     </section>
-
-    <template v-if="schedule.sections.length">
-      <section class="day-section">
-        <p class="day-section-title">Чтения Священного писания</p>
-        <div class="day-list">
-          <div
-            v-for="(section, sectionIndex) in visibleSections.sections"
-            :key="sectionIndex"
-            class="day-readings-section"
-          >
-            <p v-if="getSectionTitle(section)" class="day-readings-title">
-              {{ getSectionTitle(section) }}
-            </p>
-            <template v-for="(item, itemIndex) in section.items" :key="itemIndex">
-              <hr v-if="itemIndex > 0" class="day-line" />
-              <component
-                :is="item.id != null ? 'a' : 'div'"
-                class="day-list-row"
-                :href="item.id != null ? getReadingUrl(day.code, item.id) : undefined"
-              >
-                <span class="day-list-text">
-                  <span v-if="item.prefix" class="day-muted">{{ item.prefix }}&nbsp;</span
-                  >{{ item.ref }}<span v-if="item.note" class="day-muted"> ({{ item.note }})</span
-                  ><sup v-if="item.footnote">{{ item.footnote }}</sup>
-                </span>
-                <SvgIcon v-if="item.id != null" icon="arrow-small" :size="24" :color="arrowColor" />
-              </component>
-            </template>
-          </div>
-        </div>
-        <button
-          v-if="visibleSections.isCollapsible && !isScheduleExpanded"
-          class="day-readings-more"
-          type="button"
-          @click="isScheduleExpanded = true"
-        >
-          Показать все
-        </button>
-      </section>
-      <div v-if="notesHtml" class="day-readings-notes" v-html="notesHtml"></div>
-    </template>
   </div>
 </template>
 
@@ -596,10 +594,18 @@ const onContentClick = (event: MouseEvent) => {
 }
 
 .day-readings-notes {
-  padding: 0 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding-top: 10px;
+  border-top: 1px solid var(--day-line);
   font-size: var(--mobile-main-text-regular-b3);
   line-height: var(--mobile-main-text-regular-b3-line-height);
   color: var(--day-muted);
+
+  :deep(p) {
+    margin: 0;
+  }
 
   :deep(a) {
     font-weight: 700;

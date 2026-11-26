@@ -13,35 +13,38 @@
       ref="swiperRef"
       class="calendar-day-swiper"
       :slidesPerView="1"
-      :initialSlide="CENTER_INDEX"
+      :initialSlide="initialSlideIndex"
       :spaceBetween="16"
       :speed="300"
       :threshold="5"
-      @swiperinit="applySwipeLimits"
-      @swiperslidechangetransitionend="onSlideChangeEnd"
+      :virtual="virtualParams"
+      @swiperinit="onSwiperInit"
+      @swiperslidechange="onSlideChange"
+      @swipervirtualupdate="onVirtualUpdate"
     >
-      <!-- Всегда три слайда: предыдущий день, текущий и следующий. Ключ - код дня, поэтому при
-           перелистывании слайд текущего дня сохраняется, а не создаётся заново -->
-      <swiper-slide v-for="slot in slots" :key="slot.key">
+      <swiper-slide
+        v-for="(code, index) in virtualData.slides"
+        :key="code"
+        :data-swiper-slide-index="virtualData.from + index"
+        :style="{ left: `${virtualData.offset}px` }"
+      >
         <div class="calendar-day-scroll">
-          <template v-if="slot.code">
-            <CalendarDayContent
-              v-if="getDay(slot.code)"
-              :day="getDay(slot.code)!"
-              :has-prev="slot.code > minCode!"
-              :has-next="slot.code < maxCode!"
-              :f7router="f7router"
-              @prev="swiperRef?.swiper.slidePrev()"
-              @next="swiperRef?.swiper.slideNext()"
-            />
-            <div v-else-if="dayStates[slot.code]?.status === 'error'" class="calendar-day-state">
-              <p>Не удалось загрузить день</p>
-              <f7-button small outline @click="loadDay(slot.code, true)">Повторить</f7-button>
-            </div>
-            <div v-else class="calendar-day-state">
-              <f7-preloader />
-            </div>
-          </template>
+          <CalendarDayContent
+            v-if="getDay(code)"
+            :day="getDay(code)!"
+            :has-prev="virtualData.from + index > 0"
+            :has-next="virtualData.from + index < allCodes.length - 1"
+            :f7router="f7router"
+            @prev="swiperRef?.swiper.slidePrev()"
+            @next="swiperRef?.swiper.slideNext()"
+          />
+          <div v-else-if="dayStates[code]?.status === 'error'" class="calendar-day-state">
+            <p>Не удалось загрузить день</p>
+            <f7-button small outline @click="loadDays([code], true)">Повторить</f7-button>
+          </div>
+          <div v-else class="calendar-day-state">
+            <f7-preloader />
+          </div>
         </div>
       </swiper-slide>
     </swiper-container>
@@ -49,15 +52,24 @@
 </template>
 
 <script setup lang="ts">
-import { computed, nextTick, shallowReactive, useTemplateRef, watch } from "vue";
+import {
+  computed,
+  nextTick,
+  onBeforeUnmount,
+  ref,
+  shallowReactive,
+  shallowRef,
+  useTemplateRef,
+  watch,
+} from "vue";
 import { storeToRefs } from "pinia";
 import type { Router } from "framework7/types";
 import type { SwiperContainer } from "swiper/element";
+import type { VirtualData, VirtualOptions } from "swiper/types";
 import type { CalendarDayApiElement } from "@/services/api/DaysApi";
 import { useCalendarStore } from "@/stores/calendar";
 import CalendarDayContent from "./CalendarDayContent.vue";
-import { getDaysRange, toDateCode } from "./calendarMarkers";
-import { shiftDayCode } from "./dayFormat";
+import { toDateCode } from "./calendarMarkers";
 
 defineProps<{
   f7router: Router.Router;
@@ -66,7 +78,9 @@ defineProps<{
 /** Код показываемого дня (YYYYMMDD). Пока не задан, открывается сегодняшний день */
 const currentCode = defineModel<string | null>({ default: null });
 
-const CENTER_INDEX = 1;
+/** Минимальный запас загруженных дней по обе стороны от текущего и размер догрузки одним запросом */
+const PREFETCH_MARGIN = 3;
+const PREFETCH_CHUNK = 7;
 
 type DayState =
   | { status: "loading" }
@@ -77,41 +91,60 @@ const calendarStore = useCalendarStore();
 const { markers, markersError } = storeToRefs(calendarStore);
 const swiperRef = useTemplateRef<SwiperContainer>("swiperRef");
 
-// Границы календаря берём из снимка дней: за их пределы листать нельзя
-const range = computed(() => (markers.value ? getDaysRange(markers.value.days) : null));
-const minCode = computed(() => (range.value ? toDateCode(range.value.min) : null));
-const maxCode = computed(() => (range.value ? toDateCode(range.value.max) : null));
+const allCodes = computed(() => (markers.value ? Object.keys(markers.value.days).sort() : []));
+const codeToIndex = computed(() => {
+  const map = new Map<string, number>();
+  allCodes.value.forEach((code, index) => map.set(code, index));
+  return map;
+});
 
-const clampCode = (code: string) => {
-  if (code < minCode.value!) return minCode.value!;
-  if (code > maxCode.value!) return maxCode.value!;
-  return code;
+const clampCode = (code: string, codes: string[]): string => {
+  if (code <= codes[0]) return codes[0];
+  if (code >= codes[codes.length - 1]) return codes[codes.length - 1];
+  if (codeToIndex.value.has(code)) return code;
+  return codes.find((item) => item >= code) ?? codes[codes.length - 1];
 };
 
-watch(
-  [range, currentCode],
-  () => {
-    if (!range.value) return;
-    const code = clampCode(currentCode.value ?? toDateCode(new Date()));
-    if (code !== currentCode.value) currentCode.value = code;
-  },
-  { immediate: true }
+const isReady = computed(() => allCodes.value.length > 0 && currentCode.value != null);
+const currentIndex = computed(() =>
+  currentCode.value != null ? (codeToIndex.value.get(currentCode.value) ?? -1) : -1
 );
 
-const isReady = computed(() => !!range.value && !!currentCode.value);
-
-// Слот без дня (null) - на границе календаря: слайд пустой, листать к нему нельзя
-const slots = computed(() => {
-  const code = currentCode.value;
-  if (!code) return [];
-  const prev = code > minCode.value! ? shiftDayCode(code, -1) : null;
-  const next = code < maxCode.value! ? shiftDayCode(code, 1) : null;
-  return [
-    { key: prev ?? "edge-before", code: prev },
-    { key: code, code },
-    { key: next ?? "edge-after", code: next },
-  ];
+const initialSlideIndex = ref(0);
+const virtualData = shallowRef<VirtualData<string>>({
+  from: 0,
+  to: -1,
+  offset: 0,
+  slides: [],
 });
+
+let virtualUpdateScheduled = false;
+const syncSwiperAfterVirtualRender = () => {
+  if (virtualUpdateScheduled) return;
+  virtualUpdateScheduled = true;
+  void nextTick(() => {
+    virtualUpdateScheduled = false;
+    const swiper = swiperRef.value?.swiper;
+    if (!swiper || swiper.destroyed || !swiper.params.virtual?.enabled) return;
+    swiper.updateSlides();
+    swiper.updateProgress();
+    swiper.updateSlidesClasses();
+  });
+};
+
+const virtualParams: VirtualOptions<string> = {
+  enabled: true,
+  slides: [],
+  cache: false,
+  // По умолчанию Swiper держит ±1 слайд; +1 даёт 5 живых слайдов (±2 от активного)
+  addSlidesBefore: 1,
+  addSlidesAfter: 1,
+  renderExternal(data) {
+    virtualData.value = data;
+    syncSwiperAfterVirtualRender();
+  },
+  renderExternalUpdate: false,
+};
 
 const dayStates = shallowReactive<Record<string, DayState>>({});
 
@@ -120,46 +153,136 @@ const getDay = (code: string) => {
   return state?.status === "loaded" ? state.day : null;
 };
 
-const loadDay = async (code: string, force = false) => {
-  const state = dayStates[code];
-  if (!force && state && state.status !== "error") return;
+const loadDays = async (codes: string[], force = false) => {
+  const toLoad = codes.filter((code) => force || !dayStates[code]);
+  if (toLoad.length === 0) return;
 
-  dayStates[code] = { status: "loading" };
-  const day = await calendarStore.getDayByCode(code);
-  dayStates[code] = day ? { status: "loaded", day } : { status: "error" };
+  for (const code of toLoad) {
+    dayStates[code] = { status: "loading" };
+  }
+
+  const days = await calendarStore.getDaysByCodes(toLoad);
+  toLoad.forEach((code, index) => {
+    const day = days[index];
+    dayStates[code] = day ? { status: "loaded", day } : { status: "error" };
+  });
 };
 
-// Подгружаем текущий, предыдущий и следующий дни
-watch(
-  slots,
-  (items) => {
-    for (const { code } of items) {
-      if (code) void loadDay(code);
+// Заранее догружаем пачки дней по PREFETCH_CHUNK, когда до края загруженных данных остаётся <= PREFETCH_MARGIN
+const prefetchAround = (index: number) => {
+  const codes = allCodes.value;
+  if (codes.length === 0) return;
+
+  const start = Math.max(0, index - PREFETCH_MARGIN);
+  const end = Math.min(codes.length - 1, index + PREFETCH_MARGIN);
+
+  let lastMissingBefore = -1;
+  for (let i = start; i < index; i += 1) {
+    if (!dayStates[codes[i]]) lastMissingBefore = i;
+  }
+  let firstMissingAfter = -1;
+  for (let i = index + 1; i <= end; i += 1) {
+    if (!dayStates[codes[i]]) {
+      firstMissingAfter = i;
+      break;
     }
+  }
+
+  let from = start;
+  let to = end;
+  if (lastMissingBefore >= 0 && firstMissingAfter < 0) {
+    from = Math.max(0, lastMissingBefore - PREFETCH_CHUNK + 1);
+  } else if (firstMissingAfter >= 0 && lastMissingBefore < 0) {
+    to = Math.min(codes.length - 1, firstMissingAfter + PREFETCH_CHUNK - 1);
+  }
+
+  // Разбиваем на непрерывные участки, чтобы getDaysByCodes запрашивал точный диапазон без лишних дней
+  const runs: string[][] = [];
+  let currentRun: string[] = [];
+  for (let i = from; i <= to; i += 1) {
+    const code = codes[i];
+    if (!dayStates[code]) {
+      currentRun.push(code);
+    } else if (currentRun.length > 0) {
+      runs.push(currentRun);
+      currentRun = [];
+    }
+  }
+  if (currentRun.length > 0) runs.push(currentRun);
+
+  for (const run of runs) {
+    void loadDays(run);
+  }
+};
+
+const isSameRange = (a: string[] | undefined, b: string[]) =>
+  a != null && a.length === b.length && a[0] === b[0] && a[a.length - 1] === b[b.length - 1];
+
+watch(
+  [allCodes, currentCode],
+  ([codes, code], [prevCodes]) => {
+    if (codes.length === 0) return;
+
+    const resolved = clampCode(code ?? toDateCode(new Date()), codes);
+    if (resolved !== currentCode.value) {
+      currentCode.value = resolved;
+    }
+
+    const index = codeToIndex.value.get(resolved) ?? 0;
+    const swiper = swiperRef.value?.swiper;
+
+    if (!swiper) {
+      virtualParams.slides = codes;
+      initialSlideIndex.value = index;
+    } else if (!isSameRange(prevCodes, codes)) {
+      swiper.virtual.slides = codes;
+      swiper.virtual.update(true, false, index);
+      swiper.slideTo(index, 0, false);
+    } else if (swiper.activeIndex !== index) {
+      swiper.slideTo(index, 0, false);
+    }
+
+    prefetchAround(index);
   },
   { immediate: true }
 );
 
-const applySwipeLimits = () => {
+const onSlideChange = () => {
   const swiper = swiperRef.value?.swiper;
   if (!swiper) return;
-  swiper.allowSlidePrev = slots.value[CENTER_INDEX - 1]?.code != null;
-  swiper.allowSlideNext = slots.value[CENTER_INDEX + 1]?.code != null;
+  const code = allCodes.value[swiper.activeIndex];
+  if (code && code !== currentCode.value) {
+    currentCode.value = code;
+  }
 };
 
-// После перелистывания делаем показанный день центральным: Vue сдвигает слайды,
-// а Swiper мгновенно возвращаем на центр - пользователь этого не видит
-const onSlideChangeEnd = async () => {
+// При ресайзе Swiper сдвигает virtual.offset без renderExternal - синхронизируем, чтобы Vue не перетёр left
+const onVirtualUpdate = () => {
   const swiper = swiperRef.value?.swiper;
-  const code = swiper ? slots.value[swiper.activeIndex]?.code : null;
-  if (!swiper || !code || code === currentCode.value) return;
-
-  currentCode.value = code;
-  await nextTick();
-  swiper.update();
-  swiper.slideTo(CENTER_INDEX, 0, false);
-  applySwipeLimits();
+  if (!swiper?.virtual) return;
+  if (swiper.virtual.offset !== virtualData.value.offset) {
+    virtualData.value = { ...virtualData.value, offset: swiper.virtual.offset };
+  }
 };
+
+let tabEl: Element | null = null;
+
+const onTabShow = () => {
+  const swiper = swiperRef.value?.swiper;
+  if (!swiper || swiper.destroyed) return;
+  swiper.update();
+  const index = currentIndex.value;
+  if (index >= 0) swiper.slideTo(index, 0, false);
+};
+
+const onSwiperInit = () => {
+  tabEl = swiperRef.value?.closest(".tab") ?? null;
+  tabEl?.addEventListener("tab:show", onTabShow);
+};
+
+onBeforeUnmount(() => {
+  tabEl?.removeEventListener("tab:show", onTabShow);
+});
 </script>
 
 <style scoped lang="less">
