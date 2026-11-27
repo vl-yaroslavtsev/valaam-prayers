@@ -77,9 +77,9 @@
           >
             <SvgIcon icon="sliders" :size="20" :color="iconColor" />
             <span>Фильтры</span>
-            <span v-if="activeFilterCount > 0" class="history-controls__badge">
+            <f7-badge v-if="activeFilterCount > 0" class="history-controls__badge">
               {{ activeFilterCount }}
-            </span>
+            </f7-badge>
           </f7-link>
           <f7-link
             class="history-controls__sort ripple-blur"
@@ -360,6 +360,7 @@ async function loadFirst(): Promise<void> {
   try {
     const result = await loadHistoryRites({ page: 1, ...currentQuery() });
     if (id !== requestId) return;
+    if (scrollEl) scrollEl.scrollTop = 0;
     items.value = result.items;
     page.value = 1;
     hasMore.value = result.hasMore;
@@ -688,18 +689,11 @@ defineExpose({
     }
 
     &__badge {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      min-width: 18px;
-      height: 18px;
-      padding: 0 5px;
-      border-radius: 9px;
-      background: var(--history-link);
-      font-size: 12px;
-      line-height: 1;
-      font-weight: 700;
-      color: var(--f7-button-fill-text-color);
+      --f7-badge-bg-color: var(--history-link);
+      --f7-badge-text-color: var(--f7-button-fill-text-color);
+      --f7-badge-font-weight: 700;
+
+      margin-left: 0;
     }
   }
 

@@ -139,6 +139,7 @@ const selectedLabel = computed(
     line-height: 20px;
     text-align: left;
     color: var(--history-select-text);
+    max-width: none;
   }
 
   &--outlined {

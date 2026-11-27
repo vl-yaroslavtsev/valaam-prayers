@@ -1068,6 +1068,7 @@ async function submit(): Promise<void> {
 
   .rite-status__value {
     text-align: right;
+    font-weight: 400;
   }
 
   .rite-donate__plaque {
