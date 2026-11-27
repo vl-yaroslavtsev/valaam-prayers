@@ -13,7 +13,7 @@
               <SvgIcon icon="pray" :color="iconColor" />
             </template>
           </f7-list-item>
-          <f7-list-item title="МОИ ЗАПИСКИ" link="#" panel-close @click="openMyRites">
+          <f7-list-item title="ПОДАННЫЕ ЗАПИСКИ" link="#" panel-close @click="openMyRites">
             <template #media>
               <SvgIcon icon="notes" :color="iconColor" />
             </template>

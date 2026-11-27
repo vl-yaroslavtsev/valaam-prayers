@@ -48,18 +48,22 @@
       </f7-nav-right>
     </f7-navbar>
 
-    <f7-toolbar tabbar top class="rites-tabbar">
+    <f7-toolbar ref="tabbarRef" tabbar top class="rites-tabbar">
       <f7-link
+        tab-link
+        :href="false"
         class="rites-tabbar__link"
         :tab-link-active="activeTab === 'cart'"
         @click="selectTab('cart')"
       >
-        <span>В корзине</span>
-        <span v-if="store.items.length > 0" class="rites-tabbar__badge">
+        <span>Корзина</span>
+        <f7-badge v-if="store.items.length > 0" class="rites-tabbar__badge">
           {{ store.items.length }}
-        </span>
+        </f7-badge>
       </f7-link>
       <f7-link
+        tab-link
+        :href="false"
         class="rites-tabbar__link"
         :tab-link-active="activeTab === 'history'"
         @click="selectTab('history')"
@@ -100,86 +104,90 @@
 
         <!-- Корзина -->
         <template v-else>
-          <div class="rites-select">
-            <label class="rites-select__all">
-              <f7-checkbox
-                :checked="store.allSelected"
-                aria-label="Выбрать все записки"
-                @change="store.allSelected = ($event.target as HTMLInputElement).checked"
-              />
-              <span>Выбрать все</span>
-            </label>
-            <f7-link
-              class="rites-select__remove"
-              :class="{ disabled: !store.anySelected }"
-              @click="store.removeSelected()"
-            >
-              Удалить выбранные
-            </f7-link>
-          </div>
-
-          <!-- Шапка таблицы: только на планшете -->
-          <div class="rites-table-head" aria-hidden="true">
-            <span class="rites-table-head__number">Номер</span>
-            <span class="rites-table-head__type">Поминовение</span>
-            <span class="rites-table-head__period">Период</span>
-            <span class="rites-table-head__names">Имена</span>
-            <span class="rites-table-head__sum">Сумма</span>
-          </div>
-
-          <f7-list class="rites-list" no-hairlines no-hairlines-between>
-            <template #list>
-              <!-- Без tag: список остаётся прямым потомком ul, а удаление и возврат записки анимируются хуками -->
-              <TransitionGroup
-                :css="false"
-                @before-enter="onItemBeforeEnter"
-                @enter="onItemEnter"
-                @leave="onItemLeave"
-              >
-                <RitesCartItem
-                  v-for="item in store.items"
-                  :key="item.id"
-                  :item="item"
-                  @toggle="item.checked = $event"
-                  @edit="openPopup('edit', item, 'cart')"
-                  @copy="openPopup('copy', item, 'cart')"
-                  @remove="store.removeItems([item.id])"
+          <div class="rites-items">
+            <div class="rites-select">
+              <label class="rites-select__all">
+                <f7-checkbox
+                  :checked="store.allSelected"
+                  aria-label="Выбрать все записки"
+                  @change="store.allSelected = ($event.target as HTMLInputElement).checked"
                 />
-              </TransitionGroup>
-            </template>
-          </f7-list>
-
-          <div class="rites-summary">
-            <f7-link class="rites-add" @click="openPopup('create')">
-              <span class="rites-add__icon" aria-hidden="true"></span>
-              <span>Добавить записку</span>
-            </f7-link>
-
-            <div class="rites-total">
-              <span class="rites-total__label">Всего:</span>
-              <span class="rites-total__sum">{{ formatPrice(store.total) }}&nbsp;₽</span>
+                <span>Выбрать все</span>
+              </label>
+              <f7-link
+                class="rites-select__remove"
+                :class="{ disabled: !store.anySelected }"
+                @click="store.removeSelected()"
+              >
+                Удалить выбранные
+              </f7-link>
             </div>
+
+            <!-- Шапка таблицы: только на планшете -->
+            <div class="rites-table-head" aria-hidden="true">
+              <span class="rites-table-head__number">Номер</span>
+              <span class="rites-table-head__type">Поминовение</span>
+              <span class="rites-table-head__names">Имена</span>
+              <span class="rites-table-head__period">Период</span>
+              <span class="rites-table-head__sum">Сумма</span>
+            </div>
+
+            <f7-list class="rites-list" no-hairlines no-hairlines-between>
+              <template #list>
+                <!-- Без tag: список остаётся прямым потомком ul, а удаление и возврат записки анимируются хуками -->
+                <TransitionGroup
+                  :css="false"
+                  @before-enter="onItemBeforeEnter"
+                  @enter="onItemEnter"
+                  @leave="onItemLeave"
+                >
+                  <RitesCartItem
+                    v-for="item in store.items"
+                    :key="item.id"
+                    :item="item"
+                    @toggle="item.checked = $event"
+                    @edit="openPopup('edit', item, 'cart')"
+                    @copy="openPopup('copy', item, 'cart')"
+                    @remove="store.removeItems([item.id])"
+                  />
+                </TransitionGroup>
+              </template>
+            </f7-list>
           </div>
 
           <form class="rites-form" novalidate @submit.prevent="onPay">
-            <f7-list class="rites-email" no-hairlines>
-              <f7-list-input
-                v-model:value="email"
-                type="email"
-                name="email"
-                label="Электронная почта"
-                placeholder="Введите электронную почту"
-                autocomplete="email"
-                inputmode="email"
-                :error-message="emailErrorText"
-                :error-message-force="emailError"
-                @input="emailError = false"
-              />
-            </f7-list>
+            <div class="rites-summary">
+              <f7-link class="rites-add" @click="openPopup('create')">
+                <span class="rites-add__icon" aria-hidden="true"></span>
+                <span>Добавить записку</span>
+              </f7-link>
 
-            <p class="rites-note">
-              При возникновении вопросов пишите нам на <b>rites@valaam.ru</b>
-            </p>
+              <div class="rites-total">
+                <span class="rites-total__label">Всего:</span>
+                <span class="rites-total__sum">{{ formatPrice(store.total) }}&nbsp;₽</span>
+              </div>
+            </div>
+
+            <div class="rites-email-group">
+              <f7-list class="rites-email" no-hairlines>
+                <f7-list-input
+                  v-model:value="email"
+                  type="email"
+                  name="email"
+                  label="Электронная почта"
+                  placeholder="Введите электронную почту"
+                  autocomplete="email"
+                  inputmode="email"
+                  :error-message="emailErrorText"
+                  :error-message-force="emailError"
+                  @input="emailError = false"
+                />
+              </f7-list>
+
+              <p class="rites-note">
+                При возникновении вопросов пишите нам на <b>rites@valaam.ru</b>
+              </p>
+            </div>
 
             <f7-button
               fill
@@ -269,6 +277,7 @@ if (f7route.path === "/rites/my/") {
 }
 
 const activeTab = computed(() => store.activeTab);
+const tabbarRef = ref<{ $el?: HTMLElement } | null>(null);
 const historyTabRef = ref<InstanceType<typeof RitesHistoryTab> | null>(null);
 const historyNav = ref<HistoryNavState>({
   showControls: false,
@@ -278,11 +287,19 @@ const historyNav = ref<HistoryNavState>({
   hasMore: false,
 });
 
+function syncTabHighlight(): void {
+  const tabbarEl = tabbarRef.value?.$el;
+  if (tabbarEl) {
+    f7.toolbar.setHighlight(tabbarEl);
+  }
+}
+
 function selectTab(tab: RitesTab): void {
   store.setActiveTab(tab);
 }
 
 watch(activeTab, (tab) => {
+  void nextTick(syncTabHighlight);
   if (tab === "history") {
     historyTabRef.value?.refresh();
   }
@@ -352,6 +369,7 @@ function onPageShown(): void {
   if (!email.value.trim()) email.value = getSavedEmail();
   void refreshCart();
   void prepareRitesPayment();
+  void nextTick(syncTabHighlight);
   if (activeTab.value === "history") {
     historyTabRef.value?.refresh();
   }
@@ -485,8 +503,15 @@ async function onPay(): Promise<void> {
       case "success":
         saveEmail(trimmedEmail);
         store.markPaid(ids);
-        f7.dialog.alert("Спасибо! Записки приняты, пожертвование оформлено.", "Пожертвование");
         void store.load();
+        f7.dialog.alert(
+          "Спасибо! Записки приняты, пожертвование оформлено.",
+          "Пожертвование",
+          () => {
+            historyTabRef.value?.resetForNewest();
+            store.setActiveTab("history");
+          },
+        );
         break;
       case "pending":
         saveEmail(trimmedEmail);
@@ -531,6 +556,7 @@ const onVisibilityChange = () => {
 
 onMounted(() => {
   document.addEventListener("visibilitychange", onVisibilityChange);
+  void nextTick(syncTabHighlight);
 });
 
 onBeforeUnmount(() => {
@@ -549,7 +575,7 @@ onBeforeUnmount(() => {
   --rites-text: var(--content-color-black-primary);
   --rites-text-secondary: var(--content-color-black-secondary);
   --rites-muted: var(--content-color-black-40);
-  --rites-divider: var(--content-color-black-10);
+  --rites-divider: var(--content-color-black-20);//var(--content-color-black-10);
   --rites-accent: var(--brand-color-primary-accent-50);
   --rites-note: rgba(0, 0, 0, 0.5);
   --rites-field-border: var(--content-color-black-20);
@@ -559,9 +585,8 @@ onBeforeUnmount(() => {
   --rites-select-link: var(--content-color-black-60);
   --rites-empty-bg: var(--content-color-white-100);
   --rites-empty-hint: var(--content-color-black-60);
-  // Колонки таблицы на планшете: чекбокс, номер, поминовение, период, имена, сумма, три иконки
-  //--rites-grid-columns: 24px 60px minmax(0, 2.66fr) 78px minmax(0, 1fr) 65px 24px 24px 24px;
-  --rites-grid-columns: 24px 70px minmax(0, 1.5fr) 85px minmax(0, 1.5fr) 80px 24px 24px 24px;
+  // Колонки таблицы на планшете: чекбокс, номер, поминовение, имена, период, сумма, три иконки
+  --rites-grid-columns: 24px 70px minmax(0, 1.5fr) minmax(0, 1.5fr) 95px 80px 24px 24px 24px;
 }
 
 .dark .rites-page {
@@ -570,7 +595,7 @@ onBeforeUnmount(() => {
   --rites-text: var(--content-color-white-100);
   --rites-text-secondary: var(--content-color-white-100);
   --rites-muted: var(--content-color-baige-40);
-  --rites-divider: var(--content-color-baige-10);
+  --rites-divider: var(--content-color-baige-20);//var(--content-color-baige-10);
   --rites-accent: var(--brand-color-primary-accent-70);
   --rites-note: var(--content-color-baige-40);
   --rites-field-border: var(--content-color-baige-30);
@@ -587,7 +612,7 @@ onBeforeUnmount(() => {
   --f7-navbar-border-color: transparent;
 
   .navbar .title {
-    font-weight: 700;
+    //font-weight: 700;
   }
 
   .history-nav-actions {
@@ -634,60 +659,45 @@ onBeforeUnmount(() => {
     --f7-tabbar-link-font-weight: 600;
     --f7-tabbar-link-inactive-color: var(--rites-muted);
     --f7-tabbar-link-active-color: var(--rites-text);
+    --f7-tabbar-link-active-border-color: var(--rites-accent);
 
-    border-bottom: 1px solid var(--rites-divider);
+    // border-bottom: 1px solid var(--rites-divider);
 
     .toolbar-inner {
-      padding: 0 16px;
+      padding: 0;
     }
 
-    .tab-link-highlight {
-      display: none;
+    &.tabbar:not(.tabbar-icons) .tab-link-highlight {
+      height: 3px;
+      border-radius: 3px 3px 0 0;
+      background: var(--rites-accent);
     }
 
-    &__link.link {
+    &__link.tab-link {
       position: relative;
       flex-direction: row;
       gap: 6px;
       height: 100%;
       min-height: 0;
-      font-size: 15px;
-      line-height: 20px;
+      // font-size: 15px;
+      // line-height: 20px;
 
       &.tab-link-active {
         font-weight: 700;
-
-        &::after {
-          content: "";
-          position: absolute;
-          left: 8px;
-          right: 8px;
-          bottom: 0;
-          height: 3px;
-          border-radius: 3px 3px 0 0;
-          background: var(--rites-accent);
-        }
       }
     }
 
     &__badge {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      min-width: 20px;
-      height: 20px;
-      padding: 0 6px;
-      border-radius: 10px;
-      background: var(--button-tonal-light-bg);
-      color: var(--button-tonal-light-text);
-      font-size: 12px;
-      line-height: 1;
-      font-weight: 700;
+      --f7-badge-bg-color: var(--button-tonal-light-bg);
+      --f7-badge-text-color: var(--button-tonal-light-text);
+      --f7-badge-font-weight: 700;
+
+      margin-left: 0;
     }
 
     .tab-link-active .rites-tabbar__badge {
-      background: var(--rites-accent);
-      color: var(--f7-button-fill-text-color);
+      --f7-badge-bg-color: var(--rites-accent);
+      --f7-badge-text-color: var(--f7-button-fill-text-color);
     }
   }
 
@@ -699,9 +709,15 @@ onBeforeUnmount(() => {
     box-sizing: border-box;
     display: flex;
     flex-direction: column;
-    gap: 24px;
+    gap: 20px;
     padding: 16px 16px 30px;
     color: var(--rites-text);
+  }
+
+  .rites-items {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
   }
 
   .rites-state {
@@ -945,11 +961,13 @@ onBeforeUnmount(() => {
   .rites-form {
     display: flex;
     flex-direction: column;
-    gap: 16px;
+    gap: 30px;
+  }
 
-    .rites-pay {
-      margin-top: 14px;
-    } 
+  .rites-email-group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
   }
 
   .rites-email {
@@ -1035,8 +1053,8 @@ onBeforeUnmount(() => {
 
 .dark .rites-page {
   .rites-tabbar__badge {
-    background: var(--button-tonal-dark-bg);
-    color: var(--button-tonal-dark-text);
+    --f7-badge-bg-color: var(--button-tonal-dark-bg);
+    --f7-badge-text-color: var(--button-tonal-dark-text);
   }
 }
 
@@ -1046,13 +1064,17 @@ onBeforeUnmount(() => {
       right: 0;
       max-width: 924px;
       margin: 0 auto;
-      padding: 0 30px;
+      padding: 0;
     }
 
     .rites-cart {
       max-width: 924px;
       margin: 0 auto;
       padding: 24px 30px 30px;
+      gap: 20px;
+    }
+
+    .rites-items {
       gap: 24px;
     }
 
@@ -1127,11 +1149,11 @@ onBeforeUnmount(() => {
         grid-column: 3;
       }
 
-      &__period {
+      &__names {
         grid-column: 4;
       }
 
-      &__names {
+      &__period {
         grid-column: 5;
         padding-left: 10px;
       }
@@ -1158,10 +1180,6 @@ onBeforeUnmount(() => {
 
     .rites-total {
       padding: 24px 44px;
-    }
-
-    .rites-form {
-      gap: 30px;
     }
 
     .rites-note {

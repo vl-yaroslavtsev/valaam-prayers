@@ -21,10 +21,10 @@
     <!-- История пуста: нет записок и фильтр не задан -->
     <div v-else-if="isEmptyHistory" class="rites-empty">
       <div class="rites-empty__text">
-        <p class="rites-empty__title">Записок нет</p>
+        <p class="rites-empty__title">Поданных записок нет</p>
         <p class="rites-empty__hint">
-          Если Вы подавали записки ранее, то можете перейти в историю записок по ссылке из
-          сообщения, отправленного на указанную Вами почту при оформлении записок.
+          Если Вы подавали записки ранее, то можете открыть их по ссылке из сообщения,
+          отправленного на указанную Вами почту при оформлении записок.
         </p>
       </div>
       <div class="rites-empty__actions">
@@ -359,8 +359,8 @@ async function loadFirst(silent = false): Promise<void> {
     isLoaded.value = true;
   } catch (ex) {
     if (id !== requestId) return;
-    console.error("Не удалось загрузить историю записок:", ex);
-    if (!silent) error.value = "Не удалось загрузить историю записок";
+    console.error("Не удалось загрузить поданные записки:", ex);
+    if (!silent) error.value = "Не удалось загрузить поданные записки";
   } finally {
     if (id === requestId) {
       isLoading.value = false;
@@ -411,6 +411,14 @@ function clearFilter(): void {
   selectedStatus.value = "";
 }
 
+/** Сбрасывает фильтры, сортировку и скролл перед показом только что поданных записок */
+function resetForNewest(): void {
+  selectedType.value = "";
+  selectedStatus.value = "";
+  order.value = "DESC";
+  if (scrollEl) scrollEl.scrollTop = 0;
+}
+
 function refresh(): void {
   void loadFirst(isLoaded.value);
   void refreshFilter();
@@ -426,10 +434,14 @@ function applyEdited(rite: Rite): void {
 }
 
 watch([selectedType, selectedStatus], () => {
+  if (!props.active) return;
   void loadFirst();
   void refreshFilter();
 });
-watch(order, () => void loadFirst());
+watch(order, () => {
+  if (!props.active) return;
+  void loadFirst();
+});
 watch(
   [items, isTablet, showControls, () => props.active],
   () => {
@@ -452,6 +464,7 @@ watch(
 
 defineExpose({
   refresh,
+  resetForNewest,
   loadMore,
   openFilters,
   applyEdited,

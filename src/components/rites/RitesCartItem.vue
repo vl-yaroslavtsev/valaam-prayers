@@ -320,18 +320,33 @@ const shortName = computed(() => (item.type ? formatShortName(item.type.shortNam
     }
 
     &__type {
+      font-size: 16px; // 14px;
+      line-height: 20px; // 18px;
+    }
+
+    &__names {
+      grid-column: 4;
+      display: flex;
+      align-items: center;
+      margin: 0;
       font-size: 18px; // 14px;
       line-height: 22px; // 18px;
     }
 
-    &__names {
+    &__names-text {
+      display: -webkit-box;
+      min-width: 0;
+      -webkit-box-orient: vertical;
+      -webkit-line-clamp: 3;
+      overflow: hidden;
+    }
+
+    &__row--period {
       grid-column: 5;
       display: flex;
       align-items: center;
       margin: 0;
       padding-left: 10px;
-      font-size: 18px; // 14px;
-      line-height: 22px; // 18px;
 
       &::before {
         content: "";
@@ -342,21 +357,6 @@ const shortName = computed(() => (item.type ? formatShortName(item.type.shortNam
         width: 1px;
         background: var(--rites-divider);
       }
-    }
-
-    &__names-text {
-      display: -webkit-box;
-      min-width: 0;
-      -webkit-box-orient: vertical;
-      -webkit-line-clamp: 2;
-      overflow: hidden;
-    }
-
-    &__row--period {
-      grid-column: 4;
-      display: flex;
-      align-items: center;
-      margin: 0;
     }
 
     &__label {
