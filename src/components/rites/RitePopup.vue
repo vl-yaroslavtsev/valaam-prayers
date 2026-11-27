@@ -1,7 +1,15 @@
 <template>
   <!-- Динамический :class на f7-popup нельзя: Vue перезапишет class и сотрёт modal-in -->
-  <f7-popup v-model:opened="opened" class="rite-popup">
-    <f7-page :page-content="false">
+  <f7-popup
+    ref="popupRef"
+    v-model:opened="opened"
+    class="rite-popup"
+    @popup:open="onPopupOpen"
+    @popup:opened="onPopupOpened"
+    @popup:close="onPopupClose"
+    @popup:closed="onPopupClosed"
+  >
+    <f7-page ref="pageRef" :page-content="false">
       <div
         class="rite-card"
         :class="{ 'rite-card--repose': kind === 'repose' }"
@@ -29,7 +37,7 @@
         </div>
 
         <template v-else>
-          <div class="page-content rite-scroll">
+          <div ref="scrollRef" class="page-content rite-scroll">
             <!-- Кнопки лежат внутри прокручиваемой области: как на бумажной записке, они уходят вместе с шапкой -->
             <f7-button
               class="rite-round rite-round--left"
@@ -129,6 +137,7 @@
           </footer>
         </template>
       </div>
+      <div ref="morphVeilRef" class="rite-morph-veil" aria-hidden="true"></div>
     </f7-page>
 
     <!-- Подложка внутри попапа: общая подложка приложения оказывается под попапом и не затемняет записку -->
@@ -163,7 +172,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from "vue";
+import { computed, nextTick, onBeforeUnmount, onMounted, reactive, ref, watch } from "vue";
 import { f7 } from "framework7-vue";
 import type { Dialog } from "framework7/types";
 import AmountEditSheet from "@/components/rites/AmountEditSheet.vue";
@@ -198,14 +207,23 @@ import {
 } from "@/services/rites/riteForm";
 import {
   collectErrors,
-  loadTypeRestrictions,
   submitRite,
   type ApiErrors,
   type Rite,
   type RiteType,
   type TypeRestriction,
 } from "@/services/rites/ritesApi";
-import { getExplanations, getRiteTypes, getSaintsNames } from "@/services/rites/ritesDirectory";
+import {
+  getCachedRiteFormData,
+  getExplanations,
+  getRiteTypes,
+  getSaintsNames,
+  getTypeRestrictions,
+} from "@/services/rites/ritesDirectory";
+import {
+  createPopupMorphController,
+  type PopupCloseStyle,
+} from "@/services/rites/popupMorphTransition";
 import {
   calculateMinDate,
   findNextValidDate,
@@ -222,11 +240,20 @@ export type RitePopupMode = "create" | "edit" | "copy";
 
 type Kind = "health" | "repose";
 
-const { mode, item = null } = defineProps<{
+const { mode, item = null, resolveSourceEl = null } = defineProps<{
   mode: RitePopupMode;
   /** Записка для редактирования или дублирования */
   item?: Rite | null;
+  /** Карточка-источник для плавного раскрытия попапа из списка */
+  resolveSourceEl?: (() => HTMLElement | null) | null;
 }>();
+
+const popupRef = ref<{ $el?: HTMLElement } | null>(null);
+const pageRef = ref<{ $el?: HTMLElement } | null>(null);
+const scrollRef = ref<HTMLElement | null>(null);
+const morphVeilRef = ref<HTMLElement | null>(null);
+const morph = createPopupMorphController();
+let closeStyle: PopupCloseStyle = "morph";
 
 const opened = defineModel<boolean>("opened", { default: false });
 
@@ -547,6 +574,25 @@ async function init(): Promise<void> {
   amountSheetOpened.value = false;
   activeRowIndex.value = 0;
   loadError.value = "";
+
+  const cached = getCachedRiteFormData();
+  if (cached) {
+    types.value = cached.types;
+    restrictions.value = cached.restrictions;
+    explanationsByKind.value = { health: cached.health, repose: cached.repose };
+    if (cached.names.length > 0) {
+      saintsNames.value = cached.names;
+    } else {
+      getSaintsNames()
+        .then((list) => (saintsNames.value = list))
+        .catch((error) => console.error("Не удалось загрузить имена для подсказок:", error));
+    }
+    now.value = nowTs();
+    fillForm();
+    loading.value = false;
+    return;
+  }
+
   loading.value = true;
 
   // Имена нужны только для подсказок: форма открывается и без них
@@ -557,7 +603,7 @@ async function init(): Promise<void> {
   try {
     const [loadedTypes, loadedRestrictions, health, repose] = await Promise.all([
       getRiteTypes(),
-      loadTypeRestrictions(),
+      getTypeRestrictions(),
       getExplanations("health"),
       getExplanations("repose"),
     ]);
@@ -574,22 +620,62 @@ async function init(): Promise<void> {
   }
 }
 
+function resetInnerOverlays(): void {
+  explanationEditing.value = false;
+  infoOpened.value = false;
+  nameSheetOpened.value = false;
+  amountSheetOpened.value = false;
+  errorDialog?.close();
+}
+
 watch(nameSheetOpened, (isOpen) => {
   if (!isOpen) explanationEditing.value = false;
 });
 
 watch(opened, (value) => {
   if (value) {
-    applyNoteSystemBars();
+    closeStyle = "morph";
     void init();
+    const popupEl = popupRef.value?.$el ?? null;
+    const sourceEl = resolveSourceEl?.() ?? null;
+    const willMorph = popupEl ? morph.prepareOpen(popupEl, sourceEl) : false;
+    if (!willMorph) applyNoteSystemBars();
     return;
   }
-  restoreNoteSystemBars();
-  explanationEditing.value = false;
-  nameSheetOpened.value = false;
-  amountSheetOpened.value = false;
-  errorDialog?.close();
+  resetInnerOverlays();
+  if (!morph.isActive) {
+    restoreNoteSystemBars();
+  }
 });
+
+function onPopupOpen(): void {
+  if (scrollRef.value) scrollRef.value.scrollTop = 0;
+  const popupEl = popupRef.value?.$el;
+  if (popupEl && morph.isActive) {
+    morph.startOpen(popupEl, pageRef.value?.$el ?? null, morphVeilRef.value, scrollRef.value);
+  }
+}
+
+function onPopupOpened(): void {
+  if (morph.isActive) {
+    morph.finishOpen();
+    applyNoteSystemBars();
+  }
+}
+
+function onPopupClose(): void {
+  resetInnerOverlays();
+  if (morph.isActive) {
+    morph.startClose(closeStyle, resolveSourceEl ?? undefined);
+  } else {
+    restoreNoteSystemBars();
+  }
+}
+
+function onPopupClosed(): void {
+  morph.cleanup();
+  restoreNoteSystemBars();
+}
 
 watch(
   () => settingsStore.readingSystemBars,
@@ -613,6 +699,7 @@ function refreshMinDate(): void {
 onMounted(() => document.addEventListener("visibilitychange", refreshMinDate));
 onBeforeUnmount(() => {
   document.removeEventListener("visibilitychange", refreshMinDate);
+  morph.cleanup();
   if (opened.value) restoreNoteSystemBars();
   errorDialog?.destroy();
 });
@@ -684,6 +771,23 @@ async function submit(): Promise<void> {
 
     if (result.ok) {
       emit("saved", result.data);
+      // Ждём патч списка, чтобы новая или обновлённая карточка уже была в DOM с актуальной высотой
+      await nextTick();
+      const popupEl = popupRef.value?.$el ?? null;
+      const targetCard = resolveSourceEl?.() ?? null;
+      if (targetCard && popupEl) {
+        if (!morph.isActive) {
+          morph.prepareClose(
+            popupEl,
+            pageRef.value?.$el ?? null,
+            morphVeilRef.value,
+            scrollRef.value,
+          );
+        }
+        closeStyle = "morph";
+      } else {
+        closeStyle = "fade";
+      }
       opened.value = false;
       return;
     }
@@ -703,6 +807,33 @@ async function submit(): Promise<void> {
   // Иначе попап сидит внутри прокручиваемой страницы и уезжает, когда фокус попадает в поле шторки
   &.popup {
     position: fixed;
+  }
+
+  // Режим раскрытия из карточки: отменяем стандартный выезд f7-popup снизу на телефоне и планшете
+  &.popup.rite-popup--morph {
+    &,
+    &.modal-in,
+    &.modal-out {
+      transform: none;
+      transition: none;
+    }
+
+    &.rite-popup--morphing {
+      background: transparent;
+
+      .page {
+        background: transparent;
+      }
+    }
+  }
+
+  .rite-morph-veil {
+    display: none;
+    position: absolute;
+    inset: 0;
+    z-index: 20;
+    border-radius: inherit;
+    pointer-events: none;
   }
 
   // Записка всегда светлая: тёмной темы у неё нет

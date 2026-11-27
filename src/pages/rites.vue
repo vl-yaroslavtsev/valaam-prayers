@@ -1,5 +1,6 @@
 <template>
   <f7-page
+    ref="pageRef"
     name="rites"
     class="rites-page"
     :page-content="false"
@@ -56,7 +57,7 @@
         :tab-link-active="activeTab === 'cart'"
         @click="selectTab('cart')"
       >
-        <span>Корзина</span>
+        <span>В корзине</span>
         <f7-badge v-if="store.items.length > 0" class="rites-tabbar__badge">
           {{ store.items.length }}
         </f7-badge>
@@ -137,8 +138,8 @@
                 <!-- Без tag: список остаётся прямым потомком ul, а удаление и возврат записки анимируются хуками -->
                 <TransitionGroup
                   :css="false"
-                  @before-enter="onItemBeforeEnter"
-                  @enter="onItemEnter"
+                  @before-enter="handleItemBeforeEnter"
+                  @enter="handleItemEnter"
                   @leave="onItemLeave"
                 >
                   <RitesCartItem
@@ -227,6 +228,7 @@
       v-model:opened="popupOpened"
       :mode="popupMode"
       :item="popupItem"
+      :resolve-source-el="popupSourceResolver"
       @saved="onRiteSaved"
     />
   </f7-page>
@@ -251,6 +253,7 @@ import {
   type Rite,
 } from "@/services/rites/ritesApi";
 import { onItemBeforeEnter, onItemEnter, onItemLeave } from "@/services/rites/collapseTransition";
+import { preloadRiteFormDirectory } from "@/services/rites/ritesDirectory";
 import { closeOpenToast, syncUndoToast } from "@/services/rites/undoToast";
 import { formatPrice, isValidEmail } from "@/services/rites/ritesFormat";
 import { payRites, prepareRitesPayment } from "@/services/rites/ritesPayment";
@@ -322,10 +325,34 @@ const emailError = ref(false);
 const emailErrorText = ref("");
 const isSubmitting = ref(false);
 
+const pageRef = ref<{ $el?: HTMLElement } | null>(null);
 const popupOpened = ref(false);
 const popupMode = ref<RitePopupMode>("create");
 const popupItem = ref<Rite | null>(null);
 const popupSource = ref<RitesTab>("cart");
+const popupSourceResolver = ref<(() => HTMLElement | null) | null>(null);
+/** Новая записка, в которую прямо сейчас свернётся попап: не анимируем её повторно через collapseTransition */
+let skipEnterRiteId: number | null = null;
+
+function handleItemBeforeEnter(el: Element): void {
+  if (Number((el as HTMLElement).dataset.riteId) === skipEnterRiteId) return;
+  onItemBeforeEnter(el);
+}
+
+function handleItemEnter(el: Element, done: () => void): void {
+  if (Number((el as HTMLElement).dataset.riteId) === skipEnterRiteId) {
+    skipEnterRiteId = null;
+    done();
+    return;
+  }
+  onItemEnter(el, done);
+}
+
+function findRiteCard(source: RitesTab, id: number): HTMLElement | null {
+  const root = pageRef.value?.$el ?? document;
+  const listSelector = source === "cart" ? ".rites-list" : ".history-list";
+  return root.querySelector<HTMLElement>(`${listSelector} [data-rite-id="${id}"]`);
+}
 
 let undoToast: Toast.Toast | null = null;
 let errorToast: Toast.Toast | null = null;
@@ -369,6 +396,7 @@ function onPageShown(): void {
   if (!email.value.trim()) email.value = getSavedEmail();
   void refreshCart();
   void prepareRitesPayment();
+  preloadRiteFormDirectory();
   void nextTick(syncTabHighlight);
   if (activeTab.value === "history") {
     historyTabRef.value?.refresh();
@@ -383,11 +411,12 @@ function openPopup(
   popupMode.value = mode;
   popupItem.value = item;
   popupSource.value = source;
+  popupSourceResolver.value =
+    mode !== "create" && item ? () => findRiteCard(source, item.id) : null;
   popupOpened.value = true;
 }
 
 function onRiteSaved(rite: Rite): void {
-  popupOpened.value = false;
   if (popupMode.value === "edit") {
     if (popupSource.value === "history") {
       historyTabRef.value?.applyEdited(rite);
@@ -396,8 +425,17 @@ function onRiteSaved(rite: Rite): void {
     }
     return;
   }
+
+  // Новая записка (создание, дублирование в корзине или «Подать ещё раз» из истории):
+  // переключаемся на корзину и сворачиваем попап прямо в добавленную карточку
+  skipEnterRiteId = rite.id;
   store.addItem(rite);
   store.setActiveTab("cart");
+  popupSourceResolver.value = () => findRiteCard("cart", rite.id);
+  // Если корзина была пустой, TransitionGroup монтируется с нуля и enter-хук не вызовется — сбрасываем флаг
+  void nextTick(() => {
+    if (skipEnterRiteId === rite.id) skipEnterRiteId = null;
+  });
 }
 
 function openUndoToast(text: string): Toast.Toast {
@@ -515,6 +553,7 @@ async function onPay(): Promise<void> {
         break;
       case "pending":
         saveEmail(trimmedEmail);
+        historyTabRef.value?.invalidate();
         f7.dialog.alert(
           "Платёж обрабатывается. Записки останутся в корзине, пока оплата не подтвердится.",
           "Пожертвование",
@@ -549,7 +588,9 @@ const onVisibilityChange = () => {
     // Вернулись в приложение, возможно на следующий день: даты могли устареть
     void refreshCart();
     if (activeTab.value === "history") {
-      historyTabRef.value?.refresh();
+      historyTabRef.value?.refresh({ force: true });
+    } else {
+      historyTabRef.value?.invalidate();
     }
   }
 };

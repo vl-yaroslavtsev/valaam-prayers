@@ -174,6 +174,7 @@ import SvgIcon from "@/components/SvgIcon.vue";
 import { useTheme } from "@/composables/useTheme";
 import {
   loadHistoryFilter,
+  loadHistoryPages,
   loadHistoryRites,
   type HistoryFilter,
   type Rite,
@@ -319,8 +320,13 @@ const showEditAlert = computed(() => hasEditableItems.value && !editHintDismisse
 
 const filterSheetOpened = ref(false);
 
+/** Сколько история считается свежей при переключении вкладок «Корзина ↔ Поданные» */
+const HISTORY_REFRESH_TTL_MS = 60 * 1000;
+
 // Счётчик запросов: ответ устаревшего запроса (фильтр уже сменился) отбрасывается
 let requestId = 0;
+let lastLoadedAt = 0;
+let isSilentRefreshing = false;
 
 const toId = (value: string): number | null => (value ? Number(value) : null);
 
@@ -333,12 +339,13 @@ function currentQuery() {
 }
 
 /**
- * silent: список остаётся на экране, пока приходит свежая первая страница.
- * Смена фильтра тоже не очищает список заранее: пустой скелетон меняет высоту страницы.
+ * Первичная загрузка или перезагрузка при смене фильтра/сортировки:
+ * список остаётся на месте, пока приходит свежая первая страница, чтобы страница не схлопывалась.
  */
-async function loadFirst(silent = false): Promise<void> {
+async function loadFirst(): Promise<void> {
   const id = ++requestId;
   isLoadingMore.value = false;
+  isSilentRefreshing = false;
   error.value = null;
   const initial = !isLoaded.value;
   if (initial) {
@@ -347,7 +354,7 @@ async function loadFirst(silent = false): Promise<void> {
     items.value = [];
     hasMore.value = false;
   } else {
-    isRefreshing.value = !silent;
+    isRefreshing.value = true;
   }
 
   try {
@@ -357,10 +364,11 @@ async function loadFirst(silent = false): Promise<void> {
     page.value = 1;
     hasMore.value = result.hasMore;
     isLoaded.value = true;
+    lastLoadedAt = Date.now();
   } catch (ex) {
     if (id !== requestId) return;
     console.error("Не удалось загрузить поданные записки:", ex);
-    if (!silent) error.value = "Не удалось загрузить поданные записки";
+    error.value = "Не удалось загрузить поданные записки";
   } finally {
     if (id === requestId) {
       isLoading.value = false;
@@ -369,8 +377,44 @@ async function loadFirst(silent = false): Promise<void> {
   }
 }
 
+/**
+ * Тихое обновление уже загруженных страниц: сначала скачиваем все страницы 1..page,
+ * и только потом одним шагом обновляем items, чтобы скролл не прыгал.
+ */
+async function silentRefresh(): Promise<void> {
+  const id = ++requestId;
+  const targetPages = Math.max(1, page.value);
+  isLoadingMore.value = false;
+  isSilentRefreshing = true;
+
+  try {
+    const result = await loadHistoryPages(targetPages, currentQuery());
+    if (id !== requestId) return;
+    items.value = result.items;
+    page.value = result.page;
+    hasMore.value = result.hasMore;
+    error.value = null;
+    lastLoadedAt = Date.now();
+  } catch (ex) {
+    if (id !== requestId) return;
+    console.error("Не удалось обновить поданные записки:", ex);
+  } finally {
+    if (id === requestId) {
+      isSilentRefreshing = false;
+    }
+  }
+}
+
 async function loadMore(): Promise<void> {
-  if (!hasMore.value || isLoading.value || isRefreshing.value || isLoadingMore.value) return;
+  if (
+    !hasMore.value ||
+    isLoading.value ||
+    isRefreshing.value ||
+    isSilentRefreshing ||
+    isLoadingMore.value
+  ) {
+    return;
+  }
 
   const id = requestId;
   isLoadingMore.value = true;
@@ -381,6 +425,7 @@ async function loadMore(): Promise<void> {
     items.value = [...items.value, ...result.items.filter((item) => !known.has(item.id))];
     page.value += 1;
     hasMore.value = result.hasMore;
+    lastLoadedAt = Date.now();
   } catch (ex) {
     // Очередная порция не пришла: останавливаем подгрузку, чтобы не крутить запросы
     console.error("Не удалось подгрузить историю записок:", ex);
@@ -411,18 +456,32 @@ function clearFilter(): void {
   selectedStatus.value = "";
 }
 
+/** Сбрасывает кэш свежести, чтобы следующее открытие истории гарантированно обновило список */
+function invalidate(): void {
+  lastLoadedAt = 0;
+}
+
 /** Сбрасывает фильтры, сортировку и скролл перед показом только что поданных записок */
 function resetForNewest(): void {
   selectedType.value = "";
   selectedStatus.value = "";
   order.value = "DESC";
+  page.value = 1;
+  lastLoadedAt = 0;
   if (scrollEl) scrollEl.scrollTop = 0;
 }
 
-function refresh(): void {
-  void loadFirst(isLoaded.value);
-  void refreshFilter();
+function refresh({ force = false } = {}): void {
   void nextTick(syncNavActions);
+  if (isLoaded.value && !force && Date.now() - lastLoadedAt < HISTORY_REFRESH_TTL_MS) {
+    return;
+  }
+  if (isLoaded.value) {
+    void silentRefresh();
+  } else {
+    void loadFirst();
+  }
+  void refreshFilter();
 }
 
 function openFilters(): void {
@@ -464,6 +523,7 @@ watch(
 
 defineExpose({
   refresh,
+  invalidate,
   resetForNewest,
   loadMore,
   openFilters,

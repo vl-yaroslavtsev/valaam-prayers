@@ -312,13 +312,51 @@ export async function loadHistoryRites({
   order,
   typeId,
   statusId,
-}: HistoryQuery): Promise<{ items: Rite[]; hasMore: boolean }> {
+}: HistoryQuery): Promise<{ items: Rite[]; hasMore: boolean; totalPages: number }> {
   const statusIds = statusId ? [statusId] : await getHistoryStatusIds();
   const { items, totalPages } = await loadRitesPage(statusIds, page, HISTORY_PAGE_SIZE, {
     order,
     typeId,
   });
-  return { items, hasMore: page < totalPages };
+  return { items, hasMore: page < totalPages, totalPages };
+}
+
+/**
+ * Загружает страницы истории 1..pageCount целиком (2..N параллельно) и склеивает их без дублей.
+ * Используется для тихого обновления уже пролистанного списка без обрезки хвоста и прыжка скролла.
+ */
+export async function loadHistoryPages(
+  pageCount: number,
+  query: Omit<HistoryQuery, "page"> = {},
+): Promise<{ items: Rite[]; page: number; hasMore: boolean }> {
+  const target = Math.max(1, pageCount);
+  const first = await loadHistoryRites({ page: 1, ...query });
+  const lastPage = Math.min(target, Math.max(1, first.totalPages));
+
+  const rest =
+    lastPage > 1
+      ? await Promise.all(
+          Array.from({ length: lastPage - 1 }, (_, index) =>
+            loadHistoryRites({ page: index + 2, ...query }),
+          ),
+        )
+      : [];
+
+  const seen = new Set<number>();
+  const items: Rite[] = [];
+  for (const batch of [first, ...rest]) {
+    for (const item of batch.items) {
+      if (seen.has(item.id)) continue;
+      seen.add(item.id);
+      items.push(item);
+    }
+  }
+
+  return {
+    items,
+    page: lastPage,
+    hasMore: lastPage < first.totalPages,
+  };
 }
 
 export interface HistoryFilter {

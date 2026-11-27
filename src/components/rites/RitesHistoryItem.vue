@@ -14,9 +14,9 @@
     <div class="history-item__body">
       <div class="history-item__details">
         <div class="history-item__detail">
-          <span class="history-item__label">Записка</span>
+          <span class="history-item__label">Номер</span>
           <span class="history-item__value">
-            №{{ item.number }}<template v-if="item.datePayment"> от {{ item.datePayment.value }} г.</template>
+            {{ item.number }}<template v-if="item.datePayment"> от {{ item.datePayment.value }} г.</template>
           </span>
         </div>
         <div v-if="item.status" class="history-item__detail">

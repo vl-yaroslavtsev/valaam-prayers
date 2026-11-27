@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   loadCartRites,
   loadHistoryFilter,
+  loadHistoryPages,
   loadHistoryRites,
   rememberConfirmedEmailFromUrl,
 } from "@/services/rites/ritesApi";
@@ -133,5 +134,42 @@ describe("loadHistoryFilter", () => {
     expect(query.get("type")).toBe("7160");
     expect(query.get("status[0]")).toBe("18");
     expect(query.get("status[1]")).toBeNull();
+  });
+});
+
+describe("loadHistoryPages", () => {
+  it("скачивает страницы 1..N, убирает дубли по id и сохраняет порядок страниц", async () => {
+    fetchMock.mockImplementation((url: string) => {
+      if (url.includes("/rites/statuses")) return jsonResponse(STATUSES);
+      const page = Number(new URL(url).searchParams.get("page"));
+      const pages: Record<number, { id: number }[]> = {
+        1: [{ id: 10 }, { id: 20 }],
+        2: [{ id: 20 }, { id: 30 }],
+        3: [{ id: 40 }],
+      };
+      return jsonResponse({ items: pages[page] ?? [], nav: { totalPages: 4 } });
+    });
+
+    const result = await loadHistoryPages(3, { order: "DESC" });
+
+    expect(result.items.map((item) => item.id)).toEqual([10, 20, 30, 40]);
+    expect(result.page).toBe(3);
+    expect(result.hasMore).toBe(true);
+  });
+
+  it("не запрашивает страницы сверх totalPages, если список стал короче", async () => {
+    const requestedPages: number[] = [];
+    fetchMock.mockImplementation((url: string) => {
+      if (url.includes("/rites/statuses")) return jsonResponse(STATUSES);
+      const page = Number(new URL(url).searchParams.get("page"));
+      requestedPages.push(page);
+      return jsonResponse({ items: [{ id: page }], nav: { totalPages: 2 } });
+    });
+
+    const result = await loadHistoryPages(5);
+
+    expect(requestedPages).toEqual([1, 2]);
+    expect(result.page).toBe(2);
+    expect(result.hasMore).toBe(false);
   });
 });
