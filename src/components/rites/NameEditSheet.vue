@@ -249,7 +249,13 @@ function focusName(): void {
   });
 }
 
+function closeHints(): void {
+  nameHints?.close();
+  explanationHints?.close();
+}
+
 function destroyHints(): void {
+  closeHints();
   nameHints?.destroy();
   explanationHints?.destroy();
   nameHints = null;
@@ -340,6 +346,7 @@ function finishExplanation(): void {
 }
 
 function leaveRow(): void {
+  closeHints();
   finishName();
   finishExplanation();
   nameBaseline = null;

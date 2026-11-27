@@ -747,7 +747,7 @@ onBeforeUnmount(() => {
   }
 
   .rites-skeleton {
-    border-radius: 8px;
+    border-radius: 16px;
 
     &--select {
       height: 44px;
@@ -755,7 +755,6 @@ onBeforeUnmount(() => {
 
     &--card {
       height: 190px;
-      border-radius: 16px;
     }
   }
 
@@ -833,7 +832,7 @@ onBeforeUnmount(() => {
     align-items: center;
     justify-content: space-between;
     padding: 16px;
-    border-radius: 8px;
+    border-radius: 16px;
     background: var(--rites-card-bg);
 
     &__all {
