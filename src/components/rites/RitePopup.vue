@@ -188,6 +188,7 @@ import {
   MESSAGE_NO_NAMES,
   MESSAGE_UNAVAILABLE,
   buildNames,
+  defaultRiteType,
   formatNoteRow,
   isNameValid,
   isRowCountable,
@@ -547,9 +548,7 @@ function fillForm(): void {
   const available = types.value.filter((candidate) => !candidate.disabled);
   type.value =
     available.find((candidate) => candidate.id === source?.type?.id) ??
-    typesOfKind(types.value, "health")[0] ??
-    available[0] ??
-    null;
+    defaultRiteType(types.value);
 
   fillRows(source);
 

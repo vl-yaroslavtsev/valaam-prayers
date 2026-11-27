@@ -297,6 +297,17 @@ export function mapServerErrors(errors: ApiError[]): ServerErrors {
 export const typesOfKind = (types: RiteType[], kind: RiteType["type"]): RiteType[] =>
   types.filter((type) => type.type === kind && !type.disabled);
 
+/** Треба по умолчанию для новой записки: «О здравии», сорокоуст (40 дней), иначе первая доступная */
+export function defaultRiteType(types: RiteType[]): RiteType | null {
+  const health = typesOfKind(types, "health");
+  return (
+    health.find((item) => item.period === "40days") ??
+    health[0] ??
+    types.find((item) => !item.disabled) ??
+    null
+  );
+}
+
 /**
  * Тип нового вида записки: тот же подтип (Проскомидия, Псалтирь...), если он есть,
  * иначе первый. Как на сайте при смене вида записки.

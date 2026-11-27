@@ -5,6 +5,7 @@ import {
   buildNames,
   buildPriceList,
   calculateDonate,
+  defaultRiteType,
   filterByPrefix,
   findExplanation,
   formatNoteRow,
@@ -243,6 +244,18 @@ describe("riteForm", () => {
         "Панихида (1 день)",
       ]);
       expect(buildPriceList(types, "health")[1]).toEqual({ name: "Псалтирь (1 год)", price: 2000 });
+    });
+
+    it("треба по умолчанию — о здравии сорокоуст (40 дней), с откатом на первый доступный тип", () => {
+      const withSorokoust = [
+        makeType({ id: 1, shortName: "Разовое поминовение", period: "1day" }),
+        makeType({ id: 7160, shortName: "Проскомидия (40 дней)", period: "40days", periodDays: 40 }),
+        makeType({ id: 7161, type: "repose", shortName: "Проскомидия (40 дней)", period: "40days" }),
+      ];
+      expect(defaultRiteType(withSorokoust)?.id).toBe(7160);
+      expect(defaultRiteType(types)?.id).toBe(1);
+      expect(defaultRiteType([makeType({ id: 9, type: "repose" })])?.id).toBe(9);
+      expect(defaultRiteType([])).toBeNull();
     });
   });
 
