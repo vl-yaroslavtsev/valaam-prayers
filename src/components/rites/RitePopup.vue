@@ -683,6 +683,7 @@ function onPopupClose(): void {
 }
 
 function onPopupClosed(): void {
+  saving.value = false;
   morph.cleanup();
   restoreNoteSystemBars();
 }
@@ -792,6 +793,7 @@ async function submit(): Promise<void> {
 
   if (presentProblems(clientRowProblems(), donateIsClientProblem(), general) || day === null) return;
 
+  let closing = false;
   saving.value = true;
   try {
     const result = await submitRite({
@@ -821,7 +823,10 @@ async function submit(): Promise<void> {
       } else {
         closeStyle = "fade";
       }
-      opened.value = false;
+      if (opened.value) {
+        closing = true;
+        opened.value = false;
+      }
       return;
     }
 
@@ -830,7 +835,7 @@ async function submit(): Promise<void> {
     console.error("Не удалось отправить записку:", error);
     showRetryDialog(MESSAGE_UNAVAILABLE);
   } finally {
-    saving.value = false;
+    if (!closing) saving.value = false;
   }
 }
 </script>
