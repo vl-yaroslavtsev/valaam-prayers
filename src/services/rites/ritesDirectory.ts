@@ -95,3 +95,10 @@ export function getCachedRiteFormData(): RiteFormDirectoryData | null {
     names: (resolved.get("names") as string[] | undefined) ?? [],
   };
 }
+
+/** Сброс кэша справочников для тестов */
+export function resetRiteDirectoryCacheForTests(): void {
+  cache.clear();
+  resolved.clear();
+  restrictionsLoadedAt = 0;
+}

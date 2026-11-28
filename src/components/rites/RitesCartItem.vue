@@ -1,13 +1,14 @@
 <template>
   <li
     class="rite-card"
-    :class="{ 'rite-card--error': item.errors.length > 0 }"
+    :class="{ 'rite-card--error': item.errors.length > 0, 'rite-card--pending': pending }"
     :data-rite-id="item.id"
   >
     <div class="rite-card__top">
       <label class="rite-card__select">
         <f7-checkbox
           :checked="item.checked"
+          :disabled="pending"
           :aria-label="`Выбрать записку №${item.number}`"
           @change="emit('toggle', ($event.target as HTMLInputElement).checked)"
         />
@@ -25,6 +26,7 @@
         type="button"
         round
         class="rite-card__edit"
+        :disabled="pending"
         :aria-label="`Редактировать записку №${item.number}`"
         @click="emit('edit')"
       >
@@ -69,6 +71,7 @@
         type="button"
         small
         class="rite-card__action rite-card__action--delete"
+        :disabled="pending"
         :aria-label="`Удалить записку №${item.number}`"
         @click="emit('remove')"
       >
@@ -78,6 +81,9 @@
       <span class="rite-card__sum">{{ formatPrice(item.sum) }}&nbsp;₽</span>
     </div>
 
+    <p v-if="pending" class="rite-card__pending" role="status">
+      Платёж обрабатывается
+    </p>
     <p v-if="item.errors.length > 0" class="rite-card__error" role="alert">
       {{ item.errors.map((error) => error.description).join(". ") }}
     </p>
@@ -92,8 +98,9 @@ import { useTheme } from "@/composables/useTheme";
 import { formatNames, formatPeriod, formatPrice, formatShortName } from "@/services/rites/ritesFormat";
 import type { CartItem } from "@/stores/ritesCart";
 
-const { item } = defineProps<{
+const { item, pending = false } = defineProps<{
   item: CartItem;
+  pending?: boolean;
 }>();
 
 const emit = defineEmits<{
@@ -127,6 +134,10 @@ const shortName = computed(() => (item.type ? formatShortName(item.type.shortNam
 
   &--error {
     border-color: var(--red-r-100);
+  }
+
+  &--pending {
+    opacity: 0.72;
   }
 
   &__top {
@@ -249,6 +260,13 @@ const shortName = computed(() => (item.type ? formatShortName(item.type.shortNam
     display: none;
     width: 24px;
     height: 24px;
+  }
+
+  &__pending {
+    margin: 10px 0 0;
+    font-size: 14px;
+    line-height: 16px;
+    color: var(--rites-muted);
   }
 
   &__error {
@@ -439,6 +457,7 @@ const shortName = computed(() => (item.type ? formatShortName(item.type.shortNam
       justify-content: center;
     }
 
+    &__pending,
     &__error {
       grid-column: 1 / -1;
       grid-row: 2;

@@ -54,9 +54,9 @@ const NOW = msk(2026, 11, 5) + 23.5 * 3600;
 
 describe("ritesDates", () => {
   it("день и день недели считаются по Москве", () => {
-    // 21:30 UTC уже следующий день по Москве
-    const ts = Date.UTC(2026, 10, 5, 21, 30) / 1000;
-    expect(mskDayStart(ts)).toBe(msk(2026, 11, 6));
+    // Граница суток МСК: 20:59:59 UTC — ещё 5 ноября, 21:00:00 UTC — уже 6 ноября
+    expect(mskDayStart(Date.UTC(2026, 10, 5, 20, 59, 59) / 1000)).toBe(msk(2026, 11, 5));
+    expect(mskDayStart(Date.UTC(2026, 10, 5, 21, 0, 0) / 1000)).toBe(msk(2026, 11, 6));
     expect(mskWeekDay(msk(2026, 11, 5))).toBe(4); // четверг
     expect(mskWeekDay(msk(2026, 11, 8))).toBe(7); // воскресенье
     expect(mskWeekDay(msk(2026, 11, 9))).toBe(1); // понедельник
@@ -72,9 +72,10 @@ describe("ritesDates", () => {
     expect(calculateMinDate(NOW, makeType({ processing: 2 }))).toBe(msk(2026, 11, 8));
   });
 
-  it("конец периода: начало плюс дни периода минус один", () => {
+  it("конец периода: начало плюс дни периода минус один; при periodDays=0 — один день", () => {
     const start = msk(2026, 11, 7);
     expect(getToDate(start, makeType({ periodDays: 1 }))).toBe(start);
+    expect(getToDate(start, makeType({ periodDays: 0 }))).toBe(start);
     expect(getToDate(start, makeType({ periodDays: 40 }))).toBe(start + 39 * DAY);
   });
 
@@ -83,6 +84,8 @@ describe("ritesDates", () => {
     expect(getToDate(msk(2026, 11, 7), year)).toBe(msk(2027, 11, 6));
     // через високосный день год всё равно кончается накануне той же даты
     expect(getToDate(msk(2027, 3, 1), year)).toBe(msk(2028, 2, 29));
+    // начало 29 февраля високосного года → окончание 28 февраля следующего
+    expect(getToDate(msk(2028, 2, 29), year)).toBe(msk(2029, 2, 28));
   });
 
   it("день из календаря F7 и день по Москве переводятся друг в друга", () => {
@@ -147,6 +150,19 @@ describe("ritesDates", () => {
       const [fix] = findDateFixes([makeRite(1, type, msk(2026, 11, 10))], [], NOW);
 
       expect(fix.from.ts).toBe(msk(2026, 11, 9));
+    });
+
+    it("если нет допустимых дат за 800 дней, findNextValidDate возвращает null, а findDateFixes пропускает записку", () => {
+      const type = makeType();
+      const blockAll: TypeRestriction = {
+        type: "disallow",
+        from: msk(2026, 1, 1),
+        to: msk(2030, 1, 1),
+        rites: [1],
+      };
+
+      expect(findNextValidDate(msk(2026, 11, 7), type, [blockAll])).toBeNull();
+      expect(findDateFixes([makeRite(1, type, msk(2026, 11, 5))], [blockAll], NOW)).toEqual([]);
     });
   });
 });

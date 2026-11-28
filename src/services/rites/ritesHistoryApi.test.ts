@@ -1,10 +1,13 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
+  deleteRite,
   loadCartRites,
   loadHistoryFilter,
   loadHistoryPages,
   loadHistoryRites,
+  loadTypeRestrictions,
   rememberConfirmedEmailFromUrl,
+  resetRitesStatusesCacheForTests,
 } from "@/services/rites/ritesApi";
 
 const STATUSES = [
@@ -65,6 +68,7 @@ describe("loadHistoryRites", () => {
     expect(query.get("status[2]")).toBeNull();
     expect(query.get("type")).toBeNull();
     expect(query.get("order")).toBe("DESC");
+    expect(query.get("orderBy")).toBe("paymentDate");
     expect(query.get("page")).toBe("1");
     expect(query.get("perPage")).toBe("20");
   });
@@ -171,5 +175,83 @@ describe("loadHistoryPages", () => {
     expect(requestedPages).toEqual([1, 2]);
     expect(result.page).toBe(2);
     expect(result.hasMore).toBe(false);
+  });
+});
+
+describe("устойчивость API (C3, C4, статусы, пагинация)", () => {
+  it("200 с не-JSON или без массива items бросает ошибку, а не возвращает пустую корзину (C3)", async () => {
+    await loadCartRites(); // прогреваем статусы
+
+    fetchMock.mockImplementationOnce(() =>
+      Promise.resolve({ ok: true, status: 200, json: () => Promise.reject(new SyntaxError("HTML")) }),
+    );
+    await expect(loadCartRites()).rejects.toThrow("HTTP 200");
+
+    fetchMock.mockImplementationOnce(() => jsonResponse({}));
+    await expect(loadCartRites()).rejects.toThrow("Некорректный ответ сервера");
+
+    fetchMock.mockImplementationOnce(() => jsonResponse(null));
+    await expect(loadTypeRestrictions()).rejects.toThrow("Некорректный ответ сервера");
+
+    fetchMock.mockImplementationOnce(() => jsonResponse({}));
+    await expect(loadHistoryFilter({})).rejects.toThrow("Некорректный ответ сервера");
+  });
+
+  it("пустое тело 200 допустимо для DELETE, но HTML-ответ 200 и пустое тело для GET считаются ошибкой", async () => {
+    await loadCartRites();
+
+    fetchMock.mockImplementationOnce(() =>
+      Promise.resolve({ ok: true, status: 200, text: () => Promise.resolve("") }),
+    );
+    await expect(deleteRite(10)).resolves.toEqual({ ok: true, data: null });
+
+    fetchMock.mockImplementationOnce(() =>
+      Promise.resolve({ ok: true, status: 200, text: () => Promise.resolve("<html>captive</html>") }),
+    );
+    await expect(deleteRite(10)).resolves.toEqual({ ok: false, status: 200, errors: null });
+
+    fetchMock.mockImplementationOnce(() =>
+      Promise.resolve({ ok: true, status: 200, text: () => Promise.resolve("") }),
+    );
+    await expect(loadCartRites()).rejects.toThrow("Некорректный ответ сервера");
+  });
+
+  it("некорректный totalPages (NaN) не приводит к бесконечному циклу в loadCartRites", async () => {
+    await loadCartRites();
+    fetchMock.mockImplementationOnce(() =>
+      jsonResponse({ items: [{ id: 1 }], nav: { totalPages: Number.NaN } }),
+    );
+    const rites = await loadCartRites();
+    expect(rites.map((item) => item.id)).toEqual([1]);
+  });
+
+  it("параллельные вызовы на холодном старте делают только один запрос /rites/statuses", async () => {
+    resetRitesStatusesCacheForTests();
+    fetchMock.mockClear();
+
+    await Promise.all([loadCartRites(), loadHistoryRites({ page: 1 }), loadHistoryFilter({})]);
+
+    const statusCalls = fetchMock.mock.calls.filter(([url]) => String(url).includes("/rites/statuses"));
+    expect(statusCalls).toHaveLength(1);
+  });
+
+  it("зависший запрос прерывается по таймауту (C4)", async () => {
+    vi.useFakeTimers();
+    try {
+      await loadCartRites();
+      fetchMock.mockImplementationOnce(
+        (_url: string, init?: RequestInit) =>
+          new Promise((_resolve, reject) => {
+            init?.signal?.addEventListener("abort", () => reject(new Error("aborted")));
+          }),
+      );
+
+      const pending = loadCartRites();
+      const handled = expect(pending).rejects.toThrow("aborted");
+      await vi.advanceTimersByTimeAsync(16000);
+      await handled;
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });

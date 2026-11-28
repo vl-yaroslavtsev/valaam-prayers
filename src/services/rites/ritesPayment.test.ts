@@ -6,7 +6,12 @@ import {
   requestGid,
   type InitiatePaymentResponse,
 } from "@/services/rites/ritesApi";
-import { payRites } from "@/services/rites/ritesPayment";
+import {
+  parsePaymentErrors,
+  payRites,
+  prepareRitesPayment,
+  resetPaymentStateForTests,
+} from "@/services/rites/ritesPayment";
 
 vi.mock("@/services/rites/ritesApi", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@/services/rites/ritesApi")>()),
@@ -118,18 +123,24 @@ describe("оплата записок: нативный ЮKassa SDK", () => {
     }
   });
 
-  it("если сервер так и не подтвердил оплату, платёж считается обрабатываемым", async () => {
+  it("если сервер так и не подтвердил оплату, платёж считается обрабатываемым и обновляет текст прелоадера", async () => {
     vi.useFakeTimers();
     try {
+      const stages: Array<[boolean, string | undefined]> = [];
       vi.mocked(initiatePayment).mockResolvedValue({ ok: true, data: response() });
       vi.mocked(loadCartRites).mockResolvedValue([
         { id: 1, number: "1", names: [], type: null, sum: 1 },
       ]);
 
-      const pending = payRites(OPTIONS);
+      const pending = payRites({
+        ...OPTIONS,
+        onProcessing: (active, text) => stages.push([active, text]),
+      });
       await vi.advanceTimersByTimeAsync(31000);
 
       expect(await pending).toEqual({ status: "pending" });
+      expect(stages).toContainEqual([true, "Подтверждаем оплату..."]);
+      expect(stages[stages.length - 1]).toEqual([false, undefined]);
     } finally {
       vi.useRealTimers();
     }
@@ -216,5 +227,45 @@ describe("оплата записок: виджет ЮKassa (без нативн
 
     expect(await payRites(OPTIONS)).toEqual({ status: "failed", message: "", errors });
     expect(handlers.complete).toBeUndefined();
+  });
+});
+
+describe("prepareRitesPayment и parsePaymentErrors", () => {
+  afterEach(() => {
+    resetPaymentStateForTests();
+    vi.clearAllMocks();
+  });
+
+  it("prepareRitesPayment не запрашивает gid повторно, пока он уже получен", () => {
+    vi.mocked(requestGid).mockResolvedValue("gid-1");
+
+    prepareRitesPayment();
+    prepareRitesPayment();
+
+    expect(requestGid).toHaveBeenCalledTimes(1);
+  });
+
+  it("parsePaymentErrors раскладывает email, rite-<id> и общие ошибки строго по формату", () => {
+    const parsed = parsePaymentErrors(
+      {
+        fieldsErrors: [
+          { field: "email", description: "Неверный email" },
+          { field: "rite-10", description: "Неверная дата" },
+          { field: "rites-10", description: "Неверный формат поля" },
+          { field: "rite-999", description: "Неизвестная записка" },
+        ],
+        fullErrors: [{ description: "Слишком много записок" }],
+      },
+      [10, 20],
+    );
+
+    expect(parsed.emailError).toBe("Неверный email");
+    expect(parsed.riteErrors.get(10)).toEqual([{ field: "rite-10", description: "Неверная дата" }]);
+    expect(parsed.riteErrors.size).toBe(1);
+    expect(parsed.general).toEqual([
+      "Неверный формат поля",
+      "Неизвестная записка",
+      "Слишком много записок",
+    ]);
   });
 });

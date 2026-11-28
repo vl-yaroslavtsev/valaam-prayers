@@ -546,9 +546,11 @@ function fillRows(source: Rite | null): void {
 function fillForm(): void {
   const source = mode === "create" ? null : item;
   const available = types.value.filter((candidate) => !candidate.disabled);
-  type.value =
-    available.find((candidate) => candidate.id === source?.type?.id) ??
-    defaultRiteType(types.value);
+  const matchedType = available.find((candidate) => candidate.id === source?.type?.id);
+  type.value = matchedType ?? defaultRiteType(types.value);
+  if (mode === "edit" && source?.type && !matchedType && type.value) {
+    showToast("Прежний вид поминовения недоступен, выбран доступный вариант");
+  }
 
   fillRows(source);
 
@@ -563,7 +565,10 @@ function fillForm(): void {
   donateManual.value = source !== null && !strict.value && source.sum !== recommendedAmount.value;
 }
 
+let initRequestId = 0;
+
 async function init(): Promise<void> {
+  const reqId = ++initRequestId;
   submitted.value = false;
   saving.value = false;
   serverErrors.value = {};
@@ -583,7 +588,9 @@ async function init(): Promise<void> {
       saintsNames.value = cached.names;
     } else {
       getSaintsNames()
-        .then((list) => (saintsNames.value = list))
+        .then((list) => {
+          if (reqId === initRequestId) saintsNames.value = list;
+        })
         .catch((error) => console.error("Не удалось загрузить имена для подсказок:", error));
     }
     now.value = nowTs();
@@ -596,7 +603,9 @@ async function init(): Promise<void> {
 
   // Имена нужны только для подсказок: форма открывается и без них
   getSaintsNames()
-    .then((list) => (saintsNames.value = list))
+    .then((list) => {
+      if (reqId === initRequestId) saintsNames.value = list;
+    })
     .catch((error) => console.error("Не удалось загрузить имена для подсказок:", error));
 
   try {
@@ -606,16 +615,18 @@ async function init(): Promise<void> {
       getExplanations("health"),
       getExplanations("repose"),
     ]);
+    if (reqId !== initRequestId || !opened.value) return;
     types.value = loadedTypes;
     restrictions.value = loadedRestrictions;
     explanationsByKind.value = { health, repose };
     now.value = nowTs();
     fillForm();
   } catch (error) {
+    if (reqId !== initRequestId) return;
     console.error("Не удалось загрузить данные формы записки:", error);
     loadError.value = "Не удалось загрузить форму. Проверьте соединение и повторите.";
   } finally {
-    loading.value = false;
+    if (reqId === initRequestId) loading.value = false;
   }
 }
 
@@ -684,15 +695,37 @@ watch(
 );
 
 /**
- * Как на сайте: при возвращении на вкладку минимальная дата считается заново.
- * Если выбранный день уже прошёл, берётся ближайший допустимый.
+ * Как на сайте: при возвращении на вкладку минимальная дата и ограничения пересчитываются.
+ * Если выбранный день уже прошёл или стал недоступен, берётся ближайший допустимый с уведомлением.
  */
 function refreshMinDate(): void {
   if (document.visibilityState !== "visible" || !opened.value || !ready.value || !type.value) return;
   now.value = nowTs();
-  const current = dateTs.value;
-  const start = current !== null && current > minDate.value ? current : minDate.value;
-  dateTs.value = findNextValidDate(start, type.value, restrictions.value);
+  const prev = dateTs.value;
+  const start = prev !== null && prev > minDate.value ? prev : minDate.value;
+  const next = findNextValidDate(start, type.value, restrictions.value);
+  if (next !== prev) {
+    dateTs.value = next;
+    if (next !== null && prev !== null) {
+      showToast("Дата поминовения обновлена на ближайшую доступную");
+    }
+  }
+  void getTypeRestrictions()
+    .then((fresh) => {
+      if (!opened.value || !type.value) return;
+      restrictions.value = fresh;
+      const cur = dateTs.value;
+      if (cur !== null && (cur < minDate.value || !isValidDate(cur, type.value, fresh))) {
+        const updated = findNextValidDate(Math.max(cur, minDate.value), type.value, fresh);
+        if (updated !== cur) {
+          dateTs.value = updated;
+          if (updated !== null) {
+            showToast("Дата поминовения обновлена на ближайшую доступную");
+          }
+        }
+      }
+    })
+    .catch(() => {});
 }
 
 onMounted(() => document.addEventListener("visibilitychange", refreshMinDate));
@@ -744,6 +777,7 @@ function applyServerErrors(errors: ApiErrors | null): void {
 
 async function submit(): Promise<void> {
   if (!type.value || saving.value) return;
+  now.value = nowTs();
   resolveExplanations();
   submitted.value = true;
   serverErrors.value = {};

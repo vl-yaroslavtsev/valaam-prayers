@@ -3,6 +3,8 @@ import {
   initiatePayment,
   loadCartRites,
   requestGid,
+  toErrorList,
+  type ApiError,
   type ApiErrors,
   type InitiatePaymentResponse,
 } from "@/services/rites/ritesApi";
@@ -42,8 +44,43 @@ export interface RitesPayOptions {
   /** Сумма в рублях: для нативного экрана оплаты */
   amount: number;
   email: string;
-  /** Включает и выключает индикатор «Оформляем платёж» */
-  onProcessing?: (active: boolean) => void;
+  /** Включает и выключает индикатор «Оформляем платёж» с опциональным текстом этапа */
+  onProcessing?: (active: boolean, text?: string) => void;
+}
+
+export interface ParsedPaymentErrors {
+  emailError: string | null;
+  riteErrors: Map<number, ApiError[]>;
+  general: string[];
+}
+
+/** Раскладывает ошибки сервера: email к полю, rite-<id> к записке, остальное в общий список */
+export function parsePaymentErrors(
+  errors: ApiErrors | null | undefined,
+  knownRiteIds: Iterable<number>,
+): ParsedPaymentErrors {
+  const known = new Set(knownRiteIds);
+  const riteErrors = new Map<number, ApiError[]>();
+  const general: string[] = [];
+  let emailError: string | null = null;
+
+  for (const error of toErrorList(errors?.fieldsErrors)) {
+    if (error.field === "email") {
+      emailError ??= error.description;
+      continue;
+    }
+    const match = error.field ? /^rite-(\d+)$/.exec(error.field) : null;
+    const riteId = match ? Number(match[1]) : 0;
+    if (riteId && known.has(riteId)) {
+      const list = riteErrors.get(riteId) ?? [];
+      list.push(error);
+      riteErrors.set(riteId, list);
+    } else {
+      general.push(error.description);
+    }
+  }
+  general.push(...toErrorList(errors?.fullErrors).map((error) => error.description));
+  return { emailError, riteErrors, general };
 }
 
 // gid живёт до оплаты: запрашиваем заранее при открытии корзины и заново перед следующей
@@ -53,7 +90,12 @@ const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 /** Вызывать при открытии корзины: заранее запрашивает gid, чтобы не задерживать оплату */
 export function prepareRitesPayment(): void {
-  gidPromise = requestGid();
+  gidPromise ??= requestGid();
+}
+
+/** Сброс кэша gid для тестов */
+export function resetPaymentStateForTests(): void {
+  gidPromise = null;
 }
 
 /**
@@ -106,8 +148,10 @@ async function payNative({ ids, amount, email, onProcessing }: RitesPayOptions):
     }
   };
 
-  const waitPaid = async (): Promise<RitesPayResult> =>
-    (await waitRitesPaid(ids)) ? { status: "success" } : { status: "pending" };
+  const waitPaid = async (): Promise<RitesPayResult> => {
+    onProcessing?.(true, "Подтверждаем оплату...");
+    return (await waitRitesPaid(ids)) ? { status: "success" } : { status: "pending" };
+  };
 
   try {
     gidPromise ??= requestGid();

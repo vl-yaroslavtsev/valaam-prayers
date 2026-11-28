@@ -1,12 +1,18 @@
 import { getNativePlatform } from "@/services/native/nativeRpc";
 
-// Как и в rites-test.vue: пока всё работает с dev.valaam.ru. Для прода поменять здесь или задать VITE_PAYMENT_API_URL.
+// В production (npm run build) ходим на боевой API, в dev / debug / test — на dev.valaam.ru.
+// Переопределить можно через VITE_PAYMENT_API_URL.
 export const RITES_API_URL: string =
-  import.meta.env.VITE_PAYMENT_API_URL || "https://dev.valaam.ru/api";
+  import.meta.env.VITE_PAYMENT_API_URL ||
+  (import.meta.env.MODE === "production"
+    ? "https://valaam.ru/api"
+    : "https://dev.valaam.ru/api");
 
 const CART_PAGE_SIZE = 50;
 const HISTORY_PAGE_SIZE = 20;
 const GID_TIMEOUT_MS = 5000;
+const REQUEST_TIMEOUT_MS = 15000;
+const PAYMENT_TIMEOUT_MS = 45000;
 
 const CLIENT_ID_KEY = "rites-client-id";
 const CONFIRMED_EMAIL_KEY = "rites-confirmedEmail";
@@ -173,28 +179,74 @@ export function getSavedEmail(): string {
 }
 
 /** Подтверждённая почта из письма: `addr|hash`. Дальше уходит в запросы вместе с clientId */
-export function rememberConfirmedEmail(email: string | null | undefined): void {
+export function rememberConfirmedEmail(email: string | null | undefined): boolean {
   const value = email?.trim();
-  if (value) localStorage.setItem(CONFIRMED_EMAIL_KEY, value);
+  if (!value) return false;
+  const prev = localStorage.getItem(CONFIRMED_EMAIL_KEY) || "";
+  localStorage.setItem(CONFIRMED_EMAIL_KEY, value);
+  return value !== prev;
 }
 
 /** Ищет EMAIL в query ссылки. %7C это разделитель хэша */
-export function rememberConfirmedEmailFromUrl(url: string): void {
+export function rememberConfirmedEmailFromUrl(url: string): boolean {
   const queryIndex = url.indexOf("?");
-  if (queryIndex < 0) return;
-  rememberConfirmedEmail(new URLSearchParams(url.slice(queryIndex + 1)).get("EMAIL"));
+  if (queryIndex < 0) return false;
+  return rememberConfirmedEmail(new URLSearchParams(url.slice(queryIndex + 1)).get("EMAIL"));
 }
 
 export function saveEmail(email: string): void {
   localStorage.setItem(EMAIL_KEY, email.trim());
 }
 
-async function request<T>(path: string, init: RequestInit = {}): Promise<ApiResult<T>> {
-  const response = await fetch(`${RITES_API_URL}${path}`, init);
-  const body = await response.json().catch(() => null);
-  return response.ok
-    ? { ok: true, data: body as T }
-    : { ok: false, status: response.status, errors: body };
+async function request<T>(
+  path: string,
+  init: RequestInit = {},
+  timeoutMs = REQUEST_TIMEOUT_MS,
+): Promise<ApiResult<T>> {
+  let controller: AbortController | null = null;
+  let timer: ReturnType<typeof setTimeout> | null = null;
+  let fetchInit = init;
+
+  if (!init.signal && !init.keepalive && timeoutMs > 0) {
+    controller = new AbortController();
+    timer = setTimeout(() => controller?.abort(), timeoutMs);
+    fetchInit = { ...init, signal: controller.signal };
+  }
+
+  try {
+    const response = await fetch(`${RITES_API_URL}${path}`, fetchInit);
+    let parsed: { ok: true; value: unknown } | { ok: false; value: null };
+    if (typeof response.text === "function") {
+      const raw = await response.text().catch(() => null);
+      if (raw === null) {
+        parsed = { ok: false, value: null };
+      } else if (raw.trim() === "") {
+        // Пустое тело допустимо для 200/204 на DELETE; списочные методы всё равно проверяют форму data
+        parsed = { ok: true, value: null };
+      } else {
+        try {
+          parsed = { ok: true, value: JSON.parse(raw) };
+        } catch {
+          parsed = { ok: false, value: null };
+        }
+      }
+    } else {
+      parsed = await response
+        .json()
+        .then((value) => ({ ok: true as const, value }))
+        .catch(() => ({ ok: false as const, value: null }));
+    }
+
+    if (!response.ok) {
+      return { ok: false, status: response.status, errors: parsed.value as ApiErrors | null };
+    }
+    if (!parsed.ok && response.status !== 204) {
+      return { ok: false, status: response.status, errors: null };
+    }
+    return { ok: true, data: parsed.value as T };
+  } finally {
+    if (timer) clearTimeout(timer);
+  }
 }
 
 const jsonPost = (body: unknown): RequestInit => ({
@@ -217,17 +269,28 @@ export function collectErrors(errors: ApiErrors | null | undefined): ApiError[] 
   return [...toErrorList(errors?.fieldsErrors), ...toErrorList(errors?.fullErrors)];
 }
 
-let statuses: RiteStatus[] | null = null;
+let statusesPromise: Promise<RiteStatus[]> | null = null;
 
 async function getStatuses(): Promise<RiteStatus[]> {
-  if (statuses) return statuses;
-
-  const result = await request<RiteStatus[]>("/rites/statuses");
-  if (!result.ok || !result.data?.length) {
-    throw new Error("Не удалось получить статусы записок");
+  if (!statusesPromise) {
+    statusesPromise = request<RiteStatus[]>("/rites/statuses")
+      .then((result) => {
+        if (!result.ok || !Array.isArray(result.data) || result.data.length === 0) {
+          throw new Error("Не удалось получить статусы записок");
+        }
+        return result.data;
+      })
+      .catch((error) => {
+        statusesPromise = null;
+        throw error;
+      });
   }
-  statuses = result.data;
-  return statuses;
+  return statusesPromise;
+}
+
+/** Сброс кэша статусов для тестов */
+export function resetRitesStatusesCacheForTests(): void {
+  statusesPromise = null;
 }
 
 /** Корзина это записки в статусе «new» (Сформирована); id статуса берём с сервера */
@@ -245,9 +308,11 @@ interface RitesPage {
 }
 
 export type RitesOrder = "ASC" | "DESC";
+export type RitesOrderBy = "date" | "paymentDate";
 
 interface RitesPageOptions {
   order?: RitesOrder;
+  orderBy?: RitesOrderBy;
   typeId?: number | null;
 }
 
@@ -255,7 +320,7 @@ async function loadRitesPage(
   statusIds: number[],
   page: number,
   perPage: number,
-  { order = "DESC", typeId = null }: RitesPageOptions = {},
+  { order = "DESC", orderBy = "date", typeId = null }: RitesPageOptions = {},
 ): Promise<RitesPage> {
   const query = new URLSearchParams({
     clientId: getClientId(),
@@ -263,7 +328,7 @@ async function loadRitesPage(
     perPage: String(perPage),
     page: String(page),
     order,
-    orderBy: "date",
+    orderBy,
   });
   statusIds.forEach((id, index) => query.append(`status[${index}]`, String(id)));
   if (typeId) query.append("type", String(typeId));
@@ -272,12 +337,20 @@ async function loadRitesPage(
   if (!result.ok) {
     throw new Error(collectErrors(result.errors)[0]?.description ?? `HTTP ${result.status}`);
   }
+  if (!result.data || !Array.isArray(result.data.items)) {
+    throw new Error("Некорректный ответ сервера");
+  }
 
-  const { items, nav, confirmedEmail } = result.data ?? {};
+  const { items, nav, confirmedEmail } = result.data;
   if (confirmedEmail) {
     localStorage.setItem(CONFIRMED_EMAIL_KEY, confirmedEmail);
   }
-  return { items: items ?? [], totalPages: nav?.totalPages ?? 1 };
+  const rawTotalPages = nav?.totalPages;
+  const totalPages =
+    typeof rawTotalPages === "number" && Number.isFinite(rawTotalPages) && rawTotalPages >= 0
+      ? rawTotalPages
+      : 1;
+  return { items, totalPages };
 }
 
 /** Корзина от старых записок к новым: порядок добавления, кнопка добавления под списком */
@@ -288,7 +361,7 @@ export async function loadCartRites(): Promise<Rite[]> {
   for (let page = 1; ; page++) {
     const { items, totalPages } = await loadRitesPage([statusId], page, CART_PAGE_SIZE, { order: "ASC" });
     rites.push(...items);
-    if (page >= totalPages) break;
+    if (items.length === 0 || page >= totalPages) break;
   }
 
   return rites;
@@ -316,6 +389,7 @@ export async function loadHistoryRites({
   const statusIds = statusId ? [statusId] : await getHistoryStatusIds();
   const { items, totalPages } = await loadRitesPage(statusIds, page, HISTORY_PAGE_SIZE, {
     order,
+    orderBy: "paymentDate",
     typeId,
   });
   return { items, hasMore: page < totalPages, totalPages };
@@ -381,9 +455,12 @@ export async function loadHistoryFilter({
   if (!result.ok) {
     throw new Error(collectErrors(result.errors)[0]?.description ?? `HTTP ${result.status}`);
   }
+  if (!result.data || !Array.isArray(result.data.types) || !Array.isArray(result.data.statuses)) {
+    throw new Error("Некорректный ответ сервера");
+  }
   return {
-    types: result.data?.types ?? [],
-    statuses: (result.data?.statuses ?? []).filter((item) => item.xmlId !== "new"),
+    types: result.data.types,
+    statuses: result.data.statuses.filter((item) => item.xmlId !== "new"),
   };
 }
 
@@ -401,7 +478,10 @@ export async function loadTypeRestrictions(): Promise<TypeRestriction[]> {
   if (!result.ok) {
     throw new Error(collectErrors(result.errors)[0]?.description ?? `HTTP ${result.status}`);
   }
-  return result.data ?? [];
+  if (!Array.isArray(result.data)) {
+    throw new Error("Некорректный ответ сервера");
+  }
+  return result.data;
 }
 
 /** Код способа оплаты для PUT: сервер требует его у записок в корзине, при оплате он заменяется */
@@ -465,7 +545,10 @@ async function loadList<T>(path: string): Promise<T[]> {
   if (!result.ok) {
     throw new Error(collectErrors(result.errors)[0]?.description ?? `HTTP ${result.status}`);
   }
-  return result.data ?? [];
+  if (!Array.isArray(result.data)) {
+    throw new Error("Некорректный ответ сервера");
+  }
+  return result.data;
 }
 
 /** Типы записок для формы подачи */
@@ -489,6 +572,7 @@ export function initiatePayment(params: InitiatePaymentParams): Promise<ApiResul
       valaam_gid: params.gid ?? "",
       ids: params.ids,
     }),
+    PAYMENT_TIMEOUT_MS,
   );
 }
 

@@ -7,8 +7,8 @@
     @page:beforein="onPageBeforeIn"
     @page:afterin="onPageShown"
     @page:tabshow="onPageShown"
-    @page:beforeout="isActive = false"
-    @page:tabhide="isActive = false"
+    @page:beforeout="onPageHidden"
+    @page:tabhide="onPageHidden"
   >
     <f7-navbar no-hairline>
       <f7-nav-left :back-link="!isFirstPage">
@@ -76,7 +76,7 @@
     <f7-page-content v-show="activeTab === 'cart'" class="rites-tab-content">
       <div class="rites-cart" :class="{ 'rites-cart--empty': isEmpty }">
         <!-- Загрузка корзины -->
-        <div v-if="!store.isLoaded" class="rites-state" aria-busy="true">
+        <div v-if="!store.isLoaded && !store.loadError" class="rites-state" aria-busy="true">
           <f7-skeleton-block class="rites-skeleton rites-skeleton--select" effect="wave" />
           <f7-skeleton-block class="rites-skeleton rites-skeleton--card" effect="wave" />
           <f7-skeleton-block class="rites-skeleton rites-skeleton--card" effect="wave" />
@@ -85,7 +85,16 @@
         <!-- Ошибка загрузки -->
         <div v-else-if="store.loadError" class="rites-state rites-state--center">
           <p class="rites-state__text">{{ store.loadError }}</p>
-          <f7-button outline large @click="store.load()">Повторить</f7-button>
+          <f7-button
+            outline
+            large
+            :preloader="store.isLoading"
+            :loading="store.isLoading"
+            :disabled="store.isLoading"
+            @click="refreshCart()"
+          >
+            Повторить
+          </f7-button>
         </div>
 
         <!-- Пустая корзина -->
@@ -93,7 +102,7 @@
           <div class="rites-empty__text">
             <p class="rites-empty__title">Корзина записок пуста</p>
             <p class="rites-empty__hint">
-              У Вас нет пожертвованных записок. Заполните форму подачи записки, и она появится здесь.
+              Заполните форму подачи записки, и она появится здесь.
             </p>
           </div>
           <div class="rites-empty__actions">
@@ -146,7 +155,8 @@
                     v-for="item in store.items"
                     :key="item.id"
                     :item="item"
-                    @toggle="item.checked = $event"
+                    :pending="store.isPendingPayment(item.id)"
+                    @toggle="toggleItem(item, $event)"
                     @edit="openPopup('edit', item, 'cart')"
                     @copy="openPopup('copy', item, 'cart')"
                     @remove="store.removeItems([item.id])"
@@ -248,7 +258,6 @@ import {
   getSavedEmail,
   rememberConfirmedEmail,
   saveEmail,
-  toErrorList,
   type ApiErrors,
   type Rite,
 } from "@/services/rites/ritesApi";
@@ -256,10 +265,15 @@ import { onItemBeforeEnter, onItemEnter, onItemLeave } from "@/services/rites/co
 import { preloadRiteFormDirectory } from "@/services/rites/ritesDirectory";
 import { closeOpenToast, syncUndoToast } from "@/services/rites/undoToast";
 import { formatPrice, isValidEmail } from "@/services/rites/ritesFormat";
-import { payRites, prepareRitesPayment } from "@/services/rites/ritesPayment";
+import {
+  parsePaymentErrors,
+  payRites,
+  prepareRitesPayment,
+} from "@/services/rites/ritesPayment";
 import {
   ERROR_VISIBLE_MS,
   useRitesCartStore,
+  type CartItem,
   type RitesTab,
 } from "@/stores/ritesCart";
 
@@ -294,6 +308,12 @@ function syncTabHighlight(): void {
   const tabbarEl = tabbarRef.value?.$el;
   if (tabbarEl) {
     f7.toolbar.setHighlight(tabbarEl);
+  }
+}
+
+function toggleItem(item: CartItem, checked: boolean): void {
+  if (!store.isPendingPayment(item.id)) {
+    item.checked = checked;
   }
 }
 
@@ -374,15 +394,20 @@ function showError(text: string): void {
 const DATES_TOAST_MS = 7000;
 let datesToast: Toast.Toast | null = null;
 
-/** Обновляет корзину и пересчитывает устаревшие даты записок */
-async function refreshCart(): Promise<void> {
-  await store.load();
-  const changed = await store.validateAndFixDates();
-  if (changed === 0) return;
+function showDatesUpdatedToast(numbers: string[]): void {
+  let text = "Мы изменили даты записок на актуальные";
+  // if (numbers.length === 1) {
+  //   text = `Мы изменили дату записки №${numbers[0]} на актуальную`;
+  // } else if (numbers.length > 1) {
+  //   text = `Мы изменили даты записок (${numbers.map((num) => `№${num}`).join(", ")}) на актуальные`;
+  // }
 
+  if (numbers.length === 1) {
+    text = `Мы изменили дату записки на актуальную`;
+  }
   datesToast?.destroy();
   datesToast = f7.toast.create({
-    text: "Мы изменили даты записок на актуальные",
+    text,
     position: "bottom",
     closeTimeout: DATES_TOAST_MS,
     destroyOnClose: true,
@@ -390,10 +415,22 @@ async function refreshCart(): Promise<void> {
   datesToast.open();
 }
 
+/** Обновляет корзину и пересчитывает устаревшие даты записок */
+async function refreshCart(): Promise<void> {
+  await store.load();
+  const changed = await store.validateAndFixDates();
+  if (changed === 0) return;
+  showDatesUpdatedToast(store.lastFixedDateNumbers);
+}
+
 function onPageShown(): void {
   isActive.value = true;
-  rememberConfirmedEmail(f7route.query.EMAIL);
+  const emailChanged = rememberConfirmedEmail(f7route.query.EMAIL);
   if (!email.value.trim()) email.value = getSavedEmail();
+  if (emailChanged) historyTabRef.value?.invalidate();
+  if (store.pendingDeleted.length > 0) {
+    undoToast = syncUndoToast(undoToast, store.pendingDeleted.length, openUndoToast);
+  }
   void refreshCart();
   void prepareRitesPayment();
   preloadRiteFormDirectory();
@@ -401,6 +438,12 @@ function onPageShown(): void {
   if (activeTab.value === "history") {
     historyTabRef.value?.refresh();
   }
+}
+
+function onPageHidden(): void {
+  isActive.value = false;
+  closeOpenToast(undoToast);
+  undoToast = null;
 }
 
 function openPopup(
@@ -469,14 +512,19 @@ watch(
   },
 );
 
-function setProcessing(active: boolean): void {
+let processingText = "";
+
+function setProcessing(active: boolean, text = "Отправляем записки..."): void {
+  if (active && processingDialog && processingText === text) return;
   processingDialog?.close();
-  processingDialog = active ? f7.dialog.preloader("Отправляем записки...") : null;
+  processingText = active ? text : "";
+  processingDialog = active ? f7.dialog.preloader(text) : null;
 }
 
 function focusEmail(): void {
   void nextTick(() => {
-    document.querySelector<HTMLInputElement>(".rites-page input[name='email']")?.focus();
+    const root = pageRef.value?.$el ?? document;
+    root.querySelector<HTMLInputElement>("input[name='email']")?.focus();
   });
 }
 
@@ -488,22 +536,18 @@ function setEmailError(text: string): void {
 
 /** Раскладывает ошибки сервера: email к полю, rite-<id> к записке, остальное в общий список */
 function applyPaymentErrors(errors: ApiErrors | null | undefined): string[] {
-  const general: string[] = [];
-  for (const error of toErrorList(errors?.fieldsErrors)) {
-    if (error.field === "email") {
-      setEmailError(error.description);
-      continue;
-    }
-    const riteId = error.field?.startsWith("rite") ? parseInt(error.field.split("-")[1], 10) : 0;
-    const item = riteId ? store.items.find((candidate) => candidate.id === riteId) : null;
-    if (item) {
-      item.errors.push(error);
-    } else {
-      general.push(error.description);
-    }
+  const parsed = parsePaymentErrors(
+    errors,
+    store.items.map((item) => item.id),
+  );
+  if (parsed.emailError) {
+    setEmailError(parsed.emailError);
   }
-  general.push(...toErrorList(errors?.fullErrors).map((error) => error.description));
-  return general;
+  for (const [riteId, itemErrors] of parsed.riteErrors) {
+    const item = store.items.find((candidate) => candidate.id === riteId);
+    if (item) item.errors.push(...itemErrors);
+  }
+  return parsed.general;
 }
 
 async function onPay(): Promise<void> {
@@ -530,6 +574,23 @@ async function onPay(): Promise<void> {
 
   isSubmitting.value = true;
   try {
+    // Проверяем актуальность дат перед оплатой (например, если страница открыта через полночь МСК)
+    await store.validateAndFixDates();
+    const selectedSet = new Set(ids);
+    const fixedSelectedIds = store.lastFixedDateIds.filter((id) => selectedSet.has(id));
+    if (fixedSelectedIds.length > 0) {
+      const numbers = store.items
+        .filter((item) => fixedSelectedIds.includes(item.id))
+        .map((item) => item.number);
+      showDatesUpdatedToast(numbers);
+      return;
+    }
+    const failedSelectedIds = store.lastFailedDateIds.filter((id) => selectedSet.has(id));
+    if (failedSelectedIds.length > 0) {
+      showError("Не удалось обновить устаревшие даты записок. Попробуйте ещё раз");
+      return;
+    }
+
     const result = await payRites({
       ids,
       amount: store.total,
@@ -546,13 +607,14 @@ async function onPay(): Promise<void> {
           "Спасибо! Записки приняты, пожертвование оформлено.",
           "Пожертвование",
           () => {
-            historyTabRef.value?.resetForNewest();
+            historyTabRef.value?.resetForNewest(ids);
             store.setActiveTab("history");
           },
         );
         break;
       case "pending":
         saveEmail(trimmedEmail);
+        store.markPendingPayment(ids);
         historyTabRef.value?.invalidate();
         f7.dialog.alert(
           "Платёж обрабатывается. Записки останутся в корзине, пока оплата не подтвердится.",
@@ -568,7 +630,7 @@ async function onPay(): Promise<void> {
         } else if (!hasFieldErrors) {
           showError(result.message || "Не удалось оформить платёж. Попробуйте позже");
         }
-        setTimeout(() => store.clearErrors(), ERROR_VISIBLE_MS);
+        store.scheduleClearErrors(ERROR_VISIBLE_MS);
         break;
       }
       case "cancelled":
@@ -583,7 +645,9 @@ async function onPay(): Promise<void> {
 // Закрытие приложения во время ожидания отмены: удаляем сразу
 const onVisibilityChange = () => {
   if (document.visibilityState === "hidden") {
-    void store.commitRemoval({ keepalive: true });
+    if (!isSubmitting.value) {
+      void store.commitRemoval({ keepalive: true });
+    }
   } else if (isActive.value) {
     // Вернулись в приложение, возможно на следующий день: даты могли устареть
     void refreshCart();
@@ -602,6 +666,7 @@ onMounted(() => {
 
 onBeforeUnmount(() => {
   document.removeEventListener("visibilitychange", onVisibilityChange);
+  void store.commitRemoval({ keepalive: true });
   closeOpenToast(undoToast);
   errorToast?.destroy();
   datesToast?.destroy();

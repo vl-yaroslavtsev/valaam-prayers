@@ -60,11 +60,12 @@ const PERIOD_ONE_YEAR_DAYS = 365;
 
 /** Последний день поминовения: начало + (дней в периоде - 1), для года: начало + 1 год - 1 день */
 export function getToDate(startTs: number, type: RiteType): number {
-  if (type.periodDays === PERIOD_ONE_YEAR_DAYS) {
+  if (type.period === "1year" || type.periodDays === PERIOD_ONE_YEAR_DAYS) {
     const { day, month, year } = mskParts(startTs);
     return Date.UTC(year + 1, month, day - 1) / 1000 - MSK_OFFSET;
   }
-  return startTs + (type.periodDays ? type.periodDays - 1 : 1) * DAY;
+  const days = type.periodDays > 0 ? type.periodDays : 1;
+  return startTs + (days - 1) * DAY;
 }
 
 /**
@@ -95,17 +96,17 @@ export function isValidDate(dayTs: number, type: RiteType, restrictions: TypeRes
   return valid;
 }
 
-/** Первый подходящий день, начиная с minTs */
+/** Первый подходящий день, начиная с minTs, или null, если за MAX_SEARCH_DAYS допустимых дней нет */
 export function findNextValidDate(
   minTs: number,
   type: RiteType,
   restrictions: TypeRestriction[],
-): number {
+): number | null {
   for (let i = 0; i < MAX_SEARCH_DAYS; i++) {
     const dayTs = minTs + i * DAY;
     if (isValidDate(dayTs, type, restrictions)) return dayTs;
   }
-  return minTs;
+  return null;
 }
 
 const toPoint = (ts: number): RiteDatePoint => ({ ts, value: formatDateLong(ts) });
@@ -133,6 +134,7 @@ export function findDateFixes(
     if (itemDay >= minDate && isValidDate(itemDay, type, restrictions)) continue;
 
     const start = findNextValidDate(minDate, type, restrictions);
+    if (start === null) continue;
     fixes.push({ rite, from: toPoint(start), to: toPoint(getToDate(start, type)) });
   }
   return fixes;

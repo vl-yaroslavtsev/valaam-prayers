@@ -136,6 +136,21 @@
           />
         </template>
       </f7-list>
+
+      <div v-if="loadMoreError && items.length > 0" class="history-state history-state--center">
+        <p class="history-state__text">{{ loadMoreError }}</p>
+        <f7-button
+          outline
+          large
+          class="history-button"
+          :preloader="isLoadingMore"
+          :loading="isLoadingMore"
+          :disabled="isLoadingMore"
+          @click="loadMore()"
+        >
+          Повторить
+        </f7-button>
+      </div>
     </template>
 
     <f7-popover class="history-order-popover">
@@ -173,6 +188,7 @@ import RitesHistorySelect, {
 import SvgIcon from "@/components/SvgIcon.vue";
 import { useTheme } from "@/composables/useTheme";
 import {
+  getConfirmedEmail,
   loadHistoryFilter,
   loadHistoryPages,
   loadHistoryRites,
@@ -263,6 +279,7 @@ onMounted(() => {
 onBeforeUnmount(() => {
   tabletMedia?.removeEventListener("change", onTabletChange);
   scrollEl?.removeEventListener("scroll", syncNavActions);
+  clearExpectedRetryTimer();
 });
 
 const items = ref<Rite[]>([]);
@@ -275,6 +292,7 @@ const isLoading = ref(false);
 const isRefreshing = ref(false);
 const isLoadingMore = ref(false);
 const error = ref<string | null>(null);
+const loadMoreError = ref<string | null>(null);
 
 // "" значит «не выбрано»
 const selectedType = ref("");
@@ -322,11 +340,46 @@ const filterSheetOpened = ref(false);
 
 /** Сколько история считается свежей при переключении вкладок «Корзина ↔ Поданные» */
 const HISTORY_REFRESH_TTL_MS = 60 * 1000;
+/** Пауза перед повторной тихой проверкой истории, если только что оплаченные записки ещё не дошли до БД */
+const PAID_HISTORY_RETRY_MS = 2500;
 
 // Счётчик запросов: ответ устаревшего запроса (фильтр уже сменился) отбрасывается
 let requestId = 0;
 let lastLoadedAt = 0;
+let loadedForEmail: string | null = null;
 let isSilentRefreshing = false;
+let suppressFilterWatch = false;
+let expectedPaidIds = new Set<number>();
+let expectedRetriesLeft = 0;
+let expectedRetryTimer: ReturnType<typeof setTimeout> | null = null;
+
+function clearExpectedRetryTimer(): void {
+  if (expectedRetryTimer) {
+    clearTimeout(expectedRetryTimer);
+    expectedRetryTimer = null;
+  }
+}
+
+function checkExpectedPaidIds(): void {
+  if (expectedPaidIds.size === 0) return;
+  // На первую страницу помещается не более 20 записок: при оплате >20 проверяем заполнение первой страницы
+  const needed = Math.min(expectedPaidIds.size, 20);
+  const foundCount = items.value.filter((item) => expectedPaidIds.has(item.id)).length;
+  if (foundCount >= needed) {
+    expectedPaidIds.clear();
+    expectedRetriesLeft = 0;
+    clearExpectedRetryTimer();
+    return;
+  }
+  if (expectedRetriesLeft > 0 && props.active) {
+    expectedRetriesLeft -= 1;
+    clearExpectedRetryTimer();
+    expectedRetryTimer = setTimeout(() => {
+      expectedRetryTimer = null;
+      if (props.active) void silentRefresh();
+    }, PAID_HISTORY_RETRY_MS);
+  }
+}
 
 const toId = (value: string): number | null => (value ? Number(value) : null);
 
@@ -344,9 +397,11 @@ function currentQuery() {
  */
 async function loadFirst(): Promise<void> {
   const id = ++requestId;
+  clearExpectedRetryTimer();
   isLoadingMore.value = false;
   isSilentRefreshing = false;
   error.value = null;
+  loadMoreError.value = null;
   const initial = !isLoaded.value;
   if (initial) {
     isLoading.value = true;
@@ -366,6 +421,9 @@ async function loadFirst(): Promise<void> {
     hasMore.value = result.hasMore;
     isLoaded.value = true;
     lastLoadedAt = Date.now();
+    // Читаем после ответа: loadRitesPage мог сохранить confirmedEmail, вернувшийся с сервера
+    loadedForEmail = getConfirmedEmail();
+    checkExpectedPaidIds();
   } catch (ex) {
     if (id !== requestId) return;
     console.error("Не удалось загрузить поданные записки:", ex);
@@ -386,6 +444,7 @@ async function silentRefresh(): Promise<void> {
   const id = ++requestId;
   const targetPages = Math.max(1, page.value);
   isLoadingMore.value = false;
+  loadMoreError.value = null;
   isSilentRefreshing = true;
 
   try {
@@ -396,6 +455,8 @@ async function silentRefresh(): Promise<void> {
     hasMore.value = result.hasMore;
     error.value = null;
     lastLoadedAt = Date.now();
+    loadedForEmail = getConfirmedEmail();
+    checkExpectedPaidIds();
   } catch (ex) {
     if (id !== requestId) return;
     console.error("Не удалось обновить поданные записки:", ex);
@@ -419,6 +480,7 @@ async function loadMore(): Promise<void> {
 
   const id = requestId;
   isLoadingMore.value = true;
+  loadMoreError.value = null;
   try {
     const result = await loadHistoryRites({ page: page.value + 1, ...currentQuery() });
     if (id !== requestId) return;
@@ -428,9 +490,9 @@ async function loadMore(): Promise<void> {
     hasMore.value = result.hasMore;
     lastLoadedAt = Date.now();
   } catch (ex) {
-    // Очередная порция не пришла: останавливаем подгрузку, чтобы не крутить запросы
+    // Очередная порция не пришла: показываем кнопку повтора внизу списка вместо вечного спиннера
     console.error("Не удалось подгрузить историю записок:", ex);
-    if (id === requestId) hasMore.value = false;
+    if (id === requestId) loadMoreError.value = "Не удалось загрузить ещё записки";
   } finally {
     if (id === requestId) isLoadingMore.value = false;
   }
@@ -446,7 +508,24 @@ async function refreshFilter(): Promise<void> {
       typeId: toId(selectedType.value),
       statusId: toId(selectedStatus.value),
     });
-    if (id === filterRequestId) filter.value = result;
+    if (id !== filterRequestId) return;
+    filter.value = result;
+
+    // Если ранее выбранный тип или статус исчез из справочника, сбрасываем его
+    if (
+      selectedType.value &&
+      result.types.length > 0 &&
+      !result.types.some((type) => String(type.id) === selectedType.value)
+    ) {
+      selectedType.value = "";
+    }
+    if (
+      selectedStatus.value &&
+      result.statuses.length > 0 &&
+      !result.statuses.some((status) => String(status.id) === selectedStatus.value)
+    ) {
+      selectedStatus.value = "";
+    }
   } catch (ex) {
     console.error("Не удалось загрузить фильтры истории:", ex);
   }
@@ -463,17 +542,44 @@ function invalidate(): void {
 }
 
 /** Сбрасывает фильтры, сортировку и скролл перед показом только что поданных записок */
-function resetForNewest(): void {
+function resetForNewest(paidIds: number[] = []): void {
+  suppressFilterWatch = true;
   selectedType.value = "";
   selectedStatus.value = "";
   order.value = "DESC";
   page.value = 1;
   lastLoadedAt = 0;
+  clearExpectedRetryTimer();
+  expectedPaidIds = new Set(paidIds);
+  expectedRetriesLeft = paidIds.length > 0 ? 2 : 0;
   if (scrollEl) scrollEl.scrollTop = 0;
+  void nextTick(() => {
+    suppressFilterWatch = false;
+  });
 }
 
 function refresh({ force = false } = {}): void {
   void nextTick(syncNavActions);
+  const currentEmail = getConfirmedEmail();
+  const emailChanged = loadedForEmail !== null && loadedForEmail !== currentEmail;
+  if (emailChanged) {
+    suppressFilterWatch = true;
+    selectedType.value = "";
+    selectedStatus.value = "";
+    order.value = "DESC";
+    page.value = 1;
+    items.value = [];
+    isLoaded.value = false;
+    lastLoadedAt = 0;
+    force = true;
+    void nextTick(() => {
+      suppressFilterWatch = false;
+    });
+  }
+
+  if (!force && (isLoading.value || isRefreshing.value || isSilentRefreshing)) {
+    return;
+  }
   if (isLoaded.value && !force && Date.now() - lastLoadedAt < HISTORY_REFRESH_TTL_MS) {
     return;
   }
@@ -494,12 +600,12 @@ function applyEdited(rite: Rite): void {
 }
 
 watch([selectedType, selectedStatus], () => {
-  if (!props.active) return;
+  if (!props.active || suppressFilterWatch) return;
   void loadFirst();
   void refreshFilter();
 });
 watch(order, () => {
-  if (!props.active) return;
+  if (!props.active || suppressFilterWatch) return;
   void loadFirst();
 });
 watch(
@@ -509,14 +615,14 @@ watch(
   },
 );
 watch(
-  [showControls, showNavActions, isFilterActive, currentOrderLabel, hasMore],
+  [showControls, showNavActions, isFilterActive, currentOrderLabel, hasMore, loadMoreError],
   () => {
     emit("navState", {
       showControls: showControls.value,
       showNavActions: showNavActions.value,
       isFilterActive: isFilterActive.value,
       currentOrderLabel: currentOrderLabel.value,
-      hasMore: hasMore.value,
+      hasMore: hasMore.value && !loadMoreError.value,
     });
   },
   { immediate: true },
